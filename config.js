@@ -8,7 +8,7 @@ export const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 export const DATABASE_URL = process.env.DATABASE_URL || 'sqlite:thienco.db';
 
 // Time configuration: 1 Đạo Niên = 15 minutes of real time (900 seconds)
-export const DEBUG_MODE = String(process.env.DEBUG_MODE || 'True').toLowerCase() === 'true' || process.env.DEBUG_MODE === '1';
+export const DEBUG_MODE = String(process.env.DEBUG_MODE || 'false').toLowerCase() === 'true' || process.env.DEBUG_MODE === '1';
 export const DAO_NIEN_SECONDS = DEBUG_MODE ? 15 : 900;
 
 // Base cultivation stats

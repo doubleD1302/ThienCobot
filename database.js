@@ -14,6 +14,7 @@ if (process.env.NODE_ENV === 'test') {
   // MySQL / TiDB connection
   sequelize = new Sequelize(config.DATABASE_URL, {
     dialect: 'mysql',
+    timezone: '+00:00', // Ensure dates match SQLite and UTC standard, avoiding timezone shifts on cloud hostings
     dialectOptions: {
       ssl: {
         minVersion: 'TLSv1.2',

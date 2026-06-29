@@ -9,46 +9,6 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
     super();
   }
 
-  async kiemTraVaNhanTuVi(tuSi) {
-    // 1. Tìm bản ghi thời gian chờ tu luyện thủ công
-    const thoiGianCho = await ThoiGianCho.findOne({
-      where: {
-        idNguoiDung: tuSi.idNguoiDung,
-        hanhDong: 'cultivate'
-      }
-    });
-
-    if (thoiGianCho) {
-      const hetHanTime = new Date(thoiGianCho.hetHan).getTime();
-      if (hetHanTime <= Date.now()) {
-        // Đã tu luyện xong! Tiến hành phát thưởng
-        const duLieu = thoiGianCho.duLieu || {};
-        const daoNien = duLieu.dao_nien || 1;
-
-        // Tính toán linh lực & linh thạch nhận được
-        const multiplier = tuSi.layHeSoTuLuyen();
-        const gainedExp = Math.floor(config.BASE_EXP_PER_DAO_NIEN * multiplier * daoNien);
-        const gainedStones = Math.floor(10 * tuSi.capDo * daoNien);
-
-        // Cộng thưởng
-        tuSi.linhLuc += gainedExp;
-        tuSi.linhThach += gainedStones;
-
-        // Hồi phục 20% máu/pháp lực cực đại mỗi Đạo Niên tu luyện
-        const stats = tuSi.layChiSo();
-        tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * daoNien));
-        tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * daoNien));
-
-        // Xóa thời gian chờ và lưu trạng thái
-        await thoiGianCho.destroy();
-        await tuSi.save();
-
-        return { completed: true, exp: gainedExp, stones: gainedStones };
-      }
-    }
-
-    return { completed: false, exp: 0, stones: 0 };
-  }
 
   // Lệnh /tuvi: Xem chi tiết tu vi và tiến độ đột phá
   lenhXemTuVi = {
@@ -73,7 +33,9 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
           `• **Linh lực nhận được**: \`+${exp}\` ✨\n` +
           `• **Linh thạch nhận được**: \`+${stones}\` 💎`
         );
-        await interaction.channel.send({ content: `<@${tuSi.idNguoiDung}>`, embeds: [embedReward] });
+        if (interaction.channel) {
+          await interaction.channel.send({ content: `<@${tuSi.idNguoiDung}>`, embeds: [embedReward] }).catch(err => console.error('Failed to send reward message:', err));
+        }
       }
 
       // 2. Lấy thời gian chờ tu luyện đang chạy
@@ -192,12 +154,20 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 
       await this.datThoiGianCho(tuSi.idNguoiDung, 'cultivate', expiresAt, { dao_nien: daoNien });
 
-      const realMinutes = Math.ceil(durationSeconds / 60);
+      let timeText = '';
+      if (durationSeconds < 60) {
+        timeText = `${durationSeconds} giây`;
+      } else {
+        const mins = Math.floor(durationSeconds / 60);
+        const secs = durationSeconds % 60;
+        timeText = secs > 0 ? `${mins} phút ${secs} giây` : `${mins} phút`;
+      }
+
       await interaction.reply({
         embeds: [BoTaoEmbed.thanhCong(
           "🧘 Bắt Đầu Thiền Định",
           `Đạo hữu **${tuSi.ten}** đã nhập định tu luyện trong **${daoNien} Đạo Niên** ` +
-          `(tương đương \`${realMinutes} phút\` thực tế).\n` +
+          `(tương đương \`${timeText}\` thực tế).\n` +
           `Linh khí xung quanh đang chuyển động mạnh mẽ...`
         )]
       });

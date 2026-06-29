@@ -64,6 +64,18 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         });
       }
 
+      // Nhận phần thưởng tu vi nếu đã tu luyện xong
+      const { completed, exp, stones } = await this.kiemTraVaNhanTuVi(tuSi);
+      if (completed) {
+        const embedReward = BoTaoEmbed.thanhCong(
+          "🧘 Thiền Định Hoàn Tất",
+          `Đạo hữu đã hoàn thành thiền định!\n` +
+          `• **Linh lực nhận được**: \`+${exp}\` ✨\n` +
+          `• **Linh thạch nhận được**: \`+${stones}\` 💎`
+        );
+        await interaction.channel.send({ content: `<@${tuSi.idNguoiDung}>`, embeds: [embedReward] }).catch(err => console.error(err));
+      }
+
       const stats = tuSi.layChiSo();
       
       // Khôi phục chỉ số động khi thay đổi căn cơ phạt cực đại
