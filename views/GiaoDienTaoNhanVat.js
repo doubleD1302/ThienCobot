@@ -3,7 +3,7 @@ import * as config from '../config.js';
 import { TuSi } from '../models/TuSi.js';
 
 export class GiaoDienTaoNhanVat {
-  constructor(author, name) {
+  constructor(author, name, daoNien = null) {
     this.author = author;
     this.name = name;
     this.gender = null; // 'Nam' or 'Nữ'
@@ -11,13 +11,13 @@ export class GiaoDienTaoNhanVat {
     this.rolledLinhCan = null;
     this.rolledLinhCanList = [];
     this.step = 1;
+    this.daoNien = daoNien;
   }
 
   getEmbed() {
     if (this.step === 1) {
-      return new EmbedBuilder()
+      const embed = new EmbedBuilder()
         .setTitle("🌀 Thiết Lập Nhân Vật Mới")
-        .setDescription("Hãy chọn Giới tính và Hướng tu luyện của ngươi trước khi thức tỉnh Linh Căn.")
         .setColor(0x3498db)
         .addFields(
           { name: "👤 Tên Tu Sĩ", value: `\`${this.name}\``, inline: false },
@@ -25,6 +25,13 @@ export class GiaoDienTaoNhanVat {
           { name: "🔮 Hướng tu", value: `\`${this.path ? config.HUONG_DI[this.path].name : 'Chưa chọn'}\``, inline: true }
         )
         .setFooter({ text: "Thiên Đạo Tu Tiên RPG" });
+
+      if (this.daoNien !== null) {
+        embed.setDescription(`🌌 **Đạo Niên thứ ${this.daoNien} của Máy Chủ**\n\nHãy chọn Giới tính và Hướng tu luyện của ngươi trước khi thức tỉnh Linh Căn.`);
+      } else {
+        embed.setDescription("Hãy chọn Giới tính và Hướng tu luyện của ngươi trước khi thức tỉnh Linh Căn.");
+      }
+      return embed;
     } else {
       const pathName = config.HUONG_DI[this.path]?.name || '';
       const details = this.rolledLinhCanList.map(el => {
@@ -32,9 +39,8 @@ export class GiaoDienTaoNhanVat {
         return info ? `• **${info.name}**: ${info.desc}` : '';
       }).filter(Boolean).join('\n');
 
-      return new EmbedBuilder()
+      const embed = new EmbedBuilder()
         .setTitle("🌀 Kết Quả Thức Tỉnh Linh Căn")
-        .setDescription("Linh hồn của ngươi đã cộng hưởng với thiên địa linh khí và thức tỉnh Linh Căn dưới đây.")
         .setColor(0x9b59b6)
         .addFields(
           { name: "👤 Tên Tu Sĩ", value: `\`${this.name}\``, inline: true },
@@ -44,6 +50,13 @@ export class GiaoDienTaoNhanVat {
           { name: "⚡ Thuộc tính Linh Căn", value: details || '• Không có linh căn thụ động.', inline: false }
         )
         .setFooter({ text: "Nhấn [Xác nhận] để bước vào thế giới tu tiên, hoặc [Làm lại] để roll lại linh căn." });
+
+      if (this.daoNien !== null) {
+        embed.setDescription(`🌌 **Đạo Niên thứ ${this.daoNien} của Máy Chủ**\n\nLinh hồn của ngươi đã cộng hưởng với thiên địa linh khí và thức tỉnh Linh Căn dưới đây.`);
+      } else {
+        embed.setDescription("Linh hồn của ngươi đã cộng hưởng với thiên địa linh khí và thức tỉnh Linh Căn dưới đây.");
+      }
+      return embed;
     }
   }
 

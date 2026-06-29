@@ -1,10 +1,20 @@
 import { TuSi } from '../models/TuSi.js';
 import { ThoiGianCho } from '../models/ThoiGianCho.js';
+import { CauHinhGuild } from '../models/CauHinhGuild.js';
 import * as config from '../config.js';
 
 export class BoDieuKhienGoc {
   async layTuSi(idNguoiDung) {
     return await TuSi.findByPk(idNguoiDung);
+  }
+
+  async layHoacTaoCauHinhGuild(idGuild) {
+    if (!idGuild) return null;
+    let setting = await CauHinhGuild.findByPk(idGuild);
+    if (!setting) {
+      setting = await CauHinhGuild.create({ idGuild: idGuild });
+    }
+    return setting;
   }
 
   async kiemTraVaNhanTuVi(tuSi) {

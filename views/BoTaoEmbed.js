@@ -55,14 +55,19 @@ export class BoTaoEmbed {
       .setFooter({ text: "Thiên Đạo Tu Tiên RPG" });
   }
 
-  static hoSo(tuSi, user, chiSo) {
+  static hoSo(tuSi, user, chiSo, daoNien = null) {
     const color = layMauCanhGioi(tuSi.canhGioi);
     const embed = new EmbedBuilder()
       .setTitle(`📜 Thẻ Tu Sĩ: ${tuSi.ten}`)
       .setColor(color)
       .setTimestamp()
-      .setImage("https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600")
-      .setFooter({ text: `ID Tu Sĩ: ${tuSi.idNguoiDung} • Thiết lập bởi Thiên Đạo` });
+      .setImage("https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600");
+
+    if (daoNien !== null) {
+      embed.setDescription(`🌌 **Đạo Niên thứ ${daoNien} của Máy Chủ**`);
+    }
+
+    embed.setFooter({ text: `ID Tu Sĩ: ${tuSi.idNguoiDung} • Thiết lập bởi Thiên Đạo` });
 
     if (user && typeof user.displayAvatarURL === 'function') {
       embed.setThumbnail(user.displayAvatarURL());
@@ -126,13 +131,18 @@ export class BoTaoEmbed {
     return embed;
   }
 
-  static canCo(tuSi) {
+  static canCo(tuSi, daoNien = null) {
     const color = layMauCanhGioi(tuSi.canhGioi);
     const embed = new EmbedBuilder()
       .setTitle(`☯️ Căn Cơ Thiên Tư: ${tuSi.ten}`)
       .setColor(color)
-      .setTimestamp()
-      .setFooter({ text: "Tu hành nghìn năm, căn cơ là gốc." });
+      .setTimestamp();
+
+    if (daoNien !== null) {
+      embed.setDescription(`🌌 **Đạo Niên thứ ${daoNien} của Máy Chủ**`);
+    }
+
+    embed.setFooter({ text: "Tu hành nghìn năm, căn cơ là gốc." });
 
     // Thuộc tính linh căn sở hữu
     const elements = tuSi.linhCanList;
@@ -190,13 +200,18 @@ export class BoTaoEmbed {
     return embed;
   }
 
-  static tuVi(tuSi, thoiGianChoTuLuyen = null) {
+  static tuVi(tuSi, thoiGianChoTuLuyen = null, daoNien = null) {
     const color = layMauCanhGioi(tuSi.canhGioi);
     const embed = new EmbedBuilder()
       .setTitle(`🔮 Tu Vi Điểm Tính: ${tuSi.ten}`)
       .setColor(color)
-      .setTimestamp()
-      .setFooter({ text: "Đường tu tiên dài đằng đẵng, kiên trì ắt thành công." });
+      .setTimestamp();
+
+    if (daoNien !== null) {
+      embed.setDescription(`🌌 **Đạo Niên thứ ${daoNien} của Máy Chủ**`);
+    }
+
+    embed.setFooter({ text: "Đường tu tiên dài đằng đẵng, kiên trì ắt thành công." });
 
     const reqExp = config.layLinhLucYeuCau(tuSi.capDo);
     const progress = taoThanhTienDo(tuSi.linhLuc, reqExp, 18);
@@ -244,4 +259,20 @@ export class BoTaoEmbed {
 
     return embed;
   }
+
+  static thongBaoTuLuyenXong(tuSi, daoNien, exp, stones) {
+    return new EmbedBuilder()
+      .setTitle("🧘 Thiền Định Hoàn Tất 🧘")
+      .setDescription(
+        `🌌 **Vào Đạo Niên thứ ${daoNien} của Máy Chủ**\n\n` +
+        `Đạo hữu **${tuSi.ten}** đã từ trong tĩnh tọa tỉnh lại, linh khí xung quanh dần tiêu tán.\n` +
+        `Nhờ kiên trì thiền định, đạo hữu nhận được:\n` +
+        `• **Linh lực tích lũy**: \`+${exp}\` ✨\n` +
+        `• **Linh thạch bổ sung**: \`+${stones}\` 💎`
+      )
+      .setColor(0x2ecc71)
+      .setTimestamp()
+      .setFooter({ text: "Chúc đạo hữu sớm ngày đắc đạo thành tiên!" });
+  }
 }
+

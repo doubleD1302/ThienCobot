@@ -42,6 +42,103 @@ client.once('ready', async () => {
       type: ActivityType.Playing
     }]
   });
+
+  // Thiết lập vòng lặp quét CSDL phát thông báo tu luyện xong chủ động (mỗi 15 giây)
+  setInterval(async () => {
+    try {
+      const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+      const { TuSi } = await import('./models/TuSi.js');
+      const { CauHinhGuild } = await import('./models/CauHinhGuild.js');
+      const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
+      const { Op } = await import('sequelize');
+      const config = await import('./config.js');
+
+      // Tìm tất cả các cooldown 'cultivate' đã hết hạn
+      const expiredCooldowns = await ThoiGianCho.findAll({
+        where: {
+          hanhDong: 'cultivate',
+          hetHan: {
+            [Op.lte]: new Date()
+          }
+        }
+      });
+
+      for (const cd of expiredCooldowns) {
+        const userId = cd.idNguoiDung;
+        const tuSi = await TuSi.findByPk(userId);
+
+        if (tuSi) {
+          const duLieu = cd.duLieu || {};
+          const daoNien = duLieu.dao_nien || 1;
+          const channelId = duLieu.channelId;
+
+          // 1. Tính toán phần thưởng
+          const multiplier = tuSi.layHeSoTuLuyen();
+          const gainedExp = Math.floor(config.BASE_EXP_PER_DAO_NIEN * multiplier * daoNien);
+          const gainedStones = Math.floor(10 * tuSi.capDo * daoNien);
+
+          // 2. Cộng thưởng & Hồi phục
+          tuSi.linhLuc += gainedExp;
+          tuSi.linhThach += gainedStones;
+          const stats = tuSi.layChiSo();
+          tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * daoNien));
+          tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * daoNien));
+
+          // 3. Xóa cooldown & Lưu
+          await cd.destroy();
+          await tuSi.save();
+
+          // 4. Lấy Đạo Niên của Guild để hiển thị
+          let guildDaoNien = 1;
+          if (channelId) {
+            try {
+              const channel = await client.channels.fetch(channelId).catch(() => null);
+              if (channel && channel.guildId) {
+                const setting = await CauHinhGuild.findOne({ where: { idGuild: channel.guildId } });
+                if (setting) {
+                  guildDaoNien = setting.layDaoNienHienTai();
+                } else {
+                  // Nếu chưa có cấu hình, tạo mới tại chỗ
+                  const newSetting = await CauHinhGuild.create({ idGuild: channel.guildId });
+                  guildDaoNien = newSetting.layDaoNienHienTai();
+                }
+              }
+
+              if (channel) {
+                const embed = BoTaoEmbed.thongBaoTuLuyenXong(tuSi, guildDaoNien, gainedExp, gainedStones);
+                await channel.send({
+                  content: `🔔 Đạo hữu <@${userId}> đã hoàn tất đại chu thiên!`,
+                  embeds: [embed]
+                }).catch(err => console.error(`Lỗi gửi tin nhắn thông báo tu luyện xong cho user ${userId}:`, err));
+              }
+            } catch (err) {
+              console.error(`Lỗi xử lý gửi thông báo cho channel ${channelId}:`, err);
+            }
+          }
+        } else {
+          // Tu sĩ không tồn tại, chỉ xóa cooldown
+          await cd.destroy();
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi chạy quét thời gian chờ tu luyện ngầm:', error);
+    }
+  }, 15000);
+});
+
+// Lắng nghe khi bot được thêm vào máy chủ mới để khởi tạo Đạo Niên
+client.on('guildCreate', async (guild) => {
+  console.log(`[Bot Joined Guild] Đã tham gia máy chủ: ${guild.name} (${guild.id})`);
+  try {
+    const { CauHinhGuild } = await import('./models/CauHinhGuild.js');
+    await CauHinhGuild.findOrCreate({
+      where: { idGuild: guild.id },
+      defaults: { ngayKhoiTao: new Date() }
+    });
+    console.log(`Đã khởi tạo mốc thời gian Đạo Niên cho máy chủ: ${guild.name}`);
+  } catch (error) {
+    console.error('Lỗi khi khởi tạo cấu hình Guild mới:', error);
+  }
 });
 
 // Lắng nghe các tương tác lệnh (Slash Commands)

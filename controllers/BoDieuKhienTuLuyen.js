@@ -46,7 +46,15 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         }
       });
 
-      const embed = BoTaoEmbed.tuVi(tuSi, thoiGianTuLuyen);
+      let daoNien = null;
+      if (interaction.guildId) {
+        const guildConfig = await this.layHoacTaoCauHinhGuild(interaction.guildId);
+        if (guildConfig) {
+          daoNien = guildConfig.layDaoNienHienTai();
+        }
+      }
+
+      const embed = BoTaoEmbed.tuVi(tuSi, thoiGianTuLuyen, daoNien);
       await interaction.reply({ embeds: [embed] });
     }
   };
@@ -152,7 +160,10 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       const durationSeconds = daoNien * config.DAO_NIEN_SECONDS;
       const expiresAt = new Date(Date.now() + durationSeconds * 1000);
 
-      await this.datThoiGianCho(tuSi.idNguoiDung, 'cultivate', expiresAt, { dao_nien: daoNien });
+      await this.datThoiGianCho(tuSi.idNguoiDung, 'cultivate', expiresAt, {
+        dao_nien: daoNien,
+        channelId: interaction.channelId
+      });
 
       let timeText = '';
       if (durationSeconds < 60) {

@@ -6,6 +6,7 @@ process.env.NODE_ENV = 'test';
 
 import { sequelize } from './database.js';
 import { TuSi } from './models/TuSi.js';
+import { CauHinhGuild } from './models/CauHinhGuild.js';
 import * as config from './config.js';
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -144,4 +145,19 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     }
   });
 
+  test('Cau Hinh Guild and Dao Nien Calculations', async () => {
+    const setting = CauHinhGuild.build({
+      idGuild: "1122334455667788",
+      ngayKhoiTao: new Date(Date.now() - 32 * 60 * 1000) // 32 minutes ago
+    });
+
+    // 32 minutes / 15 minutes = 2.13 -> Math.floor(2.13) + 1 = 3 Đạo Niên
+    assert.strictEqual(setting.layDaoNienHienTai(), 3, "32 phút trước phải bằng Đạo Niên thứ 3");
+
+    setting.ngayKhoiTao = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
+    // 5 minutes / 15 minutes = 0.33 -> Math.floor(0.33) + 1 = 1 Đạo Niên
+    assert.strictEqual(setting.layDaoNienHienTai(), 1, "5 phút trước phải bằng Đạo Niên thứ 1");
+  });
+
 });
+

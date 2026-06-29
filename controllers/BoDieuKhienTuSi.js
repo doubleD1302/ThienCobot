@@ -38,8 +38,17 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         });
       }
 
-      // 3. Khởi tạo trình tạo nhân vật trực quan
-      const trinhTao = new GiaoDienTaoNhanVat(interaction.user, ten);
+      // 3. Lấy Đạo Niên hiện tại của Guild
+      let daoNien = null;
+      if (interaction.guildId) {
+        const guildConfig = await this.layHoacTaoCauHinhGuild(interaction.guildId);
+        if (guildConfig) {
+          daoNien = guildConfig.layDaoNienHienTai();
+        }
+      }
+
+      // 4. Khởi tạo trình tạo nhân vật trực quan
+      const trinhTao = new GiaoDienTaoNhanVat(interaction.user, ten, daoNien);
       const message = await interaction.reply({
         embeds: [trinhTao.getEmbed()],
         components: trinhTao.getComponents(),
@@ -92,7 +101,15 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         await tuSi.save();
       }
 
-      const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats);
+      let daoNien = null;
+      if (interaction.guildId) {
+        const guildConfig = await this.layHoacTaoCauHinhGuild(interaction.guildId);
+        if (guildConfig) {
+          daoNien = guildConfig.layDaoNienHienTai();
+        }
+      }
+
+      const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats, daoNien);
       await interaction.reply({ embeds: [embed] });
     }
   };
@@ -111,7 +128,15 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         });
       }
 
-      const embed = BoTaoEmbed.canCo(tuSi);
+      let daoNien = null;
+      if (interaction.guildId) {
+        const guildConfig = await this.layHoacTaoCauHinhGuild(interaction.guildId);
+        if (guildConfig) {
+          daoNien = guildConfig.layDaoNienHienTai();
+        }
+      }
+
+      const embed = BoTaoEmbed.canCo(tuSi, daoNien);
       await interaction.reply({ embeds: [embed] });
     }
   };
