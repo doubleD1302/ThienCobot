@@ -157,6 +157,7 @@ TuSi.init({
     type: DataTypes.BIGINT,
     primaryKey: true,
     allowNull: false,
+    autoIncrement: false,
     field: 'user_id'
   },
   ten: {
