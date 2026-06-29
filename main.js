@@ -81,6 +81,19 @@ async function start() {
 
     console.log('Đang đăng nhập vào Discord...');
     await client.login(DISCORD_TOKEN);
+
+    // Khởi tạo một HTTP server nhỏ phục vụ Health Check cho Koyeb/Render
+    import('http').then(({ default: http }) => {
+      const server = http.createServer((req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Thiên Đạo Tu Tiên RPG Bot đang hoạt động!');
+      });
+      const PORT = process.env.PORT || 8000;
+      server.listen(PORT, () => {
+        console.log(`[Health Check] HTTP Server đang lắng nghe trên cổng ${PORT}`);
+      });
+    }).catch(err => console.error('Lỗi khi khởi chạy HTTP health check server:', err));
+
   } catch (error) {
     console.error('Khởi chạy bot thất bại:', error);
     process.exit(1);
