@@ -12,6 +12,7 @@ export class GiaoDienTaoNhanVat {
     this.rolledLinhCanList = [];
     this.step = 1;
     this.daoNien = daoNien;
+    this.confirming = false;
   }
 
   getEmbed() {
@@ -161,6 +162,8 @@ export class GiaoDienTaoNhanVat {
         collector.stop('cancelled');
         return;
       } else if (i.customId === 'action_confirm') {
+        if (this.confirming) return;
+        this.confirming = true;
         await i.deferUpdate();
         try {
           // Kiểm tra nhân vật đã tồn tại chưa

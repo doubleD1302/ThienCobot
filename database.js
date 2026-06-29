@@ -1,6 +1,16 @@
 import { Sequelize } from 'sequelize';
 import * as config from './config.js';
 
+if (process.env.NODE_ENV !== 'test') {
+  if (process.env.PORT && !process.env.DATABASE_URL) {
+    console.warn("\x1b[33m%s\x1b[0m", "⚠️  CẢNH BÁO MẤT DỮ LIỆU:");
+    console.warn("\x1b[33m%s\x1b[0m", "Bạn đang chạy bot trên máy chủ Cloud/Pterodactyl (phát hiện cổng PORT) nhưng chưa cấu hình biến môi trường DATABASE_URL.");
+    console.warn("\x1b[33m%s\x1b[0m", "Bot đang tự động sử dụng SQLite fallback ('thienco.db').");
+    console.warn("\x1b[33m%s\x1b[0m", "LƯU Ý: Mọi dữ liệu SQLite (nhân vật, cooldown,...) sẽ bị XÓA SẠCH hoàn toàn khi bạn cập nhật code (git clean, redeploy, rebuild, reinstall) do file thienco.db bị xóa.");
+    console.warn("\x1b[36m%s\x1b[0m", "👉 KHUYẾN NGHỊ: Hãy thiết lập biến môi trường DATABASE_URL trên bảng điều khiển hosting của bạn (ví dụ: Koyeb, Render, Pterodactyl) trỏ đến một cơ sở dữ liệu MySQL/TiDB Cloud lâu dài để bảo toàn dữ liệu.\n");
+  }
+}
+
 let sequelize;
 
 if (process.env.NODE_ENV === 'test') {

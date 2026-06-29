@@ -176,6 +176,52 @@ async function start() {
     await sequelize.sync();
     console.log('Cơ sở dữ liệu được đồng bộ hóa thành công.');
 
+    // Khắc phục lỗi schema cũ (autoIncrement trên primary key) & dọn dẹp các bản ghi rác
+    try {
+      const { DataTypes } = await import('sequelize');
+      const queryInterface = sequelize.getQueryInterface();
+      
+      const playersDesc = await queryInterface.describeTable('players');
+      if (playersDesc.user_id && playersDesc.user_id.autoIncrement) {
+        console.log('Phát hiện cột user_id trong bảng players có thuộc tính autoIncrement. Tiến hành sửa đổi schema...');
+        await queryInterface.changeColumn('players', 'user_id', {
+          type: DataTypes.BIGINT,
+          primaryKey: true,
+          allowNull: false,
+          autoIncrement: false
+        });
+        console.log('Đã sửa đổi cột user_id trong bảng players thành công.');
+      }
+      
+      const cooldownsDesc = await queryInterface.describeTable('cooldowns');
+      if (cooldownsDesc.user_id && cooldownsDesc.user_id.autoIncrement) {
+        console.log('Phát hiện cột user_id trong bảng cooldowns có thuộc tính autoIncrement. Tiến hành sửa đổi schema...');
+        await queryInterface.changeColumn('cooldowns', 'user_id', {
+          type: DataTypes.BIGINT,
+          primaryKey: true,
+          allowNull: false,
+          autoIncrement: false
+        });
+        console.log('Đã sửa đổi cột user_id trong bảng cooldowns thành công.');
+      }
+
+      // Dọn dẹp các bản ghi rác từ lỗi autoIncrement trước đó (nếu có)
+      const { TuSi } = await import('./models/TuSi.js');
+      const { Op } = await import('sequelize');
+      const deletedCount = await TuSi.destroy({
+        where: {
+          idNguoiDung: {
+            [Op.lt]: "10000000000000000"
+          }
+        }
+      });
+      if (deletedCount > 0) {
+        console.log(`Đã dọn dẹp ${deletedCount} bản ghi nhân vật lỗi (ID tự tăng) từ cơ sở dữ liệu.`);
+      }
+    } catch (err) {
+      console.error('Không thể tự động sửa đổi schema hoặc dọn dẹp bản ghi rác:', err);
+    }
+
     console.log('Đang đăng nhập vào Discord...');
     await client.login(DISCORD_TOKEN);
 
