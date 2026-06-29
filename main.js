@@ -72,24 +72,41 @@ client.once('ready', async () => {
           const daoNien = duLieu.dao_nien || 1;
           const channelId = duLieu.channelId;
 
-          // 1. Tính toán phần thưởng
+          // 1. Tính toán phần thưởng còn lại chưa nhận
           const { CanhGioi } = await import('./models/CanhGioi.js');
           const cg = await CanhGioi.findByPk(tuSi.capDo);
           const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
           const multiplier = tuSi.layHeSoTuLuyen();
-          const gainedExp = Math.floor(tocDoCoBan * multiplier * daoNien);
-          const gainedStones = Math.floor(10 * tuSi.capDo * daoNien);
 
-          // 2. Cộng thưởng & Hồi phục
-          tuSi.linhLuc += gainedExp;
-          tuSi.linhThach += gainedStones;
+          const totalDurationSeconds = daoNien * config.DAO_NIEN_SECONDS;
+          const hetHanTime = new Date(cd.hetHan).getTime();
+          const startTime = hetHanTime - totalDurationSeconds * 1000;
+
+          let lastUpdate = duLieu.last_update;
+          if (!lastUpdate) {
+            lastUpdate = startTime;
+          }
+
+          const remainingMs = Math.max(0, hetHanTime - lastUpdate);
+          const remainingSeconds = remainingMs / 1000;
+          const remainingDaoNien = remainingSeconds / config.DAO_NIEN_SECONDS;
+
+          const remainingExp = Math.floor(tocDoCoBan * multiplier * remainingDaoNien);
+          const remainingStones = Math.floor(10 * tuSi.capDo * remainingDaoNien);
+
+          // 2. Cộng thưởng phần còn lại & Hồi phục
+          tuSi.linhLuc += remainingExp;
+          tuSi.linhThach += remainingStones;
           const stats = tuSi.layChiSo();
-          tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * daoNien));
-          tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * daoNien));
+          tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * remainingDaoNien));
+          tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * remainingDaoNien));
 
           // 3. Xóa cooldown & Lưu
           await cd.destroy();
           await tuSi.save();
+
+          const totalGainedExp = Math.floor(tocDoCoBan * multiplier * daoNien);
+          const totalGainedStones = Math.floor(10 * tuSi.capDo * daoNien);
 
           // 4. Lấy Đạo Niên của Guild để hiển thị
           let guildDaoNien = 1;
@@ -108,7 +125,7 @@ client.once('ready', async () => {
               }
 
               if (channel) {
-                const embed = BoTaoEmbed.thongBaoTuLuyenXong(tuSi, guildDaoNien, gainedExp, gainedStones);
+                const embed = BoTaoEmbed.thongBaoTuLuyenXong(tuSi, guildDaoNien, totalGainedExp, totalGainedStones);
                 await channel.send({
                   content: `🔔 Đạo hữu <@${userId}> đã hoàn tất đại chu thiên!`,
                   embeds: [embed]
@@ -127,6 +144,84 @@ client.once('ready', async () => {
       console.error('Lỗi khi chạy quét thời gian chờ tu luyện ngầm:', error);
     }
   }, 15000);
+
+  // Thiết lập vòng lặp làm mới tu vi hiện có mỗi 1 phút (60 giây)
+  setInterval(async () => {
+    try {
+      const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+      const { TuSi } = await import('./models/TuSi.js');
+      const { Op } = await import('sequelize');
+      const config = await import('./config.js');
+
+      // Tìm tất cả các cooldown 'cultivate' đang hoạt động (chưa hết hạn)
+      const activeCooldowns = await ThoiGianCho.findAll({
+        where: {
+          hanhDong: 'cultivate',
+          hetHan: {
+            [Op.gt]: new Date()
+          }
+        }
+      });
+
+      const now = Date.now();
+      for (const cd of activeCooldowns) {
+        const userId = cd.idNguoiDung;
+        const tuSi = await TuSi.findByPk(userId);
+
+        if (tuSi) {
+          const duLieu = cd.duLieu || {};
+          const daoNien = duLieu.dao_nien || 1;
+          const totalDurationSeconds = daoNien * config.DAO_NIEN_SECONDS;
+          const hetHanTime = new Date(cd.hetHan).getTime();
+          const startTime = hetHanTime - totalDurationSeconds * 1000;
+
+          let lastUpdate = duLieu.last_update;
+          if (!lastUpdate) {
+            lastUpdate = startTime;
+          }
+
+          // Thời gian trôi qua từ lần cập nhật cuối đến hiện tại
+          const elapsedMs = now - lastUpdate;
+
+          // Chỉ cập nhật nếu đã trôi qua ít nhất 1 phút (60 giây)
+          if (elapsedMs >= 60000) {
+            // Không được vượt quá mốc hetHanTime
+            const actualElapsedMs = Math.min(elapsedMs, hetHanTime - lastUpdate);
+            if (actualElapsedMs <= 0) continue;
+
+            const elapsedSeconds = actualElapsedMs / 1000;
+            const elapsedDaoNien = elapsedSeconds / config.DAO_NIEN_SECONDS;
+
+            // Tính toán linh lực & linh thạch nhận được cho phần thời gian này
+            const { CanhGioi } = await import('./models/CanhGioi.js');
+            const cg = await CanhGioi.findByPk(tuSi.capDo);
+            const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
+            const multiplier = tuSi.layHeSoTuLuyen();
+            const gainedExp = Math.floor(tocDoCoBan * multiplier * elapsedDaoNien);
+            const gainedStones = Math.floor(10 * tuSi.capDo * elapsedDaoNien);
+
+            // Cộng thưởng & Hồi phục
+            tuSi.linhLuc += gainedExp;
+            tuSi.linhThach += gainedStones;
+            const stats = tuSi.layChiSo();
+            tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * elapsedDaoNien));
+            tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * elapsedDaoNien));
+
+            await tuSi.save();
+
+            // Cập nhật last_update trong cooldown
+            duLieu.last_update = lastUpdate + actualElapsedMs;
+            cd.duLieu = duLieu;
+            await cd.save();
+
+            console.log(`[TuVi Refresh] Tự động cập nhật tu vi (+${gainedExp} Exp, +${gainedStones} Stones) cho tu sĩ ${tuSi.ten} (${userId})`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi chạy quét làm mới tu vi ngầm:', error);
+    }
+  }, 60000);
 });
 
 // Lắng nghe khi bot được thêm vào máy chủ mới để khởi tạo Đạo Niên

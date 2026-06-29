@@ -63,7 +63,142 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen);
 
       const embed = BoTaoEmbed.tuVi(tuSi, thoiGianTuLuyen, daoNien, reqExp, tocDoTuLuyen);
-      await interaction.editReply({ embeds: [embed] });
+      
+      const payload = { embeds: [embed] };
+      
+      if (thoiGianTuLuyen) {
+        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+        const buttonStop = new ButtonBuilder()
+          .setCustomId('dung_tu_luyen')
+          .setLabel('Dừng Tu Luyện 🛑')
+          .setStyle(ButtonStyle.Danger);
+        const row = new ActionRowBuilder().addComponents(buttonStop);
+        payload.components = [row];
+      }
+
+      const message = await interaction.editReply(payload);
+
+      // Nếu đang tu luyện, bắt đầu thu thập tương tác với nút dừng
+      if (thoiGianTuLuyen && message) {
+        const { ComponentType } = await import('discord.js');
+        const collector = message.createMessageComponentCollector({
+          componentType: ComponentType.Button,
+          time: 120000 // 2 phút
+        });
+
+        collector.on('collect', async i => {
+          if (i.user.id !== interaction.user.id) {
+            const { EmbedBuilder } = await import('discord.js');
+            return await i.reply({
+              embeds: [
+                new EmbedBuilder()
+                  .setTitle("⚠️ Thiên Cơ Bất Khả Lộ")
+                  .setDescription("Ngươi không thể dừng tu luyện hộ người khác!")
+                  .setColor(0xe74c3c)
+              ],
+              ephemeral: true
+            });
+          }
+
+          // Ngay lập tức dừng tu luyện và nhận tuvi tương ứng
+          await i.deferReply();
+
+          // Lấy lại thông tin tu sĩ mới nhất
+          const tuSiLatest = await this.layTuSi(i.user.id);
+          if (!tuSiLatest) {
+            return await i.editReply({
+              embeds: [BoTaoEmbed.loi("Không tìm thấy nhân vật của ngươi.")]
+            });
+          }
+
+          // Lấy cooldown cultivate
+          const cd = await ThoiGianCho.findOne({
+            where: {
+              idNguoiDung: tuSiLatest.idNguoiDung,
+              hanhDong: 'cultivate'
+            }
+          });
+
+          if (!cd) {
+            return await i.editReply({
+              embeds: [BoTaoEmbed.loi("Đạo hữu hiện tại không trong trạng thái tu luyện.")]
+            });
+          }
+
+          // Tính toán lượng tu vi nhận được tương ứng
+          const duLieu = cd.duLieu || {};
+          const daoNienCd = duLieu.dao_nien || 1;
+          const totalDurationSeconds = daoNienCd * config.DAO_NIEN_SECONDS;
+          const hetHanTime = new Date(cd.hetHan).getTime();
+          const startTime = hetHanTime - totalDurationSeconds * 1000;
+
+          let lastUpdate = duLieu.last_update;
+          if (!lastUpdate) {
+            lastUpdate = startTime;
+          }
+
+          const now = Date.now();
+          const actualElapsedMs = Math.min(now - lastUpdate, hetHanTime - lastUpdate);
+
+          let gainedExp = 0;
+          let gainedStones = 0;
+          let remainingDaoNien = 0;
+
+          if (actualElapsedMs > 0) {
+            const elapsedSeconds = actualElapsedMs / 1000;
+            remainingDaoNien = elapsedSeconds / config.DAO_NIEN_SECONDS;
+
+            const { CanhGioi: cgModel } = await import('../models/CanhGioi.js');
+            const cgData = await cgModel.findByPk(tuSiLatest.capDo);
+            const tocDoCoB = cgData ? cgData.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
+            const multiplier = tuSiLatest.layHeSoTuLuyen();
+            gainedExp = Math.floor(tocDoCoB * multiplier * remainingDaoNien);
+            gainedStones = Math.floor(10 * tuSiLatest.capDo * remainingDaoNien);
+
+            tuSiLatest.linhLuc += gainedExp;
+            tuSiLatest.linhThach += gainedStones;
+
+            const stats = tuSiLatest.layChiSo();
+            tuSiLatest.hp = Math.min(stats.max_hp, tuSiLatest.hp + Math.floor(stats.max_hp * 0.20 * remainingDaoNien));
+            tuSiLatest.mp = Math.min(stats.max_mp, tuSiLatest.mp + Math.floor(stats.max_mp * 0.20 * remainingDaoNien));
+          }
+
+          // Xóa cooldown và lưu tu sĩ
+          await cd.destroy();
+          await tuSiLatest.save();
+
+          // Tính toán tổng lượng tu vi đã tích tụ được từ đầu đến thời điểm dừng
+          const totalElapsedMs = Math.min(now, hetHanTime) - startTime;
+          const totalElapsedSeconds = Math.max(0, totalElapsedMs / 1000);
+          const totalElapsedDaoNien = totalElapsedSeconds / config.DAO_NIEN_SECONDS;
+
+          const { CanhGioi: cgModelLatest } = await import('../models/CanhGioi.js');
+          const cgLatest = await cgModelLatest.findByPk(tuSiLatest.capDo);
+          const baseSpeed = cgLatest ? cgLatest.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
+          const mult = tuSiLatest.layHeSoTuLuyen();
+          const totalAccumulatedExp = Math.floor(baseSpeed * mult * totalElapsedDaoNien);
+          const totalAccumulatedStones = Math.floor(10 * tuSiLatest.capDo * totalElapsedDaoNien);
+
+          // Cập nhật lại tin nhắn hiển thị cũ (ẩn nút dừng)
+          const embedTuViMoi = BoTaoEmbed.tuVi(tuSiLatest, null, daoNien, reqExp, tocDoTuLuyen);
+          await interaction.editReply({ embeds: [embedTuViMoi], components: [] }).catch(err => console.error(err));
+
+          // Gửi thông báo dừng tu luyện thành công
+          await i.editReply({
+            embeds: [
+              BoTaoEmbed.thanhCong(
+                "🛑 Thu Công Dừng Tu Luyện",
+                `Đạo hữu **${tuSiLatest.ten}** đã chủ động thu công, dừng thiền định sớm.\n` +
+                `• **Tổng thời gian tu luyện**: \`${(totalElapsedSeconds / 60).toFixed(1)} phút\`\n` +
+                `• **Tổng linh lực tích tụ**: \`+${totalAccumulatedExp}\` ✨ (Nhận thêm \`+${gainedExp}\` ở chu kỳ cuối)\n` +
+                `• **Tổng linh thạch nhận thêm**: \`+${totalAccumulatedStones}\` 🪙 (Nhận thêm \`+${gainedStones}\` ở chu kỳ cuối)`
+              )
+            ]
+          });
+
+          collector.stop();
+        });
+      }
     }
   };
 
@@ -167,7 +302,8 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 
       await this.datThoiGianCho(tuSi.idNguoiDung, 'cultivate', expiresAt, {
         dao_nien: daoNien,
-        channelId: interaction.channelId
+        channelId: interaction.channelId,
+        last_update: Date.now()
       });
 
       let timeText = '';

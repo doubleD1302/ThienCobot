@@ -4,11 +4,12 @@ import assert from 'node:assert';
 // Set NODE_ENV to test before importing models so that database opens in memory
 process.env.NODE_ENV = 'test';
 
-import { sequelize } from './database.js';
-import { TuSi } from './models/TuSi.js';
-import { CauHinhGuild } from './models/CauHinhGuild.js';
-import { CanhGioi } from './models/CanhGioi.js';
-import * as config from './config.js';
+const { sequelize } = await import('./database.js');
+const { TuSi } = await import('./models/TuSi.js');
+const { CauHinhGuild } = await import('./models/CauHinhGuild.js');
+const { CanhGioi } = await import('./models/CanhGioi.js');
+const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   
@@ -172,6 +173,124 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     setting.ngayKhoiTao = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
     // 5 minutes / 15 minutes = 0.33 -> Math.floor(0.33) + 1 = 1 Đạo Niên
     assert.strictEqual(setting.layDaoNienHienTai(), 1, "5 phút trước phải bằng Đạo Niên thứ 1");
+  });
+
+  test('Cultivation Early Stop and Proportional Reward Calculation', async () => {
+    const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+    
+    // Tạo nhân vật test
+    const tuSi = await TuSi.create({
+      idNguoiDung: "5555555555555555",
+      ten: "Hàn Lập",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Mộc Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 0
+    });
+    tuSi.linhCanList = ["Moc"];
+    await tuSi.save();
+
+    const daoNien = 2; // Tu luyện 2 Đạo Niên
+    const totalDurationMs = daoNien * config.DAO_NIEN_SECONDS * 1000;
+    const hetHan = new Date(Math.floor((Date.now() + totalDurationMs) / 1000) * 1000);
+    const startTime = hetHan.getTime() - totalDurationMs;
+
+    // Giả sử đã trôi qua 1 Đạo Niên (50% thời gian)
+    const halfDurationMs = totalDurationMs / 2;
+    const fakeLastUpdate = startTime + halfDurationMs;
+
+    const cooldown = ThoiGianCho.build({
+      idNguoiDung: tuSi.idNguoiDung,
+      hanhDong: 'cultivate',
+      hetHan: hetHan
+    });
+    cooldown.duLieu = {
+      dao_nien: daoNien,
+      last_update: fakeLastUpdate
+    };
+    await cooldown.save();
+
+    // Tính toán lượng thưởng từ startTime đến fakeLastUpdate
+    const elapsedSeconds = halfDurationMs / 1000;
+    const elapsedDaoNien = elapsedSeconds / config.DAO_NIEN_SECONDS; // 1.0 Đạo Niên
+
+    const cg = await CanhGioi.findByPk(tuSi.capDo);
+    const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
+    const multiplier = tuSi.layHeSoTuLuyen();
+
+    const expectedExp = Math.floor(tocDoCoBan * multiplier * elapsedDaoNien);
+    const expectedStones = Math.floor(10 * tuSi.capDo * elapsedDaoNien);
+
+    assert.strictEqual(expectedExp, 100, "Đáng ra phải nhận được 100 Linh Lực cho 1 Đạo Niên");
+    assert.strictEqual(expectedStones, 10, "Đáng ra phải nhận được 10 Linh Thạch cho 1 Đạo Niên");
+
+    // Dọn dẹp bản ghi
+    await cooldown.destroy();
+    await tuSi.destroy();
+  });
+
+  test('kiemTraVaNhanTuVi with last_update and remaining reward', async () => {
+    const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+    const { BoDieuKhienGoc } = await import('./controllers/BoDieuKhienGoc.js');
+    
+    // Tạo nhân vật test
+    const tuSi = await TuSi.create({
+      idNguoiDung: "6666666666666666",
+      ten: "Hàn Lập Phụ",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Mộc Linh Căn",
+      capDo: 1,
+      linhLuc: 10,
+      linhThach: 5
+    });
+    tuSi.linhCanList = ["Moc"];
+    await tuSi.save();
+
+    const daoNien = 2; // Tu luyện 2 Đạo Niên
+    const totalDurationMs = daoNien * config.DAO_NIEN_SECONDS * 1000;
+    
+    // Để hết hạn trong quá khứ
+    const hetHan = new Date(Math.floor((Date.now() - 5000) / 1000) * 1000); 
+    const startTime = hetHan.getTime() - totalDurationMs;
+
+    // Giả sử last_update là startTime + 1 Đạo Niên
+    const halfDurationMs = totalDurationMs / 2;
+    const fakeLastUpdate = startTime + halfDurationMs;
+
+    const cooldown = ThoiGianCho.build({
+      idNguoiDung: tuSi.idNguoiDung,
+      hanhDong: 'cultivate',
+      hetHan: hetHan
+    });
+    cooldown.duLieu = {
+      dao_nien: daoNien,
+      last_update: fakeLastUpdate
+    };
+    await cooldown.save();
+
+    const controller = new BoDieuKhienGoc();
+    const result = await controller.kiemTraVaNhanTuVi(tuSi);
+
+    assert.strictEqual(result.completed, true);
+    assert.strictEqual(result.exp, 200);
+    assert.strictEqual(result.stones, 20);
+
+    // Thực tế cộng thêm chỉ là phần còn lại (1 Đạo Niên = 100 exp, 10 stones) -> 10 + 100 = 110, 5 + 10 = 15
+    assert.strictEqual(tuSi.linhLuc, 110);
+    assert.strictEqual(tuSi.linhThach, 15);
+
+    const cdAfter = await ThoiGianCho.findOne({
+      where: {
+        idNguoiDung: tuSi.idNguoiDung,
+        hanhDong: 'cultivate'
+      }
+    });
+    assert.strictEqual(cdAfter, null);
+
+    await tuSi.destroy();
   });
 
 });

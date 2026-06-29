@@ -32,29 +32,44 @@ export class BoDieuKhienGoc {
         // Đã tu luyện xong! Tiến hành phát thưởng
         const duLieu = thoiGianCho.duLieu || {};
         const daoNien = duLieu.dao_nien || 1;
+        const totalDurationSeconds = daoNien * config.DAO_NIEN_SECONDS;
+        const startTime = hetHanTime - totalDurationSeconds * 1000;
+
+        let lastUpdate = duLieu.last_update;
+        if (!lastUpdate) {
+          lastUpdate = startTime;
+        }
+
+        // Tính toán phần thưởng còn lại chưa nhận
+        const remainingMs = Math.max(0, hetHanTime - lastUpdate);
+        const remainingSeconds = remainingMs / 1000;
+        const remainingDaoNien = remainingSeconds / config.DAO_NIEN_SECONDS;
 
         // Tính toán linh lực & linh thạch nhận được
         const { CanhGioi } = await import('../models/CanhGioi.js');
         const cg = await CanhGioi.findByPk(tuSi.capDo);
         const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
         const multiplier = tuSi.layHeSoTuLuyen();
-        const gainedExp = Math.floor(tocDoCoBan * multiplier * daoNien);
-        const gainedStones = Math.floor(10 * tuSi.capDo * daoNien);
+        const gainedExp = Math.floor(tocDoCoBan * multiplier * remainingDaoNien);
+        const gainedStones = Math.floor(10 * tuSi.capDo * remainingDaoNien);
 
-        // Cộng thưởng
+        // Cộng thưởng phần còn lại
         tuSi.linhLuc += gainedExp;
         tuSi.linhThach += gainedStones;
 
         // Hồi phục 20% máu/pháp lực cực đại mỗi Đạo Niên tu luyện
         const stats = tuSi.layChiSo();
-        tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * daoNien));
-        tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * daoNien));
+        tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * remainingDaoNien));
+        tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * remainingDaoNien));
 
         // Xóa thời gian chờ và lưu trạng thái
         await thoiGianCho.destroy();
         await tuSi.save();
 
-        return { completed: true, exp: gainedExp, stones: gainedStones };
+        const totalGainedExp = Math.floor(tocDoCoBan * multiplier * daoNien);
+        const totalGainedStones = Math.floor(10 * tuSi.capDo * daoNien);
+
+        return { completed: true, exp: totalGainedExp, stones: totalGainedStones };
       }
     }
 
