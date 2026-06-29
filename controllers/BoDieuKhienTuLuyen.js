@@ -16,11 +16,11 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       .setName('tuvi')
       .setDescription('Xem chi tiết tu vi hiện tại và tiến độ đột phá'),
     execute: async (interaction) => {
+      await interaction.deferReply();
       const tuSi = await this.layTuSi(interaction.user.id);
       if (!tuSi) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
         });
       }
 
@@ -55,7 +55,7 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       }
 
       const embed = BoTaoEmbed.tuVi(tuSi, thoiGianTuLuyen, daoNien);
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   };
 
@@ -70,11 +70,11 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
           .setRequired(false)
       ),
     execute: async (interaction) => {
+      await interaction.deferReply();
       const tuSi = await this.layTuSi(interaction.user.id);
       if (!tuSi) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
         });
       }
 
@@ -84,7 +84,7 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       if (daoNien === null) {
         const { completed, exp, stones } = await this.kiemTraVaNhanTuVi(tuSi);
         if (completed) {
-          return await interaction.reply({
+          return await interaction.editReply({
             embeds: [BoTaoEmbed.thanhCong(
               "🧘 Thu Hoạch Tu Vi",
               `Thiền định kết thúc thành công!\n` +
@@ -100,14 +100,14 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
             const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
             const minutes = Math.floor(secondsLeft / 60);
             const seconds = secondsLeft % 60;
-            return await interaction.reply({
+            return await interaction.editReply({
               embeds: [BoTaoEmbed.thongTin(
                 "🧘 Đang Tu Luyện",
                 `Đạo hữu vẫn đang thiền định. Vui lòng đợi \`${minutes}m ${seconds}s\` nữa để thu hoạch.`
               )]
             });
           } else {
-            return await interaction.reply({
+            return await interaction.editReply({
               embeds: [BoTaoEmbed.thongTin(
                 "🧘 Trạng Thái Nhàn Rỗi",
                 "Đạo hữu hiện đang rảnh rỗi. Hãy dùng lệnh `/tu [số Đạo Niên]` để bắt đầu tu luyện."
@@ -119,9 +119,8 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 
       // Kiểm tra tham số Đạo Niên
       if (daoNien < 1 || daoNien > 24) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Thời gian tu luyện phải từ 1 đến 24 Đạo Niên!")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Thời gian tu luyện phải từ 1 đến 24 Đạo Niên!")]
         });
       }
 
@@ -132,11 +131,10 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
         const minutes = Math.floor(secondsLeft / 60);
         const seconds = secondsLeft % 60;
-        return await interaction.reply({
+        return await interaction.editReply({
           embeds: [BoTaoEmbed.loi(
             `Ngươi đang thiền định tu luyện rồi! Còn \`${minutes}m ${seconds}s\` nữa mới kết thúc.`
-          )],
-          ephemeral: true
+          )]
         });
       }
 
@@ -147,12 +145,11 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
         const minutes = Math.floor(secondsLeft / 60);
         const seconds = secondsLeft % 60;
-        return await interaction.reply({
+        return await interaction.editReply({
           embeds: [BoTaoEmbed.loi(
             `Kinh mạch của ngươi đang hỗn loạn do đột phá thất bại! ` +
             `Phải tĩnh dưỡng thêm \`${minutes}m ${seconds}s\` nữa mới có thể tiếp tục tu luyện.`
-          )],
-          ephemeral: true
+          )]
         });
       }
 
@@ -174,7 +171,7 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         timeText = secs > 0 ? `${mins} phút ${secs} giây` : `${mins} phút`;
       }
 
-      await interaction.reply({
+      await interaction.editReply({
         embeds: [BoTaoEmbed.thanhCong(
           "🧘 Bắt Đầu Thiền Định",
           `Đạo hữu **${tuSi.ten}** đã nhập định tu luyện trong **${daoNien} Đạo Niên** ` +
@@ -191,20 +188,19 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       .setName('dotpha')
       .setDescription('Thử đột phá lên tầng/cảnh giới tiếp theo'),
     execute: async (interaction) => {
+      await interaction.deferReply();
       const tuSi = await this.layTuSi(interaction.user.id);
       if (!tuSi) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
         });
       }
 
       // Kiểm tra xem có đang thiền định không
       const activeCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'cultivate');
       if (activeCooldown) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Ngươi đang thiền định tu luyện! Hãy đợi hoàn thành trước khi đột phá.")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi đang thiền định tu luyện! Hãy đợi hoàn thành trước khi đột phá.")]
         });
       }
 
@@ -215,30 +211,27 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
         const minutes = Math.floor(secondsLeft / 60);
         const seconds = secondsLeft % 60;
-        return await interaction.reply({
+        return await interaction.editReply({
           embeds: [BoTaoEmbed.loi(
             `Căn cơ chưa hồi phục sau đột phá thất bại! Vui lòng tĩnh dưỡng thêm \`${minutes}m ${seconds}s\`.`
-          )],
-          ephemeral: true
+          )]
         });
       }
 
       // Kiểm tra cấp độ giới hạn tối đa
       if (tuSi.capDo >= 31) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Cảnh giới đã đạt đến đỉnh phong Tiên Nhân Chân Tiên, không thể đột phá thêm!")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Cảnh giới đã đạt đến đỉnh phong Tiên Nhân Chân Tiên, không thể đột phá thêm!")]
         });
       }
 
       // Kiểm tra điều kiện linh lực
       const reqExp = config.layLinhLucYeuCau(tuSi.capDo);
       if (tuSi.linhLuc < reqExp) {
-        return await interaction.reply({
+        return await interaction.editReply({
           embeds: [BoTaoEmbed.loi(
             `Linh lực bất túc! Cần \`${reqExp}\` Linh lực (Hiện có: \`${tuSi.linhLuc}\`). Hãy tiếp tục tu luyện.`
-          )],
-          ephemeral: true
+          )]
         });
       }
 
@@ -252,13 +245,12 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       if (isMajor) {
         stoneCost = tuSi.capDo * 100;
         if (tuSi.linhThach < stoneCost) {
-          return await interaction.reply({
+          return await interaction.editReply({
             embeds: [BoTaoEmbed.loi(
               `Đột phá Cảnh giới lớn yêu cầu linh thạch đột phá đan trận!\n` +
               `• **Yêu cầu**: \`${stoneCost}\` Linh thạch 💎\n` +
               `• **Hiện có**: \`${tuSi.linhThach}\` Linh thạch 💎`
-            )],
-            ephemeral: true
+            )]
           });
         }
       }
@@ -301,7 +293,7 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
           { name: "⚔️ Sức mạnh công kích", value: `Vật công: \`${stats.vat_cong}\` | Pháp công: \`${stats.phap_cong}\``, inline: false }
         );
 
-        await interaction.reply({ embeds: [congratsEmbed] });
+        await interaction.editReply({ embeds: [congratsEmbed] });
       } else {
         // ĐỘT PHÁ THẤT BẠI
         const [statDamaged, penaltyPct] = tuSi.nhanPhatDotPhaThatBai();
@@ -333,7 +325,7 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
           `• **Bế quan tĩnh dưỡng**: Kinh mạch hỗn loạn, bị khóa đột phá trong \`1 Đạo Niên\` (15 phút).`
         );
 
-        await interaction.reply({ embeds: [failEmbed] });
+        await interaction.editReply({ embeds: [failEmbed] });
       }
     }
   };
@@ -344,20 +336,19 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       .setName('nghi')
       .setDescription('Nghỉ ngơi tĩnh dưỡng, hồi phục HP/MP và giảm thời gian tổn thương căn cơ'),
     execute: async (interaction) => {
+      await interaction.deferReply();
       const tuSi = await this.layTuSi(interaction.user.id);
       if (!tuSi) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
         });
       }
 
       // Kiểm tra thiền định tu luyện
       const activeCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'cultivate');
       if (activeCooldown) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Ngươi đang thiền định tu luyện! Hãy đợi hoàn thành trước khi nghỉ ngơi.")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi đang thiền định tu luyện! Hãy đợi hoàn thành trước khi nghỉ ngơi.")]
         });
       }
 
@@ -366,9 +357,8 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       if (restCooldown) {
         const hetHanTime = new Date(restCooldown.hetHan).getTime();
         const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi(`Đạo hữu vừa nghỉ ngơi xong, thần sắc còn tốt! Cần đợi \`${secondsLeft} giây\` mới có thể tĩnh dưỡng tiếp.`)],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi(`Đạo hữu vừa nghỉ ngơi xong, thần sắc còn tốt! Cần đợi \`${secondsLeft} giây\` mới có thể tĩnh dưỡng tiếp.`)]
         });
       }
 
@@ -414,7 +404,7 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         desc += "\n• **Vết thương căn cơ**: Giảm thời gian tĩnh dưỡng vết thương đi \`1 Đạo Niên\` (15 phút).";
       }
 
-      await interaction.reply({
+      await interaction.editReply({
         embeds: [BoTaoEmbed.thanhCong("🥋 Tĩnh Dưỡng Hồi Phục", desc)]
       });
     }

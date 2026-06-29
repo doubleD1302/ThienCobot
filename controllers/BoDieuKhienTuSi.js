@@ -65,11 +65,11 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       .setName('nv')
       .setDescription('Xem hồ sơ nhân vật tu sĩ của ngươi'),
     execute: async (interaction) => {
+      await interaction.deferReply();
       const tuSi = await this.layTuSi(interaction.user.id);
       if (!tuSi) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
         });
       }
 
@@ -110,7 +110,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       }
 
       const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats, daoNien);
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   };
 
@@ -120,11 +120,11 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       .setName('canhu')
       .setDescription('Xem căn cơ, linh căn và hệ số tu luyện'),
     execute: async (interaction) => {
+      await interaction.deferReply();
       const tuSi = await this.layTuSi(interaction.user.id);
       if (!tuSi) {
-        return await interaction.reply({
-          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")],
-          ephemeral: true
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
         });
       }
 
@@ -137,7 +137,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       }
 
       const embed = BoTaoEmbed.canCo(tuSi, daoNien);
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   };
 }
