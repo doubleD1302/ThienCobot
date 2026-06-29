@@ -54,7 +54,15 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         }
       }
 
-      const embed = BoTaoEmbed.tuVi(tuSi, thoiGianTuLuyen, daoNien);
+      // Lấy tốc độ tu luyện và Linh lực yêu cầu từ CanhGioi
+      const { CanhGioi } = await import('../models/CanhGioi.js');
+      const cg = await CanhGioi.findByPk(tuSi.capDo);
+      const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
+      const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
+      const heSoTuLuyen = tuSi.layHeSoTuLuyen();
+      const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen);
+
+      const embed = BoTaoEmbed.tuVi(tuSi, thoiGianTuLuyen, daoNien, reqExp, tocDoTuLuyen);
       await interaction.editReply({ embeds: [embed] });
     }
   };
@@ -171,11 +179,20 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         timeText = secs > 0 ? `${mins} phút ${secs} giây` : `${mins} phút`;
       }
 
+      // Lấy tốc độ tu luyện từ CanhGioi
+      const { CanhGioi } = await import('../models/CanhGioi.js');
+      const cg = await CanhGioi.findByPk(tuSi.capDo);
+      const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
+      const heSoTuLuyen = tuSi.layHeSoTuLuyen();
+      const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen);
+
       await interaction.editReply({
         embeds: [BoTaoEmbed.thanhCong(
           "🧘 Bắt Đầu Thiền Định",
           `Đạo hữu **${tuSi.ten}** đã nhập định tu luyện trong **${daoNien} Đạo Niên** ` +
           `(tương đương \`${timeText}\` thực tế).\n` +
+          `• **Tốc độ hấp thu**: \`+${tocDoTuLuyen}\` Linh lực / Đạo Niên ✨\n` +
+          `• **Dự kiến thu hoạch**: \`+${tocDoTuLuyen * daoNien}\` Linh lực ✨\n` +
           `Linh khí xung quanh đang chuyển động mạnh mẽ...`
         )]
       });
@@ -226,7 +243,9 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       }
 
       // Kiểm tra điều kiện linh lực
-      const reqExp = config.layLinhLucYeuCau(tuSi.capDo);
+      const { CanhGioi } = await import('../models/CanhGioi.js');
+      const cg = await CanhGioi.findByPk(tuSi.capDo);
+      const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
       if (tuSi.linhLuc < reqExp) {
         return await interaction.editReply({
           embeds: [BoTaoEmbed.loi(

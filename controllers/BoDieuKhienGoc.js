@@ -34,8 +34,11 @@ export class BoDieuKhienGoc {
         const daoNien = duLieu.dao_nien || 1;
 
         // Tính toán linh lực & linh thạch nhận được
+        const { CanhGioi } = await import('../models/CanhGioi.js');
+        const cg = await CanhGioi.findByPk(tuSi.capDo);
+        const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
         const multiplier = tuSi.layHeSoTuLuyen();
-        const gainedExp = Math.floor(config.BASE_EXP_PER_DAO_NIEN * multiplier * daoNien);
+        const gainedExp = Math.floor(tocDoCoBan * multiplier * daoNien);
         const gainedStones = Math.floor(10 * tuSi.capDo * daoNien);
 
         // Cộng thưởng

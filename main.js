@@ -73,8 +73,11 @@ client.once('ready', async () => {
           const channelId = duLieu.channelId;
 
           // 1. Tính toán phần thưởng
+          const { CanhGioi } = await import('./models/CanhGioi.js');
+          const cg = await CanhGioi.findByPk(tuSi.capDo);
+          const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
           const multiplier = tuSi.layHeSoTuLuyen();
-          const gainedExp = Math.floor(config.BASE_EXP_PER_DAO_NIEN * multiplier * daoNien);
+          const gainedExp = Math.floor(tocDoCoBan * multiplier * daoNien);
           const gainedStones = Math.floor(10 * tuSi.capDo * daoNien);
 
           // 2. Cộng thưởng & Hồi phục
@@ -218,8 +221,57 @@ async function start() {
       if (deletedCount > 0) {
         console.log(`Đã dọn dẹp ${deletedCount} bản ghi nhân vật lỗi (ID tự tăng) từ cơ sở dữ liệu.`);
       }
+
+      // Khắc phục lỗi schema cũ cho guild_settings
+      const guildSettingsDesc = await queryInterface.describeTable('guild_settings');
+      if (guildSettingsDesc.guild_id && guildSettingsDesc.guild_id.autoIncrement) {
+        console.log('Phát hiện cột guild_id trong bảng guild_settings có thuộc tính autoIncrement. Tiến hành sửa đổi schema...');
+        await queryInterface.changeColumn('guild_settings', 'guild_id', {
+          type: DataTypes.BIGINT,
+          primaryKey: true,
+          allowNull: false,
+          autoIncrement: false
+        });
+        console.log('Đã sửa đổi cột guild_id trong bảng guild_settings thành công.');
+      }
+
+      // Dọn dẹp cấu hình guild lỗi (nếu có)
+      const { CauHinhGuild } = await import('./models/CauHinhGuild.js');
+      const deletedGuildsCount = await CauHinhGuild.destroy({
+        where: {
+          idGuild: {
+            [Op.lt]: "10000000000000000"
+          }
+        }
+      });
+      if (deletedGuildsCount > 0) {
+        console.log(`Đã dọn dẹp ${deletedGuildsCount} bản ghi cấu hình guild lỗi (ID tự tăng) từ cơ sở dữ liệu.`);
+      }
+
+      // Khởi tạo dữ liệu mẫu cho bảng realms (CanhGioi)
+      const { CanhGioi } = await import('./models/CanhGioi.js');
+      const realmsCount = await CanhGioi.count();
+      if (realmsCount === 0) {
+        console.log('Khởi tạo dữ liệu mẫu cho bảng realms (CanhGioi)...');
+        const config = await import('./config.js');
+        const seedData = [];
+        for (let lvl = 1; lvl <= 31; lvl++) {
+          const { realmName, stageName } = config.layThongTinCanhGioi(lvl);
+          const reqExp = config.layLinhLucYeuCau(lvl);
+          const baseSpeed = Math.floor(100 * (1.10 ** (lvl - 1)));
+          seedData.push({
+            capDo: lvl,
+            tenCanhGioi: realmName,
+            tenTang: stageName,
+            linhLucYeuCau: reqExp,
+            tocDoCoBan: baseSpeed
+          });
+        }
+        await CanhGioi.bulkCreate(seedData);
+        console.log('Đã tạo thành công dữ liệu cảnh giới cho 31 cấp độ.');
+      }
     } catch (err) {
-      console.error('Không thể tự động sửa đổi schema hoặc dọn dẹp bản ghi rác:', err);
+      console.error('Không thể tự động sửa đổi schema hoặc dọn dẹp bản ghi rác/seeding:', err);
     }
 
     console.log('Đang đăng nhập vào Discord...');

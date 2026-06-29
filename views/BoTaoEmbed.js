@@ -55,7 +55,7 @@ export class BoTaoEmbed {
       .setFooter({ text: "Thiên Đạo Tu Tiên RPG" });
   }
 
-  static hoSo(tuSi, user, chiSo, daoNien = null) {
+  static hoSo(tuSi, user, chiSo, daoNien = null, tocDoTuLuyen = 100, reqExp = null) {
     const color = layMauCanhGioi(tuSi.canhGioi);
     const embed = new EmbedBuilder()
       .setTitle(`📜 Thẻ Tu Sĩ: ${tuSi.ten}`)
@@ -78,7 +78,7 @@ export class BoTaoEmbed {
     embed.addFields(
       {
         name: "🥋 Căn Cơ & Hướng Đi",
-        value: `• **Giới tính**: ${tuSi.gioiTinh}\n• **Hướng đi**: \`${pathName}\`\n• **Linh Căn**: ${tuSi.linhCan}`,
+        value: `• **Giới tính**: ${tuSi.gioiTinh}\n• **Hướng đi**: \`${pathName}\`\n• **Linh Căn**: ${tuSi.linhCan}\n• **Tốc độ tu luyện**: \`+${tocDoTuLuyen}\` Linh lực/Đạo Niên ✨`,
         inline: true
       },
       {
@@ -89,11 +89,11 @@ export class BoTaoEmbed {
     );
 
     // Tiến độ tu vi
-    const reqExp = config.layLinhLucYeuCau(tuSi.capDo);
-    const progress = taoThanhTienDo(tuSi.linhLuc, reqExp);
+    const targetReqExp = reqExp !== null ? reqExp : config.layLinhLucYeuCau(tuSi.capDo);
+    const progress = taoThanhTienDo(tuSi.linhLuc, targetReqExp);
     embed.addFields({
       name: "✨ Tu Vi Tiến Độ",
-      value: `${progress} (${tuSi.linhLuc}/${reqExp} Linh Lực)`,
+      value: `${progress} (${tuSi.linhLuc}/${targetReqExp} Linh Lực)`,
       inline: false
     });
 
@@ -200,7 +200,7 @@ export class BoTaoEmbed {
     return embed;
   }
 
-  static tuVi(tuSi, thoiGianChoTuLuyen = null, daoNien = null) {
+  static tuVi(tuSi, thoiGianChoTuLuyen = null, daoNien = null, reqExp = null, tocDoTuLuyen = 100) {
     const color = layMauCanhGioi(tuSi.canhGioi);
     const embed = new EmbedBuilder()
       .setTitle(`🔮 Tu Vi Điểm Tính: ${tuSi.ten}`)
@@ -213,8 +213,8 @@ export class BoTaoEmbed {
 
     embed.setFooter({ text: "Đường tu tiên dài đằng đẵng, kiên trì ắt thành công." });
 
-    const reqExp = config.layLinhLucYeuCau(tuSi.capDo);
-    const progress = taoThanhTienDo(tuSi.linhLuc, reqExp, 18);
+    const targetReqExp = reqExp !== null ? reqExp : config.layLinhLucYeuCau(tuSi.capDo);
+    const progress = taoThanhTienDo(tuSi.linhLuc, targetReqExp, 18);
     const breakthroughChance = config.layTiLeDotPha(tuSi.capDo);
     const { stageName } = config.layThongTinCanhGioi(tuSi.capDo);
 
@@ -226,20 +226,20 @@ export class BoTaoEmbed {
       },
       {
         name: "⚡ Linh Lực Tích Lũy",
-        value: `${progress}\n\`${tuSi.linhLuc} / ${reqExp}\` Linh Lực`,
+        value: `${progress}\n\`${tuSi.linhLuc} / ${targetReqExp}\` Linh Lực`,
         inline: false
       }
     );
 
     // Dự kiến đột phá
-    const isReady = tuSi.linhLuc >= reqExp;
+    const isReady = tuSi.linhLuc >= targetReqExp;
     const statusTxt = isReady
       ? "🟢 Đã tích lũy đủ linh lực, có thể lập tức dùng `/dotpha`!"
-      : `🔴 Cần thêm \`${reqExp - tuSi.linhLuc}\` linh lực để đột phá.`;
+      : `🔴 Cần thêm \`${targetReqExp - tuSi.linhLuc}\` linh lực để đột phá.`;
 
     embed.addFields({
       name: "⚔️ Dự Kiến Đột Phá",
-      value: `• **Xác suất thành công**: \`${Math.floor(breakthroughChance * 100)}%\`\n• **Trạng thái**: ${statusTxt}`,
+      value: `• **Xác suất thành công**: \`${Math.floor(breakthroughChance * 100)}%\`\n• **Trạng thái**: ${statusTxt}\n• **Tốc độ tu luyện**: \`+${tocDoTuLuyen}\` Linh lực / Đạo Niên ✨`,
       inline: false
     });
 

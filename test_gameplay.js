@@ -7,6 +7,7 @@ process.env.NODE_ENV = 'test';
 import { sequelize } from './database.js';
 import { TuSi } from './models/TuSi.js';
 import { CauHinhGuild } from './models/CauHinhGuild.js';
+import { CanhGioi } from './models/CanhGioi.js';
 import * as config from './config.js';
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -14,6 +15,20 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   test.before(async () => {
     // Sync models to the in-memory SQLite database
     await sequelize.sync({ force: true });
+
+    // Seed realms (CanhGioi) data for testing
+    const seedData = [];
+    for (let lvl = 1; lvl <= 31; lvl++) {
+      const baseSpeed = Math.floor(100 * (1.10 ** (lvl - 1)));
+      seedData.push({
+        capDo: lvl,
+        tenCanhGioi: lvl <= 9 ? "Luyện Khí" : "Trúc Cơ",
+        tenTang: lvl <= 9 ? `Tầng ${lvl}` : "Sơ Kỳ",
+        linhLucYeuCau: Math.floor(100 * (1.30 ** (lvl - 1))),
+        tocDoCoBan: baseSpeed
+      });
+    }
+    await CanhGioi.bulkCreate(seedData);
   });
 
   test.after(async () => {

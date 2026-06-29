@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed } from '../views/BoTaoEmbed.js';
 import { GiaoDienTaoNhanVat } from '../views/GiaoDienTaoNhanVat.js';
+import * as config from '../config.js';
 
 class BoDieuKhienTuSi extends BoDieuKhienGoc {
   constructor() {
@@ -82,7 +83,9 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
           `• **Linh lực nhận được**: \`+${exp}\` ✨\n` +
           `• **Linh thạch nhận được**: \`+${stones}\` 💎`
         );
-        await interaction.channel.send({ content: `<@${tuSi.idNguoiDung}>`, embeds: [embedReward] }).catch(err => console.error(err));
+        if (interaction.channel) {
+          await interaction.channel.send({ content: `<@${tuSi.idNguoiDung}>`, embeds: [embedReward] }).catch(err => console.error(err));
+        }
       }
 
       const stats = tuSi.layChiSo();
@@ -109,7 +112,15 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         }
       }
 
-      const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats, daoNien);
+      // Lấy tốc độ tu luyện và Linh lực yêu cầu từ CanhGioi
+      const { CanhGioi } = await import('../models/CanhGioi.js');
+      const cg = await CanhGioi.findByPk(tuSi.capDo);
+      const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
+      const heSoTuLuyen = tuSi.layHeSoTuLuyen();
+      const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen);
+      const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
+
+      const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats, daoNien, tocDoTuLuyen, reqExp);
       await interaction.editReply({ embeds: [embed] });
     }
   };

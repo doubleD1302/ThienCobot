@@ -1,11 +1,12 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../database.js';
+import * as config from '../config.js';
 
 class CauHinhGuild extends Model {
   layDaoNienHienTai() {
     const start = new Date(this.ngayKhoiTao).getTime();
-    const minutesPassed = (Date.now() - start) / (1000 * 60);
-    return Math.floor(minutesPassed / 15) + 1;
+    const secondsPassed = (Date.now() - start) / 1000;
+    return Math.floor(secondsPassed / config.DAO_NIEN_SECONDS) + 1;
   }
 }
 
