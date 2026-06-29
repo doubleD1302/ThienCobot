@@ -1,0 +1,19 @@
+{
+  "name": "thienco-bot",
+  "version": "1.0.0",
+  "description": "Discord Tu Tien RPG Bot in Node.js",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node main.js",
+    "register": "node register.js",
+    "test": "node --test test_gameplay.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.5",
+    "sequelize": "^6.37.3",
+    "sqlite3": "^5.1.7",
+    "mysql2": "^3.11.0"
+  }
+}

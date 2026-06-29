@@ -1,0 +1,15 @@
+# Node.js dependencies
+node_modules/
+
+# Local env files
+.env
+.env.local
+
+# Databases
+*.db
+*.db-journal
+*.sqlite
+
+# OS generated files
+.DS_Store
+Thumbs.db

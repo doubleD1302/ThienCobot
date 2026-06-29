@@ -1,0 +1,114 @@
+import { SlashCommandBuilder } from 'discord.js';
+import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
+import { BoTaoEmbed } from '../views/BoTaoEmbed.js';
+import { GiaoDienTaoNhanVat } from '../views/GiaoDienTaoNhanVat.js';
+
+class BoDieuKhienTuSi extends BoDieuKhienGoc {
+  constructor() {
+    super();
+  }
+
+  // Lệnh /start: Tạo nhân vật mới, chọn giới tính, hướng đi và roll Linh Căn
+  lenhNhapThe = {
+    data: new SlashCommandBuilder()
+      .setName('start')
+      .setDescription('Tạo nhân vật mới, chọn giới tính, hướng đi và roll Linh Căn')
+      .addStringOption(option =>
+        option.setName('ten')
+          .setDescription('Tên tu sĩ của ngươi (tối đa 20 ký tự)')
+          .setRequired(true)
+      ),
+    execute: async (interaction) => {
+      const ten = interaction.options.getString('ten');
+
+      // 1. Kiểm tra độ dài tên
+      if (ten.length > 20) {
+        return await interaction.reply({
+          embeds: [BoTaoEmbed.loi("Tên tu sĩ quá dài! Vui lòng chọn tên dưới 20 ký tự.")],
+          ephemeral: true
+        });
+      }
+
+      // 2. Kiểm tra tu sĩ đã tồn tại chưa
+      const tuSi = await this.layTuSi(interaction.user.id);
+      if (tuSi) {
+        return await interaction.reply({
+          embeds: [BoTaoEmbed.loi("Ngươi đã gia nhập thế giới tu tiên từ trước! Hãy gõ `/nv` để xem thông tin.")],
+          ephemeral: true
+        });
+      }
+
+      // 3. Khởi tạo trình tạo nhân vật trực quan
+      const trinhTao = new GiaoDienTaoNhanVat(interaction.user, ten);
+      const message = await interaction.reply({
+        embeds: [trinhTao.getEmbed()],
+        components: trinhTao.getComponents(),
+        fetchReply: true
+      });
+
+      await trinhTao.startCollector(interaction, message);
+    }
+  };
+
+  // Lệnh /nv: Xem hồ sơ nhân vật tu sĩ
+  lenhHoSo = {
+    data: new SlashCommandBuilder()
+      .setName('nv')
+      .setDescription('Xem hồ sơ nhân vật tu sĩ của ngươi'),
+    execute: async (interaction) => {
+      const tuSi = await this.layTuSi(interaction.user.id);
+      if (!tuSi) {
+        return await interaction.reply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")],
+          ephemeral: true
+        });
+      }
+
+      const stats = tuSi.layChiSo();
+      
+      // Khôi phục chỉ số động khi thay đổi căn cơ phạt cực đại
+      let updated = false;
+      if (tuSi.hp > stats.max_hp) {
+        tuSi.hp = stats.max_hp;
+        updated = true;
+      }
+      if (tuSi.mp > stats.max_mp) {
+        tuSi.mp = stats.max_mp;
+        updated = true;
+      }
+      if (updated) {
+        await tuSi.save();
+      }
+
+      const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats);
+      await interaction.reply({ embeds: [embed] });
+    }
+  };
+
+  // Lệnh /canhu: Xem căn cơ tu luyện
+  lenhCanCo = {
+    data: new SlashCommandBuilder()
+      .setName('canhu')
+      .setDescription('Xem căn cơ, linh căn và hệ số tu luyện'),
+    execute: async (interaction) => {
+      const tuSi = await this.layTuSi(interaction.user.id);
+      if (!tuSi) {
+        return await interaction.reply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")],
+          ephemeral: true
+        });
+      }
+
+      const embed = BoTaoEmbed.canCo(tuSi);
+      await interaction.reply({ embeds: [embed] });
+    }
+  };
+}
+
+const controller = new BoDieuKhienTuSi();
+export const danhSachLenhTuSi = [
+  controller.lenhNhapThe,
+  controller.lenhHoSo,
+  controller.lenhCanCo
+];
+export { controller as boDieuKhienTuSi };
