@@ -15,7 +15,7 @@ import { Item } from '../models/Item.js';
 import { Inventory } from '../models/Inventory.js';
 import * as config from '../config.js';
 
-// ── Hằng số ────────────────────────────────────────────────────────────────
+// ── Hằng số hiển thị ────────────────────────────────────────────────────────
 const DO_HIEM_EMOJI = {
   'Thường':    '⚪',
   'Hiếm':     '🟢',
@@ -36,13 +36,14 @@ const LOAI_EMOJI = {
 
 // Nhóm hiển thị trong shop (mỗi nhóm = 1 "tab" trong select menu)
 const SHOP_TABS = [
-  { value: 'tat_ca',    label: 'Tất Cả',        emoji: '🏪', loai: null },
+  { value: 'tat_ca',    label: 'Tất Cả Hàng',   emoji: '🏪', loai: null },
   { value: 'vu_khi',   label: 'Vũ Khí & Giáp', emoji: '⚔️', loai: ['Vũ khí', 'Giáp', 'Ngọc Bội'] },
   { value: 'phap_bao', label: 'Cổ Bảo & Pháp Bảo', emoji: '🔮', loai: ['Cổ Bảo Chủ Động', 'Pháp Bảo'] },
   { value: 'tieu_hao', label: 'Đan Dược',       emoji: '💊', loai: ['Đan dược', 'Linh thảo'] }
 ];
 
-const ITEMS_PER_PAGE = 8; // số item trên mỗi trang
+const ITEMS_PER_PAGE = 8; // số item trên mỗi trang trong shop
+const SELL_ITEMS_PER_PAGE = 8; // số item trên mỗi trang trong kho bán đồ
 
 // ── Helper: load tất cả hàng hoá kèm chi tiết item ─────────────────────────
 async function loadShopCatalog() {
@@ -68,7 +69,7 @@ function filterByTab(catalog, tabValue) {
   return catalog.filter(e => tab.loai.includes(e.item.loai));
 }
 
-// ── Helper: tạo embed trang shop ───────────────────────────────────────────
+// ── Helper: tạo embed trang shop (mua đồ) ──────────────────────────────────
 function buildShopEmbed(tuSi, entries, pageIdx, totalPages, tabLabel) {
   const color = layMauCanhGioi(tuSi.canhGioi);
 
@@ -80,7 +81,7 @@ function buildShopEmbed(tuSi, entries, pageIdx, totalPages, tabLabel) {
     const giaText  = `🪙 \`${shop.giaBan.toLocaleString()}\` Linh Thạch`;
     const tonText  = shop.soLuongTon === -1 ? '' : ` · Còn \`${shop.soLuongTon}\``;
     const reqText  = shop.yeuCauCapDo > 1
-      ? ` · ⚠️ Yêu cầu Cấp **${shop.yeuCauCapDo}**`
+      ? ` · ⚠️ Cấp **${shop.yeuCauCapDo}**`
       : '';
     let statsText = '';
     try {
@@ -108,15 +109,15 @@ function buildShopEmbed(tuSi, entries, pageIdx, totalPages, tabLabel) {
     .setTitle(`🏪 Linh Bảo Các — Cửa Hàng Tu Tiên`)
     .setColor(color)
     .setDescription(
-      `> 🪙 **Linh thạch của ngươi**: \`${tuSi.linhThach.toLocaleString()}\`  |  📋 **Danh mục**: ${tabLabel}` +
+      `> 🪙 **Linh thạch hiện có**: \`${tuSi.linhThach.toLocaleString()}\`  |  📋 **Danh mục**: ${tabLabel}` +
       (totalPages > 1 ? `  |  📄 Trang ${pageIdx + 1}/${totalPages}` : '') +
       `\n${'─'.repeat(38)}\n${desc}`
     )
     .setTimestamp()
-    .setFooter({ text: 'Dùng menu bên dưới để chọn hàng → bấm 🛒 Mua · Thiên Đạo Tu Tiên RPG' });
+    .setFooter({ text: 'Chọn vật phẩm bên dưới → Bấm nút Mua phía dưới cùng để giao dịch.' });
 }
 
-// ── Helper: embed chi tiết 1 item đang được chọn ───────────────────────────
+// ── Helper: embed chi tiết 1 item đang được chọn để MUA ───────────────────
 function buildItemDetailEmbed(tuSi, shopEntry) {
   const { shop, item } = shopEntry;
   const color     = layMauCanhGioi(tuSi.canhGioi);
@@ -147,24 +148,87 @@ function buildItemDetailEmbed(tuSi, shopEntry) {
   const inStock   = shop.soLuongTon === -1 || shop.soLuongTon > 0;
 
   return new EmbedBuilder()
-    .setTitle(`${doHiemEm}${loaiEm} ${item.ten}`)
+    .setTitle(`${doHiemEm}${loaiEm} Chi Tiết: ${item.ten}`)
     .setColor(canAfford && canLevel && inStock ? 0x2ecc71 : 0xe74c3c)
     .addFields(
       { name: '📦 Phân Loại', value: `${item.loai} · ${item.doHiem}`, inline: true },
       { name: '🪙 Giá Bán',  value: `\`${shop.giaBan.toLocaleString()}\` Linh Thạch`, inline: true },
       { name: '📦 Tồn Kho',  value: shop.soLuongTon === -1 ? '∞ Vô hạn' : `\`${shop.soLuongTon}\``, inline: true },
-      { name: '⚠️ Yêu Cầu', value: reqText, inline: true },
+      { name: '⚠️ Yêu Cầu Cấp', value: reqText, inline: true },
       { name: '💰 Ví Của Ngươi', value: `\`${tuSi.linhThach.toLocaleString()}\` Linh Thạch`, inline: true },
-      { name: '✅ Đủ Điều Kiện', value: canAfford && canLevel && inStock ? '🟢 Có thể mua' : '🔴 Không đủ điều kiện', inline: true },
+      { name: '✅ Trạng Thái', value: canAfford && canLevel && inStock ? '🟢 Đủ điều kiện mua' : '🔴 Không đủ điều kiện', inline: true },
       { name: '📊 Chỉ Số', value: statsText, inline: false },
       { name: '📖 Mô Tả', value: item.moTa || '_Không có mô tả._', inline: false }
     )
-    .setFooter({ text: `ID vật phẩm: ${item.id}` });
+    .setFooter({ text: `Mã vật phẩm: ${item.id}` });
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-//  CONTROLLER
-// ──────────────────────────────────────────────────────────────────────────
+// ── Helper: tạo embed trang bán đồ (sell) ──────────────────────────────────
+function buildSellEmbed(tuSi, entries, pageIdx, totalPages) {
+  const color = layMauCanhGioi(tuSi.canhGioi);
+
+  const lines = entries.map((e, i) => {
+    const idx      = pageIdx * SELL_ITEMS_PER_PAGE + i + 1;
+    const doHiemEm = DO_HIEM_EMOJI[e.item.doHiem] || '⚪';
+    const loaiEm   = LOAI_EMOJI[e.item.loai] || '📦';
+    const donGia   = Math.floor(e.item.giaCoSo * 0.3);
+    const tongGia  = donGia * e.soLuong;
+
+    return `**${idx}.** ${doHiemEm}${loaiEm} **${e.item.ten}** x\`${e.soLuong}\`\n` +
+           `   *Giá cơ sở:* \`${e.item.giaCoSo}\` 🪙 · *Bán thu về:* \`${donGia}\` 🪙/cái (Tổng: \`${tongGia}\` 🪙)`;
+  });
+
+  const desc = entries.length > 0
+    ? lines.join('\n\n')
+    : '_Túi đồ của ngươi không có vật phẩm nào chưa trang bị có thể bán lấy Linh Thạch._';
+
+  return new EmbedBuilder()
+    .setTitle(`🛍️ Tiệm Cầm Đồ Thiên Cơ — Bán Vật Phẩm`)
+    .setColor(color)
+    .setDescription(
+      `> 🪙 **Linh thạch hiện có**: \`${tuSi.linhThach.toLocaleString()}\`  |  *(Shop mua lại với giá bằng 30% giá cơ sở)*\n` +
+      (totalPages > 1 ? `> 📄 Trang ${pageIdx + 1}/${totalPages}\n` : '') +
+      `${'─'.repeat(38)}\n${desc}`
+    )
+    .setTimestamp()
+    .setFooter({ text: 'Chọn vật phẩm từ túi đồ bên dưới → Chọn số lượng muốn bán.' });
+}
+
+// ── Helper: embed chi tiết 1 item trong túi đang được chọn để BÁN ───────────
+function buildSellItemDetailEmbed(tuSi, invEntry) {
+  const { item, soLuong, invId } = invEntry;
+  const color     = layMauCanhGioi(tuSi.canhGioi);
+  const doHiemEm  = DO_HIEM_EMOJI[item.doHiem] || '⚪';
+  const loaiEm    = LOAI_EMOJI[item.loai] || '📦';
+  const donGia    = Math.floor(item.giaCoSo * 0.3);
+
+  let statsText = '_Không có chỉ số_';
+  try {
+    const stats = JSON.parse(item.chiSoJson || '{}');
+    const parts = [];
+    if (stats.vat_cong)  parts.push(`• **Vật Công**: \`+${stats.vat_cong}\``);
+    if (stats.phap_cong) parts.push(`• **Pháp Công**: \`+${stats.phap_cong}\``);
+    if (stats.vat_phong) parts.push(`• **Vật Phòng**: \`+${stats.vat_phong}\``);
+    if (stats.phap_phong)parts.push(`• **Pháp Phòng**: \`+${stats.phap_phong}\``);
+    if (stats.hp)        parts.push(`• **HP tối đa**: \`+${stats.hp}\``);
+    if (stats.mp)        parts.push(`• **MP tối đa**: \`+${stats.mp}\``);
+    if (parts.length > 0) statsText = parts.join('\n');
+  } catch (_) {}
+
+  return new EmbedBuilder()
+    .setTitle(`${doHiemEm}${loaiEm} Chi Tiết Bán: ${item.ten}`)
+    .setColor(0xe67e22)
+    .addFields(
+      { name: '📦 Phân Loại', value: `${item.loai} · ${item.doHiem}`, inline: true },
+      { name: '🪙 Giá Cơ Sở', value: `\`${item.giaCoSo.toLocaleString()}\` Linh Thạch`, inline: true },
+      { name: '💰 Giá Bán (30%)', value: `\`${donGia.toLocaleString()}\` Linh Thạch/cái`, inline: true },
+      { name: '🎒 Số Lượng Có', value: `x\`${soLuong}\` trong túi`, inline: true },
+      { name: '📊 Chỉ Số', value: statsText, inline: false },
+      { name: '📖 Mô Tả', value: item.moTa || '_Không có mô tả._', inline: false }
+    )
+    .setFooter({ text: `Mã túi đồ: #${invId} · Mã vật phẩm: ${item.id}` });
+}
+
 class BoDieuKhienShop extends BoDieuKhienGoc {
   constructor() {
     super();
@@ -173,44 +237,7 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
   lenhShop = {
     data: new SlashCommandBuilder()
       .setName('shop')
-      .setDescription('Mở Linh Bảo Các — Cửa hàng vật phẩm tu tiên')
-      .addSubcommand(sub =>
-        sub.setName('xem')
-          .setDescription('Duyệt hàng hoá cửa hàng')
-      )
-      .addSubcommand(sub =>
-        sub.setName('mua')
-          .setDescription('Mua trực tiếp một vật phẩm qua lệnh')
-          .addStringOption(opt =>
-            opt.setName('item_id')
-              .setDescription('Mã vật phẩm muốn mua (VD: dan_hp_1)')
-              .setRequired(true)
-          )
-          .addIntegerOption(opt =>
-            opt.setName('so_luong')
-              .setDescription('Số lượng muốn mua (mặc định: 1)')
-              .setMinValue(1)
-              .setMaxValue(99)
-          )
-      )
-      .addSubcommand(sub =>
-        sub.setName('lichsu')
-          .setDescription('Xem lịch sử mua hàng gần đây')
-      )
-      .addSubcommand(sub =>
-        sub.setName('ban')
-          .setDescription('Bán vật phẩm từ túi đồ (giá bằng 30% giá cơ sở)')
-          .addStringOption(opt =>
-            opt.setName('item_id')
-              .setDescription('Mã vật phẩm muốn bán (VD: kiem_go)')
-              .setRequired(true)
-          )
-          .addIntegerOption(opt =>
-            opt.setName('so_luong')
-              .setDescription('Số lượng muốn bán (mặc định: 1, trang bị chỉ bán đồ chưa mặc)')
-              .setMinValue(1)
-          )
-      ),
+      .setDescription('Mở Linh Bảo Các — Mua bán vật phẩm tu tiên và xem lịch sử giao dịch'),
 
     execute: async (interaction) => {
       await interaction.deferReply();
@@ -222,334 +249,537 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         });
       }
 
-      const subcommand = interaction.options.getSubcommand();
+      // Catalog hàng hóa tĩnh trong shop
+      const catalog = await loadShopCatalog();
 
-      // ═══════════════════════════════════════════════════════════════
-      //  XEM — giao diện shop tương tác
-      // ═══════════════════════════════════════════════════════════════
-      if (subcommand === 'xem') {
-        const catalog = await loadShopCatalog();
+      // Trạng thái giao diện tương tác
+      let currentMode        = 'BUY'; // 'BUY', 'SELL', 'HISTORY'
+      
+      // State cho Mode MUA
+      let shopTab            = 'tat_ca';
+      let shopPageIdx        = 0;
+      let selectedShopId     = null;
 
-        // Trạng thái UI
-        let curTab        = 'tat_ca';
-        let pageIdx       = 0;
-        let selectedShopId = null;  // id (PK) của shop_items đang chọn
+      // State cho Mode BÁN
+      let sellPageIdx        = 0;
+      let selectedInventoryId = null;
 
-        // ── Helpers build UI ─────────────────────────────────────────
+      // ── Helper: load danh sách đồ có thể bán từ kho của người chơi ──────────
+      const loadSellableInventory = async () => {
+        const invList = await Inventory.findAll({
+          where: { idNguoiDung: tuSi.idNguoiDung, trangBi: false }
+        });
 
-        const getPageEntries = (tab, pi) => {
-          const filtered = filterByTab(catalog, tab);
-          const start = pi * ITEMS_PER_PAGE;
-          return filtered.slice(start, start + ITEMS_PER_PAGE);
-        };
+        const sellable = [];
+        for (const inv of invList) {
+          const itemDetail = await Item.findByPk(inv.itemId);
+          if (itemDetail && itemDetail.giaCoSo > 0) {
+            sellable.push({
+              invId:         inv.id,
+              item:          itemDetail,
+              soLuong:       inv.soLuong,
+              trangBi:       inv.trangBi,
+              nangCapSao:    inv.nangCapSao,
+              dongChiSoJson: inv.dongChiSoJson
+            });
+          }
+        }
+        return sellable;
+      };
 
-        const getTotalPages = (tab) => {
-          const filtered = filterByTab(catalog, tab);
-          return Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-        };
+      // ── BUILD COMPONENTS ROWS ──────────────────────────────────────────────
 
-        /** Row 1: Select tab danh mục */
-        const buildTabRow = (disabled = false) =>
+      /** Row 1: Nút chuyển đổi Mode chính (luôn hiển thị) */
+      const buildModeRow = (disabled = false) => {
+        return new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('mode_buy')
+            .setLabel('🛒 Cửa Hàng (Mua)')
+            .setStyle(currentMode === 'BUY' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+            .setDisabled(disabled || currentMode === 'BUY'),
+          new ButtonBuilder()
+            .setCustomId('mode_sell')
+            .setLabel('💰 Tiệm Cầm Đồ (Bán)')
+            .setStyle(currentMode === 'SELL' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+            .setDisabled(disabled || currentMode === 'SELL'),
+          new ButtonBuilder()
+            .setCustomId('mode_history')
+            .setLabel('📜 Lịch Sử Giao Dịch')
+            .setStyle(currentMode === 'HISTORY' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+            .setDisabled(disabled || currentMode === 'HISTORY'),
+          new ButtonBuilder()
+            .setCustomId('mode_close')
+            .setLabel('❌ Đóng')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled)
+        );
+      };
+
+      // ──────────────────────────────────────────
+      //  COMPONENTS CHO MODE MUA (BUY)
+      // ──────────────────────────────────────────
+      const buildBuyComponents = (disabled = false) => {
+        const filtered = filterByTab(catalog, shopTab);
+        const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+        const start = shopPageIdx * ITEMS_PER_PAGE;
+        const pageEntries = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+        const rows = [buildModeRow(disabled)];
+
+        // Row 2: Chọn danh mục
+        rows.push(
           new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
-              .setCustomId('shop_tab')
-              .setPlaceholder('🏪 Chọn danh mục hàng hoá...')
+              .setCustomId('buy_tab_select')
+              .setPlaceholder('📋 Chọn danh mục hàng hoá...')
               .setDisabled(disabled)
               .addOptions(SHOP_TABS.map(t => ({
                 label:   t.label,
                 value:   t.value,
                 emoji:   t.emoji,
-                default: t.value === curTab
+                default: t.value === shopTab
               })))
-          );
+          )
+        );
 
-        /** Row 2: Select chọn item trên trang hiện tại */
-        const buildItemSelectRow = (entries, disabled = false) => {
-          if (entries.length === 0) {
-            return new ActionRowBuilder().addComponents(
+        // Row 3: Chọn item trên trang hiện tại
+        if (pageEntries.length === 0) {
+          rows.push(
+            new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
-                .setCustomId('shop_item_select')
-                .setPlaceholder('⚠️ Không có hàng hoá trong danh mục này')
+                .setCustomId('buy_item_select')
+                .setPlaceholder('⚠️ Danh mục này hiện đang trống')
                 .setDisabled(true)
                 .addOptions([{ label: '(Trống)', value: '__empty__' }])
-            );
-          }
-          return new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId('shop_item_select')
-              .setPlaceholder('🔍 Chọn vật phẩm muốn xem chi tiết...')
-              .setDisabled(disabled)
-              .addOptions(entries.map((e, i) => {
-                const doHiemEm = DO_HIEM_EMOJI[e.item.doHiem] || '⚪';
-                const giaStr   = e.shop.giaBan.toLocaleString();
-                return {
+            )
+          );
+        } else {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('buy_item_select')
+                .setPlaceholder('🔍 Chọn vật phẩm xem chi tiết...')
+                .setDisabled(disabled)
+                .addOptions(pageEntries.map(e => ({
                   label:       e.item.ten.slice(0, 100),
                   value:       String(e.shop.id),
-                  emoji:       doHiemEm,
-                  description: `${e.item.loai} · ${giaStr} Linh Thạch`.slice(0, 100),
+                  emoji:       DO_HIEM_EMOJI[e.item.doHiem] || '⚪',
+                  description: `${e.item.loai} · ${e.shop.giaBan.toLocaleString()} Linh Thạch`.slice(0, 100),
                   default:     String(e.shop.id) === String(selectedShopId)
-                };
-              }))
+                })))
+            )
           );
-        };
+        }
 
-        /** Row 3: Nút phân trang + Đóng */
-        const buildNavRow = (disabled = false) => {
-          const total = getTotalPages(curTab);
-          return new ActionRowBuilder().addComponents(
+        // Row 4: Phân trang
+        rows.push(
+          new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-              .setCustomId('shop_prev')
+              .setCustomId('buy_prev')
               .setLabel('◀ Trang trước')
               .setStyle(ButtonStyle.Secondary)
-              .setDisabled(disabled || pageIdx === 0),
+              .setDisabled(disabled || shopPageIdx === 0),
             new ButtonBuilder()
-              .setCustomId('shop_next')
+              .setCustomId('buy_next')
               .setLabel('Trang sau ▶')
               .setStyle(ButtonStyle.Secondary)
-              .setDisabled(disabled || pageIdx >= total - 1),
-            new ButtonBuilder()
-              .setCustomId('shop_close')
-              .setLabel('❌ Đóng')
-              .setStyle(ButtonStyle.Danger)
-              .setDisabled(disabled)
-          );
-        };
+              .setDisabled(disabled || shopPageIdx >= totalPages - 1)
+          )
+        );
 
-        /** Row 4 (chỉ hiện khi đã chọn item): Nút mua */
-        const buildBuyRow = (shopId, disabled = false) => {
-          if (!shopId) return null;
-          return new ActionRowBuilder().addComponents(
+        // Row 5: Nút Mua (chỉ hiển thị khi chọn item)
+        if (selectedShopId && !disabled) {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('buy_action_1')
+                .setLabel('🛒 Mua x1')
+                .setStyle(ButtonStyle.Success),
+              new ButtonBuilder()
+                .setCustomId('buy_action_5')
+                .setLabel('🛒 Mua x5')
+                .setStyle(ButtonStyle.Success),
+              new ButtonBuilder()
+                .setCustomId('buy_action_10')
+                .setLabel('🛒 Mua x10')
+                .setStyle(ButtonStyle.Success),
+              new ButtonBuilder()
+                .setCustomId('buy_deselect')
+                .setLabel('↩️ Bỏ chọn')
+                .setStyle(ButtonStyle.Secondary)
+            )
+          );
+        }
+
+        return rows;
+      };
+
+      // ──────────────────────────────────────────
+      //  COMPONENTS CHO MODE BÁN (SELL)
+      // ──────────────────────────────────────────
+      const buildSellComponents = (sellableList, disabled = false) => {
+        const totalPages = Math.max(1, Math.ceil(sellableList.length / SELL_ITEMS_PER_PAGE));
+        const start = sellPageIdx * SELL_ITEMS_PER_PAGE;
+        const pageEntries = sellableList.slice(start, start + SELL_ITEMS_PER_PAGE);
+
+        const rows = [buildModeRow(disabled)];
+
+        // Row 2: Dropdown chọn vật phẩm để bán từ túi
+        if (pageEntries.length === 0) {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('sell_item_select')
+                .setPlaceholder('🎒 Túi đồ không có gì bán được')
+                .setDisabled(true)
+                .addOptions([{ label: '(Trống)', value: '__empty__' }])
+            )
+          );
+        } else {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('sell_item_select')
+                .setPlaceholder('🔍 Chọn vật phẩm muốn bán...')
+                .setDisabled(disabled)
+                .addOptions(pageEntries.map(e => {
+                  const donGia = Math.floor(e.item.giaCoSo * 0.3);
+                  return {
+                    label:       `${e.item.ten} x${e.soLuong}`.slice(0, 100),
+                    value:       String(e.invId),
+                    emoji:       DO_HIEM_EMOJI[e.item.doHiem] || '⚪',
+                    description: `Bán: ${donGia} Linh Thạch/cái · #${e.invId}`.slice(0, 100),
+                    default:     String(e.invId) === String(selectedInventoryId)
+                  };
+                }))
+            )
+          );
+        }
+
+        // Row 3: Phân trang túi đồ bán
+        rows.push(
+          new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-              .setCustomId('shop_buy_1')
-              .setLabel('🛒 Mua x1')
-              .setStyle(ButtonStyle.Primary)
-              .setDisabled(disabled),
-            new ButtonBuilder()
-              .setCustomId('shop_buy_5')
-              .setLabel('🛒 Mua x5')
-              .setStyle(ButtonStyle.Primary)
-              .setDisabled(disabled),
-            new ButtonBuilder()
-              .setCustomId('shop_buy_10')
-              .setLabel('🛒 Mua x10')
-              .setStyle(ButtonStyle.Primary)
-              .setDisabled(disabled),
-            new ButtonBuilder()
-              .setCustomId('shop_deselect')
-              .setLabel('↩️ Bỏ Chọn')
+              .setCustomId('sell_prev')
+              .setLabel('◀ Trang trước')
               .setStyle(ButtonStyle.Secondary)
-              .setDisabled(disabled)
+              .setDisabled(disabled || sellPageIdx === 0),
+            new ButtonBuilder()
+              .setCustomId('sell_next')
+              .setLabel('Trang sau ▶')
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(disabled || sellPageIdx >= totalPages - 1)
+          )
+        );
+
+        // Row 4: Hành động Bán (chỉ hiện khi có item được chọn)
+        if (selectedInventoryId && !disabled) {
+          const selectedInv = sellableList.find(e => String(e.invId) === String(selectedInventoryId));
+          const maxQty = selectedInv ? selectedInv.soLuong : 1;
+
+          const actionRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('sell_action_1')
+              .setLabel('💰 Bán x1')
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId('sell_deselect')
+              .setLabel('↩️ Bỏ chọn')
+              .setStyle(ButtonStyle.Secondary)
           );
-        };
 
-        const buildAllComponents = (disabled = false) => {
-          const entries = getPageEntries(curTab, pageIdx);
-          const rows = [];
-          rows.push(buildTabRow(disabled));
-          rows.push(buildItemSelectRow(entries, disabled));
-          rows.push(buildNavRow(disabled));
-          const buyRow = buildBuyRow(selectedShopId, disabled);
-          if (buyRow) rows.push(buyRow);
-          return rows;
-        };
+          if (maxQty >= 5) {
+            actionRow.addComponents(
+              new ButtonBuilder()
+                .setCustomId('sell_action_5')
+                .setLabel('💰 Bán x5')
+                .setStyle(ButtonStyle.Danger)
+            );
+          }
+          actionRow.addComponents(
+            new ButtonBuilder()
+              .setCustomId('sell_action_all')
+              .setLabel(`💰 Bán Hết (x${maxQty})`)
+              .setStyle(ButtonStyle.Danger)
+          );
 
-        const buildEmbeds = () => {
-          const entries = getPageEntries(curTab, pageIdx);
-          const total   = getTotalPages(curTab);
-          const tabLabel = SHOP_TABS.find(t => t.value === curTab)?.label ?? 'Tất Cả';
-          const mainEmbed = buildShopEmbed(tuSi, entries, pageIdx, total, tabLabel);
+          rows.push(actionRow);
+        }
+
+        return rows;
+      };
+
+      // ── BUILD EMBEDS ───────────────────────────────────────────────────────
+      const buildAllEmbeds = async (sellableList) => {
+        if (currentMode === 'BUY') {
+          const filtered = filterByTab(catalog, shopTab);
+          const total = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+          const start = shopPageIdx * ITEMS_PER_PAGE;
+          const pageEntries = filtered.slice(start, start + ITEMS_PER_PAGE);
+          const tabLabel = SHOP_TABS.find(t => t.value === shopTab)?.label ?? 'Tất Cả';
+
+          const embeds = [buildShopEmbed(tuSi, pageEntries, shopPageIdx, total, tabLabel)];
+
           if (selectedShopId) {
-            const shopEntry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
-            if (shopEntry) {
-              return [mainEmbed, buildItemDetailEmbed(tuSi, shopEntry)];
+            const entry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
+            if (entry) {
+              embeds.push(buildItemDetailEmbed(tuSi, entry));
             }
           }
-          return [mainEmbed];
-        };
+          return embeds;
+        }
 
-        // Gửi reply ban đầu
-        const msg = await interaction.editReply({
-          embeds:     buildEmbeds(),
-          components: buildAllComponents()
-        });
+        if (currentMode === 'SELL') {
+          const total = Math.max(1, Math.ceil(sellableList.length / SELL_ITEMS_PER_PAGE));
+          const start = sellPageIdx * SELL_ITEMS_PER_PAGE;
+          const pageEntries = sellableList.slice(start, start + SELL_ITEMS_PER_PAGE);
 
-        const collector = msg.createMessageComponentCollector({
-          filter: i => i.user.id === interaction.user.id,
-          time:   180_000
-        });
+          const embeds = [buildSellEmbed(tuSi, pageEntries, sellPageIdx, total)];
 
-        collector.on('collect', async i => {
-          await i.deferUpdate();
-
-          switch (i.customId) {
-
-            case 'shop_tab': {
-              curTab         = i.values[0];
-              pageIdx        = 0;
-              selectedShopId = null;
-              break;
+          if (selectedInventoryId) {
+            const entry = sellableList.find(e => String(e.invId) === String(selectedInventoryId));
+            if (entry) {
+              embeds.push(buildSellItemDetailEmbed(tuSi, entry));
             }
-            case 'shop_prev': {
-              pageIdx = Math.max(0, pageIdx - 1);
-              selectedShopId = null;
-              break;
-            }
-            case 'shop_next': {
-              pageIdx = Math.min(getTotalPages(curTab) - 1, pageIdx + 1);
-              selectedShopId = null;
-              break;
-            }
-            case 'shop_item_select': {
-              selectedShopId = i.values[0];
-              break;
-            }
-            case 'shop_deselect': {
-              selectedShopId = null;
-              break;
-            }
-            case 'shop_close': {
-              collector.stop('closed');
-              return;
-            }
+          }
+          return embeds;
+        }
 
-            // ── Mua hàng ──────────────────────────────────────────────
-            case 'shop_buy_1':
-            case 'shop_buy_5':
-            case 'shop_buy_10': {
-              if (!selectedShopId) break;
-              const qty = i.customId === 'shop_buy_1' ? 1
-                        : i.customId === 'shop_buy_5' ? 5 : 10;
-              const shopEntry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
-              if (!shopEntry) break;
+        if (currentMode === 'HISTORY') {
+          // Mode lịch sử: Lấy 15 giao dịch mua và bán gần nhất
+          const records = await LichSuMua.findAll({
+            where:  { idNguoiDung: tuSi.idNguoiDung },
+            order:  [['muaLuc', 'DESC']],
+            limit:  15
+          });
 
-              const result = await this._thucHienMua(tuSi, shopEntry, qty);
+          if (records.length === 0) {
+            return [BoTaoEmbed.thongTin(
+              '📜 Lịch Sử Giao Dịch',
+              `Đạo hữu **${tuSi.ten}** chưa thực hiện bất kỳ giao dịch mua hay bán nào tại Linh Bảo Các.`
+            )];
+          }
 
-              // Cập nhật lại tồn kho trong catalog (nếu có giới hạn)
-              if (result.ok && shopEntry.shop.soLuongTon !== -1) {
+          const lines = await Promise.all(records.map(async (r, i) => {
+            const d = await Item.findByPk(r.itemId);
+            const name = d ? d.ten : r.itemId;
+            const time = new Date(r.muaLuc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+            
+            if (r.soLuong < 0) {
+              // Bán hàng (soLuong âm, giaDaTra âm)
+              return `**${i + 1}.** 🟢 **BÁN**: ${name} x\`${-r.soLuong}\` ➔ \`+${(-r.giaDaTra).toLocaleString()}\` 🪙 · \`${time}\``;
+            } else {
+              // Mua hàng (soLuong dương, giaDaTra dương)
+              return `**${i + 1}.** 🔴 **MUA**: ${name} x\`${r.soLuong}\` ➔ \`-${r.giaDaTra.toLocaleString()}\` 🪙 · \`${time}\``;
+            }
+          }));
+
+          const embed = new EmbedBuilder()
+            .setTitle(`📜 Lịch Sử Mua Bán: ${tuSi.ten}`)
+            .setColor(layMauCanhGioi(tuSi.canhGioi))
+            .setDescription(
+              `> 💰 **Tài sản hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` 🪙\n` +
+              `${'─'.repeat(38)}\n${lines.join('\n')}`
+            )
+            .setTimestamp()
+            .setFooter({ text: 'Lưu giữ 15 giao dịch gần đây nhất.' });
+
+          return [embed];
+        }
+
+        return [];
+      };
+
+      // ── INITIAL SEND ───────────────────────────────────────────────────────
+      let sellableList = await loadSellableInventory();
+      const msg = await interaction.editReply({
+        embeds:     await buildAllEmbeds(sellableList),
+        components: buildBuyComponents()
+      });
+
+      // ── COLLECTOR ──────────────────────────────────────────────────────────
+      const collector = msg.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time:   240_000 // Tăng lên 4 phút để tương tác thoải mái
+      });
+
+      collector.on('collect', async i => {
+        await i.deferUpdate();
+
+        let actionResultEmbed = null;
+
+        switch (i.customId) {
+          // ── MODE SWITCHING ─────────────────────────────────────────────────
+          case 'mode_buy': {
+            currentMode = 'BUY';
+            selectedShopId = null;
+            shopPageIdx = 0;
+            break;
+          }
+          case 'mode_sell': {
+            currentMode = 'SELL';
+            selectedInventoryId = null;
+            sellPageIdx = 0;
+            sellableList = await loadSellableInventory();
+            break;
+          }
+          case 'mode_history': {
+            currentMode = 'HISTORY';
+            break;
+          }
+          case 'mode_close': {
+            collector.stop('closed');
+            return;
+          }
+
+          // ── BUY MODE INTERACTIONS ──────────────────────────────────────────
+          case 'buy_tab_select': {
+            shopTab = i.values[0];
+            shopPageIdx = 0;
+            selectedShopId = null;
+            break;
+          }
+          case 'buy_item_select': {
+            selectedShopId = i.values[0];
+            break;
+          }
+          case 'buy_prev': {
+            shopPageIdx = Math.max(0, shopPageIdx - 1);
+            selectedShopId = null;
+            break;
+          }
+          case 'buy_next': {
+            const filtered = filterByTab(catalog, shopTab);
+            const total = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+            shopPageIdx = Math.min(total - 1, shopPageIdx + 1);
+            selectedShopId = null;
+            break;
+          }
+          case 'buy_deselect': {
+            selectedShopId = null;
+            break;
+          }
+          case 'buy_action_1':
+          case 'buy_action_5':
+          case 'buy_action_10': {
+            if (!selectedShopId) break;
+            const qty = i.customId === 'buy_action_1' ? 1
+                      : i.customId === 'buy_action_5' ? 5 : 10;
+            
+            const shopEntry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
+            if (shopEntry) {
+              const res = await this._thucHienMua(tuSi, shopEntry, qty);
+              actionResultEmbed = res.ok
+                ? BoTaoEmbed.thanhCong('🛒 Mua Hàng Thành Công', res.msg)
+                : BoTaoEmbed.loi(res.msg);
+
+              if (res.ok && shopEntry.shop.soLuongTon !== -1) {
                 shopEntry.shop.soLuongTon -= qty;
               }
               selectedShopId = null;
-
-              const resEmbed = result.ok
-                ? BoTaoEmbed.thanhCong('🛒 Mua Hàng Thành Công', result.msg)
-                : BoTaoEmbed.loi(result.msg);
-
-              await i.editReply({
-                embeds:     [...buildEmbeds(), resEmbed],
-                components: buildAllComponents()
-              });
-              return;
             }
-
-            default: break;
+            break;
           }
 
-          await i.editReply({
-            embeds:     buildEmbeds(),
-            components: buildAllComponents()
-          });
-        });
+          // ── SELL MODE INTERACTIONS ─────────────────────────────────────────
+          case 'sell_item_select': {
+            selectedInventoryId = i.values[0];
+            break;
+          }
+          case 'sell_prev': {
+            sellPageIdx = Math.max(0, sellPageIdx - 1);
+            selectedInventoryId = null;
+            break;
+          }
+          case 'sell_next': {
+            const total = Math.max(1, Math.ceil(sellableList.length / SELL_ITEMS_PER_PAGE));
+            sellPageIdx = Math.min(total - 1, sellPageIdx + 1);
+            selectedInventoryId = null;
+            break;
+          }
+          case 'sell_deselect': {
+            selectedInventoryId = null;
+            break;
+          }
+          case 'sell_action_1':
+          case 'sell_action_5':
+          case 'sell_action_all': {
+            if (!selectedInventoryId) break;
+            
+            const selectedInv = sellableList.find(e => String(e.invId) === String(selectedInventoryId));
+            if (!selectedInv) break;
 
-        collector.on('end', async (_, reason) => {
-          try {
-            if (reason === 'closed') {
-              await interaction.editReply({
-                embeds: [
-                  new EmbedBuilder()
-                    .setTitle('🏪 Linh Bảo Các — Đã Đóng Cửa')
-                    .setDescription('Ngươi đã rời khỏi cửa hàng. Hẹn gặp lại!')
-                    .setColor(0x7f8c8d)
-                    .setTimestamp()
-                    .setFooter({ text: 'Dùng /shop xem để quay lại.' })
-                ],
-                components: []
-              });
+            const qty = i.customId === 'sell_action_1' ? 1
+                      : i.customId === 'sell_action_5' ? 5 : selectedInv.soLuong;
+
+            const res = await this._thucHienBanByInvId(tuSi, selectedInv.invId, qty);
+            actionResultEmbed = res.ok
+              ? BoTaoEmbed.thanhCong('🛍️ Bán Hàng Thành Công', res.msg)
+              : BoTaoEmbed.loi(res.msg);
+
+            selectedInventoryId = null;
+            // Reload sellable inventory
+            sellableList = await loadSellableInventory();
+            const totalSellPages = Math.max(1, Math.ceil(sellableList.length / SELL_ITEMS_PER_PAGE));
+            sellPageIdx = Math.min(sellPageIdx, totalSellPages - 1);
+            break;
+          }
+
+          default: break;
+        }
+
+        // Tạo lại list components dựa trên Mode hiện tại
+        let currentComponents = [];
+        if (currentMode === 'BUY') {
+          currentComponents = buildBuyComponents();
+        } else if (currentMode === 'SELL') {
+          currentComponents = buildSellComponents(sellableList);
+        } else if (currentMode === 'HISTORY') {
+          currentComponents = [buildModeRow()];
+        }
+
+        // Tạo embeds
+        const embeds = await buildAllEmbeds(sellableList);
+        if (actionResultEmbed) {
+          embeds.push(actionResultEmbed);
+        }
+
+        await i.editReply({
+          embeds,
+          components: currentComponents
+        });
+      });
+
+      collector.on('end', async (_, reason) => {
+        try {
+          if (reason === 'closed') {
+            await interaction.editReply({
+              embeds: [
+                new EmbedBuilder()
+                  .setTitle('🏪 Linh Bảo Các — Đã Đóng Cửa')
+                  .setDescription('Đạo hữu đã cất bước rời khỏi Linh Bảo Các. Chúc đạo hữu tu hành thuận lợi!')
+                  .setColor(0x7f8c8d)
+                  .setTimestamp()
+                  .setFooter({ text: 'Dùng lệnh /shop để mở lại.' })
+              ],
+              components: []
+            });
+          } else {
+            // Hết giờ -> disable tất cả controls
+            let finalComponents = [];
+            if (currentMode === 'BUY') {
+              finalComponents = buildBuyComponents(true);
+            } else if (currentMode === 'SELL') {
+              finalComponents = buildSellComponents(sellableList, true);
             } else {
-              await interaction.editReply({ components: buildAllComponents(true) });
+              finalComponents = [buildModeRow(true)];
             }
-          } catch (_) { /* message đã bị xoá */ }
-        });
-
-        return;
-      }
-
-      // ═══════════════════════════════════════════════════════════════
-      //  MUA — slash command trực tiếp
-      // ═══════════════════════════════════════════════════════════════
-      if (subcommand === 'mua') {
-        const itemId  = interaction.options.getString('item_id');
-        const soLuong = interaction.options.getInteger('so_luong') ?? 1;
-
-        const shopEntry_row = await ShopItem.findOne({
-          where: { itemId, hienThi: true }
-        });
-        if (!shopEntry_row) {
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Không tìm thấy vật phẩm \`${itemId}\` trong cửa hàng.`)]
-          });
-        }
-        const itemDetail = await Item.findByPk(itemId);
-        const shopEntry  = { shop: shopEntry_row, item: itemDetail };
-
-        const result = await this._thucHienMua(tuSi, shopEntry, soLuong);
-        return await interaction.editReply({
-          embeds: [result.ok
-            ? BoTaoEmbed.thanhCong('🛒 Mua Hàng Thành Công', result.msg)
-            : BoTaoEmbed.loi(result.msg)]
-        });
-      }
-
-      // ═══════════════════════════════════════════════════════════════
-      //  LỊCH SỬ — 10 giao dịch gần nhất
-      // ═══════════════════════════════════════════════════════════════
-      if (subcommand === 'lichsu') {
-        const { Op } = await import('sequelize');
-        const records = await LichSuMua.findAll({
-          where:  { idNguoiDung: tuSi.idNguoiDung },
-          order:  [['muaLuc', 'DESC']],
-          limit:  15
-        });
-
-        if (records.length === 0) {
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.thongTin(
-              '📜 Lịch Sử Mua Hàng',
-              `${tuSi.ten} chưa mua bất kỳ vật phẩm nào từ cửa hàng.`
-            )]
-          });
-        }
-
-        const lines = await Promise.all(records.map(async (r, i) => {
-          const d = await Item.findByPk(r.itemId);
-          const name = d ? d.ten : r.itemId;
-          const time = new Date(r.muaLuc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-          return `**${i + 1}.** ${name} x${r.soLuong} — 🪙 \`${r.giaDaTra.toLocaleString()}\` — \`${time}\``;
-        }));
-
-        const embed = new EmbedBuilder()
-          .setTitle(`📜 Lịch Sử Mua Hàng: ${tuSi.ten}`)
-          .setColor(layMauCanhGioi(tuSi.canhGioi))
-          .setDescription(lines.join('\n'))
-          .setTimestamp()
-          .setFooter({ text: '15 giao dịch gần nhất · Thiên Đạo Tu Tiên RPG' });
-
-        return await interaction.editReply({ embeds: [embed] });
-      }
-
-      // ═══════════════════════════════════════════════════════════════
-      //  BAN — slash command bán đồ
-      // ═══════════════════════════════════════════════════════════════
-      if (subcommand === 'ban') {
-        const itemId  = interaction.options.getString('item_id');
-        const soLuong = interaction.options.getInteger('so_luong') ?? 1;
-
-        const result = await this._thucHienBan(tuSi, itemId, soLuong);
-        return await interaction.editReply({
-          embeds: [result.ok
-            ? BoTaoEmbed.thanhCong('🛍️ Bán Vật Phẩm Thành Công', result.msg)
-            : BoTaoEmbed.loi(result.msg)]
-        });
-      }
+            await interaction.editReply({
+              components: finalComponents
+            });
+          }
+        } catch (_) {}
+      });
     }
   };
 
@@ -609,23 +839,34 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
 
     return {
       ok:  true,
-      msg: `Đạo hữu **${tuSi.ten}** đã mua **${item.ten}** x${soLuong} với giá \`${tongGia.toLocaleString()}\` 🪙.\n` +
-           `• Linh thạch còn lại: \`${tuSi.linhThach.toLocaleString()}\` 🪙\n` +
-           `• Vật phẩm đã được thêm vào túi đồ!`
+      msg: `Đạo hữu **${tuSi.ten}** đã mua thành công **${item.ten}** x${soLuong} tiêu hao \`${tongGia.toLocaleString()}\` 🪙 Linh Thạch.\n` +
+           `• Linh thạch còn lại: \`${tuSi.linhThach.toLocaleString()}\` 🪙`
     };
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  PRIVATE HELPER: thực hiện giao dịch bán hàng
+  //  PRIVATE HELPER: thực hiện giao dịch bán hàng bằng ID trong Inventory
   // ─────────────────────────────────────────────────────────────────────────
-  async _thucHienBan(tuSi, itemId, soLuong = 1) {
-    const itemDetail = await Item.findByPk(itemId);
+  async _thucHienBanByInvId(tuSi, invId, soLuong = 1) {
+    const inv = await Inventory.findOne({
+      where: {
+        id: invId,
+        idNguoiDung: tuSi.idNguoiDung,
+        trangBi: false
+      }
+    });
+
+    if (!inv) {
+      return { ok: false, msg: `Không tìm thấy vật phẩm có mã định danh #${invId} trong túi đồ.` };
+    }
+
+    const itemDetail = await Item.findByPk(inv.itemId);
     if (!itemDetail) {
-      return { ok: false, msg: `Không tìm thấy vật phẩm có mã ID \`${itemId}\` trong tiên giới.` };
+      return { ok: false, msg: `Thông tin vật phẩm tĩnh cho mã \`${inv.itemId}\` đã bị thất lạc.` };
     }
 
     if (!itemDetail.giaCoSo || itemDetail.giaCoSo <= 0) {
-      return { ok: false, msg: `Vật phẩm **${itemDetail.ten}** không có giá trị cơ sở, không thể bán!` };
+      return { ok: false, msg: `Vật phẩm **${itemDetail.ten}** không có giá trị cơ sở, không bán được!` };
     }
 
     const donGia = Math.floor(itemDetail.giaCoSo * 0.3);
@@ -634,11 +875,11 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
     const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(itemDetail.loai);
 
     if (isEquipable) {
-      // Đối với trang bị, tìm các bản ghi chưa mặc (trangBi = false)
+      // Vì mỗi trang bị là 1 bản ghi riêng biệt, nếu yêu cầu bán nhiều hơn 1, cần tìm thêm các trang bị chưa mặc tương đương.
       const records = await Inventory.findAll({
         where: {
           idNguoiDung: tuSi.idNguoiDung,
-          itemId: itemId,
+          itemId: itemDetail.id,
           trangBi: false
         },
         limit: soLuong
@@ -647,29 +888,19 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
       if (records.length < soLuong) {
         return {
           ok: false,
-          msg: `Số lượng trang bị **${itemDetail.ten}** chưa mặc trong túi của ngươi không đủ! (Có: \`${records.length}\` / Cần bán: \`${soLuong}\`).`
+          msg: `Số lượng trang bị **${itemDetail.ten}** chưa mặc trong túi không đủ! (Có: \`${records.length}\` / Yêu cầu bán: \`${soLuong}\`).`
         };
       }
 
-      // Xóa các bản ghi trang bị này
       for (const rec of records) {
         await rec.destroy();
       }
     } else {
-      // Đối với vật phẩm cộng dồn (đan dược, linh thảo...)
-      const inv = await Inventory.findOne({
-        where: {
-          idNguoiDung: tuSi.idNguoiDung,
-          itemId: itemId,
-          trangBi: false
-        }
-      });
-
-      if (!inv || inv.soLuong < soLuong) {
-        const hienCo = inv ? inv.soLuong : 0;
+      // Đối với đan dược / linh thảo cộng dồn
+      if (inv.soLuong < soLuong) {
         return {
           ok: false,
-          msg: `Số lượng vật phẩm **${itemDetail.ten}** trong túi không đủ! (Có: \`${hienCo}\` / Cần bán: \`${soLuong}\`).`
+          msg: `Số lượng **${itemDetail.ten}** trong túi không đủ! (Có: \`${inv.soLuong}\` / Yêu cầu bán: \`${soLuong}\`).`
         };
       }
 
@@ -681,13 +912,23 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
       }
     }
 
-    // Cộng linh thạch cho tu sĩ
+    // Cộng linh thạch
     tuSi.linhThach += tongGia;
     await tuSi.save();
 
+    // Ghi lịch sử giao dịch bán đồ (soLuong âm, giaDaTra âm để phân biệt)
+    await LichSuMua.create({
+      idNguoiDung: tuSi.idNguoiDung,
+      itemId:      itemDetail.id,
+      soLuong:     -soLuong,
+      giaDaTra:    -tongGia,
+      giaLoai:     'linh_thach'
+    });
+
     return {
       ok: true,
-      msg: `Đạo hữu **${tuSi.ten}** đã bán thành công **${itemDetail.ten}** x${soLuong} thu về \`${tongGia.toLocaleString()}\` 🪙 Linh Thạch (Đơn giá 30%: \`${donGia}\` 🪙).\n` +
+      msg: `Đạo hữu **${tuSi.ten}** đã bán thành công **${itemDetail.ten}** x${soLuong} thu về \`+${tongGia.toLocaleString()}\` 🪙 Linh Thạch.\n` +
+           `• Giá thu mua (30%): \`${donGia}\` 🪙/cái\n` +
            `• Linh thạch hiện tại: \`${tuSi.linhThach.toLocaleString()}\` 🪙`
     };
   }
