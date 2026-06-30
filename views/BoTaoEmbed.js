@@ -157,10 +157,10 @@ export class BoTaoEmbed {
     embed.addFields({
       name: "🛡️ 12 Ô Trang Bị Trên Người",
       value: `• 🗡️ **Vũ Khí**: ${weaponText}\n` +
-             `• 🥋 **Giáp**: ${armorText}\n` +
-             `• 🔮 **Ngọc Bội**: ${ornamentText}\n` +
-             `• 🏺 **Cổ Bảo**: 1. ${cb1} | 2. ${cb2} | 3. ${cb3}\n` +
-             `• 📿 **Pháp Bảo**: 1. ${pb1} | 2. ${pb2} | 3. ${pb3} | 4. ${pb4} | 5. ${pb5} | 6. ${pb6}`,
+        `• 🥋 **Giáp**: ${armorText}\n` +
+        `• 🔮 **Ngọc Bội**: ${ornamentText}\n` +
+        `• 🏺 **Cổ Bảo**: 1. ${cb1} | 2. ${cb2} | 3. ${cb3}\n` +
+        `• 📿 **Pháp Bảo**: 1. ${pb1} | 2. ${pb2} | 3. ${pb3} | 4. ${pb4} | 5. ${pb5} | 6. ${pb6}`,
       inline: false
     });
 
@@ -310,46 +310,30 @@ export class BoTaoEmbed {
       .setFooter({ text: "Thiên Thiên Cáo Thị • Vui lòng thử lại sau" });
   }
 
-  static balo(tuSi, itemsList = []) {
-    const embed = new EmbedBuilder()
-      .setTitle(`🎒 Túi Trữ Vật: ${tuSi.ten}`)
-      .setDescription(`Số dư Linh thạch hiện tại: \`${tuSi.linhThach}\` 💎`)
-      .setColor(0x3498db)
-      .setTimestamp()
-      .setFooter({ text: "Sử dụng lệnh tương ứng để trang bị vũ khí/giáp hoặc sử dụng đan dược." });
+  // Helper: format dòng chỉ số phụ (đồng chỉ số)
+  static _formatDongChiSo(dongChiSoJson) {
+    if (!dongChiSoJson) return '';
+    try {
+      const lines = JSON.parse(dongChiSoJson);
+      if (!Array.isArray(lines) || lines.length === 0) return '';
+      const colorEmojis = { cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
+      return '\n' + lines.map(line => {
+        const emoji = colorEmojis[line.mau] || '⚪';
+        const sign = line.phanTram >= 0 ? '+' : '';
+        return `    └ ${emoji} *${line.ten}*: \`${sign}${line.phanTram}%\``;
+      }).join('\n');
+    } catch (e) { return ''; }
+  }
 
-    const trangBi = [];
-    const coBaoPhapBao = [];
-    const danDuoc = [];
-    const linhThao = [];
-
-    const formatDongChiSo = (dongChiSoJson) => {
-      if (!dongChiSoJson) return '';
-      try {
-        const lines = JSON.parse(dongChiSoJson);
-        if (!Array.isArray(lines) || lines.length === 0) return '';
-        const colorEmojis = {
-          cam: '🟠',
-          tim: '🟣',
-          xanh: '🔵',
-          luc: '🟢',
-          trang: '⚪'
-        };
-        return '\n' + lines.map(line => {
-          const emoji = colorEmojis[line.mau] || '⚪';
-          const sign = line.phanTram >= 0 ? '+' : '';
-          return `    └ ${emoji} *${line.ten}*: \`${sign}${line.phanTram}%\``;
-        }).join('\n');
-      } catch (e) {
-        return '';
-      }
-    };
+  // Helper: phân loại và format từng dòng vật phẩm
+  static _phanLoaiItems(itemsList) {
+    const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [];
 
     for (const itemObj of itemsList) {
       const { item, soLuong, trangBi: isEquipped, nangCapSao, dongChiSoJson } = itemObj;
       const starText = nangCapSao > 0 ? ` (+${nangCapSao} ⭐)` : '';
       const equipText = isEquipped ? ' 🟢 **[Đang mặc]**' : '';
-      
+
       let statsText = '';
       if (item.chiSoJson) {
         try {
@@ -364,7 +348,7 @@ export class BoTaoEmbed {
           if (stats.hp_hoi) parts.push(`Hồi ${stats.hp_hoi} HP`);
           if (stats.mp_hoi) parts.push(`Hồi ${stats.mp_hoi} MP`);
           statsText = parts.length > 0 ? ` (${parts.join(', ')})` : '';
-        } catch (e) {}
+        } catch (e) { }
       }
 
       let reqText = '';
@@ -373,45 +357,99 @@ export class BoTaoEmbed {
         reqText = ` ⚠️ (Yêu cầu: **${cgReq.realmName}**)`;
       }
 
-      const dongChiSoText = formatDongChiSo(dongChiSoJson);
+      const dongChiSoText = BoTaoEmbed._formatDongChiSo(dongChiSoJson);
       const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${statsText}${reqText} | ID: \`${item.id}\`${dongChiSoText}`;
 
-      if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) {
-        trangBi.push(formattedLine);
-      } else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) {
-        coBaoPhapBao.push(formattedLine);
-      } else if (item.loai === 'Đan dược') {
-        danDuoc.push(formattedLine);
+      if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
+      else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);
+      else if (item.loai === 'Đan dược') danDuoc.push(formattedLine);
+      else linhThao.push(formattedLine);
+    }
+    return { trangBi, coBaoPhapBao, danDuoc, linhThao };
+  }
+
+  // Helper: tạo nội dung description an toàn cho 1 sheet, chia trang nếu cần
+  static _buildSheetPages(lines, emptyMsg, limit = 3800) {
+    if (lines.length === 0) return [emptyMsg];
+    const pages = [];
+    let current = '';
+    for (const line of lines) {
+      const add = (current ? '\n' : '') + line;
+      if ((current + add).length > limit) {
+        pages.push(current);
+        current = line;
       } else {
-        linhThao.push(formattedLine);
+        current += add;
       }
     }
-
-    embed.addFields(
-      {
-        name: "🛡️ Nhóm Trang Bị Căn Bản",
-        value: trangBi.length > 0 ? trangBi.join('\n') : "• Không có trang bị nào.",
-        inline: false
-      },
-      {
-        name: "📿 Cổ Bảo & Pháp Bảo",
-        value: coBaoPhapBao.length > 0 ? coBaoPhapBao.join('\n') : "• Không có pháp bảo nào.",
-        inline: false
-      },
-      {
-        name: "💊 Linh Đan Diệu Dược",
-        value: danDuoc.length > 0 ? danDuoc.join('\n') : "• Không có đan dược nào.",
-        inline: false
-      },
-      {
-        name: "🌱 Linh Thảo & Vật Liệu",
-        value: linhThao.length > 0 ? linhThao.join('\n') : "• Không có vật liệu nào.",
-        inline: false
-      }
-    );
-
-    return embed;
+    if (current) pages.push(current);
+    return pages;
   }
+
+  /**
+   * Trả về mảng 4 sheet embeds (Trang Bị / Cổ Bảo / Đan Dược / Linh Thảo).
+   * Mỗi phần tử là { value, label, emoji, description, pages: [EmbedBuilder] }.
+   */
+  static baloSheets(tuSi, itemsList = []) {
+    const { trangBi, coBaoPhapBao, danDuoc, linhThao } = BoTaoEmbed._phanLoaiItems(itemsList);
+    const baseDesc = `> 💎 **Linh thạch**: \`${tuSi.linhThach}\`  |  📦 **Tổng vật phẩm**: \`${itemsList.length}\``;
+    const color = layMauCanhGioi(tuSi.canhGioi);
+
+    const buildPages = (lines, emptyMsg, sheetName, emoji) => {
+      const pageContents = BoTaoEmbed._buildSheetPages(lines, emptyMsg);
+      return pageContents.map((content, i) => {
+        const totalPages = pageContents.length;
+        return new EmbedBuilder()
+          .setTitle(`🎒 Túi Trữ Vật: ${tuSi.ten}`)
+          .setColor(color)
+          .setDescription(
+            `${baseDesc}\n\n` +
+            `**${emoji} ${sheetName}**${totalPages > 1 ? ` — Trang ${i + 1}/${totalPages}` : ''}\n` +
+            `${'─'.repeat(36)}\n${content}`
+          )
+          .setTimestamp()
+          .setFooter({ text: `📋 Sheet: ${sheetName}${totalPages > 1 ? ` (${i + 1}/${totalPages})` : ''} • Thiên Đạo Tu Tiên RPG` });
+      });
+    };
+
+    return [
+      {
+        value: 'trangbi',
+        label: 'Trang Bị',
+        emoji: '🛡️',
+        description: `${trangBi.length} vật phẩm`,
+        pages: buildPages(trangBi, '• Túi đồ trống rỗng, chưa có trang bị nào.', 'Nhóm Trang Bị', '🛡️')
+      },
+      {
+        value: 'cobao',
+        label: 'Cổ Bảo & Pháp Bảo',
+        emoji: '📿',
+        description: `${coBaoPhapBao.length} vật phẩm`,
+        pages: buildPages(coBaoPhapBao, '• Chưa sở hữu Cổ Bảo hay Pháp Bảo nào.', 'Cổ Bảo & Pháp Bảo', '📿')
+      },
+      {
+        value: 'danduo',
+        label: 'Đan Dược',
+        emoji: '💊',
+        description: `${danDuoc.length} vật phẩm`,
+        pages: buildPages(danDuoc, '• Không có Đan Dược nào trong túi.', 'Linh Đan Diệu Dược', '💊')
+      },
+      {
+        value: 'linhthao',
+        label: 'Linh Thảo & Vật Liệu',
+        emoji: '🌱',
+        description: `${linhThao.length} vật phẩm`,
+        pages: buildPages(linhThao, '• Không có Linh Thảo hay Vật Liệu nào.', 'Linh Thảo & Vật Liệu', '🌱')
+      }
+    ];
+  }
+
+  // Wrapper cũ để không break nơi khác (nếu có)
+  static balo(tuSi, itemsList = []) {
+    return BoTaoEmbed.baloSheets(tuSi, itemsList)[0].pages[0];
+  }
+
+
 
   static kyNang(tuSi, playerSkills = [], availableSkills = []) {
     const embed = new EmbedBuilder()
@@ -468,7 +506,7 @@ export class BoTaoEmbed {
 
     // Giới hạn log chiến đấu tối đa 5 round gần cuối để tránh vượt quá limit 1024 ký tự của Discord field
     const displayLogs = battleLogs.length > 8 ? battleLogs.slice(-8) : battleLogs;
-    
+
     embed.addFields({
       name: "⚔️ Diễn Biến Trận Đánh",
       value: displayLogs.join('\n'),
