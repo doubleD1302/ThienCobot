@@ -173,13 +173,32 @@ class TuSi extends Model {
   }
 
   layHeSoTuLuyen() {
-    let mult = 1.0;
     const elements = this.linhCanList;
+    const count = elements.length;
 
+    // Hệ số phạt tốc độ tu luyện theo số lượng linh căn sở hữu
+    // Người sở hữu càng nhiều linh căn, căn cơ càng tạp, tu tốc càng giảm
+    // Công thức: mỗi linh căn thêm giảm đi 50% lượng giảm của bước trước (giảm lũy kế)
+    //  1 linh căn: 0% phạt (hệ số 1.00)
+    //  2 linh căn: -30%   (hệ số 0.70)
+    //  3 linh căn: -45%   (hệ số 0.55)
+    //  4 linh căn: -52.5% (hệ số 0.475)
+    //  5 linh căn: -56.25%(hệ số 0.4375)
+    const PHAT_DA_LINH_CAN = {
+      1: 1.0,
+      2: 0.70,
+      3: 0.55,
+      4: 0.475,
+      5: 0.4375
+    };
+    let mult = PHAT_DA_LINH_CAN[count] ?? 0.4375;
+
+    // Bonus tốc độ đặc thù của từng linh căn (áp dụng sau hệ số phạt)
     if (elements.includes('Loi')) {
-      mult = config.NGUON_LINH_CAN['Loi'].tu_toc;
-    } else if (elements.includes('Hoa')) {
-      mult = config.NGUON_LINH_CAN['Hoa'].tu_toc;
+      mult *= config.NGUON_LINH_CAN['Loi'].tu_toc;
+    }
+    if (elements.includes('Hoa')) {
+      mult *= config.NGUON_LINH_CAN['Hoa'].tu_toc;
     }
 
     return mult;
