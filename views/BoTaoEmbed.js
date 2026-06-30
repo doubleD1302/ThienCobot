@@ -310,18 +310,19 @@ export class BoTaoEmbed {
       .setFooter({ text: "Thiên Thiên Cáo Thị • Vui lòng thử lại sau" });
   }
 
-  // Helper: format dòng chỉ số phụ (đồng chỉ số)
+  // Helper: format dòng chỉ số phụ (đồng chỉ số) dạng inline rút gọn
   static _formatDongChiSo(dongChiSoJson) {
     if (!dongChiSoJson) return '';
     try {
       const lines = JSON.parse(dongChiSoJson);
       if (!Array.isArray(lines) || lines.length === 0) return '';
       const colorEmojis = { cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
-      return '\n' + lines.map(line => {
+      const formattedParts = lines.map(line => {
         const emoji = colorEmojis[line.mau] || '⚪';
         const sign = line.phanTram >= 0 ? '+' : '';
-        return `    └ ${emoji} *${line.ten}*: \`${sign}${line.phanTram}%\``;
-      }).join('\n');
+        return `${emoji} *${line.ten}* \`${sign}${line.phanTram}%\``;
+      });
+      return '\n  ↳ ' + formattedParts.join(' · ');
     } catch (e) { return ''; }
   }
 
@@ -331,30 +332,30 @@ export class BoTaoEmbed {
 
     for (const itemObj of itemsList) {
       const { item, soLuong, trangBi: isEquipped, nangCapSao, dongChiSoJson } = itemObj;
-      const starText = nangCapSao > 0 ? ` (+${nangCapSao} ⭐)` : '';
-      const equipText = isEquipped ? ' 🟢 **[Đang mặc]**' : '';
+      const starText = nangCapSao > 0 ? ` (+${nangCapSao}⭐)` : '';
+      const equipText = isEquipped ? ' 🛡️ **[Đang mặc]**' : '';
 
       let statsText = '';
       if (item.chiSoJson) {
         try {
           const stats = JSON.parse(item.chiSoJson);
           const parts = [];
-          if (stats.vat_cong) parts.push(`+${stats.vat_cong} Vật công`);
-          if (stats.phap_cong) parts.push(`+${stats.phap_cong} Pháp công`);
-          if (stats.vat_phong) parts.push(`+${stats.vat_phong} Vật phòng`);
-          if (stats.phap_phong) parts.push(`+${stats.phap_phong} Pháp phòng`);
+          if (stats.vat_cong) parts.push(`+${stats.vat_cong} Vật Công`);
+          if (stats.phap_cong) parts.push(`+${stats.phap_cong} Pháp Công`);
+          if (stats.vat_phong) parts.push(`+${stats.vat_phong} Vật Phòng`);
+          if (stats.phap_phong) parts.push(`+${stats.phap_phong} Pháp Phòng`);
           if (stats.hp) parts.push(`+${stats.hp} HP`);
           if (stats.mp) parts.push(`+${stats.mp} MP`);
           if (stats.hp_hoi) parts.push(`Hồi ${stats.hp_hoi} HP`);
           if (stats.mp_hoi) parts.push(`Hồi ${stats.mp_hoi} MP`);
-          statsText = parts.length > 0 ? ` (${parts.join(', ')})` : '';
+          statsText = parts.length > 0 ? ` \`[${parts.join(', ')}]\`` : '';
         } catch (e) { }
       }
 
       let reqText = '';
       if (item.yeuCauCanhGioi && item.yeuCauCanhGioi > 1) {
         const cgReq = config.layThongTinCanhGioi(item.yeuCauCanhGioi);
-        reqText = ` ⚠️ (Yêu cầu: **${cgReq.realmName}**)`;
+        reqText = ` 🔒 **${cgReq.realmName}**`;
       }
 
       const dongChiSoText = BoTaoEmbed._formatDongChiSo(dongChiSoJson);
