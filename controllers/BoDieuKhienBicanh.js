@@ -1,4 +1,11 @@
-import { SlashCommandBuilder } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder
+} from 'discord.js';
+
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed } from '../views/BoTaoEmbed.js';
 import { ThoiGianCho } from '../models/ThoiGianCho.js';
@@ -14,20 +21,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
   lenhBicanh = {
     data: new SlashCommandBuilder()
       .setName('bc')
-      .setDescription('Khiêu chiến phó bản bí cảnh hoang cổ để săn lùng thiên tài địa bảo')
-      .addSubcommand(sub =>
-        sub.setName('danhsach')
-          .setDescription('Xem danh sách các bí cảnh phụ bản hiện có')
-      )
-      .addSubcommand(sub =>
-        sub.setName('khieu_chien')
-          .setDescription('Bắt đầu vượt ải đấu yêu thú đoạt bảo vật')
-          .addStringOption(opt =>
-            opt.setName('bicanh_id')
-              .setDescription('Mã bí cảnh muốn khiêu chiến (VD: tan_thu_phu_ban)')
-              .setRequired(true)
-          )
-      ),
+      .setDescription('Khiêu chiến phó bản bí cảnh hoang cổ săn lùng bảo vật tông môn'),
+
     execute: async (interaction) => {
       await interaction.deferReply();
       const tuSi = await this.layTuSi(interaction.user.id);
@@ -37,55 +32,89 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         });
       }
 
-      const subcommand = interaction.options.getSubcommand();
+      const { Dungeon } = await import('../models/Dungeon.js');
+      const dungeons = await Dungeon.findAll();
 
-      if (subcommand === 'danhsach') {
-        const { Dungeon } = await import('../models/Dungeon.js');
-        const dungeons = await Dungeon.findAll();
-        
-        const embedList = BoTaoEmbed.thongTin(
-          "🗻 Danh Sách Bí Cảnh Hoang Cổ",
-          dungeons.map(dg => {
-            const monster = dg.quaiVat;
-            const reward = dg.thuong;
-            return `• **${dg.ten}** (Cấp yêu cầu: \`${dg.capDoYeuCau}\` - Cảnh giới: **${dg.canhGioiYeuCauText}**)\n` +
-                   `  *Yêu thú gác cổng*: **${monster.ten}** (HP: \`${monster.hp}\` | Công: \`${monster.vatCong || monster.phapCong}\`)\n` +
-                   `  *Chiến lợi phẩm*: Exp (\`${reward.expMin} - ${reward.expMax}\`), Linh thạch (\`${reward.stonesMin} - ${reward.stonesMax}\`), và tỷ lệ rớt trang bị/linh dược.\n` +
-                   `  *Mã ID*: \`${dg.id}\`\n`;
-          }).join('\n')
-        );
-        return await interaction.editReply({ embeds: [embedList] });
+      if (dungeons.length === 0) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Hiện tại các bí cảnh hoang cổ đóng cửa phong ấn, vui lòng quay lại sau!")]
+        });
       }
 
-      if (subcommand === 'khieu_chien') {
-        const dungeonId = interaction.options.getString('bicanh_id');
-        const { Dungeon } = await import('../models/Dungeon.js');
-        const dungeon = await Dungeon.findByPk(dungeonId);
+      // Tạo embed hiển thị danh sách các bí cảnh
+      const embedList = BoTaoEmbed.thongTin(
+        "🗻 Phó Bản Bí Cảnh Hoang Cổ",
+        `Đạo hữu **${tuSi.ten}** hãy lựa chọn một bí cảnh hoang cổ để dấn thân thám hiểm:\n\n` +
+        dungeons.map(dg => {
+          const monster = dg.quaiVat;
+          const reward = dg.thuong;
+          const status = tuSi.capDo >= dg.capDoYeuCau ? '🟢 Khả dụng' : '🔒 Khóa';
+          return `• **${dg.ten}** (${status} · Cấp yêu cầu: \`${dg.capDoYeuCau}\`)\n` +
+                 `  *Quái gác cổng*: **${monster.ten}** (HP: \`${monster.hp}\`)\n` +
+                 `  *Chiến lợi phẩm*: Exp (\`${reward.expMin}-${reward.expMax}\`), Linh thạch (\`${reward.stonesMin}-${reward.stonesMax}\`)\n`;
+        }).join('\n')
+      );
+
+      // Tạo các nút thám hiểm dựa theo dữ liệu bí cảnh
+      const row = new ActionRowBuilder();
+      for (const dg of dungeons) {
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`dg_play_${dg.id}`)
+            .setLabel(`⚔️ Vượt Ải: ${dg.ten}`)
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(tuSi.capDo < dg.capDoYeuCau)
+        );
+      }
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId('dg_cancel')
+          .setLabel('❌ Hủy')
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      const msg = await interaction.editReply({
+        embeds:     [embedList],
+        components: [row]
+      });
+
+      const collector = msg.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time:   60_000
+      });
+
+      collector.on('collect', async i => {
+        await i.deferUpdate();
+
+        if (i.customId === 'dg_cancel') {
+          collector.stop('cancelled');
+          return;
+        }
+
+        const dungeonId = i.customId.replace('dg_play_', '');
+        const dungeon = dungeons.find(dg => dg.id === dungeonId);
 
         if (!dungeon) {
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Không tìm thấy bí cảnh nào có mã ID \`${dungeonId}\`.`)]
-          });
+          collector.stop('not_found');
+          return;
         }
 
-        // 1. Kiểm tra cảnh giới tối thiểu
-        if (tuSi.capDo < dungeon.capDoYeuCau) {
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Tu vi không đủ! Bí cảnh này yêu cầu cấp độ tối thiểu là **${dungeon.capDoYeuCau}** (${dungeon.canhGioiYeuCauText}).`)]
-          });
-        }
-
-        // 2. Kiểm tra cooldown khiêu chiến (3 phút)
+        // 1. Kiểm tra cooldown khiêu chiến (30 giây)
         const activeCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'dungeon');
         if (activeCooldown) {
           const hetHanTime = new Date(activeCooldown.hetHan).getTime();
           const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Lực kiệt khí hư! Đạo hữu cần tĩnh dưỡng thêm \`${secondsLeft} giây\` trước khi tiếp tục khiêu chiến bí cảnh.`)]
+          await i.editReply({
+            embeds:     [BoTaoEmbed.loi(`Lực kiệt khí hư! Đạo hữu cần tĩnh dưỡng thêm \`${secondsLeft} giây\` trước khi tiếp tục khiêu chiến bí cảnh.`)],
+            components: []
           });
+          collector.stop('cooldown');
+          return;
         }
 
-        // Load equipped items for correct stats
+        collector.stop('combating');
+
+        // 2. Tải trang bị và thần thú xuất chiến
         const equippedInv = await Inventory.findAll({
           where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
         });
@@ -101,14 +130,15 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
         const stats = tuSi.layChiSo(equippedInv, activePet);
 
-        // 3. Kiểm tra HP tối thiểu (10%)
+        // Yêu cầu HP tối thiểu
         if (tuSi.hp <= Math.floor(stats.max_hp * 0.10)) {
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi("Trạng thái kiệt quệ! Khí huyết của đạo hữu dưới 10%, không đủ sức khiêu chiến yêu thú. Hãy dùng `/nghi` hoặc đan dược trước.")]
+          return await i.editReply({
+            embeds:     [BoTaoEmbed.loi("Trạng thái kiệt quệ! Khí huyết của đạo hữu dưới 10%, không đủ sức khiêu chiến yêu thú. Hãy dùng `/nghi` hoặc đan dược trước.")],
+            components: []
           });
         }
 
-        // 4. Khởi chạy Trình mô phỏng trận đánh
+        // 3. Khởi chạy mô phỏng chiến đấu
         const monster = { ...dungeon.quaiVat };
         let monsterHp = monster.hp;
         let playerHp = tuSi.hp;
@@ -122,7 +152,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
         const monsterDef = isPhysical ? monster.vatPhong : monster.phapPhong;
 
-        // Phân loại Cổ Bảo và Pháp Bảo
+        // Phân loại trang bị chủ động
         const activeTreasures = equippedItems.filter(x => x.item.loai === 'Cổ Bảo Chủ Động');
         const dharmaTreasures = equippedItems.filter(x => x.item.loai === 'Pháp Bảo');
 
@@ -134,14 +164,14 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             pDmg = Math.floor(pDmg * stats.crit_dmg);
           }
           monsterHp = Math.max(0, monsterHp - pDmg);
-          battleLogs.push(`🗡️ **Hiệp ${round}**: **${tuSi.ten}** gây \`${pDmg}\` sát thương ${isCrit ? '💥 (Bạo kích!)' : ''} lên **${monster.ten}** (Yêu thú HP: \`${monsterHp}\`).`);
+          battleLogs.push(`🗡️ **Hiệp ${round}**: **${tuSi.ten}** gây \`${pDmg}\`${isCrit ? ' 💥 (Bạo!)' : ''} sát thương lên **${monster.ten}** (HP: \`${monsterHp}\`).`);
 
           // Hút máu nếu có
           if (stats.lifesteal > 0 && monsterHp > 0) {
             const healed = Math.floor(pDmg * stats.lifesteal);
             if (healed > 0) {
               playerHp = Math.min(stats.max_hp, playerHp + healed);
-              battleLogs.push(`🩸 **Hút máu**: Hút lấy sinh cơ yêu thú, đạo hữu hồi phục \`+${healed}\` HP (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+              battleLogs.push(`🩸 **Hút máu**: Hồi phục \`+${healed}\` HP (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
             }
           }
 
@@ -150,14 +180,14 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             break;
           }
 
-          // Kích hoạt Cổ Bảo Chủ Động (30% mỗi món)
+          // Cổ Bảo Chủ Động (30%)
           for (const eq of activeTreasures) {
             if (Math.random() <= 0.30) {
               const kynang = config.KYNANG_TRANGBI[eq.itemId];
               if (kynang && kynang.baseDmg) {
                 const cbDmg = Math.max(1, kynang.baseDmg - monsterDef);
                 monsterHp = Math.max(0, monsterHp - cbDmg);
-                battleLogs.push(`🏺 **Cổ Bảo**: **${eq.item.ten}** kích hoạt kỹ năng **${kynang.ten}**, nện thêm \`${cbDmg}\` sát thương (Yêu thú HP: \`${monsterHp}\`).`);
+                battleLogs.push(`🏺 **Cổ Bảo**: **${eq.item.ten}** thi triển **${kynang.ten}** bồi thêm \`${cbDmg}\` sát thương (HP: \`${monsterHp}\`).`);
                 if (monsterHp <= 0) {
                   isWin = true;
                   break;
@@ -168,12 +198,11 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
           if (isWin) break;
 
-          // Kích hoạt Pháp Bảo (25% mỗi món)
+          // Pháp Bảo (25%)
           for (const eq of dharmaTreasures) {
             if (Math.random() <= 0.25) {
               const kynang = config.KYNANG_TRANGBI[eq.itemId];
               if (kynang) {
-                // Đọc chỉ số phụ trên Pháp bảo
                 let pbCritRate = stats.crit_rate;
                 let pbCritDmg = stats.crit_dmg;
                 let pbDmgBonus = 1.0;
@@ -191,27 +220,23 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                   } catch (e) {}
                 }
 
-                // Thực thi sát thương Pháp Bảo
                 if (kynang.baseDmg) {
                   let pbDmg = Math.floor(kynang.baseDmg * pbDmgBonus);
                   const isPbCrit = Math.random() <= pbCritRate;
-                  if (isPbCrit) {
-                    pbDmg = Math.floor(pbDmg * pbCritDmg);
-                  }
+                  if (isPbCrit) pbDmg = Math.floor(pbDmg * pbCritDmg);
                   pbDmg = Math.max(1, pbDmg - monsterDef);
                   monsterHp = Math.max(0, monsterHp - pbDmg);
-                  battleLogs.push(`📿 **Pháp Bảo**: **${eq.item.ten}** thi triển **${kynang.ten}**, oanh kích \`${pbDmg}\` sát thương ${isPbCrit ? '💥 (Bạo kích!)' : ''} (Yêu thú HP: \`${monsterHp}\`).`);
+                  battleLogs.push(`📿 **Pháp Bảo**: **${eq.item.ten}** tung **${kynang.ten}** gây \`${pbDmg}\`${isPbCrit ? ' 💥 (Bạo!)' : ''} sát thương (HP: \`${monsterHp}\`).`);
                   if (monsterHp <= 0) {
                     isWin = true;
                     break;
                   }
                 }
 
-                // Thực thi khiên Pháp Bảo
                 if (kynang.baseShield) {
                   const pbShield = Math.floor(kynang.baseShield * pbShieldBonus);
                   playerShield += pbShield;
-                  battleLogs.push(`📿 **Pháp Bảo**: **${eq.item.ten}** thi triển **${kynang.ten}** tạo kết giới bảo vệ hấp thụ \`${pbShield}\` sát thương.`);
+                  battleLogs.push(`📿 **Pháp Bảo**: **${eq.item.ten}** tạo kết giới hộ thể chặn \`${pbShield}\` sát thương.`);
                 }
               }
             }
@@ -219,12 +244,12 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
           if (isWin) break;
 
-          // Kích hoạt Kỹ Năng Sủng Vật Thần Thú Chủ Động (20% mỗi hiệp)
+          // Sủng Vật Thần Thú chủ động (20%)
           if (activePet && activePet.rarity === 'ANCIENT' && Math.random() <= 0.20) {
             if (activePet.type === 'to_long') {
               const petDmg = Math.floor(stats.max_hp * 0.15);
               monsterHp = Math.max(0, monsterHp - petDmg);
-              battleLogs.push(`🐉 **Thần Thú [Tổ Long]** phẫn nộ thét gào, phun trào Long Thần Chi Nộ oanh kích \`${petDmg}\` sát thương chí mạng lên yêu thú! (Yêu thú HP: \`${monsterHp}\`).`);
+              battleLogs.push(`🐉 **Thần Thú [Tổ Long]** phẫn nộ thét gào, phun trào Long Thần Chi Nộ oanh kích \`${petDmg}\` sát thương chí mạng lên yêu thú! (HP: \`${monsterHp}\`).`);
               if (monsterHp <= 0) {
                 isWin = true;
                 break;
@@ -236,24 +261,22 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             }
           }
 
-          // Lượt quái: Quái tấn công lại
+          // Lượt quái tấn công
           const mAtk = Math.max(monster.vatCong, monster.phapCong);
           const pDef = monster.vatCong > monster.phapCong ? stats.vat_phong : stats.phap_phong;
           let mDmg = Math.max(1, mAtk - pDef);
 
-          // Kiểm tra Né tránh của người chơi
           if (Math.random() <= stats.ne) {
-            battleLogs.push(`💨 **Né tránh**: **${tuSi.ten}** lướt đi nhẹ nhàng, né tránh hoàn toàn đòn đánh của **${monster.ten}**!`);
+            battleLogs.push(`💨 **Né tránh**: **${tuSi.ten}** ảo ảnh lướt tránh hoàn toàn đòn đánh của **${monster.ten}**!`);
           } else {
-            // Kiểm tra hấp thụ khiên
             if (playerShield > 0) {
               if (playerShield >= mDmg) {
                 playerShield -= mDmg;
-                battleLogs.push(`🛡️ **Khiên bảo vệ**: Khiên hấp thụ toàn bộ \`${mDmg}\` sát thương từ **${monster.ten}** (Khiên còn: \`${playerShield}\`).`);
+                battleLogs.push(`🛡️ **Lá Chắn**: Khiên hấp thụ toàn bộ \`${mDmg}\` sát thương (Khiên còn: \`${playerShield}\`).`);
                 mDmg = 0;
               } else {
                 mDmg -= playerShield;
-                battleLogs.push(`🛡️ **Khiên bảo vệ**: Khiên hấp thụ \`${playerShield}\` sát thương rồi vỡ tan! Sát thương lọt qua: \`${mDmg}\`.`);
+                battleLogs.push(`🛡️ **Lá Chắn**: Khiên hấp thụ \`${playerShield}\` sát thương rồi vỡ! Sát thương lọt qua: \`${mDmg}\`.`);
                 playerShield = 0;
               }
             }
@@ -279,7 +302,6 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         }
 
         if (round > 15 && monsterHp > 0 && playerHp > 0) {
-          // Bất phân thắng bại sau 15 hiệp, tính là thua
           isWin = false;
           battleLogs.push(`⏳ **Kết quả**: Hai bên giao chiến ròng rã 15 hiệp bất phân thắng bại, tu sĩ rút lui do cạn kiệt linh lực.`);
         }
@@ -293,22 +315,20 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           gainedExp = Math.floor(dungeon.thuong.expMin + Math.random() * (dungeon.thuong.expMax - dungeon.thuong.expMin));
           gainedStones = Math.floor(dungeon.thuong.stonesMin + Math.random() * (dungeon.thuong.stonesMax - dungeon.thuong.stonesMin));
 
-          // Tính toán rơi đồ
+          // Rơi trang bị/vật phẩm
           for (const drop of dungeon.drops) {
             if (Math.random() <= drop.tile) {
               const targetId = drop.replaceId && Math.random() < 0.5 ? drop.replaceId : drop.itemId;
               const itemDetail = await Item.findByPk(targetId);
               if (itemDetail) {
                 droppedItem = itemDetail;
-                
-                // Lưu vào túi đồ bằng helper addVatPham
                 await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
-                break; // Chỉ cho rơi tối đa 1 món ngẫu nhiên
+                break;
               }
             }
           }
 
-          // 20% cơ hội rơi hạt giống tại Dược Viên
+          // 20% rơi hạt giống dược viên
           if (Math.random() <= 0.20) {
             const seedId = Math.random() < 0.5 ? 'hat_giong_linh_chi' : 'hat_giong_nhan_sam';
             const seedDetail = await Item.findByPk(seedId);
@@ -318,17 +338,17 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             }
           }
 
-          // Cập nhật tu sĩ
           tuSi.linhLuc += gainedExp;
           tuSi.linhThach += gainedStones;
-          tuSi.hp = playerHp; // Giữ lượng HP sau trận thắng
+          tuSi.hp = playerHp;
         } else {
-          // Thua phạt trừ HP
+          // HP suy kiệt sau trận thua
           tuSi.hp = Math.max(1, Math.floor(tuSi.hp - stats.max_hp * 0.30));
         }
 
         await tuSi.save();
 
+        // Ghi nhận thiên đạo lục nếu nhặt được đồ hiếm
         if (droppedItem && (droppedItem.doHiem === 'Hiếm' || droppedItem.doHiem === 'Cực hiếm' || droppedItem.doHiem === 'Huyền thoại')) {
           try {
             const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
@@ -336,12 +356,10 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
               `🎁 **Cơ Duyên Xảo Hợp**: Đạo hữu **${tuSi.ten}** khám phá **${dungeon.ten}** may mắn phát hiện đại cơ duyên, nhặt được bảo vật **${droppedItem.ten}** (\`${droppedItem.doHiem}\`)!`,
               'Drop'
             );
-          } catch (err) {
-            console.error('Lỗi khi ghi Thiên Đạo Lục nhặt đồ hiếm:', err);
-          }
+          } catch (err) {}
         }
 
-        // Thiết lập cooldown khiêu chiến phụ bản mới (30 giây)
+        // Đặt thời gian chờ khiêu chiến mới
         const expiresAt = new Date(Date.now() + 30 * 1000);
         await this.datThoiGianCho(tuSi.idNguoiDung, 'dungeon', expiresAt);
 
@@ -355,8 +373,27 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           droppedItem,
           droppedSeed
         );
-        return await interaction.editReply({ embeds: [embedResult] });
-      }
+
+        await i.editReply({
+          embeds:     [embedResult],
+          components: []
+        });
+      });
+
+      collector.on('end', async (_, reason) => {
+        try {
+          if (reason === 'cancelled') {
+            await interaction.editReply({
+              embeds:     [BoTaoEmbed.thongTin('🗻 Bí Cảnh Hoang Cổ', 'Đạo hữu đã rút lui an toàn khỏi cửa bí cảnh.')],
+              components: []
+            });
+          } else if (reason === 'time') {
+            await interaction.editReply({
+              components: []
+            });
+          }
+        } catch (_) {}
+      });
     }
   };
 }
