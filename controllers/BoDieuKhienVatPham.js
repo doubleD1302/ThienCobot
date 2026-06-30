@@ -91,6 +91,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       let pageIdx     = 0;
       let showToolbar = false;
       let selectedVal = null;
+      let selectedEquippedInvId = null;
       let mode        = 'VIEW'; // 'VIEW' | 'EQUIPPED'
 
       // ── Helper: trang bị đang mặc → embed ────────────────────────────────
@@ -291,6 +292,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         sheetIdx  = Math.min(sheetIdx, sheets.length - 1);
         pageIdx   = 0;
         selectedVal = null;
+        selectedEquippedInvId = null;
       };
 
       // ── Helper: gửi/cập nhật tin nhắn theo mode ─────────────────────────
@@ -298,8 +300,31 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         if (mode === 'EQUIPPED') {
           const rows = [buildTabRow(disabled)];
           if (!disabled) rows.push(await buildUnequipSelect());
+          
+          const embeds = [await buildEquippedEmbed()];
+          if (selectedEquippedInvId && !disabled) {
+            const equippedItemObj = itemsList.find(o => o.invId === selectedEquippedInvId);
+            if (equippedItemObj) {
+              const detailEmbed = BoTaoEmbed.chiTietVatPham(tuSi, equippedItemObj);
+              embeds.unshift(detailEmbed); // Đưa chi tiết lên đầu hiển thị phía trên list đồ
+              
+              rows.push(
+                new ActionRowBuilder().addComponents(
+                  new ButtonBuilder()
+                    .setCustomId('balo_equipped_unequip')
+                    .setLabel('🔓 Tháo Trang Bị')
+                    .setStyle(ButtonStyle.Danger),
+                  new ButtonBuilder()
+                    .setCustomId('balo_equipped_close')
+                    .setLabel('✅ Xác Nhận / Đóng')
+                    .setStyle(ButtonStyle.Secondary)
+                )
+              );
+            }
+          }
+
           return {
-            embeds:     [await buildEquippedEmbed()],
+            embeds,
             components: rows
           };
         }
@@ -339,6 +364,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
           mode        = 'VIEW';
           showToolbar = false;
           selectedVal = null;
+          selectedEquippedInvId = null;
           await i.editReply(await buildPayload());
           return;
         }
@@ -346,6 +372,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
           mode        = 'EQUIPPED';
           showToolbar = false;
           selectedVal = null;
+          selectedEquippedInvId = null;
           await i.editReply(await buildPayload());
           return;
         }
@@ -359,8 +386,16 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         // ══ MODE: EQUIPPED ════════════════════════════════════════════════════
         if (mode === 'EQUIPPED') {
           if (i.customId === 'balo_unequip_select') {
-            const invId = parseInt(i.values[0], 10);
-            const inv   = await Inventory.findOne({ where: { id: invId, idNguoiDung: tuSi.idNguoiDung, trangBi: true } });
+            selectedEquippedInvId = parseInt(i.values[0], 10);
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'balo_equipped_close') {
+            selectedEquippedInvId = null;
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'balo_equipped_unequip') {
+            if (!selectedEquippedInvId) return;
+            const inv = await Inventory.findOne({ where: { id: selectedEquippedInvId, idNguoiDung: tuSi.idNguoiDung, trangBi: true } });
             if (!inv) {
               await i.editReply({ embeds: [BoTaoEmbed.loi('Không tìm thấy trang bị này hoặc đã được tháo rồi.')], components: [] });
               collector.stop('finished');
@@ -370,15 +405,14 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
             inv.trangBi = false;
             await inv.save();
             await refreshInventory();
+            selectedEquippedInvId = null;
 
-            const rows = [buildTabRow()];
-            rows.push(await buildUnequipSelect());
             await i.editReply({
               embeds: [
                 BoTaoEmbed.thanhCong('🔓 Tháo Trang Bị Thành Công', `Đạo hữu **${tuSi.ten}** đã tháo **${itemDetail ? itemDetail.ten : inv.itemId}** khỏi người.`),
                 await buildEquippedEmbed()
               ],
-              components: rows
+              components: (await buildPayload()).components
             });
           }
           return;
