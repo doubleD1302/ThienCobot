@@ -195,6 +195,10 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           const isWin = choice === result;
 
           // Cập nhật database
+          const baseExp = Math.floor(bet / 1000);
+          const gainedExp = isWin ? baseExp * 2 : baseExp;
+
+          tuSi.linhLuc += gainedExp;
           if (isWin) {
             tuSi.linhThach += bet;
           } else {
@@ -213,7 +217,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               (isWin
                 ? `🚀 Đại cát đại lợi! Đạo hữu thắng cuộc nhận thêm \`+${bet.toLocaleString()}\` 🪙 Linh thạch.`
                 : `💔 Cơ duyên cạn kiệt! Đạo hữu thất bại tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`) +
-              `\n\n🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
+              `\n\n⚡ **Tu vi nhận được**: \`+${gainedExp.toLocaleString()}\` Linh Lực (Cứ 1k cược nhận 1 EXP, thắng nhận x2).\n` +
+              `🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
             )
             .setTimestamp();
 
@@ -251,12 +256,17 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             outcome = 'LOSE';
           }
 
-          // Cập nhật linh thạch
+          // Cập nhật linh thạch và tu vi
+          let gainedExp = 0;
           if (outcome === 'WIN') {
+            gainedExp = Math.floor(bet / 1000) * 2;
             tuSi.linhThach += bet;
+            tuSi.linhLuc += gainedExp;
             await tuSi.save();
           } else if (outcome === 'LOSE') {
+            gainedExp = Math.floor(bet / 1000);
             tuSi.linhThach -= bet;
+            tuSi.linhLuc += gainedExp;
             await tuSi.save();
           }
 
@@ -278,6 +288,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             outcomeDesc = `Cả hai cùng ra **${playerChoice.name}**, khí kình đối xung bất phân thắng bại! Cược \`${bet.toLocaleString()}\` 🪙 được hoàn trả vẹn nguyên.`;
           }
 
+          const expText = gainedExp > 0 ? `\n\n⚡ **Tu vi nhận được**: \`+${gainedExp.toLocaleString()}\` Linh Lực (Cứ 1k cược nhận 1 EXP, thắng nhận x2).` : '';
+
           const resultEmbed = new EmbedBuilder()
             .setTitle(outcomeTitle)
             .setColor(outcomeColor)
@@ -285,6 +297,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               `• **Đạo hữu ra chiêu**: **${playerChoice.name}**\n` +
               `• **Thiên Đạo ra chiêu**: **${botChoice.name}**\n\n` +
               outcomeDesc +
+              expText +
               `\n\n🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
             )
             .setTimestamp();
