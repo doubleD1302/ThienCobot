@@ -4,31 +4,31 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  StringSelectMenuBuilder,
   EmbedBuilder,
   ChannelSelectMenuBuilder,
-  ChannelType
+  ChannelType,
+  StringSelectMenuBuilder
 } from 'discord.js';
 
 import { ChannelRestriction } from '../models/ChannelRestriction.js';
 
 // Danh sách TẤT CẢ các lệnh của bot
 const TAT_CA_LENH = [
-  { name: 'start',     emoji: '🌟', mo_ta: 'Tạo nhân vật' },
-  { name: 'nv',        emoji: '👤', mo_ta: 'Xem hồ sơ nhân vật' },
-  { name: 'tuluyen',   emoji: '🧘', mo_ta: 'Tu luyện tăng kinh nghiệm' },
-  { name: 'nghi',      emoji: '💤', mo_ta: 'Nghỉ ngơi hồi HP/MP' },
-  { name: 'balo',      emoji: '🎒', mo_ta: 'Túi trữ vật, trang bị' },
-  { name: 'bc',        emoji: '🗻', mo_ta: 'Bí cảnh phụ bản chiến đấu' },
-  { name: 'shop',      emoji: '🏪', mo_ta: 'Cửa hàng mua vật phẩm' },
-  { name: 'lichluyen', emoji: '📅', mo_ta: 'Lịch luyện hàng ngày' },
-  { name: 'dongphu',   emoji: '🏯', mo_ta: 'Động phủ tu tiên' },
-  { name: 'bxh',       emoji: '🏆', mo_ta: 'Bảng xếp hạng tu sĩ' },
-  { name: 'damdao',    emoji: '🎰', mo_ta: 'Đàm đạo cờ bạc' },
-  { name: 'tuongtac',  emoji: '🤝', mo_ta: 'Tương tác đạo hữu' },
-  { name: 'kynang',    emoji: '✨', mo_ta: 'Xem kỹ năng tu tiên' },
-  { name: 'tdl',       emoji: '📜', mo_ta: 'Thiên Đạo Lục điểm danh' },
-  { name: 'admin',     emoji: '🛡️', mo_ta: 'Bảng điều khiển admin' },
+  { name: 'start',     emoji: '🌟' },
+  { name: 'nv',        emoji: '👤' },
+  { name: 'tuluyen',   emoji: '🧘' },
+  { name: 'nghi',      emoji: '💤' },
+  { name: 'balo',      emoji: '🎒' },
+  { name: 'bc',        emoji: '🗻' },
+  { name: 'shop',      emoji: '🏪' },
+  { name: 'lichluyen', emoji: '📅' },
+  { name: 'dongphu',   emoji: '🏯' },
+  { name: 'bxh',       emoji: '🏆' },
+  { name: 'damdao',    emoji: '🎰' },
+  { name: 'tuongtac',  emoji: '🤝' },
+  { name: 'kynang',    emoji: '✨' },
+  { name: 'tdl',       emoji: '📜' },
+  { name: 'admin',     emoji: '🛡️' },
 ];
 
 // ── Helper: embed danh sách kênh đang bị giới hạn ────────────────────────────
@@ -85,84 +85,46 @@ class BoDieuKhienAdmin {
             .setLabel('❌ Đóng').setStyle(ButtonStyle.Danger)
         );
 
-      // ── Embed bước 2 ADD: luôn hiển thị danh sách lệnh đang pending ─────────
+      // ── Embed bước 2 ADD: danh sách lệnh đang pending ──────────────────────
       const buildAddEmbed = () => {
         const selected = pendingCmds.length > 0
-          ? pendingCmds.map(c => {
-              const info = TAT_CA_LENH.find(x => x.name === c);
-              return `${info?.emoji || '▪️'} \`/${c}\``;
-            }).join('\n')
-          : '*Chưa có lệnh nào được thêm*';
-
-        const unselected = TAT_CA_LENH.filter(x => !pendingCmds.includes(x.name));
-        const available  = unselected.length > 0
-          ? `*${unselected.length} lệnh chưa được thêm*`
-          : '*Tất cả lệnh đã được thêm*';
+          ? pendingCmds.map(c => `• 🟢 \`/${c}\``).join('\n')
+          : '*Chưa có lệnh nào được phép (Kênh sẽ bị khóa tất cả lệnh)*';
 
         return new EmbedBuilder()
           .setTitle('➕ Cấu Hình Giới Hạn Lệnh')
           .setColor(0x2ecc71)
           .addFields(
-            { name: '📌 Kênh',                  value: `<#${pendingChannelId}>`, inline: true },
-            { name: '🔢 Số lệnh đã chọn',        value: `**${pendingCmds.length}** lệnh`,   inline: true },
-            { name: '✅ Lệnh được phép dùng',    value: selected,  inline: false },
-            { name: '📦 Lệnh chưa thêm',         value: available, inline: false },
+            { name: '📌 Kênh đang cấu hình',   value: `<#${pendingChannelId}>`, inline: true },
+            { name: '🔢 Lệnh được phép',       value: `**${pendingCmds.length}** lệnh`,   inline: true },
+            { name: '📋 Danh sách hiện tại',    value: selected,  inline: false },
           )
-          .setDescription('**Bước 2 / 2** — Dùng 2 dropdown bên dưới để **Thêm** hoặc **Bỏ** từng lệnh. Sau đó bấm **💾 Lưu**.')
-          .setFooter({ text: 'Thêm: chọn lệnh từ "Thêm lệnh". Bỏ: chọn lệnh từ "Bỏ lệnh".' })
+          .setDescription('Nhấn vào các nút lệnh bên dưới để **Bật (Xanh)** hoặc **Tắt (Xám)**. Bấm **💾 Lưu** sau khi hoàn thành.')
           .setTimestamp();
       };
 
-      // ── Dropdown THÊM: chỉ hiển thị lệnh chưa có trong pendingCmds ──────────
-      const buildAddCmdSelect = () => {
-        const available = TAT_CA_LENH.filter(x => !pendingCmds.includes(x.name));
-        if (available.length === 0) {
-          return new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId('adm_cmd_add')
-              .setPlaceholder('✅ Đã thêm tất cả lệnh rồi')
-              .setDisabled(true)
-              .addOptions([{ label: '(Không còn lệnh nào)', value: '__none__' }])
-          );
+      // ── Tạo các dòng nút toggle cho 15 lệnh (mỗi dòng 5 nút) ────────────────
+      const buildToggleButtons = () => {
+        const rows = [];
+        const chunkSize = 5;
+        
+        for (let i = 0; i < TAT_CA_LENH.length; i += chunkSize) {
+          const chunk = TAT_CA_LENH.slice(i, i + chunkSize);
+          const row = new ActionRowBuilder();
+          
+          for (const cmd of chunk) {
+            const isAllowed = pendingCmds.includes(cmd.name);
+            row.addComponents(
+              new ButtonBuilder()
+                .setCustomId(`toggle_${cmd.name}`)
+                .setLabel(`/${cmd.name}`)
+                .setEmoji(cmd.emoji)
+                .setStyle(isAllowed ? ButtonStyle.Success : ButtonStyle.Secondary)
+            );
+          }
+          rows.push(row);
         }
-        return new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId('adm_cmd_add')
-            .setPlaceholder('➕ Chọn lệnh muốn THÊM vào danh sách cho phép...')
-            .addOptions(available.map(cmd => ({
-              label:       `/${cmd.name}`,
-              value:       cmd.name,
-              emoji:       cmd.emoji,
-              description: cmd.mo_ta
-            })))
-        );
-      };
-
-      // ── Dropdown BỎ: chỉ hiển thị lệnh đã có trong pendingCmds ─────────────
-      const buildRemoveCmdSelect = () => {
-        if (pendingCmds.length === 0) {
-          return new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId('adm_cmd_remove')
-              .setPlaceholder('⚠️ Chưa có lệnh nào để bỏ')
-              .setDisabled(true)
-              .addOptions([{ label: '(Danh sách trống)', value: '__none__' }])
-          );
-        }
-        return new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId('adm_cmd_remove')
-            .setPlaceholder('➖ Chọn lệnh muốn BỎ khỏi danh sách cho phép...')
-            .addOptions(pendingCmds.map(name => {
-              const info = TAT_CA_LENH.find(x => x.name === name);
-              return {
-                label:       `/${name}`,
-                value:       name,
-                emoji:       info?.emoji || '▪️',
-                description: info?.mo_ta || ''
-              };
-            }))
-        );
+        return rows;
       };
 
       // ── Tổng hợp payload theo mode ───────────────────────────────────────────
@@ -196,26 +158,25 @@ class BoDieuKhienAdmin {
           };
         }
 
-        // ── ADD — Bước 2: chọn lệnh (thêm / bỏ riêng biệt) ──────────────────
+        // ── ADD — Bước 2: chọn lệnh bằng các nút toggle (3 hàng nút + 1 hàng lưu) ──
         if (mode === 'ADD' && pendingChannelId) {
+          const rows = [
+            tabRow,
+            ...buildToggleButtons(),
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('adm_save')
+                .setLabel('💾 Lưu Thay Đổi')
+                .setStyle(ButtonStyle.Primary),
+              new ButtonBuilder()
+                .setCustomId('adm_reset_channel')
+                .setLabel('📌 Đổi Kênh')
+                .setStyle(ButtonStyle.Secondary)
+            )
+          ];
           return {
             embeds: [buildAddEmbed()],
-            components: [
-              tabRow,
-              buildAddCmdSelect(),
-              buildRemoveCmdSelect(),
-              new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                  .setCustomId('adm_save')
-                  .setLabel('💾 Lưu Thay Đổi')
-                  .setStyle(ButtonStyle.Success)
-                  .setDisabled(pendingCmds.length === 0),
-                new ButtonBuilder()
-                  .setCustomId('adm_reset_channel')
-                  .setLabel('📌 Đổi Kênh')
-                  .setStyle(ButtonStyle.Secondary)
-              )
-            ]
+            components: rows
           };
         }
 
@@ -282,25 +243,21 @@ class BoDieuKhienAdmin {
           pendingCmds        = existing ? [...existing.allowedCommands] : [];
         }
 
-        // ── Thêm lệnh (dropdown đơn — SINGLE select, ổn định 100%) ─────────────
-        if (i.customId === 'adm_cmd_add') {
-          const cmd = i.values[0];
-          if (cmd !== '__none__' && !pendingCmds.includes(cmd)) {
-            pendingCmds.push(cmd);
+        // ── Xử lý toggle các nút lệnh ───────────────────────────────────────────
+        if (i.customId.startsWith('toggle_')) {
+          const cmdName = i.customId.replace('toggle_', '');
+          if (pendingCmds.includes(cmdName)) {
+            pendingCmds = pendingCmds.filter(c => c !== cmdName);
+          } else {
+            pendingCmds.push(cmdName);
           }
-        }
-
-        // ── Bỏ lệnh (dropdown đơn — SINGLE select) ──────────────────────────────
-        if (i.customId === 'adm_cmd_remove') {
-          const cmd = i.values[0];
-          pendingCmds = pendingCmds.filter(c => c !== cmd);
         }
 
         // ── Lưu ─────────────────────────────────────────────────────────────────
         if (i.customId === 'adm_save') {
-          if (!pendingChannelId || pendingCmds.length === 0) {
+          if (!pendingChannelId) {
             await i.editReply({
-              embeds: [new EmbedBuilder().setColor(0xe74c3c).setDescription('⚠️ Vui lòng thêm ít nhất 1 lệnh vào danh sách trước khi lưu!')],
+              embeds: [new EmbedBuilder().setColor(0xe74c3c).setDescription('⚠️ Vui lòng cấu hình kênh hợp lệ trước khi lưu!')],
               components: []
             });
             return;
@@ -311,7 +268,9 @@ class BoDieuKhienAdmin {
             allowedCommands: pendingCmds
           });
 
-          const savedCmds = pendingCmds.map(c => `\`/${c}\``).join(', ');
+          const savedCmds = pendingCmds.length > 0 
+            ? pendingCmds.map(c => `\`/${c}\``).join(', ')
+            : '*Không có lệnh nào (Khóa toàn bộ lệnh)*';
           const savedChannel = pendingChannelId;
           mode = 'LIST'; pendingChannelId = null; pendingCmds = [];
 
@@ -352,6 +311,7 @@ class BoDieuKhienAdmin {
       collector.on('end', async () => {
         try { await interaction.editReply({ components: [] }); } catch (_) {}
       });
+
     }
   };
 }
