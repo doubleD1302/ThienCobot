@@ -495,7 +495,7 @@ export class BoTaoEmbed {
     return embed;
   }
 
-  static tranDauBiCanh(tuSi, dungeon, battleLogs, isWin, gainedExp, gainedStones, droppedItem = null) {
+  static tranDauBiCanh(tuSi, dungeon, battleLogs, isWin, gainedExp, gainedStones, droppedItem = null, droppedSeed = null) {
     const color = isWin ? 0x2ecc71 : 0xe74c3c;
     const title = isWin ? `🎉 Khiêu Chiến Thành Công: ${dungeon.ten} 🎉` : `💀 Khiêu Chiến Thất Bại: ${dungeon.ten} 💀`;
 
@@ -518,6 +518,9 @@ export class BoTaoEmbed {
       let rewardText = `• **Linh lực nhận được**: \`+${gainedExp}\` ✨\n• **Linh thạch nhận được**: \`+${gainedStones}\` 💎`;
       if (droppedItem) {
         rewardText += `\n• **Vật phẩm rớt ra**: **${droppedItem.ten}** 🎁`;
+      }
+      if (droppedSeed) {
+        rewardText += `\n• **Hạt giống nhặt được**: **${droppedSeed.ten}** 🌰`;
       }
       embed.addFields({
         name: "🎁 Chiến Lợi Phẩm",

@@ -33,7 +33,9 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         const detail = await Item.findByPk(eq.itemId);
         if (detail) equippedItems.push(detail);
       }
-      const stats = tuSi.layChiSo(equippedItems);
+      const { Pet } = await import('../models/Pet.js');
+      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      const stats = tuSi.layChiSo(equippedItems, activePet);
 
       if (tuSi.hp <= Math.floor(stats.max_hp * 0.10)) {
         return await interaction.editReply({
@@ -114,6 +116,16 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         const lostMp = Math.floor(stats.max_mp * effects.mpPhat);
         tuSi.mp = Math.max(0, tuSi.mp - lostMp);
         rewardText += `• **Pháp lực tiêu hao**: Trừ \`-${lostMp}\` MP 💧 (Còn lại: ${tuSi.mp}/${stats.max_mp})\n`;
+      }
+
+      // 20% cơ hội nhặt được hạt giống khi đi lịch luyện
+      if (Math.random() <= 0.20) {
+        const seedId = Math.random() < 0.5 ? 'hat_giong_linh_chi' : 'hat_giong_nhan_sam';
+        const seedDetail = await Item.findByPk(seedId);
+        if (seedDetail) {
+          await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);
+          rewardText += `• **Hạt giống nhặt được**: **${seedDetail.ten}** 🌰\n`;
+        }
       }
 
       // Xử lý Thiên Đạo Lục đối với các đại cơ duyên chung không phụ thuộc vào rơi đồ

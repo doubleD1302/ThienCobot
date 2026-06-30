@@ -97,7 +97,9 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             equippedItems.push(eq);
           }
         }
-        const stats = tuSi.layChiSo(equippedInv);
+        const { Pet } = await import('../models/Pet.js');
+        const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+        const stats = tuSi.layChiSo(equippedInv, activePet);
 
         // 3. Kiểm tra HP tối thiểu (10%)
         if (tuSi.hp <= Math.floor(stats.max_hp * 0.10)) {
@@ -114,6 +116,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const battleLogs = [];
         let isWin = false;
         let round = 1;
+        let phoenixTriggered = false;
 
         const isPhysical = tuSi.huongTu === 'The Tu';
         const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
@@ -216,6 +219,23 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
           if (isWin) break;
 
+          // Kích hoạt Kỹ Năng Sủng Vật Thần Thú Chủ Động (20% mỗi hiệp)
+          if (activePet && activePet.rarity === 'ANCIENT' && Math.random() <= 0.20) {
+            if (activePet.type === 'to_long') {
+              const petDmg = Math.floor(stats.max_hp * 0.15);
+              monsterHp = Math.max(0, monsterHp - petDmg);
+              battleLogs.push(`🐉 **Thần Thú [Tổ Long]** phẫn nộ thét gào, phun trào Long Thần Chi Nộ oanh kích \`${petDmg}\` sát thương chí mạng lên yêu thú! (Yêu thú HP: \`${monsterHp}\`).`);
+              if (monsterHp <= 0) {
+                isWin = true;
+                break;
+              }
+            } else if (activePet.type === 'ky_lan') {
+              const petShield = Math.floor(stats.max_hp * 0.20);
+              playerShield += petShield;
+              battleLogs.push(`🦄 **Thần Thú [Kỳ Lân]** thi triển Kỳ Lân Hộ Thể, ngưng tụ lá chắn thần thánh bảo vệ tu sĩ hấp thụ \`${petShield}\` sát thương.`);
+            }
+          }
+
           // Lượt quái: Quái tấn công lại
           const mAtk = Math.max(monster.vatCong, monster.phapCong);
           const pDef = monster.vatCong > monster.phapCong ? stats.vat_phong : stats.phap_phong;
@@ -245,8 +265,14 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           }
 
           if (playerHp <= 0) {
-            isWin = false;
-            break;
+            if (activePet && activePet.type === 'phuong_hoang' && !phoenixTriggered) {
+              phoenixTriggered = true;
+              playerHp = Math.floor(stats.max_hp * 0.30);
+              battleLogs.push(`🐦 **Thần Thú [Phượng Hoàng]** kích hoạt Niết Bàn Trùng Sinh, hy sinh thọ nguyên hồi sinh đạo hữu từ cõi chết với \`${playerHp}\` HP!`);
+            } else {
+              isWin = false;
+              break;
+            }
           }
 
           round++;
@@ -261,6 +287,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let gainedExp = 0;
         let gainedStones = 0;
         let droppedItem = null;
+        let droppedSeed = null;
 
         if (isWin) {
           gainedExp = Math.floor(dungeon.thuong.expMin + Math.random() * (dungeon.thuong.expMax - dungeon.thuong.expMin));
@@ -278,6 +305,16 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                 await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
                 break; // Chỉ cho rơi tối đa 1 món ngẫu nhiên
               }
+            }
+          }
+
+          // 20% cơ hội rơi hạt giống tại Dược Viên
+          if (Math.random() <= 0.20) {
+            const seedId = Math.random() < 0.5 ? 'hat_giong_linh_chi' : 'hat_giong_nhan_sam';
+            const seedDetail = await Item.findByPk(seedId);
+            if (seedDetail) {
+              droppedSeed = seedDetail;
+              await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);
             }
           }
 
@@ -315,7 +352,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           isWin,
           gainedExp,
           gainedStones,
-          droppedItem
+          droppedItem,
+          droppedSeed
         );
         return await interaction.editReply({ embeds: [embedResult] });
       }

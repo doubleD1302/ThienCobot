@@ -25,12 +25,22 @@ export class BoDieuKhienGoc {
 
     if (elapsedMinutes >= 1) {
       const { CanhGioi } = await import('../models/CanhGioi.js');
+      const { Abode } = await import('../models/Abode.js');
+      const { Pet } = await import('../models/Pet.js');
+
+      const abode = await Abode.findByPk(tuSi.idNguoiDung);
+      const lvDongPhu = abode ? abode.level : 0;
+      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+
       const cg = await CanhGioi.findByPk(tuSi.capDo);
       const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
-      const multiplier = tuSi.layHeSoTuLuyen();
+      const multiplier = tuSi.layHeSoTuLuyen(activePet);
       const elapsedDaoNien = (elapsedMinutes * 60) / config.DAO_NIEN_SECONDS;
 
-      const rawExp = tocDoCoBan * multiplier * elapsedDaoNien + (tuSi.linhLucDu || 0.0);
+      // Cộng thêm tốc độ tu luyện từ Động Phủ: mỗi cấp tăng +100% (cấp 1 x2, cấp 10 x11)
+      const speedMult = 1 + lvDongPhu;
+
+      const rawExp = tocDoCoBan * multiplier * speedMult * elapsedDaoNien + (tuSi.linhLucDu || 0.0);
       const rawStones = 10 * tuSi.capDo * elapsedDaoNien + (tuSi.linhThachDu || 0.0);
 
       const gainedExp = Math.floor(rawExp);
@@ -45,7 +55,7 @@ export class BoDieuKhienGoc {
       tuSi.lastUpdateTuVi = new Date(lastUpdate + elapsedMinutes * 60000);
 
       // Hồi phục 20% hp/mp mỗi Đạo Niên tu luyện
-      const stats = tuSi.layChiSo();
+      const stats = tuSi.layChiSo([], activePet);
       tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * elapsedDaoNien));
       tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * elapsedDaoNien));
 

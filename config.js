@@ -253,7 +253,36 @@ export const ITEMS = [
   // Pháp Bảo
   { id: 'phap_bao_ho_than', ten: 'Phù Vân Phiên 🏳️', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 700, chiSoJson: '{"phap_phong":15}', yeuCauCanhGioi: 1, moTa: 'Pháp bảo tạo khiên ngưng tụ thủy văn phòng ngự.' },
   { id: 'phap_bao_cong_kich', ten: 'Phá Thiên Chủy 🔱', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1500, chiSoJson: '{"phap_cong":30}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo tấn công phóng hỏa tiễn.' },
-  { id: 'phap_bao_hon_ton', ten: 'Hỗn Độn Chung 🔔', loai: 'Pháp Bảo', doHiem: 'Cực hiếm', giaCoSo: 5000, chiSoJson: '{"vat_cong":50,"phap_cong":50,"hp":300}', yeuCauCanhGioi: 19, moTa: 'Chuông vàng chấn động tiên hải.' }
+  { id: 'phap_bao_hon_ton', ten: 'Hỗn Độn Chung 🔔', loai: 'Pháp Bảo', doHiem: 'Cực hiếm', giaCoSo: 5000, chiSoJson: '{"vat_cong":50,"phap_cong":50,"hp":300}', yeuCauCanhGioi: 19, moTa: 'Chuông vàng chấn động tiên hải.' },
+
+  // Hạt giống (Trồng trọt)
+  { id: 'hat_giong_linh_chi', ten: 'Hạt Giống Linh Chi 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Hạt giống U Minh Linh Chi, trồng tại Dược Viên.' },
+  { id: 'hat_giong_nhan_sam', ten: 'Hạt Giống Nhân Sâm 🌰', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Hạt giống Tuyết Sơn Nhân Sâm, chứa đựng sinh cơ.' },
+
+  // Linh thảo thu hoạch theo phẩm chất
+  { id: 'linh_chi_luc', ten: 'U Minh Linh Chi (Phàm) 🍄', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh chi 100 năm tuổi, thu hoạch từ dược viên.' },
+  { id: 'linh_chi_lam', ten: 'U Minh Linh Chi (Ưu) 🍄', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 150, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh chi 1000 năm tuổi, linh khí dồi dào.' },
+  { id: 'linh_chi_tim', ten: 'U Minh Linh Chi (Siêu) 🍄', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh chi vạn năm hấp thu nguyệt hoa.' },
+  { id: 'linh_chi_vang', ten: 'U Minh Linh Chi (Tuyệt) 🍄', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 1500, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh chi mười vạn năm trân quý vô ngần.' },
+  { id: 'linh_chi_do', ten: 'U Minh Linh Chi (Tiên) 🍄', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tiên dược trăm vạn năm chỉ có trong truyền thuyết.' },
+
+  { id: 'nhan_sam_luc', ten: 'Tuyết Sơn Nhân Sâm (Phàm) 🥕', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 80, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nhân sâm 100 năm tuổi tốt cho khí huyết.' },
+  { id: 'nhan_sam_lam', ten: 'Tuyết Sơn Nhân Sâm (Ưu) 🥕', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 240, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nhân sâm 1000 năm tuổi đào từ tuyết sơn hoang dã.' },
+  { id: 'nhan_sam_tim', ten: 'Tuyết Sơn Nhân Sâm (Siêu) 🥕', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 800, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Cực phẩm nhân sâm vạn năm hộ thể phục mạch.' },
+  { id: 'nhan_sam_vang', ten: 'Tuyết Sơn Nhân Sâm (Tuyệt) 🥕', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 2500, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nhân sâm mười vạn năm, linh khí ngút trời.' },
+  { id: 'nhan_sam_do', ten: 'Tuyết Sơn Nhân Sâm (Tiên) 🥕', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 8000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tiên thảo sâm vương trăm vạn năm cải tử hoàn sinh.' },
+
+  // Đan dược tăng Tu Vi
+  { id: 'dan_tu_vi_trang', ten: 'Tu Vi Đan (Phế) 💊', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan phế phẩm lập tức gia tăng tu vi (Tương đương 4 Đạo Niên tu tập).' },
+  { id: 'dan_tu_vi_luc', ten: 'Tu Vi Đan (Phàm) 💊', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 300, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan phàm phẩm lập tức gia tăng tu vi (Tương đương 8 Đạo Niên tu tập).' },
+  { id: 'dan_tu_vi_lam', ten: 'Tu Vi Đan (Ưu) 💊', loai: 'Đan dược', doHiem: 'Hiếm', giaCoSo: 800, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan ưu phẩm lập tức gia tăng tu vi (Tương đương 16 Đạo Niên tu tập).' },
+  { id: 'dan_tu_vi_tim', ten: 'Tu Vi Đan (Siêu) 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan siêu phẩm lập tức gia tăng tu vi (Tương đương 32 Đạo Niên tu tập).' },
+  { id: 'dan_tu_vi_vang', ten: 'Tu Vi Đan (Tuyệt) 💊', loai: 'Đan dược', doHiem: 'Huyền thoại', giaCoSo: 6000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan tuyệt phẩm lập tức gia tăng tu vi (Tương đương 64 Đạo Niên tu tập).' },
+  { id: 'dan_tu_vi_do', ten: 'Tu Vi Đan (Tiên) 💊', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 20000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tiên linh thần đan lập tức gia tăng tu vi (Tương đương 128 Đạo Niên tu tập).' },
+
+  // Vật phẩm bổ trợ ấp trứng
+  { id: 'trung_linh_thu', ten: 'Trứng Linh Thú 🥚', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Ấp nở tại Động Phủ để nhận được linh thú trung thành.' },
+  { id: 'trung_than_thu', ten: 'Trứng Thần Thú Thượng Cổ 🌟', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng thần thú thượng cổ cực kỳ quý hiếm.' }
 ];
 
 // ==========================================

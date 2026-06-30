@@ -90,6 +90,13 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
 
       const { Inventory } = await import('../models/Inventory.js');
       const { Item } = await import('../models/Item.js');
+      const { Pet } = await import('../models/Pet.js');
+      const { Abode } = await import('../models/Abode.js');
+
+      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      const abode = await Abode.findByPk(tuSi.idNguoiDung);
+      const lvDongPhu = abode ? abode.level : 0;
+
       const equippedInv = await Inventory.findAll({
         where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
       });
@@ -102,7 +109,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         }
       }
 
-      const stats = tuSi.layChiSo(equippedInv);
+      const stats = tuSi.layChiSo(equippedInv, activePet);
       
       // Khôi phục chỉ số động khi thay đổi căn cơ phạt cực đại
       let updated = false;
@@ -130,8 +137,10 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const { CanhGioi } = await import('../models/CanhGioi.js');
       const cg = await CanhGioi.findByPk(tuSi.capDo);
       const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
-      const heSoTuLuyen = tuSi.layHeSoTuLuyen();
-      const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen);
+      const heSoTuLuyen = tuSi.layHeSoTuLuyen(activePet);
+      
+      // Nhân thêm tốc độ từ Động phủ
+      const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen * (1 + lvDongPhu));
       const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
 
       const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats, daoNien, tocDoTuLuyen, reqExp, equippedItems);

@@ -15,7 +15,7 @@ class TuSi extends Model {
     this.danhSachLinhCanJson = JSON.stringify(value || []);
   }
 
-  layChiSo(equippedInvList = []) {
+  layChiSo(equippedInvList = [], activePet = null) {
     const huongTu = this.huongTu || 'Phap Tu';
     const pathConfig = config.HUONG_DI[huongTu] || config.HUONG_DI['Phap Tu'];
     const baseStats = pathConfig.base_stats;
@@ -145,6 +145,29 @@ class TuSi extends Model {
       critRate += config.NGUON_LINH_CAN['Hoa'].crit_rate;
     }
 
+    // 4. Cộng sủng vật (Pet) nếu có xuất chiến
+    if (activePet) {
+      const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
+      if (activePet.type === 'ma_lang') {
+        vatCong += baseVatCongVal * 0.10 * scale;
+      } else if (activePet.type === 'loi_diep') {
+        critRate += 0.05 * scale;
+      } else if (activePet.type === 'than_vien') {
+        maxHp += baseHpVal * 0.15 * scale;
+        giap += baseStats.giap * 0.10 * scale;
+      } else if (activePet.type === 'to_long') {
+        phapCong += basePhapCongVal * 0.25 * scale;
+        vatCong += baseVatCongVal * 0.15 * scale;
+      } else if (activePet.type === 'phuong_hoang') {
+        maxHp += baseHpVal * 0.25 * scale;
+        ne += 0.20 * scale;
+      } else if (activePet.type === 'ky_lan') {
+        giap += baseStats.giap * 0.25 * scale;
+        vatCong += baseVatCongVal * 0.25 * scale;
+        phapCong += basePhapCongVal * 0.25 * scale;
+      }
+    }
+
     // Phạt căn cơ do đột phá thất bại
     const phatHp = this.phatHp || 0.0;
     const phatMp = this.phatMp || 0.0;
@@ -172,7 +195,7 @@ class TuSi extends Model {
     };
   }
 
-  layHeSoTuLuyen() {
+  layHeSoTuLuyen(activePet = null) {
     const elements = this.linhCanList;
     const count = elements.length;
 
@@ -199,6 +222,12 @@ class TuSi extends Model {
     }
     if (elements.includes('Hoa')) {
       mult *= config.NGUON_LINH_CAN['Hoa'].tu_toc;
+    }
+
+    // Tốc độ tu luyện cộng thêm từ sủng vật Lôi Điệp (nếu có và xuất chiến)
+    if (activePet && activePet.type === 'loi_diep') {
+      const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
+      mult *= (1.0 + 0.10 * scale);
     }
 
     return mult;

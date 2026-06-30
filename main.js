@@ -9,6 +9,8 @@ import { danhSachLenhKyNang } from './controllers/BoDieuKhienKyNang.js';
 import { danhSachLenhThienDaoLuc } from './controllers/BoDieuKhienThienDaoLuc.js';
 import { danhSachLenhLichLuyen } from './controllers/BoDieuKhienLichLuyen.js';
 import { danhSachLenhShop } from './controllers/BoDieuKhienShop.js';
+import { danhSachLenhLeaderboard } from './controllers/BoDieuKhienLeaderboard.js';
+import { danhSachLenhDongPhu } from './controllers/BoDieuKhienDongPhu.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/Item.js';
@@ -20,6 +22,9 @@ import './models/ThienDaoLuc.js';
 import './models/AdventureEvent.js';
 import './models/ShopItem.js';
 import './models/LichSuMua.js';
+import './models/Abode.js';
+import './models/GardenPlot.js';
+import './models/Pet.js';
 
 // Khởi tạo Discord Client với các Intents cần thiết
 const client = new Client({
@@ -41,7 +46,9 @@ const tatCaLenh = [
   ...danhSachLenhKyNang,
   ...danhSachLenhThienDaoLuc,
   ...danhSachLenhLichLuyen,
-  ...danhSachLenhShop
+  ...danhSachLenhShop,
+  ...danhSachLenhLeaderboard,
+  ...danhSachLenhDongPhu
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
