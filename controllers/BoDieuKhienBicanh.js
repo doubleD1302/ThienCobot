@@ -304,8 +304,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           }
         }
 
-        // Thiết lập cooldown khiêu chiến phụ bản mới (3 phút = 180 giây)
-        const expiresAt = new Date(Date.now() + 180 * 1000);
+        // Thiết lập cooldown khiêu chiến phụ bản mới (30 giây)
+        const expiresAt = new Date(Date.now() + 30 * 1000);
         await this.datThoiGianCho(tuSi.idNguoiDung, 'dungeon', expiresAt);
 
         const embedResult = BoTaoEmbed.tranDauBiCanh(

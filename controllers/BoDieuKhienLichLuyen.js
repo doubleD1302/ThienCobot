@@ -127,8 +127,8 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
 
       await tuSi.save();
 
-      // Thiết lập cooldown lịch luyện (5 phút = 300 giây)
-      const expiresAt = new Date(Date.now() + 300 * 1000);
+      // Thiết lập cooldown lịch luyện (30 giây)
+      const expiresAt = new Date(Date.now() + 30 * 1000);
       await this.datThoiGianCho(tuSi.idNguoiDung, 'lich_luyen', expiresAt);
 
       // Tạo embed hiển thị
