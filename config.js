@@ -7,6 +7,21 @@ export const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 // Database configuration
 export const DATABASE_URL = process.env.DATABASE_URL || 'sqlite:thienco.db';
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  GIỚI HẠN LỆNH THEO KÊNH (Channel Command Restrictions)
+//  Cấu hình: key = ID kênh Discord, value = mảng tên lệnh được phép dùng.
+//
+//  Ví dụ:
+//    '123456789012345678': ['bc', 'tuluyen', 'lichluyen'],  // Chỉ cho phép 3 lệnh này
+//    '987654321098765432': ['shop', 'balo'],                // Chỉ cho phép shop và balo
+//
+//  Kênh KHÔNG có trong bảng này → không bị giới hạn, dùng được mọi lệnh.
+//  Để tắt tính năng này hoàn toàn → để object rỗng: {}
+// ══════════════════════════════════════════════════════════════════════════════
+export const KENH_LENH_RIENG = {
+  // 'ID_KENH_CUA_BAN': ['ten_lenh_1', 'ten_lenh_2'],
+};
+
 // Time configuration: 1 Đạo Niên = 15 minutes of real time (900 seconds)
 export const DEBUG_MODE = String(process.env.DEBUG_MODE || 'false').toLowerCase() === 'true' || process.env.DEBUG_MODE === '1';
 export const DAO_NIEN_SECONDS = DEBUG_MODE ? 15 : 900;

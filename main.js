@@ -121,6 +121,20 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
+  // ── Kiểm tra giới hạn lệnh theo kênh ────────────────────────────────────
+  const { KENH_LENH_RIENG } = await import('./config.js');
+  const channelId = interaction.channelId;
+  if (KENH_LENH_RIENG[channelId]) {
+    const allowedCommands = KENH_LENH_RIENG[channelId];
+    if (!allowedCommands.includes(interaction.commandName)) {
+      const allowedList = allowedCommands.map(c => `\`/${c}\``).join(', ');
+      return await interaction.reply({
+        content: `🚫 **Kênh này chỉ cho phép sử dụng**: ${allowedList}\nHãy đến kênh phù hợp để dùng lệnh \`/${interaction.commandName}\`.`,
+        ephemeral: true
+      });
+    }
+  }
+
   try {
     await lenh.execute(interaction);
   } catch (error) {
