@@ -9,9 +9,8 @@ class ThienDaoLuc extends Model {
       const guildConf = await CauHinhGuild.findOne();
       let daoNien = 1;
       if (guildConf) {
-        const config = await import('../config.js');
-        const elapsedSeconds = Math.floor((Date.now() - new Date(guildConf.created_at || guildConf.createdAt).getTime()) / 1000);
-        daoNien = Math.floor(elapsedSeconds / config.DAO_NIEN_SECONDS) + 1;
+        // Dùng method chuẩn của model để tính đạo niên từ ngayKhoiTao
+        daoNien = guildConf.layDaoNienHienTai();
 
         // Tự động ghi nhận thông báo chuyển Đạo Niên mới nếu chưa có
         const lastSystemRecord = await ThienDaoLuc.findOne({
