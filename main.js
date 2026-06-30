@@ -277,6 +277,7 @@ async function start() {
           doHiem: item.doHiem,
           giaCoSo: item.giaCoSo,
           chiSoJson: item.chiSoJson,
+          yeuCauCanhGioi: item.yeuCauCanhGioi || 1,
           moTa: item.moTa
         }));
         await Item.bulkCreate(seedItems);

@@ -111,6 +111,14 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
           });
         }
 
+        if (tuSi.capDo < (itemDetail.yeuCauCanhGioi || 1)) {
+          const { layThongTinCanhGioi } = await import('../config.js');
+          const cgReq = layThongTinCanhGioi(itemDetail.yeuCauCanhGioi || 1);
+          return await interaction.editReply({
+            embeds: [BoTaoEmbed.loi(`Cảnh giới bất túc! Vật phẩm này yêu cầu tu vi tối thiểu: **${cgReq.realmName} - ${cgReq.stageName}** (Hiện tại của ngươi: **${tuSi.canhGioi}**).`)]
+          });
+        }
+
         const stats = tuSi.layChiSo(await loadEquipped());
         const effect = itemDetail.chiSo;
         let recoveryMsg = '';
@@ -166,6 +174,14 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         if (!itemDetail || (itemDetail.loai !== 'Vũ khí' && itemDetail.loai !== 'Giáp')) {
           return await interaction.editReply({
             embeds: [BoTaoEmbed.loi(`Mã \`${itemId}\` không phải là Trang bị (Vũ khí/Giáp).`)]
+          });
+        }
+
+        if (tuSi.capDo < (itemDetail.yeuCauCanhGioi || 1)) {
+          const { layThongTinCanhGioi } = await import('../config.js');
+          const cgReq = layThongTinCanhGioi(itemDetail.yeuCauCanhGioi || 1);
+          return await interaction.editReply({
+            embeds: [BoTaoEmbed.loi(`Cảnh giới bất túc! Trang bị này yêu cầu tu vi tối thiểu: **${cgReq.realmName} - ${cgReq.stageName}** (Hiện tại của ngươi: **${tuSi.canhGioi}**).`)]
           });
         }
 

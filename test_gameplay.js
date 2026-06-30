@@ -458,5 +458,73 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Item level requirement constraint (yeuCauCanhGioi)', async () => {
+    const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+    
+    // Tạo vật phẩm yêu cầu Trúc Cơ (cấp độ 10)
+    await Item.create({
+      id: "test_trong_kiem",
+      ten: "Trọng Kiếm Tuyệt Thế 🗡️",
+      loai: "Vũ khí",
+      doHiem: "Cực hiếm",
+      giaCoSo: 2000,
+      chiSoJson: '{"vat_cong":150}',
+      yeuCauCanhGioi: 10,
+      moTa: "Yêu cầu Trúc Cơ."
+    });
+
+    const tuSi = await TuSi.create({
+      idNguoiDung: "7777777777777777",
+      ten: "Luyện Khí Nhân",
+      gioiTinh: "Nam",
+      huongTu: "The Tu",
+      linhCan: "Thổ Linh Căn",
+      capDo: 1, // Luyện Khí
+      linhLuc: 0,
+      linhThach: 100,
+      hp: 100,
+      mp: 100
+    });
+    tuSi.linhCanList = ["Tho"];
+    await tuSi.save();
+
+    // Đưa vào balo tu sĩ
+    await Inventory.create({
+      idNguoiDung: tuSi.idNguoiDung,
+      itemId: "test_trong_kiem",
+      soLuong: 1,
+      trangBi: false,
+      nangCapSao: 0
+    });
+
+    // Thử trang bị -> Phải thất bại vì level bất túc
+    let replyPayload = null;
+    const interactionMock = {
+      user: { id: "7777777777777777" },
+      options: {
+        getSubcommand: () => 'trangbi',
+        getString: () => 'test_trong_kiem'
+      },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        replyPayload = payload;
+      }
+    };
+
+    await boDieuKhienVatPham.lenhBalo.execute(interactionMock);
+
+    // Kiểm tra xem phản hồi có lỗi Cảnh giới bất túc không
+    assert.ok(replyPayload);
+    assert.ok(replyPayload.embeds[0].data.description.includes("Cảnh giới bất túc"));
+
+    // Kiểm tra trang bị vẫn ở trạng thái chưa mặc
+    const invCheck = await Inventory.findOne({
+      where: { idNguoiDung: tuSi.idNguoiDung, itemId: "test_trong_kiem" }
+    });
+    assert.strictEqual(invCheck.trangBi, false);
+
+    await tuSi.destroy();
+  });
+
 });
 

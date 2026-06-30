@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS items (
   do_hiem VARCHAR(20) NOT NULL,
   gia_co_so INT NOT NULL DEFAULT 0,
   chi_so_json TEXT NOT NULL,
+  yeu_cau_canh_gioi INT NOT NULL DEFAULT 1,
   mo_ta TEXT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -98,6 +99,7 @@ CREATE TABLE IF NOT EXISTS items (
   do_hiem VARCHAR(20) NOT NULL,
   gia_co_so INTEGER NOT NULL DEFAULT 0,
   chi_so_json TEXT NOT NULL,
+  yeu_cau_canh_gioi INTEGER NOT NULL DEFAULT 1,
   mo_ta TEXT
 );
 
@@ -167,22 +169,22 @@ CREATE TABLE IF NOT EXISTS adventure_events (
 -- ==========================================
 
 -- 3.1 Chèn dữ liệu mẫu vào bảng items (Vật phẩm mẫu)
-REPLACE INTO items (id, ten, loai, do_hiem, gia_co_so, chi_so_json, mo_ta) VALUES
-('kiem_go', 'Kiếm Gỗ 🪵', 'Vũ khí', 'Thường', 100, '{"vat_cong":10}', 'Thanh kiếm gỗ thô sơ cho tân thủ.'),
-('kiem_sat', 'Thiết Kiếm ⚔️', 'Vũ khí', 'Hiếm', 500, '{"vat_cong":30}', 'Kiếm sắt rèn đúc kỹ lưỡng, sắc bén sắc lạnh.'),
-('kiem_huyen_thiet', 'Huyền Thiết Trọng Kiếm 🗡️', 'Vũ khí', 'Cực hiếm', 2500, '{"vat_cong":100}', 'Trọng kiếm đúc bằng huyền thiết nặng ngàn cân, chém sắt như bùn.'),
-('truong_go', 'Mộc Trượng 🪵', 'Vũ khí', 'Thường', 100, '{"phap_cong":10}', 'Khúc gỗ dẫn linh khí thô sơ.'),
-('truong_truc', 'Trúc Trượng 🎋', 'Vũ khí', 'Hiếm', 500, '{"phap_cong":30}', 'Tương truyền làm bằng Linh Trúc ngàn năm, tương thích pháp lực rất tốt.'),
-('phap_bao_huyen_mon', 'Huyền Môn Ngọc Bội 🔮', 'Vũ khí', 'Cực hiếm', 2500, '{"phap_cong":100}', 'Linh bảo ngọc bội hộ thân của đệ tử Huyền Môn, hội tụ thiên địa linh khí.'),
-('ao_vai', 'Đạo Bào Vải 🥋', 'Giáp', 'Thường', 100, '{"vat_phong":5,"phap_phong":5,"hp":50}', 'Áo vải đệ tử mặc hàng ngày.'),
-('ao_da', 'Thú Bì Giáp 🛡️', 'Giáp', 'Hiếm', 500, '{"vat_phong":15,"phap_phong":15,"hp":150}', 'Giáp làm bằng da thú yêu cấp thấp, dẻo dai bảo vệ cơ thể.'),
-('giap_huyen_thiet', 'Huyền Thiết Linh Giáp 🥋', 'Giáp', 'Cực hiếm', 2500, '{"vat_phong":50,"phap_phong":50,"hp":500}', 'Giáp hộ thân đúc bằng huyền thiết pha lẫn linh thạch, phòng ngự cực cao.'),
-('dan_hp_1', 'Bổ Huyết Đan (Sơ) 💊', 'Đan dược', 'Thường', 50, '{"hp_hoi":100}', 'Phục hồi 100 điểm khí huyết (HP) bị tổn thương.'),
-('dan_hp_2', 'Bổ Huyết Đan (Trung) 🧪', 'Đan dược', 'Hiếm', 200, '{"hp_hoi":500}', 'Phục hồi 500 điểm khí huyết (HP) bị tổn thương.'),
-('dan_mp_1', 'Hồi Thần Đan (Sơ) 💧', 'Đan dược', 'Thường', 50, '{"mp_hoi":50}', 'Khôi phục 50 điểm linh lực pháp hải (MP).'),
-('dan_mp_2', 'Hồi Thần Đan (Trung) 🌊', 'Đan dược', 'Hiếm', 200, '{"mp_hoi":200}', 'Khôi phục 200 điểm linh lực pháp hải (MP).'),
-('linh_chi', 'U Minh Linh Chi 🍄', 'Linh thảo', 'Thường', 30, '{}', 'Linh thảo chứa ít linh khí mọc nơi ẩm ướt.'),
-('nhan_sam', 'Tuyết Sơn Nhân Sâm 🥕', 'Linh thảo', 'Hiếm', 120, '{}', 'Nhân sâm ngàn năm thu hoạch trên đỉnh núi tuyết hoang lạnh.');
+REPLACE INTO items (id, ten, loai, do_hiem, gia_co_so, chi_so_json, yeu_cau_canh_gioi, mo_ta) VALUES
+('kiem_go', 'Kiếm Gỗ 🪵', 'Vũ khí', 'Thường', 100, '{"vat_cong":10}', 1, 'Thanh kiếm gỗ thô sơ cho tân thủ.'),
+('kiem_sat', 'Thiết Kiếm ⚔️', 'Vũ khí', 'Hiếm', 500, '{"vat_cong":30}', 10, 'Kiếm sắt rèn đúc kỹ lưỡng, sắc bén sắc lạnh.'),
+('kiem_huyen_thiet', 'Huyền Thiết Trọng Kiếm 🗡️', 'Vũ khí', 'Cực hiếm', 2500, '{"vat_cong":100}', 19, 'Trọng kiếm đúc bằng huyền thiết nặng ngàn cân, chém sắc như bùn.'),
+('truong_go', 'Mộc Trượng 🪵', 'Vũ khí', 'Thường', 100, '{"phap_cong":10}', 1, 'Khúc gỗ dẫn linh khí thô sơ.'),
+('truong_truc', 'Trúc Trượng 🎋', 'Vũ khí', 'Hiếm', 500, '{"phap_cong":30}', 10, 'Tương truyền làm bằng Linh Trúc ngàn năm, tương thích pháp lực rất tốt.'),
+('phap_bao_huyen_mon', 'Huyền Môn Ngọc Bội 🔮', 'Vũ khí', 'Cực hiếm', 2500, '{"phap_cong":100}', 19, 'Linh bảo ngọc bội hộ thân của đệ tử Huyền Môn, hội tụ thiên địa linh khí.'),
+('ao_vai', 'Đạo Bào Vải 🥋', 'Giáp', 'Thường', 100, '{"vat_phong":5,"phap_phong":5,"hp":50}', 1, 'Áo vải đệ tử mặc hàng ngày.'),
+('ao_da', 'Thú Bì Giáp 🛡️', 'Giáp', 'Hiếm', 500, '{"vat_phong":15,"phap_phong":15,"hp":150}', 10, 'Giáp làm bằng da thú yêu cấp thấp, dẻo dai bảo vệ cơ thể.'),
+('giap_huyen_thiet', 'Huyền Thiết Linh Giáp 🥋', 'Giáp', 'Cực hiếm', 2500, '{"vat_phong":50,"phap_phong":50,"hp":500}', 19, 'Giáp hộ thân đúc bằng huyền thiết pha lẫn linh thạch, phòng ngự cực cao.'),
+('dan_hp_1', 'Bổ Huyết Đan (Sơ) 💊', 'Đan dược', 'Thường', 50, '{"hp_hoi":100}', 1, 'Phục hồi 100 điểm khí huyết (HP) bị tổn thương.'),
+('dan_hp_2', 'Bổ Huyết Đan (Trung) 🧪', 'Đan dược', 'Hiếm', 200, '{"hp_hoi":500}', 10, 'Phục hồi 500 điểm khí huyết (HP) bị tổn thương.'),
+('dan_mp_1', 'Hồi Thần Đan (Sơ) 💧', 'Đan dược', 'Thường', 50, '{"mp_hoi":50}', 1, 'Khôi phục 50 điểm linh lực pháp hải (MP).'),
+('dan_mp_2', 'Hồi Thần Đan (Trung) 🌊', 'Đan dược', 'Hiếm', 200, '{"mp_hoi":200}', 10, 'Khôi phục 200 điểm linh lực pháp hải (MP).'),
+('linh_chi', 'U Minh Linh Chi 🍄', 'Linh thảo', 'Thường', 30, '{}', 1, 'Linh thảo chứa ít linh khí mọc nơi ẩm ướt.'),
+('nhan_sam', 'Tuyết Sơn Nhân Sâm 🥕', 'Linh thảo', 'Hiếm', 120, '{}', 10, 'Nhân sâm ngàn năm thu hoạch trên đỉnh núi tuyết hoang lạnh.');
 
 -- 注: Đối với MySQL, bạn hãy thay đổi "REPLACE INTO" thành "REPLACE INTO" hoặc "INSERT INTO ... ON DUPLICATE KEY UPDATE".
 

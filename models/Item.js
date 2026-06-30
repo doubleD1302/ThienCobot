@@ -50,6 +50,12 @@ Item.init({
     type: DataTypes.TEXT,
     allowNull: true,
     field: 'mo_ta'
+  },
+  yeuCauCanhGioi: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1,
+    field: 'yeu_cau_canh_gioi'
   }
 }, {
   sequelize,
