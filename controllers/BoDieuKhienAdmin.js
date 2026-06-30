@@ -125,29 +125,50 @@ class BoDieuKhienAdmin {
         }
 
         if (mode === 'ADD') {
+          // ── Bước 1: Chọn kênh ────────────────────────────────────────────
+          if (!pendingChannelId) {
+            const embed = new EmbedBuilder()
+              .setTitle('➕ Thêm / Sửa Giới Hạn Lệnh')
+              .setColor(0x2ecc71)
+              .setDescription('**Bước 1 / 2** — Chọn kênh Discord muốn đặt giới hạn lệnh:')
+              .setTimestamp();
+
+            return {
+              embeds:     [embed],
+              components: [
+                tabRow,
+                new ActionRowBuilder().addComponents(
+                  new ChannelSelectMenuBuilder()
+                    .setCustomId('adm_channel_select')
+                    .setPlaceholder('📌 Chọn kênh Discord...')
+                    .setChannelTypes(ChannelType.GuildText)
+                )
+              ]
+            };
+          }
+
+          // ── Bước 2: Chọn lệnh (channel select ĐÃ ẨN để tránh reset) ──────
+          const selectedPreview = pendingCmds.length > 0
+            ? pendingCmds.map(c => `\`/${c}\``).join(', ')
+            : '*Chưa chọn lệnh nào*';
+
           const embed = new EmbedBuilder()
-            .setTitle('➕ Thêm / Sửa Giới Hạn Lệnh Cho Kênh')
+            .setTitle('➕ Thêm / Sửa Giới Hạn Lệnh')
             .setColor(0x2ecc71)
-            .setDescription(
-              pendingChannelId
-                ? `**Kênh được chọn**: <#${pendingChannelId}>\n\nBước 2: Chọn các lệnh được phép dùng trong kênh này, sau đó bấm **💾 Lưu**.`
-                : 'Bước 1: Chọn kênh muốn đặt giới hạn lệnh từ menu bên dưới.'
+            .addFields(
+              { name: '📌 Kênh được chọn',        value: `<#${pendingChannelId}>`,  inline: true },
+              { name: '✅ Lệnh đang được chọn',   value: selectedPreview,            inline: false },
             )
+            .setDescription('**Bước 2 / 2** — Chọn lệnh được phép trong kênh này, rồi bấm **💾 Lưu**.')
+            .setFooter({ text: 'Có thể chọn nhiều lệnh cùng lúc.' })
             .setTimestamp();
 
-          const channelSelectRow = new ActionRowBuilder().addComponents(
-            new ChannelSelectMenuBuilder()
-              .setCustomId('adm_channel_select')
-              .setPlaceholder('📌 Chọn kênh Discord...')
-              .setChannelTypes(ChannelType.GuildText)
-          );
-
-          const rows = [tabRow, channelSelectRow];
-
-          if (pendingChannelId) {
-            rows.push(buildCommandSelectMenu(pendingCmds));
-            rows.push(
-              new ActionRowBuilder().addComponents(
+          return {
+            embeds:     [embed],
+            components: [
+              tabRow,
+              buildCommandSelectMenu(pendingCmds),                           // Row 2: chọn lệnh
+              new ActionRowBuilder().addComponents(                          // Row 3: lưu / reset
                 new ButtonBuilder()
                   .setCustomId('adm_save')
                   .setLabel('💾 Lưu Thay Đổi')
@@ -155,13 +176,11 @@ class BoDieuKhienAdmin {
                   .setDisabled(pendingCmds.length === 0),
                 new ButtonBuilder()
                   .setCustomId('adm_reset_channel')
-                  .setLabel('↩️ Chọn Lại Kênh')
+                  .setLabel('📌 Đổi Kênh')
                   .setStyle(ButtonStyle.Secondary)
               )
-            );
-          }
-
-          return { embeds: [embed], components: rows };
+            ]
+          };
         }
 
         if (mode === 'DELETE') {
