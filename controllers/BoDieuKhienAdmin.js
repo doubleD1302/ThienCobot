@@ -12,24 +12,28 @@ import {
 
 import { ChannelRestriction } from '../models/ChannelRestriction.js';
 
-// Danh sách TẤT CẢ các lệnh của bot
-const TAT_CA_LENH = [
-  { name: 'start',     emoji: '🌟' },
-  { name: 'nv',        emoji: '👤' },
-  { name: 'tuluyen',   emoji: '🧘' },
-  { name: 'nghi',      emoji: '💤' },
-  { name: 'balo',      emoji: '🎒' },
-  { name: 'bc',        emoji: '🗻' },
-  { name: 'shop',      emoji: '🏪' },
-  { name: 'lichluyen', emoji: '📅' },
-  { name: 'dongphu',   emoji: '🏯' },
-  { name: 'bxh',       emoji: '🏆' },
-  { name: 'damdao',    emoji: '🎰' },
-  { name: 'tuongtac',  emoji: '🤝' },
-  { name: 'kynang',    emoji: '✨' },
-  { name: 'tdl',       emoji: '📜' },
-  { name: 'admin',     emoji: '🛡️' },
-];
+// Bản đồ emoji cho các lệnh phổ biến (tự động fallback nếu thêm lệnh mới)
+const EMOJI_MAP = {
+  start: '🌟',
+  nv: '👤',
+  tuluyen: '🧘',
+  nghi: '💤',
+  balo: '🎒',
+  bc: '🗻',
+  shop: '🏪',
+  lichluyen: '📅',
+  dongphu: '🏯',
+  bxh: '🏆',
+  damdao: '🎰',
+  tuongtac: '🤝',
+  skill: '✨',
+  thiendaoluc: '📜',
+  admin: '🛡️',
+  boss: '👹',
+  canhu: '🌱',
+  dotpha: '⚡',
+  tuvi: '☯️'
+};
 
 // ── Helper: embed danh sách kênh đang bị giới hạn ────────────────────────────
 async function buildListEmbed(guild) {
@@ -64,6 +68,16 @@ class BoDieuKhienAdmin {
     execute: async (interaction) => {
       await interaction.deferReply({ ephemeral: true });
 
+      // Lấy danh sách lệnh động trực tiếp từ Client của Discord
+      const clientCommands = Array.from(interaction.client.commands.values());
+      const tatCaLenh = clientCommands.map(cmd => {
+        const name = cmd.data.name;
+        return {
+          name,
+          emoji: EMOJI_MAP[name] || '⚙️'
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+
       let mode             = 'LIST'; // 'LIST' | 'ADD' | 'DELETE'
       let pendingChannelId   = null;
       let pendingChannelName = null;
@@ -76,7 +90,7 @@ class BoDieuKhienAdmin {
             .setLabel('📋 Danh Sách')
             .setStyle(mode === 'LIST' ? ButtonStyle.Primary : ButtonStyle.Secondary),
           new ButtonBuilder().setCustomId('adm_tab_add')
-            .setLabel('➕ Thêm / Sửa Kênh')
+             .setLabel('➕ Thêm / Sửa Kênh')
             .setStyle(mode === 'ADD' ? ButtonStyle.Success : ButtonStyle.Secondary),
           new ButtonBuilder().setCustomId('adm_tab_delete')
             .setLabel('🗑️ Xóa Kênh')
@@ -103,13 +117,13 @@ class BoDieuKhienAdmin {
           .setTimestamp();
       };
 
-      // ── Tạo các dòng nút toggle cho 15 lệnh (mỗi dòng 5 nút) ────────────────
+      // ── Tạo các dòng nút toggle động (mỗi dòng tối đa 5 nút) ────────────────
       const buildToggleButtons = () => {
         const rows = [];
         const chunkSize = 5;
         
-        for (let i = 0; i < TAT_CA_LENH.length; i += chunkSize) {
-          const chunk = TAT_CA_LENH.slice(i, i + chunkSize);
+        for (let i = 0; i < tatCaLenh.length; i += chunkSize) {
+          const chunk = tatCaLenh.slice(i, i + chunkSize);
           const row = new ActionRowBuilder();
           
           for (const cmd of chunk) {
