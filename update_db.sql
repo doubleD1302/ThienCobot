@@ -75,6 +75,15 @@ CREATE TABLE IF NOT EXISTS thien_dao_luc (
   loai VARCHAR(50) NOT NULL DEFAULT 'System',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.8 Tạo bảng Sự kiện cơ duyên lịch luyện (Adventure events)
+CREATE TABLE IF NOT EXISTS adventure_events (
+  id VARCHAR(50) PRIMARY KEY,
+  ten VARCHAR(100) NOT NULL,
+  mo_ta TEXT NOT NULL,
+  loai VARCHAR(30) NOT NULL,
+  hieu_ung_json TEXT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 */
 
 -- ==========================================
@@ -144,6 +153,15 @@ CREATE TABLE IF NOT EXISTS thien_dao_luc (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 2.8 Tạo bảng Sự kiện lịch luyện
+CREATE TABLE IF NOT EXISTS adventure_events (
+  id VARCHAR(50) PRIMARY KEY,
+  ten VARCHAR(100) NOT NULL,
+  mo_ta TEXT NOT NULL,
+  loai VARCHAR(30) NOT NULL,
+  hieu_ung_json TEXT NOT NULL
+);
+
 -- ==========================================
 -- 3. DỮ LIỆU MẪU (DÙNG ĐƯỢC CHO CẢ MYSQL VÀ SQLITE)
 -- ==========================================
@@ -182,6 +200,16 @@ REPLACE INTO dungeons (id, ten, cap_do_yeu_cau, canh_gioi_yeu_cau_text, quai_vat
 ('tan_thu_phu_ban', 'Tân Thủ Phụ Bản ⛰️', 1, 'Luyện Khí', '{"ten":"Thiết Bì Thử (Chuột Thép)","hp":150,"vatCong":15,"phapCong":0,"vatPhong":5,"phapPhong":5}', '{"expMin":30,"expMax":50,"stonesMin":10,"stonesMax":20}', '[{"itemId":"dan_hp_1","tile":0.50},{"itemId":"dan_mp_1","tile":0.50},{"itemId":"kiem_go","tile":0.15},{"itemId":"truong_go","tile":0.15},{"itemId":"ao_vai","tile":0.15}]'),
 ('u_minh_coc', 'U Minh Cốc 💀', 10, 'Trúc Cơ', '{"ten":"U Minh Ma Lang (Sói U Minh)","hp":650,"vatCong":55,"phapCong":0,"vatPhong":25,"phapPhong":25}', '{"expMin":150,"expMax":250,"stonesMin":50,"stonesMax":100}', '[{"itemId":"dan_hp_2","tile":0.50},{"itemId":"dan_mp_2","tile":0.50},{"itemId":"kiem_sat","tile":0.15},{"itemId":"truong_truc","tile":0.15},{"itemId":"ao_da","tile":0.15},{"itemId":"nhan_sam","tile":0.30}]'),
 ('hoa_diem_son', 'Hỏa Diệm Sơn 🔥', 19, 'Hóa Thần', '{"ten":"Hỏa Viêm Yêu Linh (Kỳ Lân Lửa)","hp":2800,"vatCong":120,"phapCong":150,"vatPhong":80,"phapPhong":100}', '{"expMin":800,"expMax":1200,"stonesMin":200,"stonesMax":400}', '[{"itemId":"dan_hp_2","tile":0.60},{"itemId":"dan_mp_2","tile":0.60},{"itemId":"kiem_huyen_thiet","tile":0.10},{"itemId":"phap_bao_huyen_mon","tile":0.10},{"itemId":"giap_huyen_thiet","tile":0.10}]');
+
+-- 3.5 Chèn dữ liệu mẫu vào bảng adventure_events (Sự kiện lịch luyện mẫu)
+REPLACE INTO adventure_events (id, ten, mo_ta, loai, hieu_ung_json) VALUES
+('linh_khi_trieu_tich', '⚡ Linh Khí Triều Tịch ⚡', 'Trong lúc leo lên đỉnh Ngọc Kinh Sơn, đạo hữu vô tình gặp một luồng linh khí trời đất bộc phát, cọ rửa kinh mạch, tu vi tiến triển nhanh chóng!', 'tot', '{"exp":{"min":40,"max":100}}'),
+('nhat_linh_thach', '🪙 Linh Thạch Thượng Cổ 🪙', 'Tại một lòng sông cạn dưới chân U Minh Cốc, đạo hữu vô tình phát hiện ra một số viên Linh Thạch thượng cổ bị chôn vùi dưới cát mịn.', 'tot', '{"stones":{"min":20,"max":70}}'),
+('dong_phu_tien_boi', '🏺 Động Phủ Tiền Bối 🏺', 'Đạo hữu vô tình bước qua kết giới, phát hiện một động phủ ẩn giấu của một vị tu sĩ cổ đại hóa trần. Trên bàn đá tĩnh tọa vẫn còn lưu lại di vật của người.', 'dai_co_duyen', '{"itemRandomEligible":true,"thienDaoLuc":true,"thienDaoLucMsg":"🏺 **Duyên Định Động Phủ**: Đạo hữu {name} trong lúc lịch luyện phát hiện động phủ cổ xưa của tiền bối, đạt được bảo vật {itemName}!"}'),
+('linh_thao_ki_ngo', '🌱 Kỳ Ngộ Linh Thảo 🌱', 'Bên vách núi dựng đứng cheo leo đầy sương mù, đạo hữu phát hiện một đóa linh chi quý chiêu tuyết đang hấp thụ tinh hoa nguyệt ảnh.', 'tot', '{"itemRandom":{"loai":"Linh thảo"}}'),
+('cao_nhan_truyen_cong', '🧙 Cao Nhân Chỉ Điểm 🧙', 'Đạo hữu gặp gỡ một lão giả râu tóc bạc phơ đang ngồi câu cá bên đầm lầy vô danh. Sau vài câu đàm đạo đạo lý thiên địa, lão giả vỗ vai truyền thụ linh lực rồi biến mất vào không hư.', 'dai_co_duyen', '{"exp":{"min":150,"max":250},"thienDaoLuc":true,"thienDaoLucMsg":"🧙 **Tiên Nhân Chỉ Lộ**: Đạo hữu {name} kỳ ngộ cao nhân đắc đạo chỉ điểm mê tân, tu vi tăng tiến thần tốc!"}'),
+('yeu_thu_phuc_kich', '🐾 Yêu Thú Phakov Kích 🐾', 'Đang đi trong rừng trúc sương mù, đạo hữu bất ngờ bị một con Trúc Điệp Yêu thú từ trên cao phóng xuống tấn công. Trận chiến diễn ra chóng vánh, đạo hữu tuy chạy thoát nhưng bị thương tích đầy mình.', 'xui_xeo', '{"hpPhat":0.15}'),
+('co_tran_phap', '🌀 Cổ Trận Pháp Vây Hãm 🌀', 'Đạo hữu vô tình giẫm phải trận pháp huyễn cảnh bị bỏ hoang từ thời thái cổ. Trận pháp điên cuồng hút lấy linh lực của đạo hữu trước khi tự động sụp đổ giải giới.', 'xui_xeo', '{"mpPhat":0.20}');
 
 -- 3.3 Chèn dữ liệu balo và kỹ năng mẫu cho một người chơi cụ thể (Ví dụ: ID người dùng '1234567890' - nếu tồn tại trong players)
 -- INSERT OR IGNORE INTO inventory (user_id, item_id, so_luong, trang_bi, nang_cap_sao) VALUES 

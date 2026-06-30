@@ -318,3 +318,58 @@ export const DUNGEONS = [
     ]
   }
 ];
+
+// ==========================================
+// CẤU HÌNH SỰ KIỆN LỊCH LUYỆN (ADVENTURE EVENTS)
+// ==========================================
+export const ADVENTURE_EVENTS = [
+  {
+    id: 'linh_khi_trieu_tich',
+    ten: '⚡ Linh Khí Triều Tịch ⚡',
+    moTa: 'Trong lúc leo lên đỉnh Ngọc Kinh Sơn, đạo hữu vô tình gặp một luồng linh khí trời đất bộc phát, cọ rửa kinh mạch, tu vi tiến triển nhanh chóng!',
+    loai: 'tot',
+    hieuUngJson: '{"exp":{"min":40,"max":100}}'
+  },
+  {
+    id: 'nhat_linh_thach',
+    ten: '🪙 Linh Thạch Thượng Cổ 🪙',
+    moTa: 'Tại một lòng sông cạn dưới chân U Minh Cốc, đạo hữu vô tình phát hiện ra một số viên Linh Thạch thượng cổ bị chôn vùi dưới cát mịn.',
+    loai: 'tot',
+    hieuUngJson: '{"stones":{"min":20,"max":70}}'
+  },
+  {
+    id: 'dong_phu_tien_boi',
+    ten: '🏺 Động Phủ Tiền Bối 🏺',
+    moTa: 'Đạo hữu vô tình bước qua kết giới, phát hiện một động phủ ẩn giấu của một vị tu sĩ cổ đại hóa trần. Trên bàn đá tĩnh tọa vẫn còn lưu lại di vật của người.',
+    loai: 'dai_co_duyen',
+    hieuUngJson: '{"itemRandomEligible":true,"thienDaoLuc":true,"thienDaoLucMsg":"🏺 **Duyên Định Động Phủ**: Đạo hữu {name} trong lúc lịch luyện phát hiện động phủ cổ xưa của tiền bối, đạt được bảo vật {itemName}!"}'
+  },
+  {
+    id: 'linh_thao_ki_ngo',
+    ten: '🌱 Kỳ Ngộ Linh Thảo 🌱',
+    moTa: 'Bên vách núi dựng đứng cheo leo đầy sương mù, đạo hữu phát hiện một đóa linh chi quý chiêu tuyết đang hấp thụ tinh hoa nguyệt ảnh.',
+    loai: 'tot',
+    hieuUngJson: '{"itemRandom":{"loai":"Linh thảo"}}'
+  },
+  {
+    id: 'cao_nhan_truyen_cong',
+    ten: '🧙 Cao Nhân Chỉ Điểm 🧙',
+    moTa: 'Đạo hữu gặp gỡ một lão giả râu tóc bạc phơ đang ngồi câu cá bên đầm lầy vô danh. Sau vài câu đàm đạo đạo lý thiên địa, lão giả vỗ vai truyền thụ linh lực rồi biến mất vào không hư.',
+    loai: 'dai_co_duyen',
+    hieuUngJson: '{"exp":{"min":150,"max":250},"thienDaoLuc":true,"thienDaoLucMsg":"🧙 **Tiên Nhân Chỉ Lộ**: Đạo hữu {name} kỳ ngộ cao nhân đắc đạo chỉ điểm mê tân, tu vi tăng tiến thần tốc!"}'
+  },
+  {
+    id: 'yeu_thu_phuc_kich',
+    ten: '🐾 Yêu Thú Phục Kích 🐾',
+    moTa: 'Đang đi trong rừng trúc sương mù, đạo hữu bất ngờ bị một con Trúc Điệp Yêu thú từ trên cao phóng xuống tấn công. Trận chiến diễn ra chóng vánh, đạo hữu tuy chạy thoát nhưng bị thương tích đầy mình.',
+    loai: 'xui_xeo',
+    hieuUngJson: '{"hpPhat":0.15}'
+  },
+  {
+    id: 'co_tran_phap',
+    ten: '🌀 Cổ Trận Pháp Vây Hãm 🌀',
+    moTa: 'Đạo hữu vô tình giẫm phải trận pháp huyễn cảnh bị bỏ hoang từ thời thái cổ. Trận pháp điên cuồng hút lấy linh lực của đạo hữu trước khi tự động sụp đổ giải giới.',
+    loai: 'xui_xeo',
+    hieuUngJson: '{"mpPhat":0.20}'
+  }
+];

@@ -16,6 +16,7 @@ import './models/Skill.js';
 import './models/PlayerSkill.js';
 import './models/Dungeon.js';
 import './models/ThienDaoLuc.js';
+import './models/AdventureEvent.js';
 
 // Khởi tạo Discord Client với các Intents cần thiết
 const client = new Client({
@@ -319,6 +320,23 @@ async function start() {
         }));
         await Dungeon.bulkCreate(seedDungeons);
         console.log(`Đã tạo thành công ${seedDungeons.length} bí cảnh phụ bản mẫu.`);
+      }
+
+      // Khởi tạo dữ liệu mẫu cho bảng adventure_events
+      const { AdventureEvent } = await import('./models/AdventureEvent.js');
+      const adventureEventsCount = await AdventureEvent.count();
+      if (adventureEventsCount === 0) {
+        console.log('Khởi tạo dữ liệu mẫu cho bảng adventure_events...');
+        const config = await import('./config.js');
+        const seedAdventureEvents = config.ADVENTURE_EVENTS.map(evt => ({
+          id: evt.id,
+          ten: evt.ten,
+          moTa: evt.moTa,
+          loai: evt.loai,
+          hieuUngJson: evt.hieuUngJson
+        }));
+        await AdventureEvent.bulkCreate(seedAdventureEvents);
+        console.log(`Đã tạo thành công ${seedAdventureEvents.length} sự kiện cơ duyên mẫu.`);
       }
     } catch (err) {
       console.error('Không thể tự động sửa đổi schema hoặc dọn dẹp bản ghi rác/seeding:', err);

@@ -14,6 +14,7 @@ const { Inventory } = await import('./models/Inventory.js');
 const { Skill } = await import('./models/Skill.js');
 const { PlayerSkill } = await import('./models/PlayerSkill.js');
 const { ThienDaoLuc } = await import('./models/ThienDaoLuc.js');
+const { AdventureEvent } = await import('./models/AdventureEvent.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -425,6 +426,14 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     });
     tuSi.linhCanList = ["Hoa"];
     await tuSi.save();
+
+    await AdventureEvent.create({
+      id: "test_linh_khi",
+      ten: "⚡ Linh Khí Triều Tịch ⚡",
+      moTa: "Trong lúc leo núi, đạo hữu vô tình gặp một luồng linh khí trời đất bộc phát...",
+      loai: "tot",
+      hieuUngJson: JSON.stringify({ exp: { min: 40, max: 100 } })
+    });
 
     let replyPayload = null;
     const interactionMock = {
