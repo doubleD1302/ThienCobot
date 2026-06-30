@@ -508,32 +508,34 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         // ══════════════════════════════════════════════════════════════
         else if (step === 'NGU_HANH') {
           const elementsMap = {
-            'nh_kim':  { name: '⚪ Kim', color: 0xdcdde1 },
-            'nh_moc':  { name: '🟢 Mộc', color: 0x2ecc71 },
+            'nh_kim':  { name: '⚪ Kim',  color: 0xdcdde1 },
+            'nh_moc':  { name: '🟢 Mộc',  color: 0x2ecc71 },
             'nh_thuy': { name: '🔵 Thủy', color: 0x3498db },
-            'nh_hoa':  { name: '🔴 Hỏa', color: 0xe74c3c },
-            'nh_tho':  { name: '🟡 Thổ', color: 0xf1c40f }
+            'nh_hoa':  { name: '🔴 Hỏa',  color: 0xe74c3c },
+            'nh_tho':  { name: '🟡 Thổ',  color: 0xf1c40f }
           };
 
+          // ── Guard: bỏ qua nếu customId không phải nút Ngũ Hành ────────────
           const playerChoice = elementsMap[i.customId];
-          const choicesList = Object.values(elementsMap);
-          
-          // Lăn thiên mệnh ngũ hành ngẫu nhiên
-          const rollChoice = choicesList[Math.floor(Math.random() * choicesList.length)];
-          const isWin = playerChoice.name === rollChoice.name;
+          if (!playerChoice) return; // Tránh crash khi click button lạ
 
-          // Thắng nhận gấp 4 lần cược (tức thực nhận thêm bet * 3), thua trừ bet
+          const choicesList = Object.values(elementsMap);
+          const rollChoice  = choicesList[Math.floor(Math.random() * choicesList.length)];
+          const isWin       = playerChoice.name === rollChoice.name;
+
+          // Thắng nhận gấp 4 lần cược, thua trừ bet
           let gainedExp = 0;
+          const MAX_STONES = 2_000_000_000; // Giới hạn an toàn dưới MySQL INT max
           if (isWin) {
             const reward = bet * 3;
             gainedExp = Math.floor(bet / 1000) * 2;
-            tuSi.linhThach += reward;
-            tuSi.linhLuc += gainedExp;
+            tuSi.linhThach = Math.min(MAX_STONES, tuSi.linhThach + reward);
+            tuSi.linhLuc  += gainedExp;
             await tuSi.save();
           } else {
             gainedExp = Math.floor(bet / 1000);
-            tuSi.linhThach -= bet;
-            tuSi.linhLuc += gainedExp;
+            tuSi.linhThach = Math.max(0, tuSi.linhThach - bet);
+            tuSi.linhLuc  += gainedExp;
             await tuSi.save();
           }
 
@@ -546,7 +548,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               (isWin
                 ? `🚀 Ngũ hành tương sinh! Dự đoán thần sầu giúp đạo hữu đại thắng nhận \`+${(bet * 3).toLocaleString()}\` 🪙 Linh thạch (Nhân 4 tổng cược).`
                 : `💔 Khí thế tương khắc! Ngũ hành nghịch chuyển khiến đạo hữu tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`) +
-              `\n\n⚡ **Tu vi nhận được**: \`+${gainedExp.toLocaleString()}\` Linh Lực (Cứ 1k cược nhận 1 EXP, thắng nhận x2).\n` +
+              `\n\n⚡ **Tu vi nhận được**: \`+${gainedExp.toLocaleString()}\` Linh Lực.\n` +
               `🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
             )
             .setTimestamp();
