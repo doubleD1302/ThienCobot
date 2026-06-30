@@ -14,6 +14,7 @@ import { danhSachLenhDongPhu } from './controllers/BoDieuKhienDongPhu.js';
 import { danhSachLenhDamDao } from './controllers/BoDieuKhienDamDao.js';
 import { danhSachLenhTuongTac } from './controllers/BoDieuKhienTuongTac.js';
 import { danhSachLenhAdmin } from './controllers/BoDieuKhienAdmin.js';
+import { danhSachLenhBoss, boDieuKhienBoss } from './controllers/BoDieuKhienBoss.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/Item.js';
@@ -29,6 +30,7 @@ import './models/Abode.js';
 import './models/GardenPlot.js';
 import './models/Pet.js';
 import './models/ChannelRestriction.js';
+import './models/WorldBoss.js';
 
 // Khởi tạo Discord Client với các Intents cần thiết
 const client = new Client({
@@ -55,7 +57,8 @@ const tatCaLenh = [
   ...danhSachLenhDongPhu,
   ...danhSachLenhDamDao,
   ...danhSachLenhTuongTac,
-  ...danhSachLenhAdmin
+  ...danhSachLenhAdmin,
+  ...danhSachLenhBoss
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
@@ -82,6 +85,9 @@ client.once('ready', async () => {
       type: ActivityType.Playing
     }]
   });
+
+  // Khởi động tiến trình quản lý Cự Thú
+  boDieuKhienBoss.khoiThaoBossSchedule(client);
 });
 
 // Lắng nghe khi bot được thêm vào máy chủ mới để khởi tạo Đạo Niên
@@ -116,6 +122,16 @@ function isDbConnectionError(error) {
 
 // Lắng nghe các tương tác lệnh (Slash Commands)
 client.on('interactionCreate', async interaction => {
+  // Xử lý các nút bấm tương tác Cự Thú thế giới
+  if (interaction.isButton() && interaction.customId.startsWith('boss_')) {
+    try {
+      await boDieuKhienBoss.handleInteraction(interaction);
+    } catch (err) {
+      console.error('Lỗi khi xử lý tương tác nút Boss:', err);
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const lenh = client.commands.get(interaction.commandName);
