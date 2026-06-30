@@ -185,3 +185,136 @@ function selectRandom(array, num) {
   const shuffled = [...array].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, num);
 }
+
+// ==========================================
+// THÔNG TIN VẬT PHẨM MẪU (ITEMS)
+// ==========================================
+export const ITEMS = [
+  // Vũ khí Thể Tu
+  { id: 'kiem_go', ten: 'Kiếm Gỗ 🪵', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{"vat_cong":10}', moTa: 'Thanh kiếm gỗ thô sơ cho tân thủ.' },
+  { id: 'kiem_sat', ten: 'Thiết Kiếm ⚔️', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{"vat_cong":30}', moTa: 'Kiếm sắt rèn đúc kỹ lưỡng, sắc bén sắc lạnh.' },
+  { id: 'kiem_huyen_thiet', ten: 'Huyền Thiết Trọng Kiếm 🗡️', loai: 'Vũ khí', doHiem: 'Cực hiếm', giaCoSo: 2500, chiSoJson: '{"vat_cong":100}', moTa: 'Trọng kiếm đúc bằng huyền thiết nặng ngàn cân, chém sắt như bùn.' },
+  
+  // Vũ khí Pháp Tu
+  { id: 'truong_go', ten: 'Mộc Trượng 🪵', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{"phap_cong":10}', moTa: 'Khúc gỗ dẫn linh khí thô sơ.' },
+  { id: 'truong_truc', ten: 'Trúc Trượng 🎋', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{"phap_cong":30}', moTa: 'Tương truyền làm bằng Linh Trúc ngàn năm, tương thích pháp lực rất tốt.' },
+  { id: 'phap_bao_huyen_mon', ten: 'Huyền Môn Ngọc Bội 🔮', loai: 'Vũ khí', doHiem: 'Cực hiếm', giaCoSo: 2500, chiSoJson: '{"phap_cong":100}', moTa: 'Linh bảo ngọc bội hộ thân của đệ tử Huyền Môn, hội tụ thiên địa linh khí.' },
+
+  // Giáp (Dùng chung)
+  { id: 'ao_vai', ten: 'Đạo Bào Vải 🥋', loai: 'Giáp', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{"vat_phong":5,"phap_phong":5,"hp":50}', moTa: 'Áo vải đệ tử mặc hàng ngày.' },
+  { id: 'ao_da', ten: 'Thú Bì Giáp 🛡️', loai: 'Giáp', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{"vat_phong":15,"phap_phong":15,"hp":150}', moTa: 'Giáp làm bằng da thú yêu cấp thấp, dẻo dai bảo vệ cơ thể.' },
+  { id: 'giap_huyen_thiet', ten: 'Huyền Thiết Linh Giáp 🥋', loai: 'Giáp', doHiem: 'Cực hiếm', giaCoSo: 2500, chiSoJson: '{"vat_phong":50,"phap_phong":50,"hp":500}', moTa: 'Giáp hộ thân đúc bằng huyền thiết pha lẫn linh thạch, phòng ngự cực cao.' },
+
+  // Đan dược
+  { id: 'dan_hp_1', ten: 'Bổ Huyết Đan (Sơ) 💊', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{"hp_hoi":100}', moTa: 'Phục hồi 100 điểm khí huyết (HP) bị tổn thương.' },
+  { id: 'dan_hp_2', ten: 'Bổ Huyết Đan (Trung) 🧪', loai: 'Đan dược', doHiem: 'Hiếm', giaCoSo: 200, chiSoJson: '{"hp_hoi":500}', moTa: 'Phục hồi 500 điểm khí huyết (HP) bị tổn thương.' },
+  { id: 'dan_mp_1', ten: 'Hồi Thần Đan (Sơ) 💧', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{"mp_hoi":50}', moTa: 'Khôi phục 50 điểm linh lực pháp hải (MP).' },
+  { id: 'dan_mp_2', ten: 'Hồi Thần Đan (Trung) 🌊', loai: 'Đan dược', doHiem: 'Hiếm', giaCoSo: 200, chiSoJson: '{"mp_hoi":200}', moTa: 'Khôi phục 200 điểm linh lực pháp hải (MP).' },
+
+  // Linh thảo & Vật liệu
+  { id: 'linh_chi', ten: 'U Minh Linh Chi 🍄', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 30, chiSoJson: '{}', moTa: 'Linh thảo chứa ít linh khí mọc nơi ẩm ướt.' },
+  { id: 'nhan_sam', ten: 'Tuyết Sơn Nhân Sâm 🥕', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 120, chiSoJson: '{}', moTa: 'Nhân sâm ngàn năm thu hoạch trên đỉnh núi tuyết hoang lạnh.' }
+];
+
+// ==========================================
+// THÔNG TIN KỸ NĂNG MẪU (SKILLS)
+// ==========================================
+export const SKILLS = [
+  // Kỹ năng phái Thể Tu (Vật lý)
+  { id: 'thanh_phong_quyen', ten: 'Thanh Phong Quyền 👊', loai: 'Vật lý', satThuong: 120, cooldown: 6, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Đấm ra một quyền tựa gió mát lướt qua, sát thương bằng 120% Vật công.' },
+  { id: 'ba_vuong_kich', ten: 'Bá Vương Kích 🔱', loai: 'Vật lý', satThuong: 150, cooldown: 12, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Kích ra mạnh mẽ như Bá Vương xuất thế, sát thương bằng 150% Vật công.' },
+  { id: 'ham_thien_chuong', ten: 'Hám Thiên Chưởng 💥', loai: 'Vật lý', satThuong: 200, cooldown: 18, yeuCauCanhGioi: 19, congPhapId: null, moTa: 'Tụ lực giáng chưởng chấn động thiên địa, sát thương bằng 200% Vật công.' },
+
+  // Kỹ năng phái Pháp Tu (Phép thuật)
+  { id: 'hoa_diem_thuat', ten: 'Hỏa Diễm Thuật 🔥', loai: 'Phép thuật', satThuong: 120, cooldown: 6, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Triệu hồi quả cầu lửa thiêu đốt đối thủ, sát thương bằng 120% Pháp công.' },
+  { id: 'ngu_loi_thuat', ten: 'Ngự Lôi Thuật ⚡', loai: 'Phép thuật', satThuong: 150, cooldown: 12, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Dẫn lôi đình giáng xuống đầu kẻ thù, sát thương bằng 150% Pháp công.' },
+  { id: 'bang_vu_thuat', ten: 'Băng Vũ Thuật ❄️', loai: 'Phép thuật', satThuong: 200, cooldown: 18, yeuCauCanhGioi: 19, congPhapId: null, moTa: 'Tạo cơn mưa băng buốt lạnh tàn phá kinh mạch, sát thương bằng 200% Pháp công.' }
+];
+
+// ==========================================
+// CẤU HÌNH BÍ CẢNH (DUNGEONS)
+// ==========================================
+export const DUNGEONS = [
+  {
+    id: 'tan_thu_phu_ban',
+    ten: 'Tân Thủ Phụ Bản ⛰️',
+    capDoYeuCau: 1,
+    canhGioiYeuCauText: 'Luyện Khí',
+    quaiVat: {
+      ten: 'Thiết Bì Thử (Chuột Thép)',
+      hp: 150,
+      vatCong: 15,
+      phapCong: 0,
+      vatPhong: 5,
+      phapPhong: 5
+    },
+    thuong: {
+      expMin: 30,
+      expMax: 50,
+      stonesMin: 10,
+      stonesMax: 20
+    },
+    drops: [
+      { itemId: 'dan_hp_1', tile: 0.50 },
+      { itemId: 'dan_mp_1', tile: 0.50 },
+      { itemId: 'kiem_go', tile: 0.15 },
+      { itemId: 'truong_go', tile: 0.15 },
+      { itemId: 'ao_vai', tile: 0.15 }
+    ]
+  },
+  {
+    id: 'u_minh_coc',
+    ten: 'U Minh Cốc 💀',
+    capDoYeuCau: 10,
+    canhGioiYeuCauText: 'Trúc Cơ',
+    quaiVat: {
+      ten: 'U Minh Ma Lang (Sói U Minh)',
+      hp: 650,
+      vatCong: 55,
+      phapCong: 0,
+      vatPhong: 25,
+      phapPhong: 25
+    },
+    thuong: {
+      expMin: 150,
+      expMax: 250,
+      stonesMin: 50,
+      stonesMax: 100
+    },
+    drops: [
+      { itemId: 'dan_hp_2', tile: 0.50 },
+      { itemId: 'dan_mp_2', tile: 0.50 },
+      { itemId: 'kiem_sat', tile: 0.15 },
+      { itemId: 'truong_sat', tile: 0, replaceId: 'truong_truc', tile: 0.15 }, // replaceId for fallback
+      { itemId: 'ao_da', tile: 0.15 },
+      { itemId: 'nhan_sam', tile: 0.30 }
+    ]
+  },
+  {
+    id: 'hoa_diem_son',
+    ten: 'Hỏa Diệm Sơn 🔥',
+    capDoYeuCau: 19,
+    canhGioiYeuCauText: 'Hóa Thần',
+    quaiVat: {
+      ten: 'Hỏa Viêm Yêu Linh (Kỳ Lân Lửa)',
+      hp: 2800,
+      vatCong: 120,
+      phapCong: 150,
+      vatPhong: 80,
+      phapPhong: 100
+    },
+    thuong: {
+      expMin: 800,
+      expMax: 1200,
+      stonesMin: 200,
+      stonesMax: 400
+    },
+    drops: [
+      { itemId: 'dan_hp_2', tile: 0.60 },
+      { itemId: 'dan_mp_2', tile: 0.60 },
+      { itemId: 'kiem_huyen_thiet', tile: 0.10 },
+      { itemId: 'phap_bao_huyen_mon', tile: 0.10 },
+      { itemId: 'giap_huyen_thiet', tile: 0.10 }
+    ]
+  }
+];

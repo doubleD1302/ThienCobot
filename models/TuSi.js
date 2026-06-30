@@ -15,7 +15,7 @@ class TuSi extends Model {
     this.danhSachLinhCanJson = JSON.stringify(value || []);
   }
 
-  layChiSo() {
+  layChiSo(equippedItems = []) {
     const huongTu = this.huongTu || 'Phap Tu';
     const pathConfig = config.HUONG_DI[huongTu] || config.HUONG_DI['Phap Tu'];
     const baseStats = pathConfig.base_stats;
@@ -36,7 +36,30 @@ class TuSi extends Model {
     let critRate = baseStats.crit_rate + growth.crit_rate * lvlDiff;
     let critDmg = baseStats.crit_dmg + growth.crit_dmg * lvlDiff;
 
-    // 2. Cộng hệ số linh căn
+    // 2. Cộng chỉ số từ trang bị đang mặc
+    for (const item of equippedItems) {
+      let stats = {};
+      if (item && item.chiSoJson) {
+        try {
+          stats = JSON.parse(item.chiSoJson);
+        } catch (e) {}
+      } else if (item && item.chiSo) {
+        stats = item.chiSo;
+      }
+      
+      if (stats.hp) maxHp += stats.hp;
+      if (stats.mp) maxMp += stats.mp;
+      if (stats.vat_cong) vatCong += stats.vat_cong;
+      if (stats.phap_cong) phapCong += stats.phap_cong;
+      if (stats.vat_phong) vatPhong += stats.vat_phong;
+      if (stats.phap_phong) phapPhong += stats.phap_phong;
+      if (stats.giap) giap += stats.giap;
+      if (stats.xuyen_giap) xuyenGiap += stats.xuyen_giap;
+      if (stats.crit_rate) critRate += stats.crit_rate;
+      if (stats.crit_dmg) critDmg += stats.crit_dmg;
+    }
+
+    // 3. Cộng hệ số linh căn
     const elements = this.linhCanList;
 
     if (elements.includes('Loi')) {

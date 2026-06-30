@@ -3,6 +3,15 @@ import { sequelize } from './database.js';
 import { DISCORD_TOKEN } from './config.js';
 import { danhSachLenhTuSi } from './controllers/BoDieuKhienTuSi.js';
 import { danhSachLenhTuLuyen } from './controllers/BoDieuKhienTuLuyen.js';
+import { danhSachLenhBicanh } from './controllers/BoDieuKhienBicanh.js';
+import { danhSachLenhVatPham } from './controllers/BoDieuKhienVatPham.js';
+import { danhSachLenhKyNang } from './controllers/BoDieuKhienKyNang.js';
+
+// Đăng ký các model mới để sequelize đồng bộ
+import './models/Item.js';
+import './models/Inventory.js';
+import './models/Skill.js';
+import './models/PlayerSkill.js';
 
 // Khởi tạo Discord Client với các Intents cần thiết
 const client = new Client({
@@ -16,7 +25,13 @@ const client = new Client({
 // Thiết lập danh sách lệnh
 client.commands = new Collection();
 
-const tatCaLenh = [...danhSachLenhTuSi, ...danhSachLenhTuLuyen];
+const tatCaLenh = [
+  ...danhSachLenhTuSi,
+  ...danhSachLenhTuLuyen,
+  ...danhSachLenhBicanh,
+  ...danhSachLenhVatPham,
+  ...danhSachLenhKyNang
+];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
 }
@@ -240,6 +255,45 @@ async function start() {
         }
         await CanhGioi.bulkCreate(seedData);
         console.log('Đã tạo thành công dữ liệu cảnh giới cho 31 cấp độ.');
+      }
+
+      // Khởi tạo dữ liệu mẫu cho bảng items
+      const { Item } = await import('./models/Item.js');
+      const itemsCount = await Item.count();
+      if (itemsCount === 0) {
+        console.log('Khởi tạo dữ liệu mẫu cho bảng items...');
+        const config = await import('./config.js');
+        const seedItems = config.ITEMS.map(item => ({
+          id: item.id,
+          ten: item.ten,
+          loai: item.loai,
+          doHiem: item.doHiem,
+          giaCoSo: item.giaCoSo,
+          chiSoJson: item.chiSoJson,
+          moTa: item.moTa
+        }));
+        await Item.bulkCreate(seedItems);
+        console.log(`Đã tạo thành công ${seedItems.length} vật phẩm mẫu.`);
+      }
+
+      // Khởi tạo dữ liệu mẫu cho bảng skills
+      const { Skill } = await import('./models/Skill.js');
+      const skillsCount = await Skill.count();
+      if (skillsCount === 0) {
+        console.log('Khởi tạo dữ liệu mẫu cho bảng skills...');
+        const config = await import('./config.js');
+        const seedSkills = config.SKILLS.map(sk => ({
+          id: sk.id,
+          ten: sk.ten,
+          loai: sk.loai,
+          satThuong: sk.satThuong,
+          cooldown: sk.cooldown,
+          yeuCauCanhGioi: sk.yeuCauCanhGioi,
+          congPhapId: sk.congPhapId,
+          moTa: sk.moTa
+        }));
+        await Skill.bulkCreate(seedSkills);
+        console.log(`Đã tạo thành công ${seedSkills.length} kỹ năng mẫu.`);
       }
     } catch (err) {
       console.error('Không thể tự động sửa đổi schema hoặc dọn dẹp bản ghi rác/seeding:', err);

@@ -9,6 +9,10 @@ const { TuSi } = await import('./models/TuSi.js');
 const { CauHinhGuild } = await import('./models/CauHinhGuild.js');
 const { CanhGioi } = await import('./models/CanhGioi.js');
 const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+const { Item } = await import('./models/Item.js');
+const { Inventory } = await import('./models/Inventory.js');
+const { Skill } = await import('./models/Skill.js');
+const { PlayerSkill } = await import('./models/PlayerSkill.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -266,6 +270,139 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Thời gian update mới phải dịch chuyển đúng 1 phút
     const expectedTime = ninetySecondsAgo.getTime() + 60 * 1000;
     assert.strictEqual(new Date(tuSi.lastUpdateTuVi).getTime(), expectedTime);
+
+    await tuSi.destroy();
+  });
+
+  test('layChiSo with equipped items increases stats', async () => {
+    const { Item } = await import('./models/Item.js');
+    
+    const tuSi = await TuSi.create({
+      idNguoiDung: "7777777777777777",
+      ten: "Lục Cảnh",
+      gioiTinh: "Nam",
+      huongTu: "The Tu",
+      linhCan: "Kim Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 0
+    });
+    tuSi.linhCanList = ["Kim"];
+    await tuSi.save();
+
+    const kiemGo = Item.build({
+      id: "test_kiem_go",
+      ten: "Kiếm Gỗ Cổ",
+      loai: "Vũ khí",
+      doHiem: "Thường",
+      giaCoSo: 100
+    });
+    kiemGo.chiSo = { vat_cong: 15 };
+
+    const giapDa = Item.build({
+      id: "test_giap_da",
+      ten: "Giáp Da Rách",
+      loai: "Giáp",
+      doHiem: "Thường",
+      giaCoSo: 100
+    });
+    giapDa.chiSo = { vat_phong: 10, hp: 50 };
+
+    const statsRaw = tuSi.layChiSo([]);
+    const statsEquipped = tuSi.layChiSo([kiemGo, giapDa]);
+
+    // Thể Tu: Kim Linh Căn nhân x1.2 Công vật lý
+    const expectedBaseAtk = 25; // level 1 base_stats.vat_cong
+    const expectedAtkWithItem = Math.floor((expectedBaseAtk + 15) * 1.2);
+    
+    assert.strictEqual(statsEquipped.vat_cong, expectedAtkWithItem);
+    assert.strictEqual(statsEquipped.vat_phong, statsRaw.vat_phong + 10);
+    assert.strictEqual(statsEquipped.max_hp, statsRaw.max_hp + 50);
+
+    await tuSi.destroy();
+  });
+
+  test('Skill learning logic and cảnh giới restriction', async () => {
+    const { Skill } = await import('./models/Skill.js');
+    const { PlayerSkill } = await import('./models/PlayerSkill.js');
+    const { boDieuKhienKyNang } = await import('./controllers/BoDieuKhienKyNang.js');
+    
+    const tuSi = await TuSi.create({
+      idNguoiDung: "8888888888888888",
+      ten: "Lục Cảnh Đệ Tử",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 0
+    });
+    tuSi.linhCanList = ["Hoa"];
+    await tuSi.save();
+
+    // Seed test skills
+    await Skill.findOrCreate({
+      where: { id: "test_hoa_diem" },
+      defaults: {
+        ten: "Hỏa Diễm Thử Nghiệm",
+        loai: "Phép thuật",
+        satThuong: 120,
+        cooldown: 6,
+        yeuCauCanhGioi: 1
+      }
+    });
+
+    await Skill.findOrCreate({
+      where: { id: "test_ngu_loi" },
+      defaults: {
+        ten: "Ngự Lôi Thử Nghiệm",
+        loai: "Phép thuật",
+        satThuong: 150,
+        cooldown: 12,
+        yeuCauCanhGioi: 10
+      }
+    });
+
+    // Giả lập lệnh gọi của Discord để học skill cấp 1 (Hợp lệ)
+    let replyEmbeds = [];
+    const interactionMock1 = {
+      user: { id: "8888888888888888" },
+      options: {
+        getSubcommand: () => 'hoc',
+        getString: () => 'test_hoa_diem'
+      },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        replyEmbeds = payload.embeds;
+      }
+    };
+
+    await boDieuKhienKyNang.lenhKyNang.execute(interactionMock1);
+
+    const checkPsk = await PlayerSkill.findOne({
+      where: { idNguoiDung: tuSi.idNguoiDung, skillId: "test_hoa_diem" }
+    });
+    assert.ok(checkPsk);
+    assert.strictEqual(checkPsk.capDo, 1);
+
+    // Thử học skill cấp 10 (Trúc Cơ) trong khi tu sĩ mới level 1 (Luyện Khí) -> Phải thất bại
+    const interactionMock2 = {
+      user: { id: "8888888888888888" },
+      options: {
+        getSubcommand: () => 'hoc',
+        getString: () => 'test_ngu_loi'
+      },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        replyEmbeds = payload.embeds;
+      }
+    };
+
+    await boDieuKhienKyNang.lenhKyNang.execute(interactionMock2);
+    const checkPsk2 = await PlayerSkill.findOne({
+      where: { idNguoiDung: tuSi.idNguoiDung, skillId: "test_ngu_loi" }
+    });
+    assert.strictEqual(checkPsk2, null); // Phải null vì level bất túc
 
     await tuSi.destroy();
   });

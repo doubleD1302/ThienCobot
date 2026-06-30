@@ -273,5 +273,154 @@ export class BoTaoEmbed {
       .setTimestamp()
       .setFooter({ text: "Thiên Thiên Cáo Thị • Vui lòng thử lại sau" });
   }
+
+  static balo(tuSi, itemsList = []) {
+    const embed = new EmbedBuilder()
+      .setTitle(`🎒 Túi Trữ Vật: ${tuSi.ten}`)
+      .setDescription(`Số dư Linh thạch hiện tại: \`${tuSi.linhThach}\` 💎`)
+      .setColor(0x3498db)
+      .setTimestamp()
+      .setFooter({ text: "Sử dụng lệnh tương ứng để trang bị vũ khí/giáp hoặc sử dụng đan dược." });
+
+    const trangBi = [];
+    const danDuoc = [];
+    const linhThao = [];
+
+    for (const itemObj of itemsList) {
+      const { item, soLuong, trangBi: isEquipped, nangCapSao } = itemObj;
+      const starText = nangCapSao > 0 ? ` (+${nangCapSao} ⭐)` : '';
+      const equipText = isEquipped ? ' 🟢 **[Đang trang bị]**' : '';
+      
+      let statsText = '';
+      if (item.chiSoJson) {
+        try {
+          const stats = JSON.parse(item.chiSoJson);
+          const parts = [];
+          if (stats.vat_cong) parts.push(`+${stats.vat_cong} Vật công`);
+          if (stats.phap_cong) parts.push(`+${stats.phap_cong} Pháp công`);
+          if (stats.vat_phong) parts.push(`+${stats.vat_phong} Vật phòng`);
+          if (stats.phap_phong) parts.push(`+${stats.phap_phong} Pháp phòng`);
+          if (stats.hp) parts.push(`+${stats.hp} HP`);
+          if (stats.mp) parts.push(`+${stats.mp} MP`);
+          if (stats.hp_hoi) parts.push(`Hồi ${stats.hp_hoi} HP`);
+          if (stats.mp_hoi) parts.push(`Hồi ${stats.mp_hoi} MP`);
+          statsText = parts.length > 0 ? ` (${parts.join(', ')})` : '';
+        } catch (e) {}
+      }
+
+      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${statsText} | ID: \`${item.id}\``;
+
+      if (item.loai === 'Vũ khí' || item.loai === 'Giáp') {
+        trangBi.push(formattedLine);
+      } else if (item.loai === 'Đan dược') {
+        danDuoc.push(formattedLine);
+      } else {
+        linhThao.push(formattedLine);
+      }
+    }
+
+    embed.addFields(
+      {
+        name: "⚔️ Pháp Bảo & Linh Giáp",
+        value: trangBi.length > 0 ? trangBi.join('\n') : "• Không có trang bị nào.",
+        inline: false
+      },
+      {
+        name: "💊 Linh Đan Diệu Dược",
+        value: danDuoc.length > 0 ? danDuoc.join('\n') : "• Không có đan dược nào.",
+        inline: false
+      },
+      {
+        name: "🌱 Linh Thảo & Vật Liệu",
+        value: linhThao.length > 0 ? linhThao.join('\n') : "• Không có vật liệu nào.",
+        inline: false
+      }
+    );
+
+    return embed;
+  }
+
+  static kyNang(tuSi, playerSkills = [], availableSkills = []) {
+    const embed = new EmbedBuilder()
+      .setTitle(`📖 Tàng Kinh Các: ${tuSi.ten}`)
+      .setDescription(`Hướng tu luyện: **${tuSi.huongTu || 'Pháp Tu'}**`)
+      .setColor(0x9b59b6)
+      .setTimestamp()
+      .setFooter({ text: "Đạt đủ cảnh giới yêu cầu để lĩnh hội kỹ năng mới." });
+
+    const learnedLines = [];
+    for (const psk of playerSkills) {
+      learnedLines.push(
+        `• **${psk.ten} (Cấp ${psk.capDo})**\n` +
+        `  *Sát thương*: \`${psk.satThuong}%\` | *Hồi chiêu*: \`${psk.cooldown}s\`\n` +
+        `  *Mô tả*: _${psk.moTa}_`
+      );
+    }
+
+    const availableLines = [];
+    for (const sk of availableSkills) {
+      const { stageName } = config.layThongTinCanhGioi(sk.yeuCauCanhGioi);
+      availableLines.push(
+        `• **${sk.ten}** (Yêu cầu: **${stageName}** - Cấp ${sk.yeuCauCanhGioi})\n` +
+        `  *Sát thương*: \`${sk.satThuong}%\` | *Hồi chiêu*: \`${sk.cooldown}s\` | ID: \`${sk.id}\`\n` +
+        `  *Mô tả*: _${sk.moTa}_`
+      );
+    }
+
+    embed.addFields(
+      {
+        name: "🥋 Kỹ Năng Đã Lĩnh Hội",
+        value: learnedLines.length > 0 ? learnedLines.join('\n') : "• Chưa học kỹ năng nào. Hãy sử dụng nút để học kỹ năng cơ bản!",
+        inline: false
+      },
+      {
+        name: "📖 Kỹ Năng Có Thể Lĩnh Hội",
+        value: availableLines.length > 0 ? availableLines.join('\n') : "• Không có kỹ năng nào khả dụng tại cảnh giới này.",
+        inline: false
+      }
+    );
+
+    return embed;
+  }
+
+  static tranDauBiCanh(tuSi, dungeon, battleLogs, isWin, gainedExp, gainedStones, droppedItem = null) {
+    const color = isWin ? 0x2ecc71 : 0xe74c3c;
+    const title = isWin ? `🎉 Khiêu Chiến Thành Công: ${dungeon.ten} 🎉` : `💀 Khiêu Chiến Thất Bại: ${dungeon.ten} 💀`;
+
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setDescription(`Trận chiến diễn ra quyết liệt giữa **${tuSi.ten}** và **${dungeon.quaiVat.ten}**...`)
+      .setColor(color)
+      .setTimestamp();
+
+    // Giới hạn log chiến đấu tối đa 5 round gần cuối để tránh vượt quá limit 1024 ký tự của Discord field
+    const displayLogs = battleLogs.length > 8 ? battleLogs.slice(-8) : battleLogs;
+    
+    embed.addFields({
+      name: "⚔️ Diễn Biến Trận Đánh",
+      value: displayLogs.join('\n'),
+      inline: false
+    });
+
+    if (isWin) {
+      let rewardText = `• **Linh lực nhận được**: \`+${gainedExp}\` ✨\n• **Linh thạch nhận được**: \`+${gainedStones}\` 💎`;
+      if (droppedItem) {
+        rewardText += `\n• **Vật phẩm rớt ra**: **${droppedItem.ten}** 🎁`;
+      }
+      embed.addFields({
+        name: "🎁 Chiến Lợi Phẩm",
+        value: rewardText,
+        inline: false
+      });
+    } else {
+      embed.addFields({
+        name: "⚠️ Tổn Thất Căn Cơ",
+        value: `• Đạo hữu bị yêu thú đả thương nghiêm trọng, máu (HP) bị suy giảm về mức cực thấp (-30% HP tối đa).\n• Vui lòng dùng lệnh \`/nghi\` để tĩnh dưỡng hồi phục!`,
+        inline: false
+      });
+    }
+
+    return embed;
+  }
 }
 
