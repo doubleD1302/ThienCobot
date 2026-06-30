@@ -55,7 +55,7 @@ export class BoTaoEmbed {
       .setFooter({ text: "Thiên Đạo Tu Tiên RPG" });
   }
 
-  static hoSo(tuSi, user, chiSo, daoNien = null, tocDoTuLuyen = 100, reqExp = null) {
+  static hoSo(tuSi, user, chiSo, daoNien = null, tocDoTuLuyen = 100, reqExp = null, equippedItems = []) {
     const color = layMauCanhGioi(tuSi.canhGioi);
     const embed = new EmbedBuilder()
       .setTitle(`📜 Tiên Phả Tu Sĩ: ${tuSi.ten}`)
@@ -115,10 +115,14 @@ export class BoTaoEmbed {
     });
 
     // Chỉ số tấn công/phòng ngự
+    let combatStatsText = `• **Vật công**: \`${chiSo.vat_cong}\` | **Pháp công**: \`${chiSo.phap_cong}\`\n` +
+      `• **Bạo kích**: \`${Math.floor(chiSo.crit_rate * 100)}%\` | **Bạo thương**: \`${Math.floor(chiSo.crit_dmg * 100)}%\`\n` +
+      `• **Né tránh**: \`${Math.floor((chiSo.ne || 0) * 100)}%\` | **Hút máu**: \`${Math.floor((chiSo.lifesteal || 0) * 100)}%\``;
+
     embed.addFields(
       {
-        name: "⚔️ Sát Thương",
-        value: `• **Vật công**: \`${chiSo.vat_cong}\`\n• **Pháp công**: \`${chiSo.phap_cong}\`\n• **Bạo kích**: \`${Math.floor(chiSo.crit_rate * 100)}%\`\n• **Bạo thương**: \`${Math.floor(chiSo.crit_dmg * 100)}%\``,
+        name: "⚔️ Sát Thương & Chỉ số động",
+        value: combatStatsText,
         inline: true
       },
       {
@@ -127,6 +131,38 @@ export class BoTaoEmbed {
         inline: true
       }
     );
+
+    // 12 ô trang bị đang mặc (kể cả ô trống)
+    const weapons = equippedItems.filter(x => x.detail.loai === 'Vũ khí');
+    const armors = equippedItems.filter(x => x.detail.loai === 'Giáp');
+    const ornaments = equippedItems.filter(x => x.detail.loai === 'Ngọc Bội');
+    const activeTreasures = equippedItems.filter(x => x.detail.loai === 'Cổ Bảo Chủ Động');
+    const dharmaTreasures = equippedItems.filter(x => x.detail.loai === 'Pháp Bảo');
+
+    const weaponText = weapons[0] ? `**${weapons[0].detail.ten}**${weapons[0].eq.nangCapSao > 0 ? ` (+${weapons[0].eq.nangCapSao}⭐)` : ''}` : `*[Trống]*`;
+    const armorText = armors[0] ? `**${armors[0].detail.ten}**${armors[0].eq.nangCapSao > 0 ? ` (+${armors[0].eq.nangCapSao}⭐)` : ''}` : `*[Trống]*`;
+    const ornamentText = ornaments[0] ? `**${ornaments[0].detail.ten}**${ornaments[0].eq.nangCapSao > 0 ? ` (+${ornaments[0].eq.nangCapSao}⭐)` : ''}` : `*[Trống]*`;
+
+    const cb1 = activeTreasures[0] ? `**${activeTreasures[0].detail.ten}**` : `*[Trống]*`;
+    const cb2 = activeTreasures[1] ? `**${activeTreasures[1].detail.ten}**` : `*[Trống]*`;
+    const cb3 = activeTreasures[2] ? `**${activeTreasures[2].detail.ten}**` : `*[Trống]*`;
+
+    const pb1 = dharmaTreasures[0] ? `**${dharmaTreasures[0].detail.ten}**` : `*[Trống]*`;
+    const pb2 = dharmaTreasures[1] ? `**${dharmaTreasures[1].detail.ten}**` : `*[Trống]*`;
+    const pb3 = dharmaTreasures[2] ? `**${dharmaTreasures[2].detail.ten}**` : `*[Trống]*`;
+    const pb4 = dharmaTreasures[3] ? `**${dharmaTreasures[3].detail.ten}**` : `*[Trống]*`;
+    const pb5 = dharmaTreasures[4] ? `**${dharmaTreasures[4].detail.ten}**` : `*[Trống]*`;
+    const pb6 = dharmaTreasures[5] ? `**${dharmaTreasures[5].detail.ten}**` : `*[Trống]*`;
+
+    embed.addFields({
+      name: "🛡️ 12 Ô Trang Bị Trên Người",
+      value: `• 🗡️ **Vũ Khí**: ${weaponText}\n` +
+             `• 🥋 **Giáp**: ${armorText}\n` +
+             `• 🔮 **Ngọc Bội**: ${ornamentText}\n` +
+             `• 🏺 **Cổ Bảo**: 1. ${cb1} | 2. ${cb2} | 3. ${cb3}\n` +
+             `• 📿 **Pháp Bảo**: 1. ${pb1} | 2. ${pb2} | 3. ${pb3} | 4. ${pb4} | 5. ${pb5} | 6. ${pb6}`,
+      inline: false
+    });
 
     return embed;
   }
@@ -283,13 +319,36 @@ export class BoTaoEmbed {
       .setFooter({ text: "Sử dụng lệnh tương ứng để trang bị vũ khí/giáp hoặc sử dụng đan dược." });
 
     const trangBi = [];
+    const coBaoPhapBao = [];
     const danDuoc = [];
     const linhThao = [];
 
+    const formatDongChiSo = (dongChiSoJson) => {
+      if (!dongChiSoJson) return '';
+      try {
+        const lines = JSON.parse(dongChiSoJson);
+        if (!Array.isArray(lines) || lines.length === 0) return '';
+        const colorEmojis = {
+          cam: '🟠',
+          tim: '🟣',
+          xanh: '🔵',
+          luc: '🟢',
+          trang: '⚪'
+        };
+        return '\n' + lines.map(line => {
+          const emoji = colorEmojis[line.mau] || '⚪';
+          const sign = line.phanTram >= 0 ? '+' : '';
+          return `    └ ${emoji} *${line.ten}*: \`${sign}${line.phanTram}%\``;
+        }).join('\n');
+      } catch (e) {
+        return '';
+      }
+    };
+
     for (const itemObj of itemsList) {
-      const { item, soLuong, trangBi: isEquipped, nangCapSao } = itemObj;
+      const { item, soLuong, trangBi: isEquipped, nangCapSao, dongChiSoJson } = itemObj;
       const starText = nangCapSao > 0 ? ` (+${nangCapSao} ⭐)` : '';
-      const equipText = isEquipped ? ' 🟢 **[Đang trang bị]**' : '';
+      const equipText = isEquipped ? ' 🟢 **[Đang mặc]**' : '';
       
       let statsText = '';
       if (item.chiSoJson) {
@@ -314,10 +373,13 @@ export class BoTaoEmbed {
         reqText = ` ⚠️ (Yêu cầu: **${cgReq.realmName}**)`;
       }
 
-      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${statsText}${reqText} | ID: \`${item.id}\``;
+      const dongChiSoText = formatDongChiSo(dongChiSoJson);
+      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${statsText}${reqText} | ID: \`${item.id}\`${dongChiSoText}`;
 
-      if (item.loai === 'Vũ khí' || item.loai === 'Giáp') {
+      if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) {
         trangBi.push(formattedLine);
+      } else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) {
+        coBaoPhapBao.push(formattedLine);
       } else if (item.loai === 'Đan dược') {
         danDuoc.push(formattedLine);
       } else {
@@ -327,8 +389,13 @@ export class BoTaoEmbed {
 
     embed.addFields(
       {
-        name: "⚔️ Pháp Bảo & Linh Giáp",
+        name: "🛡️ Nhóm Trang Bị Căn Bản",
         value: trangBi.length > 0 ? trangBi.join('\n') : "• Không có trang bị nào.",
+        inline: false
+      },
+      {
+        name: "📿 Cổ Bảo & Pháp Bảo",
+        value: coBaoPhapBao.length > 0 ? coBaoPhapBao.join('\n') : "• Không có pháp bảo nào.",
         inline: false
       },
       {

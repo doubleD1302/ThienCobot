@@ -15,7 +15,7 @@ class TuSi extends Model {
     this.danhSachLinhCanJson = JSON.stringify(value || []);
   }
 
-  layChiSo(equippedItems = []) {
+  layChiSo(equippedInvList = []) {
     const huongTu = this.huongTu || 'Phap Tu';
     const pathConfig = config.HUONG_DI[huongTu] || config.HUONG_DI['Phap Tu'];
     const baseStats = pathConfig.base_stats;
@@ -35,28 +35,93 @@ class TuSi extends Model {
     let xuyenGiap = baseStats.xuyen_giap + growth.xuyen_giap * lvlDiff;
     let critRate = baseStats.crit_rate + growth.crit_rate * lvlDiff;
     let critDmg = baseStats.crit_dmg + growth.crit_dmg * lvlDiff;
+    let ne = 0.0; // Né tránh mặc định
+    let lifesteal = 0.0; // Hút máu mặc định
 
-    // 2. Cộng chỉ số từ trang bị đang mặc
-    for (const item of equippedItems) {
-      let stats = {};
-      if (item && item.chiSoJson) {
+    // Lưu chỉ số nền của tu sĩ để tính phần trăm gia tăng từ các dòng chỉ số ngẫu nhiên
+    const baseHpVal = maxHp;
+    const baseMpVal = maxMp;
+    const baseVatCongVal = vatCong;
+    const basePhapCongVal = phapCong;
+    const baseVatPhongVal = vatPhong;
+    const basePhapPhongVal = phapPhong;
+    const baseXuyenGiapVal = xuyenGiap;
+
+    // 2. Cộng chỉ số từ các trang bị đang mặc
+    for (const eq of equippedInvList) {
+      const item = eq.Item || eq.item || eq;
+      if (!item) continue;
+
+      // Chỉ số nền tĩnh từ item
+      let staticStats = {};
+      if (item.chiSoJson) {
         try {
-          stats = JSON.parse(item.chiSoJson);
+          staticStats = JSON.parse(item.chiSoJson);
         } catch (e) {}
-      } else if (item && item.chiSo) {
-        stats = item.chiSo;
+      } else if (item.chiSo) {
+        staticStats = item.chiSo;
       }
       
-      if (stats.hp) maxHp += stats.hp;
-      if (stats.mp) maxMp += stats.mp;
-      if (stats.vat_cong) vatCong += stats.vat_cong;
-      if (stats.phap_cong) phapCong += stats.phap_cong;
-      if (stats.vat_phong) vatPhong += stats.vat_phong;
-      if (stats.phap_phong) phapPhong += stats.phap_phong;
-      if (stats.giap) giap += stats.giap;
-      if (stats.xuyen_giap) xuyenGiap += stats.xuyen_giap;
-      if (stats.crit_rate) critRate += stats.crit_rate;
-      if (stats.crit_dmg) critDmg += stats.crit_dmg;
+      const starMult = 1.0 + (eq.nangCapSao || 0) * 0.10;
+      if (staticStats.hp) maxHp += staticStats.hp * starMult;
+      if (staticStats.mp) maxMp += staticStats.mp * starMult;
+      if (staticStats.vat_cong) vatCong += staticStats.vat_cong * starMult;
+      if (staticStats.phap_cong) phapCong += staticStats.phap_cong * starMult;
+      if (staticStats.vat_phong) vatPhong += staticStats.vat_phong * starMult;
+      if (staticStats.phap_phong) phapPhong += staticStats.phap_phong * starMult;
+      if (staticStats.giap) giap += staticStats.giap * starMult;
+      if (staticStats.xuyen_giap) xuyenGiap += staticStats.xuyen_giap * starMult;
+      if (staticStats.crit_rate) critRate += staticStats.crit_rate * starMult;
+      if (staticStats.crit_dmg) critDmg += staticStats.crit_dmg * starMult;
+
+      // Chỉ số dòng phụ ngẫu nhiên
+      let dynamicStats = [];
+      if (eq.dongChiSoJson) {
+        try {
+          dynamicStats = JSON.parse(eq.dongChiSoJson);
+        } catch (e) {}
+      }
+      
+      for (const line of dynamicStats) {
+        const multVal = line.phanTram / 100;
+        switch (line.thuocTinh) {
+          case 'vat_cong':
+            vatCong += baseVatCongVal * multVal;
+            break;
+          case 'phap_cong':
+            phapCong += basePhapCongVal * multVal;
+            break;
+          case 'vat_phong':
+            vatPhong += baseVatPhongVal * multVal;
+            break;
+          case 'phap_phong':
+            phapPhong += basePhapPhongVal * multVal;
+            break;
+          case 'max_hp':
+            maxHp += baseHpVal * multVal;
+            break;
+          case 'max_mp':
+            maxMp += baseMpVal * multVal;
+            break;
+          case 'crit_rate':
+            critRate += multVal;
+            break;
+          case 'crit_dmg':
+            critDmg += multVal;
+            break;
+          case 'xuyen_giap':
+            xuyenGiap += baseXuyenGiapVal * multVal;
+            break;
+          case 'ne':
+            ne += multVal;
+            break;
+          case 'lifesteal':
+            lifesteal += multVal;
+            break;
+          default:
+            break;
+        }
+      }
     }
 
     // 3. Cộng hệ số linh căn
@@ -80,7 +145,7 @@ class TuSi extends Model {
       critRate += config.NGUON_LINH_CAN['Hoa'].crit_rate;
     }
 
-    // 3. Phạt căn cơ do đột phá thất bại
+    // Phạt căn cơ do đột phá thất bại
     const phatHp = this.phatHp || 0.0;
     const phatMp = this.phatMp || 0.0;
     const phatVatCong = this.phatVatCong || 0.0;
@@ -91,27 +156,19 @@ class TuSi extends Model {
     vatCong = Math.floor(vatCong * (1.0 - phatVatCong));
     phapCong = Math.floor(phapCong * (1.0 - phatPhapCong));
 
-    // Đảm bảo chỉ số tối thiểu
-    maxHp = Math.max(1, Math.floor(maxHp));
-    maxMp = Math.max(1, Math.floor(maxMp));
-    vatCong = Math.max(1, Math.floor(vatCong));
-    phapCong = Math.max(1, Math.floor(phapCong));
-    vatPhong = Math.max(1, Math.floor(vatPhong));
-    phapPhong = Math.max(1, Math.floor(phapPhong));
-    giap = Math.max(0, Math.floor(giap));
-    xuyenGiap = Math.max(0, Math.floor(xuyenGiap));
-
     return {
-      max_hp: maxHp,
-      max_mp: maxMp,
-      vat_cong: vatCong,
-      phap_cong: phapCong,
-      vat_phong: vatPhong,
-      phap_phong: phapPhong,
-      giap: giap,
-      xuyen_giap: xuyenGiap,
-      crit_rate: critRate,
-      crit_dmg: critDmg,
+      max_hp: Math.max(1, Math.floor(maxHp)),
+      max_mp: Math.max(1, Math.floor(maxMp)),
+      vat_cong: Math.max(1, Math.floor(vatCong)),
+      phap_cong: Math.max(1, Math.floor(phapCong)),
+      vat_phong: Math.max(1, Math.floor(vatPhong)),
+      phap_phong: Math.max(1, Math.floor(phapPhong)),
+      giap: Math.max(0, Math.floor(giap)),
+      xuyen_giap: Math.max(0, Math.floor(xuyenGiap)),
+      crit_rate: Math.max(0.0, critRate),
+      crit_dmg: Math.max(1.0, critDmg),
+      ne: Math.max(0.0, ne),
+      lifesteal: Math.max(0.0, lifesteal)
     };
   }
 

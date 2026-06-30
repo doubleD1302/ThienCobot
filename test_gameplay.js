@@ -15,6 +15,7 @@ const { Skill } = await import('./models/Skill.js');
 const { PlayerSkill } = await import('./models/PlayerSkill.js');
 const { ThienDaoLuc } = await import('./models/ThienDaoLuc.js');
 const { AdventureEvent } = await import('./models/AdventureEvent.js');
+const { Dungeon } = await import('./models/Dungeon.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -522,6 +523,115 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       where: { idNguoiDung: tuSi.idNguoiDung, itemId: "test_trong_kiem" }
     });
     assert.strictEqual(invCheck.trangBi, false);
+
+    await tuSi.destroy();
+  });
+
+  test('12-Slots Equip Constraints, Dynamic Stats, and Combat Simulator features', async () => {
+    const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+    const { boDieuKhienBicanh } = await import('./controllers/BoDieuKhienBicanh.js');
+
+    // Tạo các loại trang bị mới trong db
+    await Item.upsert({ id: "test_ngoc_boi", ten: "Hộ Mệnh Ngọc Bội 🔮", loai: "Ngọc Bội", doHiem: "Hiếm", giaCoSo: 100, chiSoJson: '{"hp":50}', yeuCauCanhGioi: 1 });
+    await Item.upsert({ id: "test_co_bao", ten: "Hỏa Linh Hoàn 🏺", loai: "Cổ Bảo Chủ Động", doHiem: "Hiếm", giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1 });
+    await Item.upsert({ id: "test_phap_bao", ten: "Vô Cực Kính 📿", loai: "Pháp Bảo", doHiem: "Hiếm", giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1 });
+
+    const tuSi = await TuSi.create({
+      idNguoiDung: "8888888888888888",
+      ten: "Thần Cơ Tu Sĩ",
+      gioiTinh: "Nữ",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 5,
+      linhLuc: 1000,
+      linhThach: 500,
+      hp: 1000,
+      mp: 1000
+    });
+    tuSi.linhCanList = ["Hoa"];
+    await tuSi.save();
+
+    // 1. Kiểm tra sinh dòng thuộc tính ngẫu nhiên khi dùng Inventory.addVatPham
+    const invItem = await Inventory.addVatPham(tuSi.idNguoiDung, "test_ngoc_boi", 1);
+    assert.ok(invItem);
+    assert.strictEqual(invItem.soLuong, 1);
+    assert.ok(invItem.dongChiSoJson);
+    const parsedLines = JSON.parse(invItem.dongChiSoJson);
+    assert.ok(parsedLines.length >= 1 && parsedLines.length <= 4);
+
+    // 2. Thử mặc Ngọc Bội
+    let replyPayload = null;
+    let interactionMock = {
+      user: { id: "8888888888888888" },
+      options: { getSubcommand: () => 'trangbi', getString: () => 'test_ngoc_boi' },
+      deferReply: async () => {},
+      editReply: async (payload) => { replyPayload = payload; }
+    };
+    await boDieuKhienVatPham.lenhBalo.execute(interactionMock);
+    assert.ok(replyPayload.embeds[0].data.description.includes("trang bị"));
+
+    // 3. Mặc 4 Cổ Bảo Chủ Động (Giới hạn tối đa 3)
+    for (let i = 0; i < 4; i++) {
+      await Inventory.addVatPham(tuSi.idNguoiDung, "test_co_bao", 1);
+    }
+    
+    // Mặc 3 cái đầu
+    const listCoBao = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: "test_co_bao" } });
+    listCoBao[0].trangBi = true; await listCoBao[0].save();
+    listCoBao[1].trangBi = true; await listCoBao[1].save();
+    listCoBao[2].trangBi = true; await listCoBao[2].save();
+
+    // Thử mặc cái thứ 4
+    replyPayload = null;
+    interactionMock = {
+      user: { id: "8888888888888888" },
+      options: { getSubcommand: () => 'trangbi', getString: () => 'test_co_bao' },
+      deferReply: async () => {},
+      editReply: async (payload) => { replyPayload = payload; }
+    };
+    await boDieuKhienVatPham.lenhBalo.execute(interactionMock);
+    assert.ok(replyPayload.embeds[0].data.description.includes("Giới hạn tối đa 3 Cổ Bảo Chủ Động"));
+
+    // 4. Mặc 7 Pháp Bảo (Giới hạn tối đa 6)
+    for (let i = 0; i < 7; i++) {
+      await Inventory.addVatPham(tuSi.idNguoiDung, "test_phap_bao", 1);
+    }
+    const listPhapBao = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: "test_phap_bao" } });
+    for (let i = 0; i < 6; i++) {
+      listPhapBao[i].trangBi = true;
+      await listPhapBao[i].save();
+    }
+    replyPayload = null;
+    interactionMock = {
+      user: { id: "8888888888888888" },
+      options: { getSubcommand: () => 'trangbi', getString: () => 'test_phap_bao' },
+      deferReply: async () => {},
+      editReply: async (payload) => { replyPayload = payload; }
+    };
+    await boDieuKhienVatPham.lenhBalo.execute(interactionMock);
+    assert.ok(replyPayload.embeds[0].data.description.includes("Giới hạn tối đa 6 Pháp Bảo"));
+
+    // 5. Kiểm tra tính năng né tránh / lifesteal / cổ bảo pháp bảo kỹ năng hoạt động trong combat
+    const { Dungeon } = await import('./models/Dungeon.js');
+    await Dungeon.upsert({
+      id: "test_combat_dungeon",
+      ten: "Đấu Trường Thử Nghiệm ⚔️",
+      capDoYeuCau: 1,
+      canhGioiYeuCauText: "Luyện Khí",
+      quaiVatJson: '{"ten":"Cự Linh Yêu Thú","hp":200,"vatCong":10,"phapCong":0,"vatPhong":5,"phapPhong":5}',
+      thuongJson: '{"expMin":10,"expMax":20,"stonesMin":1,"stonesMax":5}',
+      dropsJson: '[]'
+    });
+
+    replyPayload = null;
+    interactionMock = {
+      user: { id: "8888888888888888" },
+      options: { getSubcommand: () => 'khieu_chien', getString: () => 'test_combat_dungeon' },
+      deferReply: async () => {},
+      editReply: async (payload) => { replyPayload = payload; }
+    };
+    await boDieuKhienBicanh.lenhBicanh.execute(interactionMock);
+    assert.ok(replyPayload);
 
     await tuSi.destroy();
   });

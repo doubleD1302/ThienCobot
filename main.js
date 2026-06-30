@@ -264,13 +264,11 @@ async function start() {
         console.log('Đã tạo thành công dữ liệu cảnh giới cho 31 cấp độ.');
       }
 
-      // Khởi tạo dữ liệu mẫu cho bảng items
+      // Khởi tạo và đồng bộ dữ liệu mẫu cho bảng items
       const { Item } = await import('./models/Item.js');
-      const itemsCount = await Item.count();
-      if (itemsCount === 0) {
-        console.log('Khởi tạo dữ liệu mẫu cho bảng items...');
-        const config = await import('./config.js');
-        const seedItems = config.ITEMS.map(item => ({
+      const config = await import('./config.js');
+      for (const item of config.ITEMS) {
+        await Item.upsert({
           id: item.id,
           ten: item.ten,
           loai: item.loai,
@@ -279,18 +277,14 @@ async function start() {
           chiSoJson: item.chiSoJson,
           yeuCauCanhGioi: item.yeuCauCanhGioi || 1,
           moTa: item.moTa
-        }));
-        await Item.bulkCreate(seedItems);
-        console.log(`Đã tạo thành công ${seedItems.length} vật phẩm mẫu.`);
+        });
       }
+      console.log(`Đã đồng bộ thành công ${config.ITEMS.length} vật phẩm mẫu vào CSDL.`);
 
-      // Khởi tạo dữ liệu mẫu cho bảng skills
+      // Khởi tạo và đồng bộ dữ liệu mẫu cho bảng skills
       const { Skill } = await import('./models/Skill.js');
-      const skillsCount = await Skill.count();
-      if (skillsCount === 0) {
-        console.log('Khởi tạo dữ liệu mẫu cho bảng skills...');
-        const config = await import('./config.js');
-        const seedSkills = config.SKILLS.map(sk => ({
+      for (const sk of config.SKILLS) {
+        await Skill.upsert({
           id: sk.id,
           ten: sk.ten,
           loai: sk.loai,
@@ -299,18 +293,14 @@ async function start() {
           yeuCauCanhGioi: sk.yeuCauCanhGioi,
           congPhapId: sk.congPhapId,
           moTa: sk.moTa
-        }));
-        await Skill.bulkCreate(seedSkills);
-        console.log(`Đã tạo thành công ${seedSkills.length} kỹ năng mẫu.`);
+        });
       }
+      console.log(`Đã đồng bộ thành công ${config.SKILLS.length} kỹ năng mẫu vào CSDL.`);
 
-      // Khởi tạo dữ liệu mẫu cho bảng dungeons
+      // Khởi tạo và đồng bộ dữ liệu mẫu cho bảng dungeons
       const { Dungeon } = await import('./models/Dungeon.js');
-      const dungeonsCount = await Dungeon.count();
-      if (dungeonsCount === 0) {
-        console.log('Khởi tạo dữ liệu mẫu cho bảng dungeons...');
-        const config = await import('./config.js');
-        const seedDungeons = config.DUNGEONS.map(dg => ({
+      for (const dg of config.DUNGEONS) {
+        await Dungeon.upsert({
           id: dg.id,
           ten: dg.ten,
           capDoYeuCau: dg.capDoYeuCau,
@@ -318,10 +308,9 @@ async function start() {
           quaiVatJson: JSON.stringify(dg.quaiVat),
           thuongJson: JSON.stringify(dg.thuong),
           dropsJson: JSON.stringify(dg.drops)
-        }));
-        await Dungeon.bulkCreate(seedDungeons);
-        console.log(`Đã tạo thành công ${seedDungeons.length} bí cảnh phụ bản mẫu.`);
+        });
       }
+      console.log(`Đã đồng bộ thành công ${config.DUNGEONS.length} bí cảnh phụ bản mẫu vào CSDL.`);
 
       // Khởi tạo dữ liệu mẫu cho bảng adventure_events
       const { AdventureEvent } = await import('./models/AdventureEvent.js');

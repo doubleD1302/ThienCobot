@@ -60,12 +60,10 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         const equippedInv = await Inventory.findAll({
           where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
         });
-        const items = [];
         for (const eq of equippedInv) {
-          const detail = await Item.findByPk(eq.itemId);
-          if (detail) items.push(detail);
+          eq.item = await Item.findByPk(eq.itemId);
         }
-        return items;
+        return equippedInv.filter(eq => eq.item !== null);
       };
 
       if (subcommand === 'xem') {
@@ -82,7 +80,8 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
               item: itemDetail,
               soLuong: inv.soLuong,
               trangBi: inv.trangBi,
-              nangCapSao: inv.nangCapSao
+              nangCapSao: inv.nangCapSao,
+              dongChiSoJson: inv.dongChiSoJson
             });
           }
         }
@@ -154,26 +153,31 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       }
 
       if (subcommand === 'trangbi') {
-        const inv = await Inventory.findOne({
+        const hasIt = await Inventory.findOne({
           where: { idNguoiDung: tuSi.idNguoiDung, itemId: itemId }
+        });
+
+        if (!hasIt) {
+          return await interaction.editReply({
+            embeds: [BoTaoEmbed.loi(`Ngươi không sở hữu trang bị nào có mã ID \`${itemId}\` trong balo.`)]
+          });
+        }
+
+        let inv = await Inventory.findOne({
+          where: { idNguoiDung: tuSi.idNguoiDung, itemId: itemId, trangBi: false }
         });
 
         if (!inv) {
           return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Ngươi không sở hữu trang bị nào có mã ID \`${itemId}\`.`)]
-          });
-        }
-
-        if (inv.trangBi) {
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Trang bị \`${itemId}\` đã được mặc sẵn trên người.`)]
+            embeds: [BoTaoEmbed.loi(`Trang bị \`${itemId}\` đã được mặc sẵn trên người và ngươi không còn chiếc nào khác chưa mặc.`)]
           });
         }
 
         const itemDetail = await Item.findByPk(itemId);
-        if (!itemDetail || (itemDetail.loai !== 'Vũ khí' && itemDetail.loai !== 'Giáp')) {
+        const allowedEquipTypes = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'];
+        if (!itemDetail || !allowedEquipTypes.includes(itemDetail.loai)) {
           return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Mã \`${itemId}\` không phải là Trang bị (Vũ khí/Giáp).`)]
+            embeds: [BoTaoEmbed.loi(`Mã \`${itemId}\` không phải là Trang bị có thể mặc.`)]
           });
         }
 
@@ -185,19 +189,40 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
           });
         }
 
-        // Tự động tháo trang bị cùng loại đang mặc
+        // Tự động kiểm tra và tháo trang bị cùng loại đang mặc
         const currentEquipped = await Inventory.findAll({
           where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
         });
 
-        let unequippedName = '';
+        const equippedItems = [];
         for (const eq of currentEquipped) {
           const eqItem = await Item.findByPk(eq.itemId);
-          if (eqItem && eqItem.loai === itemDetail.loai) {
-            eq.trangBi = false;
-            await eq.save();
-            unequippedName = eqItem.ten;
-            break;
+          if (eqItem) {
+            equippedItems.push({ eq, detail: eqItem });
+          }
+        }
+
+        const sameTypeEquipped = equippedItems.filter(x => x.detail.loai === itemDetail.loai);
+        let extraMsg = '';
+
+        if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(itemDetail.loai)) {
+          if (sameTypeEquipped.length > 0) {
+            const oldEq = sameTypeEquipped[0];
+            oldEq.eq.trangBi = false;
+            await oldEq.eq.save();
+            extraMsg = `(Đã tháo trang bị cũ: **${oldEq.detail.ten}**)`;
+          }
+        } else if (itemDetail.loai === 'Cổ Bảo Chủ Động') {
+          if (sameTypeEquipped.length >= 3) {
+            return await interaction.editReply({
+              embeds: [BoTaoEmbed.loi(`Giới hạn tối đa 3 Cổ Bảo Chủ Động! Đạo hữu đã trang bị đủ 3 ô, vui lòng dùng \`/balo thao\` bớt trước.`)]
+            });
+          }
+        } else if (itemDetail.loai === 'Pháp Bảo') {
+          if (sameTypeEquipped.length >= 6) {
+            return await interaction.editReply({
+              embeds: [BoTaoEmbed.loi(`Giới hạn tối đa 6 Pháp Bảo! Đạo hữu đã trang bị đủ 6 ô, vui lòng dùng \`/balo thao\` bớt trước.`)]
+            });
           }
         }
 
@@ -205,7 +230,6 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         inv.trangBi = true;
         await inv.save();
 
-        const extraMsg = unequippedName ? `(Đã tháo trang bị cũ: **${unequippedName}**)` : '';
         return await interaction.editReply({
           embeds: [
             BoTaoEmbed.thanhCong(

@@ -88,7 +88,21 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         }
       }
 
-      const stats = tuSi.layChiSo();
+      const { Inventory } = await import('../models/Inventory.js');
+      const { Item } = await import('../models/Item.js');
+      const equippedInv = await Inventory.findAll({
+        where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
+      });
+      const equippedItems = [];
+      for (const eq of equippedInv) {
+        const detail = await Item.findByPk(eq.itemId);
+        if (detail) {
+          eq.item = detail;
+          equippedItems.push({ eq, detail });
+        }
+      }
+
+      const stats = tuSi.layChiSo(equippedInv);
       
       // Khôi phục chỉ số động khi thay đổi căn cơ phạt cực đại
       let updated = false;
@@ -120,7 +134,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen);
       const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
 
-      const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats, daoNien, tocDoTuLuyen, reqExp);
+      const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats, daoNien, tocDoTuLuyen, reqExp, equippedItems);
       await interaction.editReply({ embeds: [embed] });
     }
   };

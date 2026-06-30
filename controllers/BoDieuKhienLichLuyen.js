@@ -86,14 +86,7 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         const eligibleItems = allItems.filter(item => item.doHiem === 'Thường' || item.doHiem === 'Hiếm');
         const itemDropped = eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
         if (itemDropped) {
-          const [invRecord, created] = await Inventory.findOrCreate({
-            where: { idNguoiDung: tuSi.idNguoiDung, itemId: itemDropped.id },
-            defaults: { soLuong: 1, trangBi: false, nangCapSao: 0 }
-          });
-          if (!created) {
-            invRecord.soLuong += 1;
-            await invRecord.save();
-          }
+          await Inventory.addVatPham(tuSi.idNguoiDung, itemDropped.id, 1);
           rewardText += `• **Vật phẩm nhận được**: **${itemDropped.ten}** 🎁\n`;
           
           if (effects.thienDaoLuc && sqlMessageCheck(effects.thienDaoLucMsg)) {
@@ -108,14 +101,7 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         const allItems = await Item.findAll({ where: { loai: effects.itemRandom.loai } });
         const itemDropped = allItems.length > 0 ? allItems[Math.floor(Math.random() * allItems.length)] : null;
         if (itemDropped) {
-          const [invRecord, created] = await Inventory.findOrCreate({
-            where: { idNguoiDung: tuSi.idNguoiDung, itemId: itemDropped.id },
-            defaults: { soLuong: 1, trangBi: false, nangCapSao: 0 }
-          });
-          if (!created) {
-            invRecord.soLuong += 1;
-            await invRecord.save();
-          }
+          await Inventory.addVatPham(tuSi.idNguoiDung, itemDropped.id, 1);
           rewardText += `• **Nhận Linh thảo**: **${itemDropped.ten}** x1 🌿\n`;
         }
       }

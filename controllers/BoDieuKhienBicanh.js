@@ -92,9 +92,12 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const equippedItems = [];
         for (const eq of equippedInv) {
           const detail = await Item.findByPk(eq.itemId);
-          if (detail) equippedItems.push(detail);
+          if (detail) {
+            eq.item = detail;
+            equippedItems.push(eq);
+          }
         }
-        const stats = tuSi.layChiSo(equippedItems);
+        const stats = tuSi.layChiSo(equippedInv);
 
         // 3. Kiểm tra HP tối thiểu (10%)
         if (tuSi.hp <= Math.floor(stats.max_hp * 0.10)) {
@@ -107,6 +110,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const monster = { ...dungeon.quaiVat };
         let monsterHp = monster.hp;
         let playerHp = tuSi.hp;
+        let playerShield = 0;
         const battleLogs = [];
         let isWin = false;
         let round = 1;
@@ -114,6 +118,10 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const isPhysical = tuSi.huongTu === 'The Tu';
         const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
         const monsterDef = isPhysical ? monster.vatPhong : monster.phapPhong;
+
+        // Phân loại Cổ Bảo và Pháp Bảo
+        const activeTreasures = equippedItems.filter(x => x.item.loai === 'Cổ Bảo Chủ Động');
+        const dharmaTreasures = equippedItems.filter(x => x.item.loai === 'Pháp Bảo');
 
         while (monsterHp > 0 && playerHp > 0 && round <= 15) {
           // Lượt chơi: Người tấn công trước
@@ -125,17 +133,116 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           monsterHp = Math.max(0, monsterHp - pDmg);
           battleLogs.push(`🗡️ **Hiệp ${round}**: **${tuSi.ten}** gây \`${pDmg}\` sát thương ${isCrit ? '💥 (Bạo kích!)' : ''} lên **${monster.ten}** (Yêu thú HP: \`${monsterHp}\`).`);
 
+          // Hút máu nếu có
+          if (stats.lifesteal > 0 && monsterHp > 0) {
+            const healed = Math.floor(pDmg * stats.lifesteal);
+            if (healed > 0) {
+              playerHp = Math.min(stats.max_hp, playerHp + healed);
+              battleLogs.push(`🩸 **Hút máu**: Hút lấy sinh cơ yêu thú, đạo hữu hồi phục \`+${healed}\` HP (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+            }
+          }
+
           if (monsterHp <= 0) {
             isWin = true;
             break;
           }
 
+          // Kích hoạt Cổ Bảo Chủ Động (30% mỗi món)
+          for (const eq of activeTreasures) {
+            if (Math.random() <= 0.30) {
+              const kynang = config.KYNANG_TRANGBI[eq.itemId];
+              if (kynang && kynang.baseDmg) {
+                const cbDmg = Math.max(1, kynang.baseDmg - monsterDef);
+                monsterHp = Math.max(0, monsterHp - cbDmg);
+                battleLogs.push(`🏺 **Cổ Bảo**: **${eq.item.ten}** kích hoạt kỹ năng **${kynang.ten}**, nện thêm \`${cbDmg}\` sát thương (Yêu thú HP: \`${monsterHp}\`).`);
+                if (monsterHp <= 0) {
+                  isWin = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (isWin) break;
+
+          // Kích hoạt Pháp Bảo (25% mỗi món)
+          for (const eq of dharmaTreasures) {
+            if (Math.random() <= 0.25) {
+              const kynang = config.KYNANG_TRANGBI[eq.itemId];
+              if (kynang) {
+                // Đọc chỉ số phụ trên Pháp bảo
+                let pbCritRate = stats.crit_rate;
+                let pbCritDmg = stats.crit_dmg;
+                let pbDmgBonus = 1.0;
+                let pbShieldBonus = 1.0;
+
+                if (eq.dongChiSoJson) {
+                  try {
+                    const lines = JSON.parse(eq.dongChiSoJson);
+                    for (const line of lines) {
+                      if (line.thuocTinh === 'crit_rate_pb') pbCritRate += line.phanTram / 100;
+                      if (line.thuocTinh === 'crit_dmg_pb') pbCritDmg += line.phanTram / 100;
+                      if (line.thuocTinh === 'sat_thuong_pb' || line.thuocTinh === 'phap_thuong_pb') pbDmgBonus += line.phanTram / 100;
+                      if (line.thuocTinh === 'khien_pb') pbShieldBonus += line.phanTram / 100;
+                    }
+                  } catch (e) {}
+                }
+
+                // Thực thi sát thương Pháp Bảo
+                if (kynang.baseDmg) {
+                  let pbDmg = Math.floor(kynang.baseDmg * pbDmgBonus);
+                  const isPbCrit = Math.random() <= pbCritRate;
+                  if (isPbCrit) {
+                    pbDmg = Math.floor(pbDmg * pbCritDmg);
+                  }
+                  pbDmg = Math.max(1, pbDmg - monsterDef);
+                  monsterHp = Math.max(0, monsterHp - pbDmg);
+                  battleLogs.push(`📿 **Pháp Bảo**: **${eq.item.ten}** thi triển **${kynang.ten}**, oanh kích \`${pbDmg}\` sát thương ${isPbCrit ? '💥 (Bạo kích!)' : ''} (Yêu thú HP: \`${monsterHp}\`).`);
+                  if (monsterHp <= 0) {
+                    isWin = true;
+                    break;
+                  }
+                }
+
+                // Thực thi khiên Pháp Bảo
+                if (kynang.baseShield) {
+                  const pbShield = Math.floor(kynang.baseShield * pbShieldBonus);
+                  playerShield += pbShield;
+                  battleLogs.push(`📿 **Pháp Bảo**: **${eq.item.ten}** thi triển **${kynang.ten}** tạo kết giới bảo vệ hấp thụ \`${pbShield}\` sát thương.`);
+                }
+              }
+            }
+          }
+
+          if (isWin) break;
+
           // Lượt quái: Quái tấn công lại
           const mAtk = Math.max(monster.vatCong, monster.phapCong);
           const pDef = monster.vatCong > monster.phapCong ? stats.vat_phong : stats.phap_phong;
-          const mDmg = Math.max(1, mAtk - pDef);
-          playerHp = Math.max(0, playerHp - mDmg);
-          battleLogs.push(`🐾 **Hiệp ${round}**: **${monster.ten}** phản kích gây \`${mDmg}\` sát thương lên **${tuSi.ten}** (HP còn: \`${playerHp}\`).`);
+          let mDmg = Math.max(1, mAtk - pDef);
+
+          // Kiểm tra Né tránh của người chơi
+          if (Math.random() <= stats.ne) {
+            battleLogs.push(`💨 **Né tránh**: **${tuSi.ten}** lướt đi nhẹ nhàng, né tránh hoàn toàn đòn đánh của **${monster.ten}**!`);
+          } else {
+            // Kiểm tra hấp thụ khiên
+            if (playerShield > 0) {
+              if (playerShield >= mDmg) {
+                playerShield -= mDmg;
+                battleLogs.push(`🛡️ **Khiên bảo vệ**: Khiên hấp thụ toàn bộ \`${mDmg}\` sát thương từ **${monster.ten}** (Khiên còn: \`${playerShield}\`).`);
+                mDmg = 0;
+              } else {
+                mDmg -= playerShield;
+                battleLogs.push(`🛡️ **Khiên bảo vệ**: Khiên hấp thụ \`${playerShield}\` sát thương rồi vỡ tan! Sát thương lọt qua: \`${mDmg}\`.`);
+                playerShield = 0;
+              }
+            }
+
+            if (mDmg > 0) {
+              playerHp = Math.max(0, playerHp - mDmg);
+              battleLogs.push(`🐾 **Yêu Thú**: **${monster.ten}** phản kích gây \`${mDmg}\` sát thương lên **${tuSi.ten}** (HP còn: \`${playerHp}\`).`);
+            }
+          }
 
           if (playerHp <= 0) {
             isWin = false;
@@ -167,15 +274,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
               if (itemDetail) {
                 droppedItem = itemDetail;
                 
-                // Lưu vào túi đồ
-                const [invRecord, created] = await Inventory.findOrCreate({
-                  where: { idNguoiDung: tuSi.idNguoiDung, itemId: targetId },
-                  defaults: { soLuong: 1, trangBi: false, nangCapSao: 0 }
-                });
-                if (!created) {
-                  invRecord.soLuong += 1;
-                  await invRecord.save();
-                }
+                // Lưu vào túi đồ bằng helper addVatPham
+                await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
                 break; // Chỉ cho rơi tối đa 1 món ngẫu nhiên
               }
             }
