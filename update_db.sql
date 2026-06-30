@@ -55,6 +55,26 @@ CREATE TABLE IF NOT EXISTS player_skills (
   FOREIGN KEY (user_id) REFERENCES players(user_id) ON DELETE CASCADE,
   FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.6 Tạo bảng chứa danh sách bí cảnh phụ bản
+CREATE TABLE IF NOT EXISTS dungeons (
+  id VARCHAR(50) PRIMARY KEY,
+  ten VARCHAR(100) NOT NULL,
+  cap_do_yeu_cau INT NOT NULL DEFAULT 1,
+  canh_gioi_yeu_cau_text VARCHAR(50) NOT NULL,
+  quai_vat_json TEXT NOT NULL,
+  thuong_json TEXT NOT NULL,
+  drops_json TEXT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.7 Tạo bảng Thiên Đạo Lục (Ký sự)
+CREATE TABLE IF NOT EXISTS thien_dao_luc (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  dao_nien INT NOT NULL DEFAULT 1,
+  su_kien TEXT NOT NULL,
+  loai VARCHAR(50) NOT NULL DEFAULT 'System',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 */
 
 -- ==========================================
@@ -104,6 +124,26 @@ CREATE TABLE IF NOT EXISTS player_skills (
   FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
 );
 
+-- 2.6 Tạo bảng bí cảnh
+CREATE TABLE IF NOT EXISTS dungeons (
+  id VARCHAR(50) PRIMARY KEY,
+  ten VARCHAR(100) NOT NULL,
+  cap_do_yeu_cau INTEGER NOT NULL DEFAULT 1,
+  canh_gioi_yeu_cau_text VARCHAR(50) NOT NULL,
+  quai_vat_json TEXT NOT NULL,
+  thuong_json TEXT NOT NULL,
+  drops_json TEXT NOT NULL
+);
+
+-- 2.7 Tạo bảng Thiên Đạo Lục
+CREATE TABLE IF NOT EXISTS thien_dao_luc (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  dao_nien INTEGER NOT NULL DEFAULT 1,
+  su_kien TEXT NOT NULL,
+  loai VARCHAR(50) NOT NULL DEFAULT 'System',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ==========================================
 -- 3. DỮ LIỆU MẪU (DÙNG ĐƯỢC CHO CẢ MYSQL VÀ SQLITE)
 -- ==========================================
@@ -136,6 +176,12 @@ REPLACE INTO skills (id, ten, loai, sat_thuong, cooldown, yeu_cau_canh_gioi, con
 ('hoa_diem_thuat', 'Hỏa Diễm Thuật 🔥', 'Phép thuật', 120, 6, 1, NULL, 'Triệu hồi quả cầu lửa thiêu đốt đối thủ, sát thương bằng 120% Pháp công.'),
 ('ngu_loi_thuat', 'Ngự Lôi Thuật ⚡', 'Phép thuật', 150, 12, 10, NULL, 'Dẫn lôi đình giáng xuống đầu kẻ thù, sát thương bằng 150% Pháp công.'),
 ('bang_vu_thuat', 'Băng Vũ Thuật ❄️', 'Phép thuật', 200, 18, 19, NULL, 'Tạo cơn mưa băng buốt lạnh tàn phá kinh mạch, sát thương bằng 200% Pháp công.');
+
+-- 3.4 Chèn dữ liệu mẫu vào bảng dungeons (Bí cảnh mẫu)
+REPLACE INTO dungeons (id, ten, cap_do_yeu_cau, canh_gioi_yeu_cau_text, quai_vat_json, thuong_json, drops_json) VALUES
+('tan_thu_phu_ban', 'Tân Thủ Phụ Bản ⛰️', 1, 'Luyện Khí', '{"ten":"Thiết Bì Thử (Chuột Thép)","hp":150,"vatCong":15,"phapCong":0,"vatPhong":5,"phapPhong":5}', '{"expMin":30,"expMax":50,"stonesMin":10,"stonesMax":20}', '[{"itemId":"dan_hp_1","tile":0.50},{"itemId":"dan_mp_1","tile":0.50},{"itemId":"kiem_go","tile":0.15},{"itemId":"truong_go","tile":0.15},{"itemId":"ao_vai","tile":0.15}]'),
+('u_minh_coc', 'U Minh Cốc 💀', 10, 'Trúc Cơ', '{"ten":"U Minh Ma Lang (Sói U Minh)","hp":650,"vatCong":55,"phapCong":0,"vatPhong":25,"phapPhong":25}', '{"expMin":150,"expMax":250,"stonesMin":50,"stonesMax":100}', '[{"itemId":"dan_hp_2","tile":0.50},{"itemId":"dan_mp_2","tile":0.50},{"itemId":"kiem_sat","tile":0.15},{"itemId":"truong_truc","tile":0.15},{"itemId":"ao_da","tile":0.15},{"itemId":"nhan_sam","tile":0.30}]'),
+('hoa_diem_son', 'Hỏa Diệm Sơn 🔥', 19, 'Hóa Thần', '{"ten":"Hỏa Viêm Yêu Linh (Kỳ Lân Lửa)","hp":2800,"vatCong":120,"phapCong":150,"vatPhong":80,"phapPhong":100}', '{"expMin":800,"expMax":1200,"stonesMin":200,"stonesMax":400}', '[{"itemId":"dan_hp_2","tile":0.60},{"itemId":"dan_mp_2","tile":0.60},{"itemId":"kiem_huyen_thiet","tile":0.10},{"itemId":"phap_bao_huyen_mon","tile":0.10},{"itemId":"giap_huyen_thiet","tile":0.10}]');
 
 -- 3.3 Chèn dữ liệu balo và kỹ năng mẫu cho một người chơi cụ thể (Ví dụ: ID người dùng '1234567890' - nếu tồn tại trong players)
 -- INSERT OR IGNORE INTO inventory (user_id, item_id, so_luong, trang_bi, nang_cap_sao) VALUES 

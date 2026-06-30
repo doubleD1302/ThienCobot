@@ -13,6 +13,7 @@ const { Item } = await import('./models/Item.js');
 const { Inventory } = await import('./models/Inventory.js');
 const { Skill } = await import('./models/Skill.js');
 const { PlayerSkill } = await import('./models/PlayerSkill.js');
+const { ThienDaoLuc } = await import('./models/ThienDaoLuc.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {

@@ -152,6 +152,32 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 
         await tuSi.save();
 
+        try {
+          const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
+          const { TuSi: ModelTuSi } = await import('../models/TuSi.js');
+          const { Op } = await import('sequelize');
+          const count = await ModelTuSi.count({
+            where: {
+              capDo: { [Op.gte]: tuSi.capDo },
+              idNguoiDung: { [Op.ne]: tuSi.idNguoiDung }
+            }
+          });
+
+          if (count === 0) {
+            await ThienDaoLuc.ghiLuc(
+              `⚡ **Thiên Địa Chấn Động**: Tu sĩ **${tuSi.ten}** vượt qua thiên kiếp, thành công trở thành **người đầu tiên** đột phá cảnh giới **${newRealmName} (${newStage})**!`,
+              'Realm'
+            );
+          } else if (isMajor) {
+            await ThienDaoLuc.ghiLuc(
+              `🌀 **Đại Phá Cảnh Giới**: Tu sĩ **${tuSi.ten}** nghịch thiên cải mệnh, thăng cấp đại cảnh giới lên **${newRealmName} (${newStage})**!`,
+              'Realm'
+            );
+          }
+        } catch (err) {
+          console.error('Lỗi khi ghi Thiên Đạo Lục đột phá thành công:', err);
+        }
+
         const congratsEmbed = BoTaoEmbed.thanhCong(
           "🎉 Đột Phá Thành Công! 🎉",
           `Đạo hữu **${tuSi.ten}** đã nghịch thiên thăng cấp thành công!\n` +
@@ -179,6 +205,18 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         const expiresAt = new Date(Date.now() + config.DAO_NIEN_SECONDS * 1000);
         await this.datThoiGianCho(tuSi.idNguoiDung, 'breakthrough_lock', expiresAt);
         await tuSi.save();
+
+        try {
+          const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
+          if (isMajor) {
+            await ThienDaoLuc.ghiLuc(
+              `💥 **Thiên Kiếp Giáng Thế**: Đạo hữu **${tuSi.ten}** khi đột phá đại cảnh giới **${currentRealmName}** đã bị tâm ma cắn trả, đứt gãy kinh mạch, căn cơ bị tổn hao nặng nề!`,
+              'BreakthroughFail'
+            );
+          }
+        } catch (err) {
+          console.error('Lỗi khi ghi Thiên Đạo Lục đột phá thất bại:', err);
+        }
 
         const statMap = {
           hp: "Máu tối đa (Max HP)",

@@ -6,12 +6,15 @@ import { danhSachLenhTuLuyen } from './controllers/BoDieuKhienTuLuyen.js';
 import { danhSachLenhBicanh } from './controllers/BoDieuKhienBicanh.js';
 import { danhSachLenhVatPham } from './controllers/BoDieuKhienVatPham.js';
 import { danhSachLenhKyNang } from './controllers/BoDieuKhienKyNang.js';
+import { danhSachLenhThienDaoLuc } from './controllers/BoDieuKhienThienDaoLuc.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/Item.js';
 import './models/Inventory.js';
 import './models/Skill.js';
 import './models/PlayerSkill.js';
+import './models/Dungeon.js';
+import './models/ThienDaoLuc.js';
 
 // Khởi tạo Discord Client với các Intents cần thiết
 const client = new Client({
@@ -30,7 +33,8 @@ const tatCaLenh = [
   ...danhSachLenhTuLuyen,
   ...danhSachLenhBicanh,
   ...danhSachLenhVatPham,
-  ...danhSachLenhKyNang
+  ...danhSachLenhKyNang,
+  ...danhSachLenhThienDaoLuc
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
@@ -294,6 +298,25 @@ async function start() {
         }));
         await Skill.bulkCreate(seedSkills);
         console.log(`Đã tạo thành công ${seedSkills.length} kỹ năng mẫu.`);
+      }
+
+      // Khởi tạo dữ liệu mẫu cho bảng dungeons
+      const { Dungeon } = await import('./models/Dungeon.js');
+      const dungeonsCount = await Dungeon.count();
+      if (dungeonsCount === 0) {
+        console.log('Khởi tạo dữ liệu mẫu cho bảng dungeons...');
+        const config = await import('./config.js');
+        const seedDungeons = config.DUNGEONS.map(dg => ({
+          id: dg.id,
+          ten: dg.ten,
+          capDoYeuCau: dg.capDoYeuCau,
+          canhGioiYeuCauText: dg.canhGioiYeuCauText,
+          quaiVatJson: JSON.stringify(dg.quaiVat),
+          thuongJson: JSON.stringify(dg.thuong),
+          dropsJson: JSON.stringify(dg.drops)
+        }));
+        await Dungeon.bulkCreate(seedDungeons);
+        console.log(`Đã tạo thành công ${seedDungeons.length} bí cảnh phụ bản mẫu.`);
       }
     } catch (err) {
       console.error('Không thể tự động sửa đổi schema hoặc dọn dẹp bản ghi rác/seeding:', err);

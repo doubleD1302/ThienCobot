@@ -40,13 +40,17 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
       const subcommand = interaction.options.getSubcommand();
 
       if (subcommand === 'danhsach') {
+        const { Dungeon } = await import('../models/Dungeon.js');
+        const dungeons = await Dungeon.findAll();
+        
         const embedList = BoTaoEmbed.thongTin(
           "🗻 Danh Sách Bí Cảnh Hoang Cổ",
-          config.DUNGEONS.map(dg => {
+          dungeons.map(dg => {
             const monster = dg.quaiVat;
+            const reward = dg.thuong;
             return `• **${dg.ten}** (Cấp yêu cầu: \`${dg.capDoYeuCau}\` - Cảnh giới: **${dg.canhGioiYeuCauText}**)\n` +
                    `  *Yêu thú gác cổng*: **${monster.ten}** (HP: \`${monster.hp}\` | Công: \`${monster.vatCong || monster.phapCong}\`)\n` +
-                   `  *Chiến lợi phẩm*: Exp (\`${dg.thuong.expMin} - ${dg.thuong.expMax}\`), Linh thạch (\`${dg.thuong.stonesMin} - ${dg.thuong.stonesMax}\`), và tỷ lệ rớt trang bị/linh dược.\n` +
+                   `  *Chiến lợi phẩm*: Exp (\`${reward.expMin} - ${reward.expMax}\`), Linh thạch (\`${reward.stonesMin} - ${reward.stonesMax}\`), và tỷ lệ rớt trang bị/linh dược.\n` +
                    `  *Mã ID*: \`${dg.id}\`\n`;
           }).join('\n')
         );
@@ -55,7 +59,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
       if (subcommand === 'khieu_chien') {
         const dungeonId = interaction.options.getString('bicanh_id');
-        const dungeon = config.DUNGEONS.find(dg => dg.id === dungeonId);
+        const { Dungeon } = await import('../models/Dungeon.js');
+        const dungeon = await Dungeon.findByPk(dungeonId);
 
         if (!dungeon) {
           return await interaction.editReply({
@@ -186,6 +191,18 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         }
 
         await tuSi.save();
+
+        if (droppedItem && (droppedItem.doHiem === 'Hiếm' || droppedItem.doHiem === 'Cực hiếm' || droppedItem.doHiem === 'Huyền thoại')) {
+          try {
+            const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
+            await ThienDaoLuc.ghiLuc(
+              `🎁 **Cơ Duyên Xảo Hợp**: Đạo hữu **${tuSi.ten}** khám phá **${dungeon.ten}** may mắn phát hiện đại cơ duyên, nhặt được bảo vật **${droppedItem.ten}** (\`${droppedItem.doHiem}\`)!`,
+              'Drop'
+            );
+          } catch (err) {
+            console.error('Lỗi khi ghi Thiên Đạo Lục nhặt đồ hiếm:', err);
+          }
+        }
 
         // Thiết lập cooldown khiêu chiến phụ bản mới (3 phút = 180 giây)
         const expiresAt = new Date(Date.now() + 180 * 1000);

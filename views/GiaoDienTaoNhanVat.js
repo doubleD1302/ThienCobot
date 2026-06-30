@@ -201,6 +201,16 @@ export class GiaoDienTaoNhanVat {
 
           await tuSi.save();
 
+          try {
+            const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
+            await ThienDaoLuc.ghiLuc(
+              `🌱 **Linh Căn thức tỉnh**: Tu sĩ **${this.name}** (\`${this.rolledLinhCan}\`) vừa chọn hướng tu **${this.path === 'The Tu' ? 'Thể Tu' : 'Pháp Tu'}** và chính thức gia nhập Tiên Giới!`,
+              'Join'
+            );
+          } catch (err) {
+            console.error('Lỗi khi ghi Thiên Đạo Lục cho Tân Thủ:', err);
+          }
+
           const pathName = config.HUONG_DI[this.path]?.name || '';
           await i.editReply({
             embeds: [
