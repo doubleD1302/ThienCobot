@@ -160,7 +160,7 @@ async function start() {
   try {
     console.log('Khởi tạo cơ sở dữ liệu...');
     await sequelize.authenticate();
-    await sequelize.sync();
+    await sequelize.sync({ alter: true });
     console.log('Cơ sở dữ liệu được đồng bộ hóa thành công.');
 
     // Khắc phục lỗi schema cũ (autoIncrement trên primary key) & dọn dẹp các bản ghi rác
