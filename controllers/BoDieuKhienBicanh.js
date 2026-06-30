@@ -128,7 +128,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         }
         const { Pet } = await import('../models/Pet.js');
         const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
-        const stats = tuSi.layChiSo(equippedInv, activePet);
+        const stats = tuSi.layChiSo(equippedItems, activePet);
 
         // Yêu cầu HP tối thiểu
         if (tuSi.hp <= Math.floor(stats.max_hp * 0.10)) {
