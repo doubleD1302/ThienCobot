@@ -32,7 +32,7 @@ function layRealmNameTuCapDo(capDo) {
 }
 
 // Helper: Phân bổ phần thưởng khi boss bị tiêu diệt
-async function phanBoPhanThuongBoss(client, boss, guild) {
+async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
   const dealers = boss.damageDealers;
   const ids = Object.keys(dealers);
   if (ids.length === 0) return 'Không có tu sĩ nào tham gia khiêu chiến.';
@@ -67,8 +67,34 @@ async function phanBoPhanThuongBoss(client, boss, guild) {
     return fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
   };
 
-  let report = `⚔️ **Bảng Vàng Tiêu Diệt Cự Thú — ${boss.ten}**\n\n`;
   const { TuSi } = await import('../models/TuSi.js');
+
+  // Trao phần thưởng đặc biệt cho người kích sát (Last Hitter)
+  let lastHitterMsg = '';
+  if (lastHitterId) {
+    const lhTuSi = await TuSi.findOne({ where: { idNguoiDung: lastHitterId } });
+    if (lhTuSi) {
+      const extraStones = boss.level * 10000;
+      lhTuSi.linhThach = Math.min(2_000_000_000, lhTuSi.linhThach + extraStones);
+      
+      const gift = getGiftItem();
+      let giftName = '';
+      if (gift) {
+        await Inventory.create({
+          idNguoiDung: lastHitterId,
+          itemId:      gift.id,
+          soLuong:     1,
+          trangBi:     false
+        });
+        giftName = ` & nhận **${gift.ten}** (${gift.doHiem})`;
+      }
+      
+      await lhTuSi.save();
+      lastHitterMsg = `🏆 **Người Kích Sát**: <@${lastHitterId}> nhận thêm \`+${extraStones.toLocaleString()}\` 🪙 Linh thạch${giftName}!\n\n`;
+    }
+  }
+
+  let report = lastHitterMsg + `⚔️ **Bảng Vàng Tiêu Diệt Cự Thú — ${boss.ten}**\n\n`;
 
   for (let index = 0; index < sorted.length; index++) {
     const entry = sorted[index];
@@ -504,34 +530,44 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         boss.active = false;
         await boss.save();
 
+        const lastHitterId = tuSi.idNguoiDung;
+
         // Tiến hành phân bổ phần thưởng
-        const report = await phanBoPhanThuongBoss(interaction.client, boss, interaction.guild);
+        const report = await phanBoPhanThuongBoss(interaction.client, boss, interaction.guild, lastHitterId);
 
         // Phát thông báo thắng cuộc vào kênh chung
         const channel = await interaction.client.channels.fetch(boss.channelId).catch(() => null);
         if (channel) {
           const finishedEmbed = new EmbedBuilder()
-            .setTitle(`🎉 CHIẾN THẮNG: Đã Tiêu Diệt ${boss.ten}!`)
+            .setTitle(`🎉 THIÊN ĐẠO CHẤN ĐỘNG: TIÊU DIỆT ${boss.ten}!`)
             .setColor(0x2ecc71)
             .setDescription(
+              `✨ **Thiên Đạo hiển hiện** ✨\n` +
               `Cự thú thế giới đã gục ngã dưới sự đồng lòng hiệp lực của các vị đồng đạo tông môn!\n\n` +
               report
             )
             .setTimestamp();
 
-          // Sửa tin nhắn thông báo gốc
+          // Sửa tin nhắn thông báo gốc (để dọn dẹp các nút bấm)
           if (boss.messageId) {
             const originalMsg = await channel.messages.fetch(boss.messageId).catch(() => null);
             if (originalMsg) {
-              await originalMsg.edit({ embeds: [finishedEmbed], components: [] });
+              await originalMsg.edit({
+                embeds: [new EmbedBuilder().setTitle(`🎉 ${boss.ten} Đã Bị Tiêu Diệt!`).setColor(0x2ecc71).setDescription(`Cự thú đã bị tiêu diệt thành công bởi các vị đạo hữu! Xem chi tiết ở tin nhắn mới nhất.`)],
+                components: []
+              });
             }
-          } else {
-            await channel.send({ embeds: [finishedEmbed] });
           }
+
+          // Gửi tin nhắn mới tinh đính kèm tag @everyone để thông báo cho toàn máy chủ
+          await channel.send({
+            content: '@everyone 📢 **THIÊN ĐẠO THÔNG BÁO: CỰ THÚ ĐÃ BỊ HẠ GỤC!**',
+            embeds: [finishedEmbed]
+          });
         }
 
         return await interaction.editReply({
-          embeds: [BoTaoEmbed.thanhCong('⚔️ Đại Thắng Cự Thú!', `Đạo hữu gây sát thương quyết định tiêu diệt **${boss.ten}**!\nNhận thưởng toàn Server đã được trao.`)]
+          embeds: [BoTaoEmbed.thanhCong('⚔️ Đại Thắng Cự Thú!', `Đạo hữu gây sát thương quyết định tiêu diệt **${boss.ten}**!\nNhận thưởng kích sát đặc biệt và phần quà toàn Server đã được trao.`)]
         });
       }
 
