@@ -3,7 +3,8 @@ import {
   ActionRowBuilder,
   StringSelectMenuBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  EmbedBuilder
 } from 'discord.js';
 
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
@@ -15,6 +16,46 @@ import { Item } from '../models/Item.js';
 const EQUIP_TYPES  = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'];
 // Loại item nào có thể dùng (tiêu hao)
 const USABLE_TYPES = ['Đan dược'];
+
+/**
+ * Giải mã giá trị option toolbar thành object { invId, itemId, loai }.
+ * Format: "<invId>|<itemId>|<loaiIndex>"
+ * Dùng | và index số nguyên để tránh vấn đề với tiếng Việt trong split.
+ */
+const ALL_TYPES = [...EQUIP_TYPES, ...USABLE_TYPES];
+
+function encodeToolbarValue(invId, itemId, loai) {
+  const loaiIdx = ALL_TYPES.indexOf(loai);
+  return `${invId}|${itemId}|${loaiIdx}`;
+}
+
+function decodeToolbarValue(val) {
+  if (!val) return null;
+  const parts = val.split('|');
+  if (parts.length < 3) return null;
+  const [invIdStr, itemId, loaiIdxStr] = parts;
+  const loaiIdx = parseInt(loaiIdxStr, 10);
+  const loai = ALL_TYPES[loaiIdx] ?? null;
+  return { invId: parseInt(invIdStr, 10), itemId, loai };
+}
+
+// ── Helper: reload inventory list ────────────────────────────────────────────
+async function reloadItemsList(idNguoiDung) {
+  const freshInvList = await Inventory.findAll({ where: { idNguoiDung } });
+  const result = [];
+  for (const inv of freshInvList) {
+    const d = await Item.findByPk(inv.itemId);
+    if (d) result.push({
+      invId:         inv.id,
+      item:          d,
+      soLuong:       inv.soLuong,
+      trangBi:       inv.trangBi,
+      nangCapSao:    inv.nangCapSao,
+      dongChiSoJson: inv.dongChiSoJson
+    });
+  }
+  return result;
+}
 
 class BoDieuKhienVatPham extends BoDieuKhienGoc {
   constructor() {
@@ -56,6 +97,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
               .setRequired(true)
           )
       ),
+
     execute: async (interaction) => {
       await interaction.deferReply();
       const tuSi = await this.layTuSi(interaction.user.id);
@@ -83,38 +125,18 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       // ═══════════════════════════════════════════════════════════════
       if (subcommand === 'xem') {
         // 1. Load toàn bộ inventory
-        const invList = await Inventory.findAll({
-          where: { idNguoiDung: tuSi.idNguoiDung }
-        });
-
-        const itemsList = [];
-        for (const inv of invList) {
-          const itemDetail = await Item.findByPk(inv.itemId);
-          if (itemDetail) {
-            itemsList.push({
-              invId:         inv.id,
-              item:          itemDetail,
-              soLuong:       inv.soLuong,
-              trangBi:       inv.trangBi,
-              nangCapSao:    inv.nangCapSao,
-              dongChiSoJson: inv.dongChiSoJson
-            });
-          }
-        }
-
-        const sheets = BoTaoEmbed.baloSheets(tuSi, itemsList);
+        const itemsList = await reloadItemsList(tuSi.idNguoiDung);
+        const sheets    = BoTaoEmbed.baloSheets(tuSi, itemsList);
 
         // Trạng thái UI
-        let sheetIdx    = 0;   // tab sheet hiện tại
-        let pageIdx     = 0;   // trang trong sheet
-        let showToolbar = false; // đang hiển thị toolbar hay không
-        let selectedItemId = null; // item đang được chọn trong toolbar
+        let sheetIdx       = 0;     // tab sheet hiện tại
+        let pageIdx        = 0;     // trang trong sheet
+        let showToolbar    = false;  // đang hiển thị toolbar hay không
+        let selectedVal    = null;   // encoded toolbar value hiện tại
 
         // ── Helpers xây component rows ────────────────────────────────
 
-        /**
-         * Row 1: Select menu chọn sheet (tab)
-         */
+        /** Row 1: Select menu chọn sheet (tab) */
         const buildSheetSelectRow = (si, disabled = false) =>
           new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
@@ -130,20 +152,18 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
               })))
           );
 
-        /**
-         * Row 2: Nút ◀ Trang trước | Trang sau ▶ | 🛠️ Công Cụ | ❌ Đóng
-         */
+        /** Row 2: Nút điều hướng + Công Cụ + Đóng */
         const buildControlRow = (si, pi, tbShowing, disabled = false) => {
           const totalPages = sheets[si].pages.length;
           return new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId('balo_prev')
-              .setLabel('◀')
+              .setLabel('◀ Trang trước')
               .setStyle(ButtonStyle.Secondary)
               .setDisabled(disabled || pi === 0),
             new ButtonBuilder()
               .setCustomId('balo_next')
-              .setLabel('▶')
+              .setLabel('Trang sau ▶')
               .setStyle(ButtonStyle.Secondary)
               .setDisabled(disabled || pi >= totalPages - 1),
             new ButtonBuilder()
@@ -160,11 +180,12 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         };
 
         /**
-         * Row 3 (tuỳ chọn): Select menu chọn item trong toolbar
-         * Chỉ hiện ra khi showToolbar === true
-         * Lọc: item có thể dùng hoặc trang bị (chưa mặc, hoặc đan dược số lượng > 0)
+         * Row 3: Dropdown chọn item khả dụng trong toolbar.
+         * - Đan dược (số lượng > 0) → có thể Sử Dụng
+         * - Trang bị chưa mặc → có thể Trang Bị
+         * Mỗi option dùng invId làm key độc nhất (kể cả 2 Kiếm Gỗ trùng tên).
          */
-        const buildToolbarSelectRow = () => {
+        const buildToolbarSelectRow = (curVal) => {
           const usableItems = itemsList.filter(obj =>
             USABLE_TYPES.includes(obj.item.loai) && obj.soLuong > 0
           );
@@ -174,42 +195,46 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
           const khaDung = [...usableItems, ...equipItems];
 
           if (khaDung.length === 0) {
-            // Vẫn cần trả về row nhưng hiển thị disabled
             return new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId('balo_item_select')
-                .setPlaceholder('⚠️ Không có item khả dụng')
+                .setPlaceholder('⚠️ Không có vật phẩm khả dụng')
                 .setDisabled(true)
-                .addOptions([{ label: '(Trống)', value: '__empty__' }])
+                .addOptions([{ label: '(Kho trống)', value: '__empty__' }])
             );
           }
 
-          // Giới hạn 25 options (Discord max)
+          // Discord giới hạn tối đa 25 options
           const limited = khaDung.slice(0, 25);
           return new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
               .setCustomId('balo_item_select')
-              .setPlaceholder('🔍 Chọn item muốn dùng/trang bị...')
+              .setPlaceholder('🔍 Chọn vật phẩm muốn dùng/trang bị...')
               .addOptions(limited.map(obj => {
                 const isEquipType = EQUIP_TYPES.includes(obj.item.loai);
+                const encodedVal  = encodeToolbarValue(obj.invId, obj.item.id, obj.item.loai);
                 return {
                   label:       obj.item.ten.slice(0, 100),
-                  value:       `${obj.invId}::${obj.item.id}::${obj.item.loai}`,
+                  value:       encodedVal,
                   emoji:       isEquipType ? '🛡️' : '💊',
-                  description: `${obj.item.loai} | x${obj.soLuong} | ID: ${obj.item.id}`.slice(0, 100)
+                  description: `${obj.item.loai} | x${obj.soLuong} | #${obj.invId}`.slice(0, 100),
+                  default:     encodedVal === curVal
                 };
               }))
           );
         };
 
         /**
-         * Row 4 (tuỳ chọn): Nút Dùng / Trang Bị / Tháo
-         * Chỉ hiện khi selectedItemId không null
+         * Row 4: Nút hành động (Trang Bị / Sử Dụng / Bỏ Chọn).
+         * Chỉ hiện khi người dùng đã chọn item trong toolbar.
          */
-        const buildActionRow = (selValue) => {
-          if (!selValue) return null;
-          const [, , loai] = selValue.split('::');
-          const isEquip = EQUIP_TYPES.includes(loai);
+        const buildActionRow = (curVal) => {
+          if (!curVal) return null;
+          const decoded = decodeToolbarValue(curVal);
+          if (!decoded) return null;
+
+          const { loai } = decoded;
+          const isEquip  = EQUIP_TYPES.includes(loai);
           const isUsable = USABLE_TYPES.includes(loai);
 
           const components = [];
@@ -238,145 +263,142 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
           return new ActionRowBuilder().addComponents(components);
         };
 
-        /**
-         * Gom tất cả rows lại — Discord tối đa 5 ActionRow
-         */
-        const buildAllComponents = (si, pi, tbShowing, selValue, disabled = false) => {
+        /** Tổng hợp tất cả component rows (tối đa 5 theo giới hạn Discord) */
+        const buildAllComponents = (si, pi, tbShowing, curVal, disabled = false) => {
           const rows = [];
-          rows.push(buildSheetSelectRow(si, disabled));        // row 1: sheet tabs
-          rows.push(buildControlRow(si, pi, tbShowing, disabled)); // row 2: nav + toolbar btn + close
+          rows.push(buildSheetSelectRow(si, disabled));              // row 1: tabs
+          rows.push(buildControlRow(si, pi, tbShowing, disabled));   // row 2: nav + công cụ + đóng
           if (tbShowing && !disabled) {
-            rows.push(buildToolbarSelectRow());                // row 3: item select
-            const actionRow = buildActionRow(selValue);
-            if (actionRow) rows.push(actionRow);              // row 4: dùng/trang bị
+            rows.push(buildToolbarSelectRow(curVal));                // row 3: item select
+            const actionRow = buildActionRow(curVal);
+            if (actionRow) rows.push(actionRow);                    // row 4: hành động
           }
           return rows;
         };
 
         const currentEmbed = () => sheets[sheetIdx].pages[pageIdx];
 
-        // ── Gửi reply ban đầu ─────────────────────────────────────────
+        // ── Gửi reply ban đầu ──────────────────────────────────────────
         const msg = await interaction.editReply({
           embeds:     [currentEmbed()],
-          components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedItemId)
+          components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedVal)
         });
 
-        // ── Collector 3 phút, chỉ người gọi ──────────────────────────
+        // ── Collector 3 phút, chỉ người gọi lệnh ──────────────────────
         const collector = msg.createMessageComponentCollector({
           filter: i => i.user.id === interaction.user.id,
           time:   180_000
         });
 
+        /** Helper: reload inventory & rebuild sheets sau mỗi hành động */
+        const refreshInventory = async () => {
+          const fresh = await reloadItemsList(tuSi.idNguoiDung);
+          itemsList.length = 0;
+          itemsList.push(...fresh);
+          const newSheets = BoTaoEmbed.baloSheets(tuSi, itemsList);
+          sheets.length = 0;
+          sheets.push(...newSheets);
+          sheetIdx = Math.min(sheetIdx, sheets.length - 1);
+          pageIdx  = 0;
+          selectedVal = null;
+        };
+
         collector.on('collect', async i => {
           await i.deferUpdate();
 
-          // ── Điều hướng sheet ──────────────────────────────────────
-          if (i.customId === 'balo_sheet_select') {
-            const val = i.values[0];
-            sheetIdx = sheets.findIndex(s => s.value === val);
-            pageIdx  = 0;
-            selectedItemId = null;
+          switch (i.customId) {
 
-          } else if (i.customId === 'balo_prev') {
-            pageIdx = Math.max(0, pageIdx - 1);
+            // ── Điều hướng sheet (tab) ──────────────────────────────────
+            case 'balo_sheet_select': {
+              sheetIdx    = sheets.findIndex(s => s.value === i.values[0]);
+              pageIdx     = 0;
+              selectedVal = null;
+              break;
+            }
+            case 'balo_prev': {
+              pageIdx = Math.max(0, pageIdx - 1);
+              break;
+            }
+            case 'balo_next': {
+              pageIdx = Math.min(sheets[sheetIdx].pages.length - 1, pageIdx + 1);
+              break;
+            }
 
-          } else if (i.customId === 'balo_next') {
-            pageIdx = Math.min(sheets[sheetIdx].pages.length - 1, pageIdx + 1);
+            // ── Hiện/ẩn toolbar ─────────────────────────────────────────
+            case 'balo_toolbar_toggle': {
+              showToolbar = !showToolbar;
+              selectedVal = null;
+              break;
+            }
 
-          // ── Toolbar toggle ─────────────────────────────────────────
-          } else if (i.customId === 'balo_toolbar_toggle') {
-            showToolbar    = !showToolbar;
-            selectedItemId = null;
+            // ── Chọn item trong toolbar ──────────────────────────────────
+            case 'balo_item_select': {
+              selectedVal = i.values[0];
+              break;
+            }
 
-          // ── Chọn item trong toolbar ───────────────────────────────
-          } else if (i.customId === 'balo_item_select') {
-            selectedItemId = i.values[0];
+            // ── Bỏ chọn item ────────────────────────────────────────────
+            case 'balo_action_cancel': {
+              selectedVal = null;
+              break;
+            }
 
-          // ── Bỏ chọn item ─────────────────────────────────────────
-          } else if (i.customId === 'balo_action_cancel') {
-            selectedItemId = null;
-
-          // ── Đóng balo ────────────────────────────────────────────
-          } else if (i.customId === 'balo_close') {
-            collector.stop('closed');
-            return;
-
-          // ── Trang bị item ─────────────────────────────────────────
-          } else if (i.customId === 'balo_action_equip' && selectedItemId) {
-            const [invIdStr, itemId] = selectedItemId.split('::');
-            const result = await this._xuLyTrangBi(tuSi, itemId, loadEquipped);
-            if (result.ok) {
-              // Reload inventory sau hành động
-              const freshInvList = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
-              itemsList.length = 0;
-              for (const inv of freshInvList) {
-                const d = await Item.findByPk(inv.itemId);
-                if (d) itemsList.push({ invId: inv.id, item: d, soLuong: inv.soLuong, trangBi: inv.trangBi, nangCapSao: inv.nangCapSao, dongChiSoJson: inv.dongChiSoJson });
-              }
-              sheets.length = 0;
-              sheets.push(...BoTaoEmbed.baloSheets(tuSi, itemsList));
-              sheetIdx = Math.min(sheetIdx, sheets.length - 1);
-              pageIdx  = 0;
-              selectedItemId = null;
-              await i.editReply({
-                embeds:     [BoTaoEmbed.thanhCong('⚔️ Trang Bị Thành Công', result.msg), currentEmbed()],
-                components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedItemId)
-              });
+            // ── Đóng balo ───────────────────────────────────────────────
+            case 'balo_close': {
+              collector.stop('closed');
               return;
-            } else {
+            }
+
+            // ── Trang bị item (dùng invId để định danh chính xác) ────────
+            case 'balo_action_equip': {
+              if (!selectedVal) break;
+              const decoded = decodeToolbarValue(selectedVal);
+              if (!decoded) break;
+
+              const result = await this._xuLyTrangBiByInvId(tuSi, decoded.invId, decoded.itemId, loadEquipped);
+              await refreshInventory();
               await i.editReply({
-                embeds:     [BoTaoEmbed.loi(result.msg), currentEmbed()],
-                components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedItemId)
+                embeds:     result.ok
+                  ? [BoTaoEmbed.thanhCong('⚔️ Trang Bị Thành Công', result.msg), currentEmbed()]
+                  : [BoTaoEmbed.loi(result.msg), currentEmbed()],
+                components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedVal)
               });
               return;
             }
 
-          // ── Sử dụng item ──────────────────────────────────────────
-          } else if (i.customId === 'balo_action_use' && selectedItemId) {
-            const [, itemId] = selectedItemId.split('::');
-            const result = await this._xuLyDungItem(tuSi, itemId, loadEquipped);
-            if (result.ok) {
-              const freshInvList = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
-              itemsList.length = 0;
-              for (const inv of freshInvList) {
-                const d = await Item.findByPk(inv.itemId);
-                if (d) itemsList.push({ invId: inv.id, item: d, soLuong: inv.soLuong, trangBi: inv.trangBi, nangCapSao: inv.nangCapSao, dongChiSoJson: inv.dongChiSoJson });
-              }
-              sheets.length = 0;
-              sheets.push(...BoTaoEmbed.baloSheets(tuSi, itemsList));
-              sheetIdx = Math.min(sheetIdx, sheets.length - 1);
-              pageIdx  = 0;
-              selectedItemId = null;
+            // ── Sử dụng đan dược (dùng invId để định danh chính xác) ─────
+            case 'balo_action_use': {
+              if (!selectedVal) break;
+              const decoded = decodeToolbarValue(selectedVal);
+              if (!decoded) break;
+
+              const result = await this._xuLyDungItemByInvId(tuSi, decoded.invId, decoded.itemId, loadEquipped);
+              await refreshInventory();
               await i.editReply({
-                embeds:     [BoTaoEmbed.thanhCong('💊 Sử Dụng Thành Công', result.msg), currentEmbed()],
-                components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedItemId)
-              });
-              return;
-            } else {
-              await i.editReply({
-                embeds:     [BoTaoEmbed.loi(result.msg), currentEmbed()],
-                components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedItemId)
+                embeds:     result.ok
+                  ? [BoTaoEmbed.thanhCong('💊 Sử Dụng Thành Công', result.msg), currentEmbed()]
+                  : [BoTaoEmbed.loi(result.msg), currentEmbed()],
+                components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedVal)
               });
               return;
             }
+
+            default: break;
           }
 
-          // ── Cập nhật UI thông thường ──────────────────────────────
+          // Cập nhật UI thông thường (không phải action)
           await i.editReply({
             embeds:     [currentEmbed()],
-            components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedItemId)
+            components: buildAllComponents(sheetIdx, pageIdx, showToolbar, selectedVal)
           });
         });
 
         collector.on('end', async (_, reason) => {
           try {
-            const isClosed = reason === 'closed';
-            const disabledComponents = buildAllComponents(sheetIdx, pageIdx, false, null, true);
-            const footerEmbed = sheets[sheetIdx].pages[pageIdx];
-            if (isClosed) {
+            if (reason === 'closed') {
               await interaction.editReply({
                 embeds: [
-                  new (await import('discord.js')).EmbedBuilder()
+                  new EmbedBuilder()
                     .setTitle('🎒 Túi Trữ Vật — Đã Đóng')
                     .setDescription('Ngươi đã cất túi đồ vào nơi an toàn.')
                     .setColor(0x7f8c8d)
@@ -386,7 +408,10 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
                 components: []
               });
             } else {
-              await interaction.editReply({ components: disabledComponents });
+              // Hết giờ — disable tất cả component
+              await interaction.editReply({
+                components: buildAllComponents(sheetIdx, pageIdx, false, null, true)
+              });
             }
           } catch (_) { /* message đã bị xoá */ }
         });
@@ -395,12 +420,12 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       }
 
       // ═══════════════════════════════════════════════════════════════
-      //  SUBCOMMAND: dung (giữ lại gọi trực tiếp qua slash command)
+      //  SUBCOMMAND: dung — gọi trực tiếp qua slash command
       // ═══════════════════════════════════════════════════════════════
       const itemId = interaction.options.getString('item_id');
 
       if (subcommand === 'dung') {
-        const result = await this._xuLyDungItem(tuSi, itemId, loadEquipped);
+        const result = await this._xuLyDungItemByItemId(tuSi, itemId, loadEquipped);
         return await interaction.editReply({
           embeds: [result.ok
             ? BoTaoEmbed.thanhCong('💊 Sử Dụng Linh Đan Thành Công', result.msg)
@@ -409,10 +434,10 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       }
 
       // ═══════════════════════════════════════════════════════════════
-      //  SUBCOMMAND: trangbi
+      //  SUBCOMMAND: trangbi — gọi trực tiếp qua slash command
       // ═══════════════════════════════════════════════════════════════
       if (subcommand === 'trangbi') {
-        const result = await this._xuLyTrangBi(tuSi, itemId, loadEquipped);
+        const result = await this._xuLyTrangBiByItemId(tuSi, itemId, loadEquipped);
         return await interaction.editReply({
           embeds: [result.ok
             ? BoTaoEmbed.thanhCong('🛡️ Khoác Lên Trang Bị', result.msg)
@@ -451,34 +476,53 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
   };
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  Private helpers — dùng chung cho cả slash command và toolbar action
+  //  PRIVATE HELPERS
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Xử lý logic sử dụng đan dược.
-   * @returns {{ ok: boolean, msg: string }}
+   * Sử dụng đan dược qua TOOLBAR — xác định chính xác bằng invId.
+   * Đảm bảo không nhầm lẫn giữa 2 stack đan dược cùng loại (nếu có).
    */
-  async _xuLyDungItem(tuSi, itemId, loadEquipped) {
+  async _xuLyDungItemByInvId(tuSi, invId, itemId, loadEquipped) {
     const inv = await Inventory.findOne({
-      where: { idNguoiDung: tuSi.idNguoiDung, itemId: itemId }
+      where: { id: invId, idNguoiDung: tuSi.idNguoiDung }
     });
+    if (!inv || inv.soLuong <= 0) {
+      return { ok: false, msg: `Không tìm thấy vật phẩm #${invId} trong balo của ngươi.` };
+    }
+    return this._thucHienDungItem(tuSi, inv, itemId, loadEquipped);
+  }
 
+  /**
+   * Sử dụng đan dược qua SLASH COMMAND — tìm bất kỳ stack nào của itemId.
+   */
+  async _xuLyDungItemByItemId(tuSi, itemId, loadEquipped) {
+    const inv = await Inventory.findOne({
+      where: { idNguoiDung: tuSi.idNguoiDung, itemId }
+    });
     if (!inv || inv.soLuong <= 0) {
       return { ok: false, msg: `Không tìm thấy đan dược nào có mã ID \`${itemId}\` trong balo.` };
     }
+    return this._thucHienDungItem(tuSi, inv, itemId, loadEquipped);
+  }
 
-    const itemDetail = await Item.findByPk(itemId);
+  /** Logic thực thi sử dụng đan dược — dùng chung cho cả 2 đường trên */
+  async _thucHienDungItem(tuSi, inv, itemId, loadEquipped) {
+    const itemDetail = await Item.findByPk(inv.itemId ?? itemId);
     if (!itemDetail || itemDetail.loai !== 'Đan dược') {
-      return { ok: false, msg: `Vật phẩm \`${itemId}\` không phải là đan dược có thể sử dụng.` };
+      return { ok: false, msg: `Vật phẩm này không phải đan dược có thể sử dụng.` };
     }
 
     if (tuSi.capDo < (itemDetail.yeuCauCanhGioi || 1)) {
       const { layThongTinCanhGioi } = await import('../config.js');
       const cgReq = layThongTinCanhGioi(itemDetail.yeuCauCanhGioi || 1);
-      return { ok: false, msg: `Cảnh giới bất túc! Vật phẩm này yêu cầu tu vi tối thiểu: **${cgReq.realmName} - ${cgReq.stageName}** (Hiện tại: **${tuSi.canhGioi}**).` };
+      return {
+        ok: false,
+        msg: `Cảnh giới bất túc! Vật phẩm này yêu cầu tu vi tối thiểu: **${cgReq.realmName} - ${cgReq.stageName}** (Hiện tại: **${tuSi.canhGioi}**).`
+      };
     }
 
-    const stats = tuSi.layChiSo(await loadEquipped());
+    const stats  = tuSi.layChiSo(await loadEquipped());
     const effect = itemDetail.chiSo;
     let recoveryMsg = '';
 
@@ -508,39 +552,57 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
   }
 
   /**
-   * Xử lý logic trang bị một item.
-   * @returns {{ ok: boolean, msg: string }}
+   * Trang bị item qua TOOLBAR — xác định chính xác bằng invId (PK inventory).
+   * Giải quyết trường hợp 2 Kiếm Gỗ cùng loại mà cần trang bị đúng cái.
    */
-  async _xuLyTrangBi(tuSi, itemId, loadEquipped) {
-    const hasIt = await Inventory.findOne({
-      where: { idNguoiDung: tuSi.idNguoiDung, itemId: itemId }
+  async _xuLyTrangBiByInvId(tuSi, invId, itemId, loadEquipped) {
+    const inv = await Inventory.findOne({
+      where: { id: invId, idNguoiDung: tuSi.idNguoiDung, trangBi: false }
     });
+    if (!inv) {
+      return { ok: false, msg: `Không tìm thấy trang bị #${invId} (hoặc nó đã được mặc rồi).` };
+    }
+    return this._thucHienTrangBi(tuSi, inv, itemId, loadEquipped);
+  }
 
+  /**
+   * Trang bị item qua SLASH COMMAND — tìm bất kỳ bản copy nào chưa mặc.
+   */
+  async _xuLyTrangBiByItemId(tuSi, itemId, loadEquipped) {
+    const hasIt = await Inventory.findOne({
+      where: { idNguoiDung: tuSi.idNguoiDung, itemId }
+    });
     if (!hasIt) {
       return { ok: false, msg: `Ngươi không sở hữu trang bị nào có mã ID \`${itemId}\` trong balo.` };
     }
 
-    let inv = await Inventory.findOne({
-      where: { idNguoiDung: tuSi.idNguoiDung, itemId: itemId, trangBi: false }
+    const inv = await Inventory.findOne({
+      where: { idNguoiDung: tuSi.idNguoiDung, itemId, trangBi: false }
     });
-
     if (!inv) {
       return { ok: false, msg: `Trang bị \`${itemId}\` đã được mặc sẵn và ngươi không còn chiếc nào khác chưa mặc.` };
     }
+    return this._thucHienTrangBi(tuSi, inv, itemId, loadEquipped);
+  }
 
-    const itemDetail = await Item.findByPk(itemId);
+  /** Logic thực thi trang bị — dùng chung cho cả 2 đường trên */
+  async _thucHienTrangBi(tuSi, inv, itemId, loadEquipped) {
+    const itemDetail = await Item.findByPk(inv.itemId ?? itemId);
     const allowedEquipTypes = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'];
     if (!itemDetail || !allowedEquipTypes.includes(itemDetail.loai)) {
-      return { ok: false, msg: `Mã \`${itemId}\` không phải là Trang bị có thể mặc.` };
+      return { ok: false, msg: `Vật phẩm này không phải Trang bị có thể mặc.` };
     }
 
     if (tuSi.capDo < (itemDetail.yeuCauCanhGioi || 1)) {
       const { layThongTinCanhGioi } = await import('../config.js');
       const cgReq = layThongTinCanhGioi(itemDetail.yeuCauCanhGioi || 1);
-      return { ok: false, msg: `Cảnh giới bất túc! Trang bị này yêu cầu tu vi tối thiểu: **${cgReq.realmName} - ${cgReq.stageName}** (Hiện tại: **${tuSi.canhGioi}**).` };
+      return {
+        ok: false,
+        msg: `Cảnh giới bất túc! Trang bị này yêu cầu tu vi tối thiểu: **${cgReq.realmName} - ${cgReq.stageName}** (Hiện tại: **${tuSi.canhGioi}**).`
+      };
     }
 
-    // Tự động kiểm tra và tháo trang bị cùng loại đang mặc
+    // Kiểm tra giới hạn ô trang bị và tự tháo cũ nếu cần
     const currentEquipped = await Inventory.findAll({
       where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
     });
@@ -559,7 +621,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         const oldEq = sameTypeEquipped[0];
         oldEq.eq.trangBi = false;
         await oldEq.eq.save();
-        extraMsg = `\n*(Đã tháo trang bị cũ: **${oldEq.detail.ten}**)*`;
+        extraMsg = `\n*(Đã tháo trang bị cũ: **${oldEq.detail.ten}** #${oldEq.eq.id})*`;
       }
     } else if (itemDetail.loai === 'Cổ Bảo Chủ Động') {
       if (sameTypeEquipped.length >= 3) {
@@ -576,7 +638,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
     return {
       ok:  true,
-      msg: `Đạo hữu **${tuSi.ten}** đã trang bị **${itemDetail.ten}** thành công!${extraMsg}`
+      msg: `Đạo hữu **${tuSi.ten}** đã trang bị **${itemDetail.ten}** (Mã vật phẩm: #${inv.id}) thành công!${extraMsg}`
     };
   }
 }
