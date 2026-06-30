@@ -308,7 +308,13 @@ export class BoTaoEmbed {
         } catch (e) {}
       }
 
-      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${statsText} | ID: \`${item.id}\``;
+      let reqText = '';
+      if (item.yeuCauCanhGioi && item.yeuCauCanhGioi > 1) {
+        const cgReq = config.layThongTinCanhGioi(item.yeuCauCanhGioi);
+        reqText = ` ⚠️ (Yêu cầu: **${cgReq.realmName}**)`;
+      }
+
+      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${statsText}${reqText} | ID: \`${item.id}\``;
 
       if (item.loai === 'Vũ khí' || item.loai === 'Giáp') {
         trangBi.push(formattedLine);
