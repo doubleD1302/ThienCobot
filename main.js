@@ -13,6 +13,7 @@ import { danhSachLenhLeaderboard } from './controllers/BoDieuKhienLeaderboard.js
 import { danhSachLenhDongPhu } from './controllers/BoDieuKhienDongPhu.js';
 import { danhSachLenhDamDao } from './controllers/BoDieuKhienDamDao.js';
 import { danhSachLenhTuongTac } from './controllers/BoDieuKhienTuongTac.js';
+import { danhSachLenhAdmin } from './controllers/BoDieuKhienAdmin.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/Item.js';
@@ -27,6 +28,7 @@ import './models/LichSuMua.js';
 import './models/Abode.js';
 import './models/GardenPlot.js';
 import './models/Pet.js';
+import './models/ChannelRestriction.js';
 
 // Khởi tạo Discord Client với các Intents cần thiết
 const client = new Client({
@@ -52,7 +54,8 @@ const tatCaLenh = [
   ...danhSachLenhLeaderboard,
   ...danhSachLenhDongPhu,
   ...danhSachLenhDamDao,
-  ...danhSachLenhTuongTac
+  ...danhSachLenhTuongTac,
+  ...danhSachLenhAdmin
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
@@ -121,19 +124,21 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
-  // ── Kiểm tra giới hạn lệnh theo kênh ────────────────────────────────────
-  const { KENH_LENH_RIENG } = await import('./config.js');
-  const channelId = interaction.channelId;
-  if (KENH_LENH_RIENG[channelId]) {
-    const allowedCommands = KENH_LENH_RIENG[channelId];
-    if (!allowedCommands.includes(interaction.commandName)) {
-      const allowedList = allowedCommands.map(c => `\`/${c}\``).join(', ');
-      return await interaction.reply({
-        content: `🚫 **Kênh này chỉ cho phép sử dụng**: ${allowedList}\nHãy đến kênh phù hợp để dùng lệnh \`/${interaction.commandName}\`.`,
-        ephemeral: true
-      });
+  // ── Kiểm tra giới hạn lệnh theo kênh (lấy từ Database) ─────────────────
+  try {
+    const { ChannelRestriction } = await import('./models/ChannelRestriction.js');
+    const restriction = await ChannelRestriction.findByPk(interaction.channelId);
+    if (restriction) {
+      const allowedCommands = restriction.allowedCommands;
+      if (!allowedCommands.includes(interaction.commandName)) {
+        const allowedList = allowedCommands.map(c => `\`/${c}\``).join(', ') || '*Không có lệnh nào*';
+        return await interaction.reply({
+          content: `🚫 **Kênh này chỉ cho phép sử dụng**: ${allowedList}\nHãy đến kênh phù hợp để dùng lệnh \`/${interaction.commandName}\`.`,
+          ephemeral: true
+        });
+      }
     }
-  }
+  } catch (_) {}
 
   try {
     await lenh.execute(interaction);
