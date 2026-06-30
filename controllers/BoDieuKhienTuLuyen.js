@@ -24,12 +24,12 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         });
       }
 
-      // 1. Nhận phần thưởng tu vi nếu đã tu luyện xong
+      // 1. Nhận phần thưởng tu vi tự động
       const { completed, exp, stones } = await this.kiemTraVaNhanTuVi(tuSi);
       if (completed) {
         const embedReward = BoTaoEmbed.thanhCong(
-          "🧘 Thiền Định Hoàn Tất",
-          `Đạo hữu đã hoàn thành thiền định!\n` +
+          "🌱 Tự Động Tu Luyện",
+          `Tu vi của đạo hữu đã tự động tích lũy thêm!\n` +
           `• **Linh lực nhận được**: \`+${exp}\` ✨\n` +
           `• **Linh thạch nhận được**: \`+${stones}\` 💎`
         );
@@ -37,14 +37,6 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
           await interaction.channel.send({ content: `<@${tuSi.idNguoiDung}>`, embeds: [embedReward] }).catch(err => console.error('Failed to send reward message:', err));
         }
       }
-
-      // 2. Lấy thời gian chờ tu luyện đang chạy
-      const thoiGianTuLuyen = await ThoiGianCho.findOne({
-        where: {
-          idNguoiDung: tuSi.idNguoiDung,
-          hanhDong: 'cultivate'
-        }
-      });
 
       let daoNien = null;
       if (interaction.guildId) {
@@ -62,276 +54,8 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       const heSoTuLuyen = tuSi.layHeSoTuLuyen();
       const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen);
 
-      const embed = BoTaoEmbed.tuVi(tuSi, thoiGianTuLuyen, daoNien, reqExp, tocDoTuLuyen);
-      
-      const payload = { embeds: [embed] };
-      
-      if (thoiGianTuLuyen) {
-        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
-        const buttonStop = new ButtonBuilder()
-          .setCustomId('dung_tu_luyen')
-          .setLabel('Dừng Tu Luyện 🛑')
-          .setStyle(ButtonStyle.Danger);
-        const row = new ActionRowBuilder().addComponents(buttonStop);
-        payload.components = [row];
-      }
-
-      const message = await interaction.editReply(payload);
-
-      // Nếu đang tu luyện, bắt đầu thu thập tương tác với nút dừng
-      if (thoiGianTuLuyen && message) {
-        const { ComponentType } = await import('discord.js');
-        const collector = message.createMessageComponentCollector({
-          componentType: ComponentType.Button,
-          time: 120000 // 2 phút
-        });
-
-        collector.on('collect', async i => {
-          if (i.user.id !== interaction.user.id) {
-            const { EmbedBuilder } = await import('discord.js');
-            return await i.reply({
-              embeds: [
-                new EmbedBuilder()
-                  .setTitle("⚠️ Thiên Cơ Bất Khả Lộ")
-                  .setDescription("Ngươi không thể dừng tu luyện hộ người khác!")
-                  .setColor(0xe74c3c)
-              ],
-              ephemeral: true
-            });
-          }
-
-          // Ngay lập tức dừng tu luyện và nhận tuvi tương ứng
-          await i.deferReply();
-
-          // Lấy lại thông tin tu sĩ mới nhất
-          const tuSiLatest = await this.layTuSi(i.user.id);
-          if (!tuSiLatest) {
-            return await i.editReply({
-              embeds: [BoTaoEmbed.loi("Không tìm thấy nhân vật của ngươi.")]
-            });
-          }
-
-          // Lấy cooldown cultivate
-          const cd = await ThoiGianCho.findOne({
-            where: {
-              idNguoiDung: tuSiLatest.idNguoiDung,
-              hanhDong: 'cultivate'
-            }
-          });
-
-          if (!cd) {
-            return await i.editReply({
-              embeds: [BoTaoEmbed.loi("Đạo hữu hiện tại không trong trạng thái tu luyện.")]
-            });
-          }
-
-          // Tính toán lượng tu vi nhận được tương ứng
-          const duLieu = cd.duLieu || {};
-          const daoNienCd = duLieu.dao_nien || 1;
-          const totalDurationSeconds = daoNienCd * config.DAO_NIEN_SECONDS;
-          const hetHanTime = new Date(cd.hetHan).getTime();
-          const startTime = hetHanTime - totalDurationSeconds * 1000;
-
-          let lastUpdate = duLieu.last_update;
-          if (!lastUpdate) {
-            lastUpdate = startTime;
-          }
-
-          const now = Date.now();
-          const actualElapsedMs = Math.min(now - lastUpdate, hetHanTime - lastUpdate);
-
-          let gainedExp = 0;
-          let gainedStones = 0;
-          let remainingDaoNien = 0;
-
-          if (actualElapsedMs > 0) {
-            const elapsedSeconds = actualElapsedMs / 1000;
-            remainingDaoNien = elapsedSeconds / config.DAO_NIEN_SECONDS;
-
-            const { CanhGioi: cgModel } = await import('../models/CanhGioi.js');
-            const cgData = await cgModel.findByPk(tuSiLatest.capDo);
-            const tocDoCoB = cgData ? cgData.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
-            const multiplier = tuSiLatest.layHeSoTuLuyen();
-            gainedExp = Math.floor(tocDoCoB * multiplier * remainingDaoNien);
-            gainedStones = Math.floor(10 * tuSiLatest.capDo * remainingDaoNien);
-
-            tuSiLatest.linhLuc += gainedExp;
-            tuSiLatest.linhThach += gainedStones;
-
-            const stats = tuSiLatest.layChiSo();
-            tuSiLatest.hp = Math.min(stats.max_hp, tuSiLatest.hp + Math.floor(stats.max_hp * 0.20 * remainingDaoNien));
-            tuSiLatest.mp = Math.min(stats.max_mp, tuSiLatest.mp + Math.floor(stats.max_mp * 0.20 * remainingDaoNien));
-          }
-
-          // Xóa cooldown và lưu tu sĩ
-          await cd.destroy();
-          await tuSiLatest.save();
-
-          // Tính toán tổng lượng tu vi đã tích tụ được từ đầu đến thời điểm dừng
-          const totalElapsedMs = Math.min(now, hetHanTime) - startTime;
-          const totalElapsedSeconds = Math.max(0, totalElapsedMs / 1000);
-          const totalElapsedDaoNien = totalElapsedSeconds / config.DAO_NIEN_SECONDS;
-
-          const { CanhGioi: cgModelLatest } = await import('../models/CanhGioi.js');
-          const cgLatest = await cgModelLatest.findByPk(tuSiLatest.capDo);
-          const baseSpeed = cgLatest ? cgLatest.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
-          const mult = tuSiLatest.layHeSoTuLuyen();
-          const totalAccumulatedExp = Math.floor(baseSpeed * mult * totalElapsedDaoNien);
-          const totalAccumulatedStones = Math.floor(10 * tuSiLatest.capDo * totalElapsedDaoNien);
-
-          // Cập nhật lại tin nhắn hiển thị cũ (ẩn nút dừng)
-          const embedTuViMoi = BoTaoEmbed.tuVi(tuSiLatest, null, daoNien, reqExp, tocDoTuLuyen);
-          await interaction.editReply({ embeds: [embedTuViMoi], components: [] }).catch(err => console.error(err));
-
-          // Gửi thông báo dừng tu luyện thành công
-          await i.editReply({
-            embeds: [
-              BoTaoEmbed.thanhCong(
-                "🛑 Thu Công Dừng Tu Luyện",
-                `Đạo hữu **${tuSiLatest.ten}** đã chủ động thu công, dừng thiền định sớm.\n` +
-                `• **Tổng thời gian tu luyện**: \`${(totalElapsedSeconds / 60).toFixed(1)} phút\`\n` +
-                `• **Tổng linh lực tích tụ**: \`+${totalAccumulatedExp}\` ✨ (Nhận thêm \`+${gainedExp}\` ở chu kỳ cuối)\n` +
-                `• **Tổng linh thạch nhận thêm**: \`+${totalAccumulatedStones}\` 🪙 (Nhận thêm \`+${gainedStones}\` ở chu kỳ cuối)`
-              )
-            ]
-          });
-
-          collector.stop();
-        });
-      }
-    }
-  };
-
-  // Lệnh /tu: Bắt đầu thiền định tu luyện
-  lenhTuLuyen = {
-    data: new SlashCommandBuilder()
-      .setName('tu')
-      .setDescription('Bắt đầu thiền định tu luyện để hấp thu linh khí thiên địa')
-      .addIntegerOption(option =>
-        option.setName('dao_nien')
-          .setDescription('Số Đạo Niên muốn tu luyện (1 Đạo Niên = 15 phút thực tế, tối đa 24)')
-          .setRequired(false)
-      ),
-    execute: async (interaction) => {
-      await interaction.deferReply();
-      const tuSi = await this.layTuSi(interaction.user.id);
-      if (!tuSi) {
-        return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
-        });
-      }
-
-      const daoNien = interaction.options.getInteger('dao_nien');
-
-      // Nếu không nhập số Đạo Niên, tiến hành thu hoạch linh lực hiện tại
-      if (daoNien === null) {
-        const { completed, exp, stones } = await this.kiemTraVaNhanTuVi(tuSi);
-        if (completed) {
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.thanhCong(
-              "🧘 Thu Hoạch Tu Vi",
-              `Thiền định kết thúc thành công!\n` +
-              `• **Linh lực tích tụ**: \`+${exp}\` ✨\n` +
-              `• **Linh thạch nhận thêm**: \`+${stones}\` 💎`
-            )]
-          });
-        } else {
-          // Kiểm tra xem tu sĩ có đang thiền định không
-          const thoiGianCho = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'cultivate');
-          if (thoiGianCho) {
-            const hetHanTime = new Date(thoiGianCho.hetHan).getTime();
-            const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
-            const minutes = Math.floor(secondsLeft / 60);
-            const seconds = secondsLeft % 60;
-            return await interaction.editReply({
-              embeds: [BoTaoEmbed.thongTin(
-                "🧘 Đang Tu Luyện",
-                `Đạo hữu vẫn đang thiền định. Vui lòng đợi \`${minutes}m ${seconds}s\` nữa để thu hoạch.`
-              )]
-            });
-          } else {
-            return await interaction.editReply({
-              embeds: [BoTaoEmbed.thongTin(
-                "🧘 Trạng Thái Nhàn Rỗi",
-                "Đạo hữu hiện đang rảnh rỗi. Hãy dùng lệnh `/tu [số Đạo Niên]` để bắt đầu tu luyện."
-              )]
-            });
-          }
-        }
-      }
-
-      // Kiểm tra tham số Đạo Niên
-      if (daoNien < 1 || daoNien > 24) {
-        return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi("Thời gian tu luyện phải từ 1 đến 24 Đạo Niên!")]
-        });
-      }
-
-      // Kiểm tra xem có đang thiền định không
-      const activeCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'cultivate');
-      if (activeCooldown) {
-        const hetHanTime = new Date(activeCooldown.hetHan).getTime();
-        const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
-        const minutes = Math.floor(secondsLeft / 60);
-        const seconds = secondsLeft % 60;
-        return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi(
-            `Ngươi đang thiền định tu luyện rồi! Còn \`${minutes}m ${seconds}s\` nữa mới kết thúc.`
-          )]
-        });
-      }
-
-      // Kiểm tra trạng thái trọng thương / khóa đột phá
-      const btLock = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'breakthrough_lock');
-      if (btLock) {
-        const hetHanTime = new Date(btLock.hetHan).getTime();
-        const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
-        const minutes = Math.floor(secondsLeft / 60);
-        const seconds = secondsLeft % 60;
-        return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi(
-            `Kinh mạch của ngươi đang hỗn loạn do đột phá thất bại! ` +
-            `Phải tĩnh dưỡng thêm \`${minutes}m ${seconds}s\` nữa mới có thể tiếp tục tu luyện.`
-          )]
-        });
-      }
-
-      // Khởi tạo tiến trình thiền định
-      const durationSeconds = daoNien * config.DAO_NIEN_SECONDS;
-      const expiresAt = new Date(Date.now() + durationSeconds * 1000);
-
-      await this.datThoiGianCho(tuSi.idNguoiDung, 'cultivate', expiresAt, {
-        dao_nien: daoNien,
-        channelId: interaction.channelId,
-        last_update: Date.now()
-      });
-
-      let timeText = '';
-      if (durationSeconds < 60) {
-        timeText = `${durationSeconds} giây`;
-      } else {
-        const mins = Math.floor(durationSeconds / 60);
-        const secs = durationSeconds % 60;
-        timeText = secs > 0 ? `${mins} phút ${secs} giây` : `${mins} phút`;
-      }
-
-      // Lấy tốc độ tu luyện từ CanhGioi
-      const { CanhGioi } = await import('../models/CanhGioi.js');
-      const cg = await CanhGioi.findByPk(tuSi.capDo);
-      const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
-      const heSoTuLuyen = tuSi.layHeSoTuLuyen();
-      const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen);
-
-      await interaction.editReply({
-        embeds: [BoTaoEmbed.thanhCong(
-          "🧘 Bắt Đầu Thiền Định",
-          `Đạo hữu **${tuSi.ten}** đã nhập định tu luyện trong **${daoNien} Đạo Niên** ` +
-          `(tương đương \`${timeText}\` thực tế).\n` +
-          `• **Tốc độ hấp thu**: \`+${tocDoTuLuyen}\` Linh lực / Đạo Niên ✨\n` +
-          `• **Dự kiến thu hoạch**: \`+${tocDoTuLuyen * daoNien}\` Linh lực ✨\n` +
-          `Linh khí xung quanh đang chuyển động mạnh mẽ...`
-        )]
-      });
+      const embed = BoTaoEmbed.tuVi(tuSi, null, daoNien, reqExp, tocDoTuLuyen);
+      await interaction.editReply({ embeds: [embed] });
     }
   };
 
@@ -346,14 +70,6 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       if (!tuSi) {
         return await interaction.editReply({
           embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
-        });
-      }
-
-      // Kiểm tra xem có đang thiền định không
-      const activeCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'cultivate');
-      if (activeCooldown) {
-        return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi("Ngươi đang thiền định tu luyện! Hãy đợi hoàn thành trước khi đột phá.")]
         });
       }
 
@@ -499,14 +215,6 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         });
       }
 
-      // Kiểm tra thiền định tu luyện
-      const activeCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'cultivate');
-      if (activeCooldown) {
-        return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi("Ngươi đang thiền định tu luyện! Hãy đợi hoàn thành trước khi nghỉ ngơi.")]
-        });
-      }
-
       // Kiểm tra thời gian chờ nghỉ ngơi (tránh spam)
       const restCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'rest');
       if (restCooldown) {
@@ -569,7 +277,6 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 const controller = new BoDieuKhienTuLuyen();
 export const danhSachLenhTuLuyen = [
   controller.lenhXemTuVi,
-  controller.lenhTuLuyen,
   controller.lenhDotPha,
   controller.lenhNghiNgoi
 ];

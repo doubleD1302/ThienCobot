@@ -239,23 +239,9 @@ export class BoTaoEmbed {
 
     embed.addFields({
       name: "☯️ Cơ Duyên Đột Phá",
-      value: `• **Tỷ lệ thành công**: \`${Math.floor(breakthroughChance * 100)}%\`\n• **Mệnh số trạng thái**: ${statusTxt}\n• **Tu luyện tốc độ**: \`+${tocDoTuLuyen}\` Linh Lực/Đạo Niên ⚡`,
+      value: `• **Tỷ lệ thành công**: \`${Math.floor(breakthroughChance * 100)}%\`\n• **Mệnh số trạng thái**: ${statusTxt}\n• **Tốc độ tu luyện**: \`+${tocDoTuLuyen}\` Linh Lực/Đạo Niên (~\`+${(tocDoTuLuyen * 60 / config.DAO_NIEN_SECONDS).toFixed(1)}\` Linh Lực/phút) ⚡`,
       inline: false
     });
-
-    if (thoiGianChoTuLuyen) {
-      const expirationDate = new Date(thoiGianChoTuLuyen.hetHan);
-      const timeLeftMs = expirationDate.getTime() - Date.now();
-      const secondsLeft = Math.max(0, Math.floor(timeLeftMs / 1000));
-      const minutes = Math.floor(secondsLeft / 60);
-      const seconds = secondsLeft % 60;
-
-      embed.addFields({
-        name: "🧘 Đang Nhập Định Tu Luyện",
-        value: `• Thời gian còn lại: \`${minutes}m ${seconds}s\`\n• Đang vận hành đại chu thiên hấp thu linh khí...`,
-        inline: false
-      });
-    }
 
     return embed;
   }

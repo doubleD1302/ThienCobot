@@ -18,59 +18,39 @@ export class BoDieuKhienGoc {
   }
 
   async kiemTraVaNhanTuVi(tuSi) {
-    // 1. Tìm bản ghi thời gian chờ tu luyện thủ công
-    const thoiGianCho = await ThoiGianCho.findOne({
-      where: {
-        idNguoiDung: tuSi.idNguoiDung,
-        hanhDong: 'cultivate'
-      }
-    });
+    const now = Date.now();
+    const lastUpdate = tuSi.lastUpdateTuVi ? new Date(tuSi.lastUpdateTuVi).getTime() : new Date(tuSi.createdAt).getTime();
+    const elapsedMs = now - lastUpdate;
+    const elapsedMinutes = Math.floor(elapsedMs / 60000);
 
-    if (thoiGianCho) {
-      const hetHanTime = new Date(thoiGianCho.hetHan).getTime();
-      if (hetHanTime <= Date.now()) {
-        // Đã tu luyện xong! Tiến hành phát thưởng
-        const duLieu = thoiGianCho.duLieu || {};
-        const daoNien = duLieu.dao_nien || 1;
-        const totalDurationSeconds = daoNien * config.DAO_NIEN_SECONDS;
-        const startTime = hetHanTime - totalDurationSeconds * 1000;
+    if (elapsedMinutes >= 1) {
+      const { CanhGioi } = await import('../models/CanhGioi.js');
+      const cg = await CanhGioi.findByPk(tuSi.capDo);
+      const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
+      const multiplier = tuSi.layHeSoTuLuyen();
+      const elapsedDaoNien = (elapsedMinutes * 60) / config.DAO_NIEN_SECONDS;
 
-        let lastUpdate = duLieu.last_update;
-        if (!lastUpdate) {
-          lastUpdate = startTime;
-        }
+      const rawExp = tocDoCoBan * multiplier * elapsedDaoNien + (tuSi.linhLucDu || 0.0);
+      const rawStones = 10 * tuSi.capDo * elapsedDaoNien + (tuSi.linhThachDu || 0.0);
 
-        // Tính toán phần thưởng còn lại chưa nhận
-        const remainingMs = Math.max(0, hetHanTime - lastUpdate);
-        const remainingSeconds = remainingMs / 1000;
-        const remainingDaoNien = remainingSeconds / config.DAO_NIEN_SECONDS;
+      const gainedExp = Math.floor(rawExp);
+      const gainedStones = Math.floor(rawStones);
 
-        // Tính toán linh lực & linh thạch nhận được
-        const { CanhGioi } = await import('../models/CanhGioi.js');
-        const cg = await CanhGioi.findByPk(tuSi.capDo);
-        const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
-        const multiplier = tuSi.layHeSoTuLuyen();
-        const gainedExp = Math.floor(tocDoCoBan * multiplier * remainingDaoNien);
-        const gainedStones = Math.floor(10 * tuSi.capDo * remainingDaoNien);
+      tuSi.linhLuc += gainedExp;
+      tuSi.linhThach += gainedStones;
 
-        // Cộng thưởng phần còn lại
-        tuSi.linhLuc += gainedExp;
-        tuSi.linhThach += gainedStones;
+      tuSi.linhLucDu = rawExp - gainedExp;
+      tuSi.linhThachDu = rawStones - gainedStones;
 
-        // Hồi phục 20% máu/pháp lực cực đại mỗi Đạo Niên tu luyện
-        const stats = tuSi.layChiSo();
-        tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * remainingDaoNien));
-        tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * remainingDaoNien));
+      tuSi.lastUpdateTuVi = new Date(lastUpdate + elapsedMinutes * 60000);
 
-        // Xóa thời gian chờ và lưu trạng thái
-        await thoiGianCho.destroy();
-        await tuSi.save();
+      // Hồi phục 20% hp/mp mỗi Đạo Niên tu luyện
+      const stats = tuSi.layChiSo();
+      tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * elapsedDaoNien));
+      tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * elapsedDaoNien));
 
-        const totalGainedExp = Math.floor(tocDoCoBan * multiplier * daoNien);
-        const totalGainedStones = Math.floor(10 * tuSi.capDo * daoNien);
-
-        return { completed: true, exp: totalGainedExp, stones: totalGainedStones };
-      }
+      await tuSi.save();
+      return { completed: true, exp: gainedExp, stones: gainedStones };
     }
 
     return { completed: false, exp: 0, stones: 0 };

@@ -258,6 +258,23 @@ TuSi.init({
     allowNull: false,
     defaultValue: 0.0,
     field: 'phap_cong_penalty'
+  },
+  lastUpdateTuVi: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'last_update_tuvi'
+  },
+  linhLucDu: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    defaultValue: 0.0,
+    field: 'linh_luc_du'
+  },
+  linhThachDu: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    defaultValue: 0.0,
+    field: 'linh_thach_du'
   }
 }, {
   sequelize,

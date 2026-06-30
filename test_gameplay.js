@@ -175,8 +175,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(setting.layDaoNienHienTai(), 1, "5 phút trước phải bằng Đạo Niên thứ 1");
   });
 
-  test('Cultivation Early Stop and Proportional Reward Calculation', async () => {
-    const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+  test('Automatic cultivation updates based on elapsed minutes', async () => {
+    const { BoDieuKhienGoc } = await import('./controllers/BoDieuKhienGoc.js');
     
     // Tạo nhân vật test
     const tuSi = await TuSi.create({
@@ -187,52 +187,42 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       linhCan: "Mộc Linh Căn",
       capDo: 1,
       linhLuc: 0,
-      linhThach: 0
+      linhThach: 0,
+      linhLucDu: 0.0,
+      linhThachDu: 0.0
     });
     tuSi.linhCanList = ["Moc"];
+    
+    // Giả lập thời điểm cập nhật cuối cùng là 5 phút trước
+    const now = Date.now();
+    const fiveMinutesAgo = new Date(now - 5 * 60 * 1000);
+    tuSi.lastUpdateTuVi = fiveMinutesAgo;
     await tuSi.save();
 
-    const daoNien = 2; // Tu luyện 2 Đạo Niên
-    const totalDurationMs = daoNien * config.DAO_NIEN_SECONDS * 1000;
-    const hetHan = new Date(Math.floor((Date.now() + totalDurationMs) / 1000) * 1000);
-    const startTime = hetHan.getTime() - totalDurationMs;
+    const controller = new BoDieuKhienGoc();
+    const result = await controller.kiemTraVaNhanTuVi(tuSi);
 
-    // Giả sử đã trôi qua 1 Đạo Niên (50% thời gian)
-    const halfDurationMs = totalDurationMs / 2;
-    const fakeLastUpdate = startTime + halfDurationMs;
+    assert.strictEqual(result.completed, true);
+    // 5 phút = 5/15 = 1/3 Đạo Niên. 
+    // Exp: 100 * 1.0 * (1/3) = 33.33 -> 33
+    // Stones: 10 * 1 * (1/3) = 3.33 -> 3
+    assert.strictEqual(result.exp, 33);
+    assert.strictEqual(result.stones, 3);
+    assert.strictEqual(tuSi.linhLuc, 33);
+    assert.strictEqual(tuSi.linhThach, 3);
+    
+    // Kiểm tra số dư float được tích lũy đúng
+    assert.ok(tuSi.linhLucDu > 0.3 && tuSi.linhLucDu < 0.4);
+    assert.ok(tuSi.linhThachDu > 0.3 && tuSi.linhThachDu < 0.4);
 
-    const cooldown = ThoiGianCho.build({
-      idNguoiDung: tuSi.idNguoiDung,
-      hanhDong: 'cultivate',
-      hetHan: hetHan
-    });
-    cooldown.duLieu = {
-      dao_nien: daoNien,
-      last_update: fakeLastUpdate
-    };
-    await cooldown.save();
+    // Thời gian update mới phải đúng bằng: mốc cũ + 5 phút
+    const expectedTime = fiveMinutesAgo.getTime() + 5 * 60 * 1000;
+    assert.strictEqual(new Date(tuSi.lastUpdateTuVi).getTime(), expectedTime);
 
-    // Tính toán lượng thưởng từ startTime đến fakeLastUpdate
-    const elapsedSeconds = halfDurationMs / 1000;
-    const elapsedDaoNien = elapsedSeconds / config.DAO_NIEN_SECONDS; // 1.0 Đạo Niên
-
-    const cg = await CanhGioi.findByPk(tuSi.capDo);
-    const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
-    const multiplier = tuSi.layHeSoTuLuyen();
-
-    const expectedExp = Math.floor(tocDoCoBan * multiplier * elapsedDaoNien);
-    const expectedStones = Math.floor(10 * tuSi.capDo * elapsedDaoNien);
-
-    assert.strictEqual(expectedExp, 100, "Đáng ra phải nhận được 100 Linh Lực cho 1 Đạo Niên");
-    assert.strictEqual(expectedStones, 10, "Đáng ra phải nhận được 10 Linh Thạch cho 1 Đạo Niên");
-
-    // Dọn dẹp bản ghi
-    await cooldown.destroy();
     await tuSi.destroy();
   });
 
-  test('kiemTraVaNhanTuVi with last_update and remaining reward', async () => {
-    const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+  test('Automatic cultivation carries over fractional remainders and sub-minute time', async () => {
     const { BoDieuKhienGoc } = await import('./controllers/BoDieuKhienGoc.js');
     
     // Tạo nhân vật test
@@ -243,52 +233,39 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       huongTu: "Phap Tu",
       linhCan: "Mộc Linh Căn",
       capDo: 1,
-      linhLuc: 10,
-      linhThach: 5
+      linhLuc: 0,
+      linhThach: 0,
+      linhLucDu: 0.0,
+      linhThachDu: 0.0
     });
     tuSi.linhCanList = ["Moc"];
-    await tuSi.save();
-
-    const daoNien = 2; // Tu luyện 2 Đạo Niên
-    const totalDurationMs = daoNien * config.DAO_NIEN_SECONDS * 1000;
     
-    // Để hết hạn trong quá khứ
-    const hetHan = new Date(Math.floor((Date.now() - 5000) / 1000) * 1000); 
-    const startTime = hetHan.getTime() - totalDurationMs;
-
-    // Giả sử last_update là startTime + 1 Đạo Niên
-    const halfDurationMs = totalDurationMs / 2;
-    const fakeLastUpdate = startTime + halfDurationMs;
-
-    const cooldown = ThoiGianCho.build({
-      idNguoiDung: tuSi.idNguoiDung,
-      hanhDong: 'cultivate',
-      hetHan: hetHan
-    });
-    cooldown.duLieu = {
-      dao_nien: daoNien,
-      last_update: fakeLastUpdate
-    };
-    await cooldown.save();
+    // Giả lập thời điểm cập nhật cuối cùng là 1.5 phút trước (90 giây)
+    const now = Date.now();
+    const ninetySecondsAgo = new Date(now - 90 * 1000);
+    tuSi.lastUpdateTuVi = ninetySecondsAgo;
+    await tuSi.save();
 
     const controller = new BoDieuKhienGoc();
     const result = await controller.kiemTraVaNhanTuVi(tuSi);
 
+    // Chỉ cập nhật cho 1 phút chẵn, 30 giây lẻ sẽ được giữ lại
     assert.strictEqual(result.completed, true);
-    assert.strictEqual(result.exp, 200);
-    assert.strictEqual(result.stones, 20);
+    // 1 phút = 1/15 Đạo Niên. 
+    // Exp: 100 * 1.0 * (1/15) = 6.67 -> 6
+    // Stones: 10 * 1 * (1/15) = 0.67 -> 0
+    assert.strictEqual(result.exp, 6);
+    assert.strictEqual(result.stones, 0);
+    assert.strictEqual(tuSi.linhLuc, 6);
+    assert.strictEqual(tuSi.linhThach, 0);
 
-    // Thực tế cộng thêm chỉ là phần còn lại (1 Đạo Niên = 100 exp, 10 stones) -> 10 + 100 = 110, 5 + 10 = 15
-    assert.strictEqual(tuSi.linhLuc, 110);
-    assert.strictEqual(tuSi.linhThach, 15);
+    // Số dư
+    assert.ok(tuSi.linhLucDu > 0.6 && tuSi.linhLucDu < 0.7);
+    assert.ok(tuSi.linhThachDu > 0.6 && tuSi.linhThachDu < 0.7);
 
-    const cdAfter = await ThoiGianCho.findOne({
-      where: {
-        idNguoiDung: tuSi.idNguoiDung,
-        hanhDong: 'cultivate'
-      }
-    });
-    assert.strictEqual(cdAfter, null);
+    // Thời gian update mới phải dịch chuyển đúng 1 phút
+    const expectedTime = ninetySecondsAgo.getTime() + 60 * 1000;
+    assert.strictEqual(new Date(tuSi.lastUpdateTuVi).getTime(), expectedTime);
 
     await tuSi.destroy();
   });

@@ -42,186 +42,6 @@ client.once('ready', async () => {
       type: ActivityType.Playing
     }]
   });
-
-  // Thiết lập vòng lặp quét CSDL phát thông báo tu luyện xong chủ động (mỗi 15 giây)
-  setInterval(async () => {
-    try {
-      const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
-      const { TuSi } = await import('./models/TuSi.js');
-      const { CauHinhGuild } = await import('./models/CauHinhGuild.js');
-      const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
-      const { Op } = await import('sequelize');
-      const config = await import('./config.js');
-
-      // Tìm tất cả các cooldown 'cultivate' đã hết hạn
-      const expiredCooldowns = await ThoiGianCho.findAll({
-        where: {
-          hanhDong: 'cultivate',
-          hetHan: {
-            [Op.lte]: new Date()
-          }
-        }
-      });
-
-      for (const cd of expiredCooldowns) {
-        const userId = cd.idNguoiDung;
-        const tuSi = await TuSi.findByPk(userId);
-
-        if (tuSi) {
-          const duLieu = cd.duLieu || {};
-          const daoNien = duLieu.dao_nien || 1;
-          const channelId = duLieu.channelId;
-
-          // 1. Tính toán phần thưởng còn lại chưa nhận
-          const { CanhGioi } = await import('./models/CanhGioi.js');
-          const cg = await CanhGioi.findByPk(tuSi.capDo);
-          const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
-          const multiplier = tuSi.layHeSoTuLuyen();
-
-          const totalDurationSeconds = daoNien * config.DAO_NIEN_SECONDS;
-          const hetHanTime = new Date(cd.hetHan).getTime();
-          const startTime = hetHanTime - totalDurationSeconds * 1000;
-
-          let lastUpdate = duLieu.last_update;
-          if (!lastUpdate) {
-            lastUpdate = startTime;
-          }
-
-          const remainingMs = Math.max(0, hetHanTime - lastUpdate);
-          const remainingSeconds = remainingMs / 1000;
-          const remainingDaoNien = remainingSeconds / config.DAO_NIEN_SECONDS;
-
-          const remainingExp = Math.floor(tocDoCoBan * multiplier * remainingDaoNien);
-          const remainingStones = Math.floor(10 * tuSi.capDo * remainingDaoNien);
-
-          // 2. Cộng thưởng phần còn lại & Hồi phục
-          tuSi.linhLuc += remainingExp;
-          tuSi.linhThach += remainingStones;
-          const stats = tuSi.layChiSo();
-          tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * remainingDaoNien));
-          tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * remainingDaoNien));
-
-          // 3. Xóa cooldown & Lưu
-          await cd.destroy();
-          await tuSi.save();
-
-          const totalGainedExp = Math.floor(tocDoCoBan * multiplier * daoNien);
-          const totalGainedStones = Math.floor(10 * tuSi.capDo * daoNien);
-
-          // 4. Lấy Đạo Niên của Guild để hiển thị
-          let guildDaoNien = 1;
-          if (channelId) {
-            try {
-              const channel = await client.channels.fetch(channelId).catch(() => null);
-              if (channel && channel.guildId) {
-                const setting = await CauHinhGuild.findOne({ where: { idGuild: channel.guildId } });
-                if (setting) {
-                  guildDaoNien = setting.layDaoNienHienTai();
-                } else {
-                  // Nếu chưa có cấu hình, tạo mới tại chỗ
-                  const newSetting = await CauHinhGuild.create({ idGuild: channel.guildId });
-                  guildDaoNien = newSetting.layDaoNienHienTai();
-                }
-              }
-
-              if (channel) {
-                const embed = BoTaoEmbed.thongBaoTuLuyenXong(tuSi, guildDaoNien, totalGainedExp, totalGainedStones);
-                await channel.send({
-                  content: `🔔 Đạo hữu <@${userId}> đã hoàn tất đại chu thiên!`,
-                  embeds: [embed]
-                }).catch(err => console.error(`Lỗi gửi tin nhắn thông báo tu luyện xong cho user ${userId}:`, err));
-              }
-            } catch (err) {
-              console.error(`Lỗi xử lý gửi thông báo cho channel ${channelId}:`, err);
-            }
-          }
-        } else {
-          // Tu sĩ không tồn tại, chỉ xóa cooldown
-          await cd.destroy();
-        }
-      }
-    } catch (error) {
-      console.error('Lỗi khi chạy quét thời gian chờ tu luyện ngầm:', error);
-    }
-  }, 15000);
-
-  // Thiết lập vòng lặp làm mới tu vi hiện có mỗi 1 phút (60 giây)
-  setInterval(async () => {
-    try {
-      const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
-      const { TuSi } = await import('./models/TuSi.js');
-      const { Op } = await import('sequelize');
-      const config = await import('./config.js');
-
-      // Tìm tất cả các cooldown 'cultivate' đang hoạt động (chưa hết hạn)
-      const activeCooldowns = await ThoiGianCho.findAll({
-        where: {
-          hanhDong: 'cultivate',
-          hetHan: {
-            [Op.gt]: new Date()
-          }
-        }
-      });
-
-      const now = Date.now();
-      for (const cd of activeCooldowns) {
-        const userId = cd.idNguoiDung;
-        const tuSi = await TuSi.findByPk(userId);
-
-        if (tuSi) {
-          const duLieu = cd.duLieu || {};
-          const daoNien = duLieu.dao_nien || 1;
-          const totalDurationSeconds = daoNien * config.DAO_NIEN_SECONDS;
-          const hetHanTime = new Date(cd.hetHan).getTime();
-          const startTime = hetHanTime - totalDurationSeconds * 1000;
-
-          let lastUpdate = duLieu.last_update;
-          if (!lastUpdate) {
-            lastUpdate = startTime;
-          }
-
-          // Thời gian trôi qua từ lần cập nhật cuối đến hiện tại
-          const elapsedMs = now - lastUpdate;
-
-          // Chỉ cập nhật nếu đã trôi qua ít nhất 1 phút (60 giây)
-          if (elapsedMs >= 60000) {
-            // Không được vượt quá mốc hetHanTime
-            const actualElapsedMs = Math.min(elapsedMs, hetHanTime - lastUpdate);
-            if (actualElapsedMs <= 0) continue;
-
-            const elapsedSeconds = actualElapsedMs / 1000;
-            const elapsedDaoNien = elapsedSeconds / config.DAO_NIEN_SECONDS;
-
-            // Tính toán linh lực & linh thạch nhận được cho phần thời gian này
-            const { CanhGioi } = await import('./models/CanhGioi.js');
-            const cg = await CanhGioi.findByPk(tuSi.capDo);
-            const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
-            const multiplier = tuSi.layHeSoTuLuyen();
-            const gainedExp = Math.floor(tocDoCoBan * multiplier * elapsedDaoNien);
-            const gainedStones = Math.floor(10 * tuSi.capDo * elapsedDaoNien);
-
-            // Cộng thưởng & Hồi phục
-            tuSi.linhLuc += gainedExp;
-            tuSi.linhThach += gainedStones;
-            const stats = tuSi.layChiSo();
-            tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * elapsedDaoNien));
-            tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * elapsedDaoNien));
-
-            await tuSi.save();
-
-            // Cập nhật last_update trong cooldown
-            duLieu.last_update = lastUpdate + actualElapsedMs;
-            cd.duLieu = duLieu;
-            await cd.save();
-
-            console.log(`[TuVi Refresh] Tự động cập nhật tu vi (+${gainedExp} Exp, +${gainedStones} Stones) cho tu sĩ ${tuSi.ten} (${userId})`);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Lỗi khi chạy quét làm mới tu vi ngầm:', error);
-    }
-  }, 60000);
 });
 
 // Lắng nghe khi bot được thêm vào máy chủ mới để khởi tạo Đạo Niên
@@ -289,6 +109,30 @@ async function start() {
           autoIncrement: false
         });
         console.log('Đã sửa đổi cột user_id trong bảng players thành công.');
+      }
+
+      if (!playersDesc.last_update_tuvi) {
+        console.log('Phát hiện thiếu cột last_update_tuvi. Tiến hành thêm vào bảng players...');
+        await queryInterface.addColumn('players', 'last_update_tuvi', {
+          type: DataTypes.DATE,
+          allowNull: true
+        });
+      }
+      if (!playersDesc.linh_luc_du) {
+        console.log('Phát hiện thiếu cột linh_luc_du. Tiến hành thêm vào bảng players...');
+        await queryInterface.addColumn('players', 'linh_luc_du', {
+          type: DataTypes.FLOAT,
+          allowNull: false,
+          defaultValue: 0.0
+        });
+      }
+      if (!playersDesc.linh_thach_du) {
+        console.log('Phát hiện thiếu cột linh_thach_du. Tiến hành thêm vào bảng players...');
+        await queryInterface.addColumn('players', 'linh_thach_du', {
+          type: DataTypes.FLOAT,
+          allowNull: false,
+          defaultValue: 0.0
+        });
       }
       
       const cooldownsDesc = await queryInterface.describeTable('cooldowns');
