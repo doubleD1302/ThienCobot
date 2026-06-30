@@ -19,7 +19,7 @@ export class BoDieuKhienGoc {
 
   async kiemTraVaNhanTuVi(tuSi) {
     const now = Date.now();
-    const lastUpdate = tuSi.lastUpdateTuVi ? new Date(tuSi.lastUpdateTuVi).getTime() : new Date(tuSi.createdAt).getTime();
+    const lastUpdate = tuSi.lastUpdateTuVi ? new Date(tuSi.lastUpdateTuVi).getTime() : new Date(tuSi.created_at).getTime();
     const elapsedMs = now - lastUpdate;
     const elapsedMinutes = Math.floor(elapsedMs / 60000);
 

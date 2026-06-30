@@ -59,6 +59,21 @@ client.on('guildCreate', async (guild) => {
   }
 });
 
+// Hàm kiểm tra lỗi kết nối đến CSDL / Hosting
+function isDbConnectionError(error) {
+  if (!error) return false;
+  const name = error.name || '';
+  const message = error.message || '';
+  return name.includes('Connection') || 
+         name.includes('Host') || 
+         name.includes('AccessDenied') ||
+         message.includes('EAI_AGAIN') || 
+         message.includes('ETIMEDOUT') ||
+         message.includes('connection') ||
+         message.includes('database') ||
+         message.includes('unreachable');
+}
+
 // Lắng nghe các tương tác lệnh (Slash Commands)
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
@@ -74,10 +89,27 @@ client.on('interactionCreate', async interaction => {
   } catch (error) {
     console.error(`Lỗi khi thực thi lệnh ${interaction.commandName}:`, error);
 
-    const tinNhanLoi = {
-      content: 'Đã có lỗi xảy ra khi thực thi lệnh này!',
-      ephemeral: true
-    };
+    let tinNhanLoi;
+    if (isDbConnectionError(error)) {
+      try {
+        const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
+        tinNhanLoi = {
+          embeds: [BoTaoEmbed.loiBaoTriHosting()],
+          ephemeral: true
+        };
+      } catch (importErr) {
+        console.error('Không thể import BoTaoEmbed:', importErr);
+        tinNhanLoi = {
+          content: '🌌 Thiên địa chấn động, linh mạch gián đoạn! Kết nối đến bí cảnh (database/hosting) thất bại. Xin vui lòng tĩnh tọa dưỡng thần và thử lại sau.',
+          ephemeral: true
+        };
+      }
+    } else {
+      tinNhanLoi = {
+        content: 'Đã có lỗi xảy ra khi thực thi lệnh này!',
+        ephemeral: true
+      };
+    }
 
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(tinNhanLoi).catch(err => console.error('Failed to send error reply:', err));

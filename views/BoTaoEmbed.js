@@ -260,5 +260,18 @@ export class BoTaoEmbed {
       .setTimestamp()
       .setFooter({ text: "Chúc đạo hữu sớm ngày đắc đạo thành tiên!" });
   }
+
+  static loiBaoTriHosting() {
+    return new EmbedBuilder()
+      .setTitle("🌌 Thiên Đạo Trầm Luân - Bí Cảnh Đóng Cửa")
+      .setDescription(
+        `⚡ **Thiên Địa Biến Động**: Linh khí chấn động, kết giới giữa nhân giới và bí cảnh tạm thời bị đứt gãy!\n\n` +
+        `🌀 **Thiên Đạo Thông Báo**: Kết nối đến linh mạch (Hosting/Database) đã bị gián đoạn. Thiên giới đang tiến hành chữa trị vết nứt không gian (Bảo trì/Cập nhật).\n\n` +
+        `🧘 **Khuyên Bảo**: Chư vị đạo hữu vui lòng tĩnh tọa thiền định, dưỡng tinh thần để đợi thông đạo mở lại. Cảm ơn đạo hữu đã kiên nhẫn cảm thông!`
+      )
+      .setColor(0xe74c3c)
+      .setTimestamp()
+      .setFooter({ text: "Thiên Thiên Cáo Thị • Vui lòng thử lại sau" });
+  }
 }
 
