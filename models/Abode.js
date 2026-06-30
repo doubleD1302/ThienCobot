@@ -43,6 +43,11 @@ Abode.init({
     type:      DataTypes.DATEONLY,
     allowNull: true,
     field:     'last_pill'
+  },
+  lastSongTu: {
+    type:      DataTypes.DATEONLY,
+    allowNull: true,
+    field:     'last_song_tu'
   }
 }, {
   sequelize,

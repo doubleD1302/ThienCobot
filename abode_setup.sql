@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS abodes (
   last_watered  DATE NULL,                  -- ngày tưới nước gần nhất để reset
   pill_count    INTEGER NOT NULL DEFAULT 0, -- số đan dược sử dụng trong ngày
   last_pill     DATE NULL,                  -- ngày ăn đan dược gần nhất để reset
+  last_song_tu  DATE NULL,                  -- ngày song tu gần nhất để reset
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES players(user_id) ON DELETE CASCADE
 );

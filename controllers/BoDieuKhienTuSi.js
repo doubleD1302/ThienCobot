@@ -64,13 +64,23 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
   lenhHoSo = {
     data: new SlashCommandBuilder()
       .setName('nv')
-      .setDescription('Xem hồ sơ nhân vật tu sĩ của ngươi'),
+      .setDescription('Xem hồ sơ nhân vật tu sĩ')
+      .addUserOption(option =>
+        option.setName('user')
+          .setDescription('Đạo hữu muốn xem thông tin')
+          .setRequired(false)
+      ),
     execute: async (interaction) => {
       await interaction.deferReply();
-      const tuSi = await this.layTuSi(interaction.user.id);
+      const targetUser = interaction.options.getUser('user') || interaction.user;
+      const tuSi = await this.layTuSi(targetUser.id);
       if (!tuSi) {
+        const isSelf = targetUser.id === interaction.user.id;
+        const msg = isSelf
+          ? "Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên."
+          : "Đạo hữu này chưa gia nhập hồng trần tu tiên!";
         return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
+          embeds: [BoTaoEmbed.loi(msg)]
         });
       }
 
@@ -143,7 +153,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen * (1 + lvDongPhu));
       const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
 
-      const embed = BoTaoEmbed.hoSo(tuSi, interaction.user, stats, daoNien, tocDoTuLuyen, reqExp, equippedItems);
+      const embed = BoTaoEmbed.hoSo(tuSi, targetUser, stats, daoNien, tocDoTuLuyen, reqExp, equippedItems);
       await interaction.editReply({ embeds: [embed] });
     }
   };
