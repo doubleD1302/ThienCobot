@@ -331,26 +331,9 @@ export class BoTaoEmbed {
     const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [];
 
     for (const itemObj of itemsList) {
-      const { item, soLuong, trangBi: isEquipped, nangCapSao, dongChiSoJson } = itemObj;
+      const { item, soLuong, trangBi: isEquipped, nangCapSao } = itemObj;
       const starText = nangCapSao > 0 ? ` (+${nangCapSao}⭐)` : '';
       const equipText = isEquipped ? ' 🛡️ **[Đang mặc]**' : '';
-
-      let statsText = '';
-      if (item.chiSoJson) {
-        try {
-          const stats = JSON.parse(item.chiSoJson);
-          const parts = [];
-          if (stats.vat_cong) parts.push(`+${stats.vat_cong} Vật Công`);
-          if (stats.phap_cong) parts.push(`+${stats.phap_cong} Pháp Công`);
-          if (stats.vat_phong) parts.push(`+${stats.vat_phong} Vật Phòng`);
-          if (stats.phap_phong) parts.push(`+${stats.phap_phong} Pháp Phòng`);
-          if (stats.hp) parts.push(`+${stats.hp} HP`);
-          if (stats.mp) parts.push(`+${stats.mp} MP`);
-          if (stats.hp_hoi) parts.push(`Hồi ${stats.hp_hoi} HP`);
-          if (stats.mp_hoi) parts.push(`Hồi ${stats.mp_hoi} MP`);
-          statsText = parts.length > 0 ? ` \`[${parts.join(', ')}]\`` : '';
-        } catch (e) { }
-      }
 
       let reqText = '';
       if (item.yeuCauCanhGioi && item.yeuCauCanhGioi > 1) {
@@ -358,8 +341,8 @@ export class BoTaoEmbed {
         reqText = ` 🔒 **${cgReq.realmName}**`;
       }
 
-      const dongChiSoText = BoTaoEmbed._formatDongChiSo(dongChiSoJson);
-      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${statsText}${reqText} | ID: \`${item.id}\`${dongChiSoText}`;
+      // Ẩn tất cả chỉ số khỏi dòng hiển thị chính để balo cực kỳ gọn gàng
+      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${reqText} | ID: \`${item.id}\``;
 
       if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
       else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);
@@ -533,6 +516,66 @@ export class BoTaoEmbed {
         value: `• Đạo hữu bị yêu thú đả thương nghiêm trọng, máu (HP) bị suy giảm về mức cực thấp (-30% HP tối đa).\n• Vui lòng dùng lệnh \`/nghi\` để tĩnh dưỡng hồi phục!`,
         inline: false
       });
+    }
+
+    return embed;
+  }
+
+  static chiTietVatPham(tuSi, itemObj) {
+    const { item, nangCapSao, dongChiSoJson } = itemObj;
+    const color = layMauCanhGioi(tuSi.canhGioi);
+    const starText = nangCapSao > 0 ? ` (+${nangCapSao}⭐)` : '';
+    
+    const embed = new EmbedBuilder()
+      .setTitle(`✨ Chi Tiết Vật Phẩm: ${item.ten}${starText}`)
+      .setColor(color)
+      .setDescription(item.moTa || '*Không có mô tả chi tiết cho linh bảo này.*')
+      .setTimestamp();
+
+    const basicInfo = [
+      `• **Phân loại**: \`${item.loai}\``,
+      `• **Độ hiếm**: \`${item.doHiem}\``
+    ];
+    if (item.yeuCauCanhGioi > 1) {
+      const cgReq = config.layThongTinCanhGioi(item.yeuCauCanhGioi);
+      basicInfo.push(`• **Cảnh giới yêu cầu**: \`${cgReq.realmName} - ${cgReq.stageName}\``);
+    }
+    embed.addFields({ name: 'ℹ️ Thông Tin Cơ Bản', value: basicInfo.join('\n'), inline: true });
+
+    // Chỉ số cơ bản
+    let baseStatsTxt = '';
+    if (item.chiSoJson) {
+      try {
+        const stats = JSON.parse(item.chiSoJson);
+        const parts = [];
+        if (stats.vat_cong) parts.push(`• Vật Công: \`+${stats.vat_cong}\``);
+        if (stats.phap_cong) parts.push(`• Pháp Công: \`+${stats.phap_cong}\``);
+        if (stats.vat_phong) parts.push(`• Vật Phòng: \`+${stats.vat_phong}\``);
+        if (stats.phap_phong) parts.push(`• Pháp Phòng: \`+${stats.phap_phong}\``);
+        if (stats.hp) parts.push(`• Khí huyết (HP): \`+${stats.hp}\``);
+        if (stats.mp) parts.push(`• Pháp lực (MP): \`+${stats.mp}\``);
+        if (stats.hp_hoi) parts.push(`• Hồi HP: \`+${stats.hp_hoi}\``);
+        if (stats.mp_hoi) parts.push(`• Hồi MP: \`+${stats.mp_hoi}\``);
+        if (stats.exp_bonus) parts.push(`• Linh lực nhận thêm: \`+${stats.exp_bonus}\``);
+        baseStatsTxt = parts.join('\n');
+      } catch (e) {}
+    }
+    embed.addFields({ name: '📊 Chỉ Số Bản Thân', value: baseStatsTxt || '• *Không có chỉ số.*', inline: true });
+
+    // Chỉ số ẩn / dòng linh khí
+    if (dongChiSoJson) {
+      try {
+        const lines = JSON.parse(dongChiSoJson);
+        if (Array.isArray(lines) && lines.length > 0) {
+          const colorEmojis = { cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
+          const linesTxt = lines.map(line => {
+            const emoji = colorEmojis[line.mau] || '⚪';
+            const sign = line.phanTram >= 0 ? '+' : '';
+            return `${emoji} **${line.ten}**: \`${sign}${line.phanTram}%\``;
+          }).join('\n');
+          embed.addFields({ name: '🔮 Dòng Chỉ Số Linh Khí', value: linesTxt, inline: false });
+        }
+      } catch (e) {}
     }
 
     return embed;

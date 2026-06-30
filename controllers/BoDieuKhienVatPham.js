@@ -303,8 +303,21 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
             components: rows
           };
         }
+
+        const embeds = [sheets[sheetIdx].pages[pageIdx]];
+        if (selectedVal) {
+          const decoded = decodeToolbarValue(selectedVal);
+          if (decoded) {
+            const selectedItemObj = itemsList.find(o => o.invId === decoded.invId);
+            if (selectedItemObj) {
+              const detailEmbed = BoTaoEmbed.chiTietVatPham(tuSi, selectedItemObj);
+              embeds.unshift(detailEmbed); // Đưa chi tiết lên đầu để hiển thị phía trên list đồ
+            }
+          }
+        }
+
         return {
-          embeds:     [sheets[sheetIdx].pages[pageIdx]],
+          embeds,
           components: buildAllComponents(disabled)
         };
       };
