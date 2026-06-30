@@ -408,5 +408,46 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Lich Luyen random event execution and cooldown', async () => {
+    const { boDieuKhienLichLuyen } = await import('./controllers/BoDieuKhienLichLuyen.js');
+    
+    const tuSi = await TuSi.create({
+      idNguoiDung: "9999999999999999",
+      ten: "Lịch Luyện Nhân",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      linhLuc: 100,
+      linhThach: 100,
+      hp: 100,
+      mp: 100
+    });
+    tuSi.linhCanList = ["Hoa"];
+    await tuSi.save();
+
+    let replyPayload = null;
+    const interactionMock = {
+      user: { id: "9999999999999999" },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        replyPayload = payload;
+      }
+    };
+
+    await boDieuKhienLichLuyen.lenhLichLuyen.execute(interactionMock);
+    
+    assert.ok(replyPayload);
+    assert.ok(replyPayload.embeds && replyPayload.embeds.length > 0);
+
+    // Kiểm tra cooldown được kích hoạt
+    const cd = await ThoiGianCho.findOne({
+      where: { hanhDong: "lich_luyen" }
+    });
+    assert.ok(cd);
+
+    await tuSi.destroy();
+  });
+
 });
 

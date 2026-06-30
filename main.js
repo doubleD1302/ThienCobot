@@ -7,6 +7,7 @@ import { danhSachLenhBicanh } from './controllers/BoDieuKhienBicanh.js';
 import { danhSachLenhVatPham } from './controllers/BoDieuKhienVatPham.js';
 import { danhSachLenhKyNang } from './controllers/BoDieuKhienKyNang.js';
 import { danhSachLenhThienDaoLuc } from './controllers/BoDieuKhienThienDaoLuc.js';
+import { danhSachLenhLichLuyen } from './controllers/BoDieuKhienLichLuyen.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/Item.js';
@@ -34,7 +35,8 @@ const tatCaLenh = [
   ...danhSachLenhBicanh,
   ...danhSachLenhVatPham,
   ...danhSachLenhKyNang,
-  ...danhSachLenhThienDaoLuc
+  ...danhSachLenhThienDaoLuc,
+  ...danhSachLenhLichLuyen
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
