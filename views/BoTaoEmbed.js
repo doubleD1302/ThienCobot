@@ -461,8 +461,10 @@ export class BoTaoEmbed {
     const availableLines = [];
     for (const sk of availableSkills) {
       const { stageName } = config.layThongTinCanhGioi(sk.yeuCauCanhGioi);
+      const reqExp = config.layLinhLucYeuCau(sk.yeuCauCanhGioi);
+      const cost = Math.min(100000000, Math.floor(reqExp / 100));
       availableLines.push(
-        `• **${sk.ten}** (Yêu cầu: **${stageName}** - Cấp ${sk.yeuCauCanhGioi})\n` +
+        `• **${sk.ten}** (Yêu cầu: **${stageName}** · Phí: \`${cost.toLocaleString()}\` 🪙)\n` +
         `  *Sát thương*: \`${sk.satThuong}%\` | *Hồi chiêu*: \`${sk.cooldown}s\` | ID: \`${sk.id}\`\n` +
         `  *Mô tả*: _${sk.moTa}_`
       );

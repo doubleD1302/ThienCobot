@@ -345,7 +345,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       linhCan: "Hỏa Linh Căn",
       capDo: 1,
       linhLuc: 0,
-      linhThach: 0
+      linhThach: 1000000
     });
     tuSi.linhCanList = ["Hoa"];
     await tuSi.save();
@@ -1052,6 +1052,50 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const oldChance = 0.40 + (levelDiff * 0.05);
     const newCappedChance = Math.max(0.05, Math.min(0.50, oldChance));
     assert.strictEqual(newCappedChance, 0.50);
+  });
+
+  test('Skill learning cost deduction', async () => {
+    const tuSi = await TuSi.create({
+      idNguoiDung: "999888123123",
+      ten: "CostTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 10,
+      linhLuc: 0,
+      linhThach: 5,
+      vnd: 100000
+    });
+
+    const sk = await Skill.create({
+      id: 'test_cost_skill',
+      ten: 'Hỏa Cầu',
+      loai: 'Phép thuật',
+      yeuCauCanhGioi: 10,
+      satThuong: 100,
+      cooldown: 5,
+      moTa: '...'
+    });
+
+    const { boDieuKhienKyNang } = await import('./controllers/BoDieuKhienKyNang.js');
+
+    const resFail = await boDieuKhienKyNang._thucHienHocKyNang(tuSi, 'test_cost_skill');
+    assert.strictEqual(resFail.ok, false);
+    assert.ok(resFail.msg.includes('không đủ Linh Thạch'));
+
+    tuSi.linhThach = 100;
+    await tuSi.save();
+
+    const resSuccess = await boDieuKhienKyNang._thucHienHocKyNang(tuSi, 'test_cost_skill');
+    assert.strictEqual(resSuccess.ok, true);
+    assert.ok(resSuccess.msg.includes('Lĩnh hội thành công'));
+
+    await tuSi.reload();
+    assert.strictEqual(tuSi.linhThach, 90);
+
+    await PlayerSkill.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await sk.destroy();
+    await tuSi.destroy();
   });
 
 });

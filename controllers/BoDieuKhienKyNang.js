@@ -88,6 +88,17 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
       return { ok: false, msg: `Căn cơ bất túc! Yêu cầu cảnh giới tối thiểu: **${stageName}** (Cấp ${skillDetail.yeuCauCanhGioi}).` };
     }
 
+    // Tính toán phí Linh Thạch: 1/100 tu vi cần của cảnh giới đó, max 100m
+    const reqExp = config.layLinhLucYeuCau(skillDetail.yeuCauCanhGioi);
+    const cost = Math.min(100000000, Math.floor(reqExp / 100));
+
+    if (tuSi.linhThach < cost) {
+      return { ok: false, msg: `Đạo hữu không đủ Linh Thạch! Lĩnh hội chiêu thức này cần **${cost.toLocaleString()}** Linh Thạch (thiếu **${(cost - tuSi.linhThach).toLocaleString()}** Linh Thạch).` };
+    }
+
+    tuSi.linhThach -= cost;
+    await tuSi.save();
+
     await PlayerSkill.create({
       idNguoiDung: tuSi.idNguoiDung,
       skillId: skillId,
@@ -95,7 +106,7 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
       kinhNghiemSkill: 0
     });
 
-    return { ok: true, msg: `Lĩnh hội thành công chiêu thức **${skillDetail.ten}**!` };
+    return { ok: true, msg: `Lĩnh hội thành công chiêu thức **${skillDetail.ten}**! Khấu trừ **${cost.toLocaleString()}** Linh Thạch.` };
   }
 
   async xayDungEmbedHuongDanKyNang(tuSi, realmName) {
@@ -172,13 +183,15 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
               .setPlaceholder('🔽 Chọn một chiêu thức để lĩnh hội...')
               .setDisabled(disabled)
               .addOptions(availableSkills.slice(0, 25).map(sk => {
-                const { layThongTinCanhGioi } = config;
+                const { layThongTinCanhGioi, layLinhLucYeuCau } = config;
                 const { stageName } = layThongTinCanhGioi(sk.yeuCauCanhGioi);
+                const reqExp = layLinhLucYeuCau(sk.yeuCauCanhGioi);
+                const cost = Math.min(100000000, Math.floor(reqExp / 100));
                 return {
                   label: `Lĩnh hội: ${sk.ten}`.slice(0, 100),
                   value: sk.id,
                   emoji: '📖',
-                  description: `Yêu cầu: ${stageName} (Cấp ${sk.yeuCauCanhGioi})`.slice(0, 100)
+                  description: `Cấp ${sk.yeuCauCanhGioi} (${stageName}) | Phí: ${cost.toLocaleString()} LThach`.slice(0, 100)
                 };
               }))
           );
