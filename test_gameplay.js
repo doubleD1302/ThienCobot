@@ -855,7 +855,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(dtpInv.soLuong, 1);
     assert.ok(tuSi.linhLuc > prevLinhLuc, "Linh lực phải tăng");
 
-    // 4. Test dungeon 1% drop rate for co_duyen_lenh
+    // 4. Test dungeon 3% drop rate for co_duyen_lenh
     // Since it's randomized, we can verify that the new property droppedCoDuyenLenh works inside tranDauBiCanh
     const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
     const embedResult = BoTaoEmbed.tranDauBiCanh(

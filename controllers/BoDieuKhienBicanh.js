@@ -393,8 +393,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             }
           }
 
-          // 1% rơi Cơ Duyên Lệnh
-          if (Math.random() <= 0.01) {
+          // 3% rơi Cơ Duyên Lệnh
+          if (Math.random() <= 0.03) {
             const cdDetail = await Item.findByPk('co_duyen_lenh');
             if (cdDetail) {
               droppedCoDuyenLenh = true;
