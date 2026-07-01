@@ -8,6 +8,15 @@ import { danhSachLenhKyNang } from './controllers/BoDieuKhienKyNang.js';
 import { danhSachLenhThienDaoLuc } from './controllers/BoDieuKhienThienDaoLuc.js';
 import { danhSachLenhLichLuyen } from './controllers/BoDieuKhienLichLuyen.js';
 import { danhSachLenhShop } from './controllers/BoDieuKhienShop.js';
+import { danhSachLenhLeaderboard } from './controllers/BoDieuKhienLeaderboard.js';
+import { danhSachLenhDongPhu } from './controllers/BoDieuKhienDongPhu.js';
+import { danhSachLenhDamDao } from './controllers/BoDieuKhienDamDao.js';
+import { danhSachLenhTuongTac } from './controllers/BoDieuKhienTuongTac.js';
+import { danhSachLenhAdmin } from './controllers/BoDieuKhienAdmin.js';
+import { danhSachLenhBoss } from './controllers/BoDieuKhienBoss.js';
+import { danhSachLenhHelp } from './controllers/BoDieuKhienHelp.js';
+import { danhSachLenhLiXi } from './controllers/BoDieuKhienLiXi.js';
+import { danhSachLenhGacha } from './controllers/BoDieuKhienGacha.js';
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
@@ -21,7 +30,16 @@ const tatCaLenh = [
   ...danhSachLenhKyNang,
   ...danhSachLenhThienDaoLuc,
   ...danhSachLenhLichLuyen,
-  ...danhSachLenhShop
+  ...danhSachLenhShop,
+  ...danhSachLenhLeaderboard,
+  ...danhSachLenhDongPhu,
+  ...danhSachLenhDamDao,
+  ...danhSachLenhTuongTac,
+  ...danhSachLenhAdmin,
+  ...danhSachLenhBoss,
+  ...danhSachLenhHelp,
+  ...danhSachLenhLiXi,
+  ...danhSachLenhGacha
 ];
 
 client.once('ready', async () => {

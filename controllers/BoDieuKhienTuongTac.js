@@ -399,7 +399,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           // Tính toán tỷ lệ thành công dựa theo chênh lệch cấp độ
           const levelDiff = tuSiA.capDo - tuSiB.capDo;
           let successChance = 0.40 + (levelDiff * 0.05);
-          successChance = Math.max(0.05, Math.min(0.90, successChance)); // Min 5%, Max 90%
+          successChance = Math.max(0.05, Math.min(0.50, successChance)); // Min 5%, Max 50%
 
           const roll = Math.random();
           if (roll <= successChance) {
@@ -554,6 +554,97 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
       });
     }
   };
+
+  lenhBoThi = {
+    data: new SlashCommandBuilder()
+      .setName('bothi')
+      .setDescription('Bố thí/Chuyển giao Linh Thạch cho đạo hữu khác')
+      .addUserOption(option => 
+        option.setName('user')
+          .setDescription('Người nhận Linh Thạch')
+          .setRequired(true)
+      )
+      .addStringOption(option =>
+        option.setName('luong')
+          .setDescription('Số lượng Linh Thạch (hỗ trợ viết tắt k, m, b, ví dụ: 100k, 2.5m, 1b)')
+          .setRequired(true)
+      ),
+
+    execute: async (interaction) => {
+      await interaction.deferReply();
+      const targetUser = interaction.options.getUser('user');
+      const amountStr = interaction.options.getString('luong');
+
+      if (targetUser.id === interaction.user.id) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Đạo hữu không thể tự bố thí cho bản thân!")]
+        });
+      }
+
+      const tuSiSender = await this.layTuSi(interaction.user.id);
+      if (!tuSiSender) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
+        });
+      }
+
+      const tuSiReceiver = await this.layTuSi(targetUser.id);
+      if (!tuSiReceiver) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Đối phương chưa tham gia Tiên Giới (chưa tạo nhân vật).")]
+        });
+      }
+
+      const amount = parseLinhThachAmount(amountStr);
+      if (amount === null || amount <= 0) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Số lượng Linh Thạch không hợp lệ. Vui lòng nhập số dương (hỗ trợ viết tắt k, m, b, ví dụ: 100k, 2.5m, 1b).")]
+        });
+      }
+
+      if (tuSiSender.linhThach < amount) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi(`Đạo hữu không có đủ Linh Thạch! Số dư hiện tại: \`${tuSiSender.linhThach.toLocaleString()}\` 🪙 Linh Thạch.`)]
+        });
+      }
+
+      tuSiSender.linhThach -= amount;
+      tuSiReceiver.linhThach += amount;
+      await tuSiSender.save();
+      await tuSiReceiver.save();
+
+      const embed = new EmbedBuilder()
+        .setTitle('🤝 Bố Thí Linh Thạch Thành Công!')
+        .setColor(0x2ecc71)
+        .setDescription(
+          `✨ Nhân quả tuần hoàn! **${tuSiSender.ten}** đã bố thí thành công cho **${tuSiReceiver.ten}**:\n\n` +
+          `• **Lượng chuyển giao**: \`+${amount.toLocaleString()}\` 🪙 Linh Thạch.\n` +
+          `• **Số dư của ngươi**: \`${tuSiSender.linhThach.toLocaleString()}\` 🪙 Linh Thạch.`
+        )
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+    }
+  };
+}
+
+function parseLinhThachAmount(str) {
+  if (!str) return null;
+  const clean = str.trim().toLowerCase();
+  
+  const match = clean.match(/^([\d.]+)\s*([kmb]?)$/);
+  if (!match) return null;
+  
+  const numPart = parseFloat(match[1]);
+  if (isNaN(numPart) || numPart <= 0) return null;
+  
+  const suffix = match[2];
+  let multiplier = 1;
+  if (suffix === 'k') multiplier = 1000;
+  else if (suffix === 'm') multiplier = 1000000;
+  else if (suffix === 'b') multiplier = 1000000000;
+  
+  return Math.floor(numPart * multiplier);
 }
 
 // Helper tải danh sách trang bị nhanh
@@ -573,5 +664,5 @@ async function loadEquippedItems(userId) {
 }
 
 const controller = new BoDieuKhienTuongTac();
-export const danhSachLenhTuongTac = [controller.lenhTuongTac];
+export const danhSachLenhTuongTac = [controller.lenhTuongTac, controller.lenhBoThi];
 export { controller as boDieuKhienTuongTac };

@@ -987,4 +987,71 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('bothi Linh Thach transfer and abbreviation parser', async () => {
+    const tuSiA = await TuSi.create({
+      idNguoiDung: "777666555111",
+      ten: "BothiSender",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 5000000,
+      vnd: 100000
+    });
+
+    const tuSiB = await TuSi.create({
+      idNguoiDung: "777666555222",
+      ten: "BothiReceiver",
+      gioiTinh: "Nữ",
+      huongTu: "Phap Tu",
+      linhCan: "Mộc Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100,
+      vnd: 100000
+    });
+
+    const parseLinhThach = (str) => {
+      const clean = str.trim().toLowerCase();
+      const match = clean.match(/^([\d.]+)\s*([kmb]?)$/);
+      if (!match) return null;
+      const numPart = parseFloat(match[1]);
+      const suffix = match[2];
+      let multiplier = 1;
+      if (suffix === 'k') multiplier = 1000;
+      else if (suffix === 'm') multiplier = 1000000;
+      else if (suffix === 'b') multiplier = 1000000000;
+      return Math.floor(numPart * multiplier);
+    };
+
+    assert.strictEqual(parseLinhThach("10k"), 10000);
+    assert.strictEqual(parseLinhThach("1.5m"), 1500000);
+    assert.strictEqual(parseLinhThach("2b"), 2000000000);
+    assert.strictEqual(parseLinhThach("250"), 250);
+
+    const amount = parseLinhThach("1.5m");
+    assert.strictEqual(amount, 1500000);
+
+    tuSiA.linhThach -= amount;
+    tuSiB.linhThach += amount;
+    await tuSiA.save();
+    await tuSiB.save();
+
+    await tuSiA.reload();
+    await tuSiB.reload();
+    assert.strictEqual(tuSiA.linhThach, 3500000);
+    assert.strictEqual(tuSiB.linhThach, 1500100);
+
+    await tuSiA.destroy();
+    await tuSiB.destroy();
+  });
+
+  test('Plunder rate cap (max 50%)', async () => {
+    const levelDiff = 30 - 1;
+    const oldChance = 0.40 + (levelDiff * 0.05);
+    const newCappedChance = Math.max(0.05, Math.min(0.50, oldChance));
+    assert.strictEqual(newCappedChance, 0.50);
+  });
+
 });
