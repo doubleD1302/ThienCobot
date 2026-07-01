@@ -127,33 +127,19 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
       .setColor(0xe74c3c)
       .setTimestamp();
 
-    const skillLines = [];
-    for (const sk of filteredSkills) {
-      skillLines.push(
-        `• **${sk.ten}** (Yêu cầu cấp: \`${sk.yeuCauCanhGioi}\`)\n` +
-        `  *Sát thương*: \`${sk.satThuong}%\` | *Hồi chiêu*: \`${sk.cooldown}s\`\n` +
-        `  *Mô tả*: _${sk.moTa}_`
-      );
-    }
-
-    const buildSafeValue = (lines, emptyFallback) => {
-      if (lines.length === 0) return emptyFallback;
-      let result = '';
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const suffix = `\n*... và còn ${lines.length - i} kỹ năng khác.*`;
-        if (result.length + line.length + suffix.length + (result ? 1 : 0) > 1000) {
-          result += suffix;
-          break;
-        }
-        result += (result ? '\n' : '') + line;
+    let tableText = '```markdown\n| Tên Chiêu Thức | S.Thương | H.Chiêu | Cấp Y.Cầu |\n| :--- | :---: | :---: | :---: |\n';
+    if (filteredSkills.length === 0) {
+      tableText += '| (Trống) | - | - | - |\n';
+    } else {
+      for (const sk of filteredSkills) {
+        tableText += `| ${sk.ten} | ${sk.satThuong}% | ${sk.cooldown}s | Cấp ${sk.yeuCauCanhGioi} |\n`;
       }
-      return result;
-    };
+    }
+    tableText += '```';
 
     embed.addFields({
-      name: `🥋 Chiêu Thức Phái ${playerClass === 'The Tu' ? 'Thể Tu' : 'Pháp Tu'}`,
-      value: buildSafeValue(skillLines, `• Chưa có chiêu thức nào thuộc cảnh giới ${realmName} được ghi nhận trong phái này.`),
+      name: `🥋 Bảng Chiêu Thức Phái ${playerClass === 'The Tu' ? 'Thể Tu' : 'Pháp Tu'}`,
+      value: tableText,
       inline: false
     });
 
