@@ -264,6 +264,7 @@ class BoDieuKhienAdmin {
             channelName:     pendingChannelName,
             allowedCommands: pendingCmds
           });
+          await ChannelRestriction.loadAllToCache();
 
           const savedCmds = pendingCmds.length > 0 
             ? pendingCmds.map(c => `\`/${c}\``).join(', ')
@@ -287,7 +288,10 @@ class BoDieuKhienAdmin {
         if (i.customId === 'adm_delete_select') {
           const targetId = i.values[0];
           const record   = await ChannelRestriction.findByPk(targetId);
-          if (record) await record.destroy();
+          if (record) {
+            await record.destroy();
+            await ChannelRestriction.loadAllToCache();
+          }
 
           mode = 'LIST';
           const payload = await buildPayload();

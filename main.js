@@ -30,7 +30,7 @@ import './models/LichSuMua.js';
 import './models/Abode.js';
 import './models/GardenPlot.js';
 import './models/Pet.js';
-import './models/ChannelRestriction.js';
+import { ChannelRestriction } from './models/ChannelRestriction.js';
 import './models/WorldBoss.js';
 
 // Khởi tạo Discord Client với các Intents cần thiết
@@ -92,6 +92,10 @@ client.once('ready', async () => {
   const { ThienDaoLuc } = await import('./models/ThienDaoLuc.js');
   ThienDaoLuc.clientInstance = client;
 
+  // Tải giới hạn kênh vào bộ nhớ đệm
+  const { ChannelRestriction } = await import('./models/ChannelRestriction.js');
+  await ChannelRestriction.loadAllToCache();
+
   // Khởi động tiến trình quản lý Cự Thú
   boDieuKhienBoss.khoiThaoBossSchedule(client);
   // Khởi động tiến trình gửi Bảng Xếp Hạng tự động mỗi 10 phút
@@ -148,12 +152,10 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
-  // ── Kiểm tra giới hạn lệnh theo kênh (lấy từ Database) ─────────────────
+  // ── Kiểm tra giới hạn lệnh theo kênh (lấy từ memory cache) ─────────────
   try {
-    const { ChannelRestriction } = await import('./models/ChannelRestriction.js');
-    const restriction = await ChannelRestriction.findByPk(interaction.channelId);
-    if (restriction) {
-      const allowedCommands = restriction.allowedCommands;
+    const allowedCommands = ChannelRestriction.getRestriction(interaction.channelId);
+    if (allowedCommands) {
       if (!allowedCommands.includes(interaction.commandName)) {
         const allowedList = allowedCommands.map(c => `\`/${c}\``).join(', ') || '*Không có lệnh nào*';
         return await interaction.reply({
