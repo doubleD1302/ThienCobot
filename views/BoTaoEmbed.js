@@ -331,7 +331,7 @@ export class BoTaoEmbed {
     const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [];
 
     for (const itemObj of itemsList) {
-      const { item, soLuong, trangBi: isEquipped, nangCapSao } = itemObj;
+      const { item, soLuong, trangBi: isEquipped, nangCapSao, invId } = itemObj;
       const starText = nangCapSao > 0 ? ` (+${nangCapSao}⭐)` : '';
       const equipText = isEquipped ? ' 🛡️ **[Đang mặc]**' : '';
 
@@ -341,8 +341,8 @@ export class BoTaoEmbed {
         reqText = ` 🔒 **${cgReq.realmName}**`;
       }
 
-      // Ẩn tất cả chỉ số khỏi dòng hiển thị chính để balo cực kỳ gọn gàng
-      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${reqText} | ID: \`${item.id}\``;
+      // Sử dụng mã ID duy nhất của dòng vật phẩm trong balo để phân biệt các trang bị trùng tên
+      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
 
       if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
       else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);

@@ -242,10 +242,10 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
               const isEquip    = EQUIP_TYPES.includes(obj.item.loai);
               const encodedVal = encodeToolbarValue(obj.invId, obj.item.id, obj.item.loai);
               return {
-                label:       obj.item.ten.slice(0, 100),
+                label:       `${obj.item.ten} [#${obj.invId}]`.slice(0, 100),
                 value:       encodedVal,
                 emoji:       isEquip ? '🛡️' : '💊',
-                description: `${obj.item.loai} | x${obj.soLuong}`.slice(0, 100),
+                description: `${obj.item.loai} | Mã: #${obj.invId} · Số lượng: ${obj.soLuong}`.slice(0, 100),
                 default:     encodedVal === curVal
               };
             }))
