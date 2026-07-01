@@ -658,5 +658,45 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await player.destroy();
   });
 
+  test('Interactive /help command execution', async () => {
+    const { boDieuKhienHelp } = await import('./controllers/BoDieuKhienHelp.js');
+    
+    // Create a mock user who executes the command
+    const mockTuSi = await TuSi.create({
+      idNguoiDung: "9999999999999999",
+      ten: "Thư Viện Đạo Sĩ",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100
+    });
+    mockTuSi.linhCanList = ["Hoa"];
+    await mockTuSi.save();
+
+    let replyPayload = null;
+    const interactionMock = {
+      user: { id: mockTuSi.idNguoiDung },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        replyPayload = payload;
+        return {
+          createMessageComponentCollector: () => ({
+            on: () => {},
+            stop: () => {}
+          })
+        };
+      }
+    };
+
+    await boDieuKhienHelp.lenhHelp.execute(interactionMock);
+    assert.ok(replyPayload);
+    assert.ok(replyPayload.embeds[0].data.title.includes("Tiên Đạo Thư Viện"));
+    assert.ok(replyPayload.embeds[0].data.description.includes("Nhóm Lệnh: Cơ Bản & Tu Luyện"));
+
+    await mockTuSi.destroy();
+  });
+
 });
 
