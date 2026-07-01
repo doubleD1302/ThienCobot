@@ -130,7 +130,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           const { PlayerSkill } = await import('../models/PlayerSkill.js');
           const { Skill } = await import('../models/Skill.js');
 
-          const learnedA = await PlayerSkill.findAll({ where: { idNguoiDung: tuSiA.idNguoiDung } });
+          const learnedA = await PlayerSkill.findAll({ where: { idNguoiDung: tuSiA.idNguoiDung, trangBi: true } });
           const skillsA = [];
           for (const psk of learnedA) {
             const detail = await Skill.findByPk(psk.skillId);
@@ -139,7 +139,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             }
           }
 
-          const learnedB = await PlayerSkill.findAll({ where: { idNguoiDung: tuSiB.idNguoiDung } });
+          const learnedB = await PlayerSkill.findAll({ where: { idNguoiDung: tuSiB.idNguoiDung, trangBi: true } });
           const skillsB = [];
           for (const psk of learnedB) {
             const detail = await Skill.findByPk(psk.skillId);

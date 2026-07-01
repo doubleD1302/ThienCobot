@@ -30,6 +30,12 @@ PlayerSkill.init({
     allowNull: false,
     defaultValue: 0,
     field: 'kinh_nghiem_skill'
+  },
+  trangBi: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    field: 'trang_bi'
   }
 }, {
   sequelize,

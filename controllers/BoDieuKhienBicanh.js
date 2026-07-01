@@ -177,7 +177,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const { PlayerSkill } = await import('../models/PlayerSkill.js');
         const { Skill } = await import('../models/Skill.js');
 
-        const learned = await PlayerSkill.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+        const learned = await PlayerSkill.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true } });
         const skills = [];
         for (const psk of learned) {
           const detail = await Skill.findByPk(psk.skillId);

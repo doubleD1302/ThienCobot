@@ -35,6 +35,7 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
           satThuong: detail.satThuong,
           cooldown: detail.cooldown,
           capDo: psk.capDo,
+          trangBi: psk.trangBi,
           moTa: detail.moTa
         });
         learnedIds.add(detail.id);
@@ -152,7 +153,7 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
       let guideRealmIndex = realmsList.indexOf(currentRealm);
       if (guideRealmIndex === -1) guideRealmIndex = 0;
 
-      let viewMode = 'main'; // 'main' hoặc 'guide'
+      let viewMode = 'main'; // 'main', 'guide', hoặc 'equip'
 
       const buildComponents = (availableSkills, disabled = false) => {
         const rowMenu = new ActionRowBuilder();
@@ -184,6 +185,11 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
         }
 
         const rowButtons = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('skill_equip_mode')
+            .setLabel('⚔️ Trang Bị Chiêu Thức')
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(disabled),
           new ButtonBuilder()
             .setCustomId('skill_all_guide')
             .setLabel('📚 Tất Cả Kỹ Năng')
@@ -229,6 +235,50 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
         return [rowMenu, rowButtons];
       };
 
+      const buildEquipComponents = (playerSkillsList, disabled = false) => {
+        const rowMenu = new ActionRowBuilder();
+        if (playerSkillsList.length === 0) {
+          rowMenu.addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('skill_equip_select')
+              .setPlaceholder('⚠️ Chưa lĩnh hội kỹ năng nào để trang bị')
+              .setDisabled(true)
+              .addOptions([{ label: '(Trống)', value: '__empty__' }])
+          );
+        } else {
+          rowMenu.addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('skill_equip_select')
+              .setPlaceholder('🔽 Chọn một chiêu thức để Lắp / Tháo trang bị...')
+              .setDisabled(disabled)
+              .addOptions(playerSkillsList.slice(0, 25).map(psk => {
+                const statusStr = psk.trangBi ? '[ĐÃ LẮP]' : '[CHƯA LẮP]';
+                return {
+                  label: `${statusStr} ${psk.ten}`.slice(0, 100),
+                  value: psk.id,
+                  emoji: psk.trangBi ? '⚔️' : '📖',
+                  description: `Cấp ${psk.capDo} | Sát thương: ${psk.satThuong}%`.slice(0, 100)
+                };
+              }))
+          );
+        }
+
+        const rowButtons = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('skill_equip_back')
+            .setLabel('↩️ Quay Lại')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled),
+          new ButtonBuilder()
+            .setCustomId('skill_close')
+            .setLabel('❌ Đóng Tàng Kinh Các')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled)
+        );
+
+        return [rowMenu, rowButtons];
+      };
+
       const renderInterface = async () => {
         if (viewMode === 'main') {
           const { playerSkillsList, availableSkills } = await this.layDanhSachKyNangData(tuSi);
@@ -237,12 +287,35 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
             embeds: [embed],
             components: buildComponents(availableSkills)
           });
-        } else {
+        } else if (viewMode === 'guide') {
           const realmName = realmsList[guideRealmIndex];
           const embed = await this.xayDungEmbedHuongDanKyNang(tuSi, realmName);
           await interaction.editReply({
             embeds: [embed],
             components: buildGuideComponents()
+          });
+        } else if (viewMode === 'equip') {
+          const { playerSkillsList } = await this.layDanhSachKyNangData(tuSi);
+          const equippedCount = playerSkillsList.filter(s => s.trangBi).length;
+          
+          const embed = new EmbedBuilder()
+            .setTitle(`⚔️ Lắp Đặt Chiêu Thức: ${tuSi.ten}`)
+            .setDescription(
+              `Hãy chọn các chiêu thức đã học từ danh mục bên dưới để **Lắp (Trang bị)** hoặc **Tháo** khi chiến đấu.\n\n` +
+              `• **Số lượng đã trang bị**: \`${equippedCount} / 5\` ⚔️\n\n` +
+              `**Danh sách chiêu thức đã học**:\n` +
+              (playerSkillsList.map(psk => {
+                const statusEmoji = psk.trangBi ? '🟢 **[Đang Lắp]**' : '⚪ *[Chưa Lắp]*';
+                return `${statusEmoji} **${psk.ten} (Cấp ${psk.capDo})**`;
+              }).join('\n') || '_Chưa học chiêu thức nào._')
+            )
+            .setColor(0x2ecc71)
+            .setTimestamp()
+            .setFooter({ text: 'Giới hạn tối đa 5 kỹ năng được lắp cùng lúc.' });
+
+          await interaction.editReply({
+            embeds: [embed],
+            components: buildEquipComponents(playerSkillsList)
           });
         }
       };
@@ -271,8 +344,14 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
           return;
         }
 
-        if (i.customId === 'skill_guide_back') {
+        if (i.customId === 'skill_guide_back' || i.customId === 'skill_equip_back') {
           viewMode = 'main';
+          await renderInterface();
+          return;
+        }
+
+        if (i.customId === 'skill_equip_mode') {
+          viewMode = 'equip';
           await renderInterface();
           return;
         }
@@ -302,6 +381,53 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
             });
           }
         }
+
+        if (i.customId === 'skill_equip_select') {
+          const skillId = i.values[0];
+          if (!skillId || skillId === '__empty__') return;
+
+          const pskRecord = await PlayerSkill.findOne({
+            where: { idNguoiDung: tuSi.idNguoiDung, skillId: skillId }
+          });
+          if (!pskRecord) {
+            await i.followUp({
+              embeds: [BoTaoEmbed.loi('Không tìm thấy bản ghi kỹ năng đã học.')],
+              ephemeral: true
+            });
+            return;
+          }
+
+          if (pskRecord.trangBi) {
+            // Tháo trang bị
+            pskRecord.trangBi = false;
+            await pskRecord.save();
+            await i.followUp({
+              embeds: [BoTaoEmbed.thanhCong('⚔️ Tháo Chiêu Thức', `Đạo hữu đã tháo trang bị chiêu thức thành công!`)],
+              ephemeral: true
+            });
+          } else {
+            // Lắp trang bị (check 5)
+            const equippedCount = await PlayerSkill.count({
+              where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
+            });
+            if (equippedCount >= 5) {
+              await i.followUp({
+                embeds: [BoTaoEmbed.loi('Chỉ được trang bị tối đa 5 chiêu thức! Vui lòng tháo bớt chiêu thức khác trước.')],
+                ephemeral: true
+              });
+              return;
+            }
+
+            pskRecord.trangBi = true;
+            await pskRecord.save();
+            await i.followUp({
+              embeds: [BoTaoEmbed.thanhCong('⚔️ Trang Bị Chiêu Thức', `Đạo hữu đã lắp trang bị chiêu thức thành công!`)],
+              ephemeral: true
+            });
+          }
+
+          await renderInterface();
+        }
       });
 
       collector.on('end', async (_, reason) => {
@@ -323,13 +449,18 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
               await interaction.editReply({
                 components: buildComponents(current.availableSkills, true)
               });
-            } else {
+            } else if (viewMode === 'guide') {
               await interaction.editReply({
                 components: buildGuideComponents(true)
               });
+            } else if (viewMode === 'equip') {
+              const current = await this.layDanhSachKyNangData(tuSi);
+              await interaction.editReply({
+                components: buildEquipComponents(current.playerSkillsList, true)
+              });
             }
           }
-        } catch (_) {}
+        } catch (_) { }
       });
     }
   };

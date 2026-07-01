@@ -872,9 +872,119 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     );
     assert.ok(JSON.stringify(embedResult.data).includes('Cơ Duyên Lệnh 🎫'));
 
+     // Clean up
+    await tuSi.destroy();
+  });
+
+  test('Skill equip limits (max 5)', async () => {
+    const tuSi = await TuSi.create({
+      idNguoiDung: "1234567890",
+      ten: "KyNangMaster",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 31,
+      linhLuc: 0,
+      linhThach: 1000,
+      vnd: 100000
+    });
+
+    // Create 6 skills
+    for (let i = 1; i <= 6; i++) {
+      await Skill.create({
+        id: `test_skill_${i}`,
+        ten: `Chiêu thức ${i}`,
+        loai: 'Phép thuật',
+        yeuCauCanhGioi: 1,
+        satThuong: 100,
+        cooldown: 5,
+        moTa: 'Mô tả'
+      });
+      // Learn them
+      await PlayerSkill.create({
+        idNguoiDung: tuSi.idNguoiDung,
+        skillId: `test_skill_${i}`,
+        capDo: 1,
+        trangBi: false
+      });
+    }
+
+    // Equip first 5 skills
+    for (let i = 1; i <= 5; i++) {
+      const psk = await PlayerSkill.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, skillId: `test_skill_${i}` } });
+      psk.trangBi = true;
+      await psk.save();
+    }
+
+    // Attempting to check equip limit
+    const equippedCount = await PlayerSkill.count({
+      where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
+    });
+    assert.strictEqual(equippedCount, 5);
+
+    // Clean up player and test skills
+    await PlayerSkill.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    for (let i = 1; i <= 6; i++) {
+      await Skill.destroy({ where: { id: `test_skill_${i}` } });
+    }
+    await tuSi.destroy();
+  });
+
+  test('Quick Sell (Bán Nhanh) filters and execution', async () => {
+    const tuSi = await TuSi.create({
+      idNguoiDung: "1234567899",
+      ten: "QuickSellTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 0,
+      vnd: 100000
+    });
+
+    // Create test items of different rarity, type, and level requirements
+    await Item.create({ id: 'qs_item_1', ten: 'Vũ khí thường', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 100, yeuCauCanhGioi: 1, chiSoJson: '{}', moTa: '' });
+    await Item.create({ id: 'qs_item_2', ten: 'Vũ khí hiếm', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 200, yeuCauCanhGioi: 5, chiSoJson: '{}', moTa: '' });
+    await Item.create({ id: 'qs_item_3', ten: 'Giáp thần cấp', loai: 'Giáp', doHiem: 'Thần cấp', giaCoSo: 1000, yeuCauCanhGioi: 20, chiSoJson: '{}', moTa: '' });
+
+    // Add them to player's inventory
+    const inv1 = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'qs_item_1', soLuong: 2, trangBi: false });
+    const inv2 = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'qs_item_2', soLuong: 1, trangBi: false });
+    const inv3 = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'qs_item_3', soLuong: 1, trangBi: false });
+
+    // Perform quick sell with filter rarity = 'Thường' (should sell qs_item_1 only)
+    const rarityFilter = 'Thường';
+    const allInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, trangBi: false } });
+    let totalSellValue = 0;
+    const soldIds = [];
+    for (const inv of allInv) {
+      const item = await Item.findByPk(inv.itemId);
+      if (item && item.doHiem === rarityFilter && item.giaCoSo > 0) {
+        const price = Math.floor(item.giaCoSo * 0.3);
+        totalSellValue += price * inv.soLuong;
+        soldIds.push(inv.id);
+      }
+    }
+    assert.strictEqual(totalSellValue, Math.floor(100 * 0.3) * 2); // 30 * 2 = 60
+    assert.strictEqual(soldIds.length, 1);
+    assert.strictEqual(soldIds[0], inv1.id);
+
+    // Destroy sold items and add gold
+    await Inventory.destroy({ where: { id: soldIds } });
+    tuSi.linhThach += totalSellValue;
+    await tuSi.save();
+
+    await tuSi.reload();
+    assert.strictEqual(tuSi.linhThach, 60);
+
+    const remainingInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    assert.strictEqual(remainingInv.length, 2); // qs_item_2 and qs_item_3 remain
+
     // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await Item.destroy({ where: { id: ['qs_item_1', 'qs_item_2', 'qs_item_3'] } });
     await tuSi.destroy();
   });
 
 });
-

@@ -450,8 +450,9 @@ export class BoTaoEmbed {
 
     const learnedLines = [];
     for (const psk of playerSkills) {
+      const trangBiText = psk.trangBi ? '`[Đã Lắp ⚔️]` ' : '`[Chưa Lắp]` ';
       learnedLines.push(
-        `• **${psk.ten} (Cấp ${psk.capDo})**\n` +
+        `• ${trangBiText}**${psk.ten} (Cấp ${psk.capDo})**\n` +
         `  *Sát thương*: \`${psk.satThuong}%\` | *Hồi chiêu*: \`${psk.cooldown}s\`\n` +
         `  *Mô tả*: _${psk.moTa}_`
       );

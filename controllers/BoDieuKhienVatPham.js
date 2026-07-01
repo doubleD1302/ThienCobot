@@ -92,7 +92,12 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       let showToolbar = false;
       let selectedVal = null;
       let selectedEquippedInvId = null;
-      let mode        = 'VIEW'; // 'VIEW' | 'EQUIPPED'
+      let mode        = 'VIEW'; // 'VIEW' | 'EQUIPPED' | 'QUICK_SELL'
+
+      // State cho Bán Nhanh
+      let qsRarity = 'tat_ca';
+      let qsRealm  = 'tat_ca';
+      let qsType   = 'tat_ca';
 
       // ── Helper: trang bị đang mặc → embed ────────────────────────────────
       const buildEquippedEmbed = async () => {
@@ -160,6 +165,120 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         );
       };
 
+      // ── Helper: tạo các select menu và nút lọc Bán Nhanh ─────────────────
+      const buildQuickSellComponents = (disabled = false) => {
+        const rowRarity = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('qs_filter_rarity')
+            .setPlaceholder('💎 Chọn phẩm chất cần lọc...')
+            .setDisabled(disabled)
+            .addOptions([
+              { label: 'Tất Cả Phẩm Chất', value: 'tat_ca', default: qsRarity === 'tat_ca' },
+              { label: '⚪ Thường', value: 'Thường', default: qsRarity === 'Thường' },
+              { label: '🟢 Hiếm', value: 'Hiếm', default: qsRarity === 'Hiếm' },
+              { label: '🔵 Cực hiếm', value: 'Cực hiếm', default: qsRarity === 'Cực hiếm' },
+              { label: '🟣 Huyền thoại', value: 'Huyền thoại', default: qsRarity === 'Huyền thoại' },
+              { label: '🟡 Thần cấp', value: 'Thần cấp', default: qsRarity === 'Thần cấp' }
+            ])
+        );
+
+        const rowRealm = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('qs_filter_realm')
+            .setPlaceholder('⛩️ Chọn cảnh giới trang bị cần lọc...')
+            .setDisabled(disabled)
+            .addOptions([
+              { label: 'Tất Cả Cảnh Giới', value: 'tat_ca', default: qsRealm === 'tat_ca' },
+              { label: 'Luyện Khí (Cấp 1-9)', value: 'luyen_khi', default: qsRealm === 'luyen_khi' },
+              { label: 'Trúc Cơ (Cấp 10-18)', value: 'truc_co', default: qsRealm === 'truc_co' },
+              { label: 'Hóa Thần trở lên (Cấp 19+)', value: 'hoa_than', default: qsRealm === 'hoa_than' }
+            ])
+        );
+
+        const rowType = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('qs_filter_type')
+            .setPlaceholder('📦 Chọn loại vật phẩm cần lọc...')
+            .setDisabled(disabled)
+            .addOptions([
+              { label: 'Tất Cả Loại Vật Phẩm', value: 'tat_ca', default: qsType === 'tat_ca' },
+              { label: '🗡️ Vũ khí', value: 'Vũ khí', default: qsType === 'Vũ khí' },
+              { label: '🥋 Giáp', value: 'Giáp', default: qsType === 'Giáp' },
+              { label: '🔮 Ngọc Bội', value: 'Ngọc Bội', default: qsType === 'Ngọc Bội' },
+              { label: '🏺 Cổ Bảo Chủ Động', value: 'Cổ Bảo Chủ Động', default: qsType === 'Cổ Bảo Chủ Động' },
+              { label: '📿 Pháp Bảo', value: 'Pháp Bảo', default: qsType === 'Pháp Bảo' },
+              { label: '💊 Đan dược', value: 'Đan dược', default: qsType === 'Đan dược' },
+              { label: '🌱 Linh thảo', value: 'Linh thảo', default: qsType === 'Linh thảo' }
+            ])
+        );
+
+        const rowButtons = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('qs_confirm')
+            .setLabel('🔥 Xác Nhận Bán Hết')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled),
+          new ButtonBuilder()
+            .setCustomId('qs_cancel')
+            .setLabel('↩️ Quay Lại Balo')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled)
+        );
+
+        return [rowRarity, rowRealm, rowType, rowButtons];
+      };
+
+      // ── Helper: tính toán và tạo embed hiển thị lọc Bán Nhanh ──────────────
+      const buildQuickSellEmbed = async () => {
+        const allInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, trangBi: false } });
+        const matchingItems = [];
+        let totalSellValue = 0;
+
+        for (const inv of allInv) {
+          const item = await Item.findByPk(inv.itemId);
+          if (!item) continue;
+
+          if (qsRarity !== 'tat_ca' && item.doHiem !== qsRarity) continue;
+
+          if (qsRealm !== 'tat_ca') {
+            const req = item.yeuCauCanhGioi || 1;
+            if (qsRealm === 'luyen_khi' && req >= 10) continue;
+            if (qsRealm === 'truc_co' && (req < 10 || req >= 19)) continue;
+            if (qsRealm === 'hoa_than' && req < 19) continue;
+          }
+
+          if (qsType !== 'tat_ca' && item.loai !== qsType) continue;
+
+          if (item.giaCoSo > 0) {
+            matchingItems.push({ inv, item });
+            const donGia = Math.floor(item.giaCoSo * 0.3);
+            totalSellValue += donGia * inv.soLuong;
+          }
+        }
+
+        const rarityText = qsRarity === 'tat_ca' ? 'Tất cả' : `\`${qsRarity}\``;
+        const realmText = qsRealm === 'tat_ca' ? 'Tất cả' : qsRealm === 'luyen_khi' ? 'Luyện Khí' : qsRealm === 'truc_co' ? 'Trúc Cơ' : 'Hóa Thần+';
+        const typeText = qsType === 'tat_ca' ? 'Tất cả' : `\`${qsType}\``;
+
+        const embed = new EmbedBuilder()
+          .setTitle('💰 Tiệm Cầm Đồ: Bán Nhanh Vật Phẩm 💰')
+          .setColor(0xe67e22)
+          .setDescription(
+            `Đạo hữu đang thiết lập bộ lọc để thanh lý nhanh vật phẩm không trang bị.\n\n` +
+            `• **Bộ lọc hiện tại**:\n` +
+            `  * Phẩm chất: **${rarityText}**\n` +
+            `  * Cảnh giới: **\`${realmText}\`**\n` +
+            `  * Phân loại: **${typeText}**\n\n` +
+            `• **Số vật phẩm khớp bộ lọc**: \`${matchingItems.length}\` nhóm vật phẩm\n` +
+            `• **Ước tính thu về**: 🪙 \`${totalSellValue.toLocaleString()}\` Linh Thạch\n\n` +
+            `*Chọn các mục bên dưới để thay đổi bộ lọc, sau đó bấm nút "Xác Nhận Bán Hết" để tiến hành bán.*`
+          )
+          .setTimestamp()
+          .setFooter({ text: 'Chú ý: Hành động này không thể hoàn tác, vật phẩm đang trang bị sẽ được bảo vệ.' });
+
+        return { embed, matchingItems, totalSellValue };
+      };
+
       // ── Builder: Tab-bar nút chính ─────────────────────────────────────────
       const buildTabRow = (disabled = false) =>
         new ActionRowBuilder().addComponents(
@@ -210,6 +329,11 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
             .setLabel('Sau ▶')
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(disabled || pi >= totalPages - 1),
+          new ButtonBuilder()
+            .setCustomId('balo_quick_sell_mode')
+            .setLabel('💰 Bán Nhanh')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled),
           new ButtonBuilder()
             .setCustomId('balo_toolbar_toggle')
             .setLabel(tbShowing ? '📦 Ẩn Công Cụ' : '🛠️ Công Cụ')
@@ -299,6 +423,14 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
       // ── Helper: gửi/cập nhật tin nhắn theo mode ─────────────────────────
       const buildPayload = async (disabled = false) => {
+        if (mode === 'QUICK_SELL') {
+          const { embed } = await buildQuickSellEmbed();
+          return {
+            embeds: [embed],
+            components: buildQuickSellComponents(disabled)
+          };
+        }
+
         if (mode === 'EQUIPPED') {
           const rows = [buildTabRow(disabled)];
           if (!disabled) rows.push(await buildUnequipSelect());
@@ -382,6 +514,63 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         // ── Đóng Balo ───────────────────────────────────────────────────────
         if (i.customId === 'balo_close') {
           collector.stop('closed');
+          return;
+        }
+
+        if (i.customId === 'balo_quick_sell_mode') {
+          mode = 'QUICK_SELL';
+          await i.editReply(await buildPayload());
+          return;
+        }
+
+        // ══ MODE: QUICK_SELL ══════════════════════════════════════════════════
+        if (mode === 'QUICK_SELL') {
+          if (i.customId === 'qs_filter_rarity') {
+            qsRarity = i.values[0];
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'qs_filter_realm') {
+            qsRealm = i.values[0];
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'qs_filter_type') {
+            qsType = i.values[0];
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'qs_cancel') {
+            mode = 'VIEW';
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'qs_confirm') {
+            const { matchingItems, totalSellValue } = await buildQuickSellEmbed();
+            if (matchingItems.length === 0) {
+              await i.followUp({
+                embeds: [BoTaoEmbed.loi('Không tìm thấy vật phẩm nào khớp với bộ lọc đã chọn!')],
+                ephemeral: true
+              });
+              return;
+            }
+
+            const recordIds = matchingItems.map(x => x.inv.id);
+            const { Op } = await import('sequelize');
+            await Inventory.destroy({
+              where: { id: { [Op.in]: recordIds } }
+            });
+
+            tuSi.linhThach += totalSellValue;
+            await tuSi.save();
+
+            // Refresh itemsList and sheets pages
+            await refreshInventory();
+
+            await i.followUp({
+              embeds: [BoTaoEmbed.thanhCong('💰 Thanh Lý Bán Nhanh', `Thanh lý thành công **${matchingItems.length}** loại vật phẩm, nhận về **+${totalSellValue.toLocaleString()}** Linh Thạch!`)],
+              ephemeral: true
+            });
+
+            mode = 'VIEW';
+            await i.editReply(await buildPayload());
+          }
           return;
         }
 
