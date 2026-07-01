@@ -490,15 +490,43 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         });
       }
 
+      // Load kỹ năng đã học để dùng trong chiến đấu
+      const { PlayerSkill } = await import('../models/PlayerSkill.js');
+      const { Skill } = await import('../models/Skill.js');
+      const learned = await PlayerSkill.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+      const skillsList = [];
+      for (const psk of learned) {
+        const detail = await Skill.findByPk(psk.skillId);
+        if (detail) {
+          skillsList.push({ detail, capDo: psk.capDo });
+        }
+      }
+
       // Tính toán sát thương gây ra
       const isPhysical = tuSi.huongTu === 'Thể Tu';
       const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
       const bossDef = isPhysical ? boss.vatPhong : boss.phapPhong;
 
-      let pDmg = Math.max(10, playerAtk - bossDef);
-      const isCrit = Math.random() <= stats.crit_rate;
-      if (isCrit) {
-        pDmg = Math.floor(pDmg * stats.crit_dmg);
+      let pDmg = 0;
+      let isCrit = false;
+      let castMsg = '';
+
+      if (skillsList.length > 0 && Math.random() <= 0.60) {
+        const selected = skillsList[Math.floor(Math.random() * skillsList.length)];
+        const skill = selected.detail;
+        const capDo = selected.capDo;
+        const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
+        let rawDmg = playerAtk * skillMult;
+        isCrit = Math.random() <= stats.crit_rate;
+        if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
+        pDmg = Math.max(10, Math.floor(rawDmg) - bossDef);
+        castMsg = `✨ **Chiêu thức**: Đạo hữu vận chân khí thi triển **${skill.ten} (Cấp ${capDo})** oanh kích!`;
+      } else {
+        let rawDmg = playerAtk;
+        isCrit = Math.random() <= stats.crit_rate;
+        if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
+        pDmg = Math.max(10, Math.floor(rawDmg) - bossDef);
+        castMsg = `🗡️ **Đòn đánh thường**: Đạo hữu vung vũ khí chém mạnh lên cự thú!`;
       }
 
       // Giảm máu Boss
@@ -589,7 +617,8 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
       // Trả lời kết quả tấn công riêng tư (ephemeral)
       const logs = [
-        `💥 Đạo hữu **${tuSi.ten}** thi triển thần thông đánh lên **${boss.ten}** gây \`${pDmg.toLocaleString()}\` sát thương.${isCrit ? ' **(BẠO KÍCH!)**' : ''}`,
+        castMsg,
+        `💥 Gây \`${pDmg.toLocaleString()}\`${isCrit ? ' **(BẠO KÍCH!)**' : ''} sát thương lên **${boss.ten}** (HP Boss còn: \`${boss.hp.toLocaleString()}\`).`,
         dodgeMsg ? dodgeMsg : `👹 Cự thú giận dữ tát lại, gây \`-${bossDmg}\` sát thương (HP của ngươi: \`${tuSi.hp}/${stats.max_hp}\`).`
       ];
 

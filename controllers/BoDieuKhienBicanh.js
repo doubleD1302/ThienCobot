@@ -169,19 +169,64 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
         const monsterDef = isPhysical ? monster.vatPhong : monster.phapPhong;
 
+        // Load kỹ năng đã học để dùng trong chiến đấu
+        const { PlayerSkill } = await import('../models/PlayerSkill.js');
+        const { Skill } = await import('../models/Skill.js');
+        const learnedSkills = await PlayerSkill.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+        const skillsList = [];
+        for (const psk of learnedSkills) {
+          const detail = await Skill.findByPk(psk.skillId);
+          if (detail) {
+            skillsList.push({
+              detail,
+              capDo: psk.capDo,
+              nextRoundAvailable: 1
+            });
+          }
+        }
+
         // Phân loại trang bị chủ động
         const activeTreasures = equippedItems.filter(x => x.item.loai === 'Cổ Bảo Chủ Động');
         const dharmaTreasures = equippedItems.filter(x => x.item.loai === 'Pháp Bảo');
 
         while (monsterHp > 0 && playerHp > 0 && round <= 15) {
           // Lượt chơi: Người tấn công trước
-          let pDmg = Math.max(1, playerAtk - monsterDef);
-          const isCrit = Math.random() <= stats.crit_rate;
-          if (isCrit) {
-            pDmg = Math.floor(pDmg * stats.crit_dmg);
+          const readySkill = skillsList.find(s => s.nextRoundAvailable <= round);
+          let pDmg = 0;
+          let combatLog = '';
+
+          if (readySkill) {
+            const skill = readySkill.detail;
+            const capDo = readySkill.capDo;
+            
+            // Tính toán sát thương kỹ năng (mỗi cấp +10% sát thương)
+            const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
+            let rawDmg = playerAtk * skillMult;
+            
+            const isCrit = Math.random() <= stats.crit_rate;
+            if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
+            
+            pDmg = Math.max(1, Math.floor(rawDmg) - monsterDef);
+            monsterHp = Math.max(0, monsterHp - pDmg);
+            
+            // Đặt cooldown hiệp (mỗi 3 giây tương ứng 1 hiệp đấu)
+            const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
+            readySkill.nextRoundAvailable = round + cooldownRounds;
+
+            combatLog = `✨ **Hiệp ${round}**: **${tuSi.ten}** thi triển **${skill.ten} (Cấp ${capDo})** gây \`${pDmg}\`${isCrit ? ' 💥 (Bạo!)' : ''} sát thương lên **${monster.ten}** (HP: \`${monsterHp}\`).`;
+          } else {
+            // Đòn đánh thường
+            let rawDmg = playerAtk;
+            const isCrit = Math.random() <= stats.crit_rate;
+            if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
+            
+            pDmg = Math.max(1, Math.floor(rawDmg) - monsterDef);
+            monsterHp = Math.max(0, monsterHp - pDmg);
+            
+            combatLog = `🗡️ **Hiệp ${round}**: **${tuSi.ten}** đánh thường gây \`${pDmg}\`${isCrit ? ' 💥 (Bạo!)' : ''} sát thương lên **${monster.ten}** (HP: \`${monsterHp}\`).`;
           }
-          monsterHp = Math.max(0, monsterHp - pDmg);
-          battleLogs.push(`🗡️ **Hiệp ${round}**: **${tuSi.ten}** gây \`${pDmg}\`${isCrit ? ' 💥 (Bạo!)' : ''} sát thương lên **${monster.ten}** (HP: \`${monsterHp}\`).`);
+
+          battleLogs.push(combatLog);
 
           // Hút máu nếu có
           if (stats.lifesteal > 0 && monsterHp > 0) {
