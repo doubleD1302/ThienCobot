@@ -14,7 +14,7 @@ import { Item } from '../models/Item.js';
 
 // Loại item nào có thể trang bị / sử dụng
 const EQUIP_TYPES  = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'];
-const USABLE_TYPES = ['Đan dược'];
+const USABLE_TYPES = ['Đan dược', 'Linh thảo'];
 const ALL_TYPES    = [...EQUIP_TYPES, ...USABLE_TYPES];
 
 // ── Encode/decode toolbar value ──────────────────────────────────────────────
@@ -257,12 +257,14 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         if (!curVal) return null;
         const decoded = decodeToolbarValue(curVal);
         if (!decoded) return null;
-        const { loai } = decoded;
+        const { loai, itemId } = decoded;
+        const isEgg    = itemId === 'trung_linh_thu' || itemId === 'trung_than_thu';
         const isEquip  = EQUIP_TYPES.includes(loai);
-        const isUsable = USABLE_TYPES.includes(loai);
+        const isUsable = loai === 'Đan dược' || isEgg;
         const components = [];
+        components.push(new ButtonBuilder().setCustomId('balo_action_detail').setLabel('🔍 Chi Tiết').setStyle(ButtonStyle.Secondary));
         if (isEquip)  components.push(new ButtonBuilder().setCustomId('balo_action_equip').setLabel('⚔️ Trang Bị').setStyle(ButtonStyle.Primary));
-        if (isUsable) components.push(new ButtonBuilder().setCustomId('balo_action_use').setLabel('💊 Sử Dụng').setStyle(ButtonStyle.Success));
+        if (isUsable) components.push(new ButtonBuilder().setCustomId('balo_action_use').setLabel(isEgg ? '🥚 Ấp Trứng' : '💊 Sử Dụng').setStyle(ButtonStyle.Success));
         components.push(new ButtonBuilder().setCustomId('balo_action_cancel').setLabel('↩️ Bỏ Chọn').setStyle(ButtonStyle.Secondary));
         return new ActionRowBuilder().addComponents(components);
       };
@@ -432,6 +434,35 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         else if (i.customId === 'balo_item_select')    selectedVal = i.values[0];
         else if (i.customId === 'balo_action_cancel')  selectedVal = null;
 
+        // ── Xem Chi Tiết ──────────────────────────────────────────────────────
+        else if (i.customId === 'balo_action_detail') {
+          if (!selectedVal) { await i.editReply(await buildPayload()); return; }
+          const decoded = decodeToolbarValue(selectedVal);
+          if (!decoded)   { await i.editReply(await buildPayload()); return; }
+
+          const invObj = await Inventory.findOne({ where: { id: decoded.invId, idNguoiDung: tuSi.idNguoiDung } });
+          if (!invObj) {
+            await i.editReply({
+              embeds: [BoTaoEmbed.loi(`Không tìm thấy vật phẩm trong túi đồ.`), sheets[sheetIdx].pages[pageIdx]],
+              components: buildAllComponents()
+            });
+            return;
+          }
+
+          const itemDetail = await Item.findByPk(invObj.itemId);
+          const detailEmbed = BoTaoEmbed.chiTietVatPham(tuSi, {
+            item: itemDetail,
+            nangCapSao: invObj.nangCapSao,
+            dongChiSoJson: invObj.dongChiSoJson
+          });
+
+          await i.editReply({
+            embeds: [detailEmbed, sheets[sheetIdx].pages[pageIdx]],
+            components: buildAllComponents()
+          });
+          return;
+        }
+
         // ── Trang Bị ─────────────────────────────────────────────────────────
         else if (i.customId === 'balo_action_equip') {
           if (!selectedVal) { await i.editReply(await buildPayload()); return; }
@@ -515,13 +546,85 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
   /** Logic thực thi sử dụng đan dược */
   async _thucHienDungItem(tuSi, inv, itemId) {
     const itemDetail = await Item.findByPk(inv.itemId ?? itemId);
-    if (!itemDetail || itemDetail.loai !== 'Đan dược') {
-      return { ok: false, msg: `Vật phẩm này không phải đan dược có thể sử dụng.` };
+    if (!itemDetail) return { ok: false, msg: 'Không tìm thấy thông tin vật phẩm.' };
+
+    const isEgg = itemDetail.id === 'trung_linh_thu' || itemDetail.id === 'trung_than_thu';
+
+    if (itemDetail.loai !== 'Đan dược' && !isEgg) {
+      return { ok: false, msg: `Vật phẩm này không phải đan dược hay trứng linh thú có thể sử dụng.` };
     }
     if (tuSi.capDo < (itemDetail.yeuCauCanhGioi || 1)) {
       const { layThongTinCanhGioi } = await import('../config.js');
       const cgReq = layThongTinCanhGioi(itemDetail.yeuCauCanhGioi || 1);
       return { ok: false, msg: `Cảnh giới bất túc! Vật phẩm này yêu cầu tu vi tối thiểu: **${cgReq.realmName} - ${cgReq.stageName}** (Hiện tại: **${tuSi.canhGioi}**).` };
+    }
+
+    // Xử lý ấp trứng linh thú
+    if (isEgg) {
+      const { Pet } = await import('../models/Pet.js');
+      const { PET_TEMPLATES } = await import('../config.js');
+
+      let targetType = 'ma_lang';
+      let rarity = 'NORMAL';
+      let defaultName = 'Ma Lang 🐺';
+      let tuChat = 100;
+
+      const roll = Math.random() * 100;
+      const eggId = itemDetail.id;
+
+      if (eggId === 'trung_linh_thu') {
+        tuChat = 100 + Math.floor(Math.random() * 61); // Tư chất bất kỳ: 100 - 160
+        if (roll <= 33) {
+          targetType = 'ma_lang';
+          defaultName = 'U Minh Ma Lang 🐺';
+        } else if (roll <= 66) {
+          targetType = 'loi_diep';
+          defaultName = 'Lôi Điệp 🦋';
+        } else {
+          targetType = 'than_vien';
+          defaultName = 'Thần Viên 🦍';
+        }
+      } else {
+        rarity = 'ANCIENT';
+        tuChat = 150 + Math.floor(Math.random() * 71); // Tư chất bất kỳ: 150 - 220
+        if (roll <= 33) {
+          targetType = 'to_long';
+          defaultName = 'Tổ Long 🐉';
+        } else if (roll <= 66) {
+          targetType = 'phuong_hoang';
+          defaultName = 'Hỏa Phượng 🐦';
+        } else {
+          targetType = 'ky_lan';
+          defaultName = 'Kỳ Lân 🦄';
+        }
+      }
+
+      // Khởi tạo linh thú
+      const pet = await Pet.create({
+        userId:  tuSi.idNguoiDung,
+        name:    defaultName,
+        type:    targetType,
+        rarity:  rarity,
+        level:   1,
+        exp:     0,
+        tuChat:  tuChat,
+        isActive: false
+      });
+
+      // Tiêu hao trứng
+      inv.soLuong -= 1;
+      if (inv.soLuong <= 0) await inv.destroy();
+      else await inv.save();
+
+      const petNameInTpl = PET_TEMPLATES[targetType]?.name || defaultName;
+
+      return {
+        ok:  true,
+        msg: `🐣 **Ấp Trứng Thành Công!**\nQuả trứng vỡ ra, một chú **${petNameInTpl}** nhỏ bé chui ra chào đạo hữu!\n\n` +
+             `• **Tên linh thú**: \`${pet.name}\`\n` +
+             `• **Tư chất**: \`${pet.tuChat}\` *(chỉ số bất kỳ theo phẩm chất trứng)*\n` +
+             `*Đạo hữu hãy gõ lệnh \`/dongphu\` (mục Linh Thú) để quản lý hoặc trang bị (cho xuất chiến) linh thú này.*`
+      };
     }
 
     const equippedInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true } });

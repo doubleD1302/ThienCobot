@@ -69,7 +69,6 @@ class ThienDaoLuc extends Model {
                 .setFooter({ text: `Đạo Niên thứ ${daoNien} · Thiên Đạo Lục` });
 
               await targetChannel.send({
-                content: '@everyone',
                 embeds: [embed]
               }).catch(err => {
                 console.error(`[Thiên Đạo Lục Broadcast] Không thể gửi tin nhắn đến guild ${guild.name}:`, err);
