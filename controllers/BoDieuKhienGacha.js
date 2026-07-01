@@ -209,6 +209,7 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
 
         // Build Response Embed
         let responseEmbed;
+        let filesToSend = [];
         if (hitSupreme) {
           responseEmbed = new EmbedBuilder()
             .setTitle('🏺 THIÊN ĐẠO DIỆU QUANG — TRÚNG CHÍ BẢO 🏺')
@@ -220,7 +221,10 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
               `**Danh sách quà nhận được**:\n` +
               rewardLines.join('\n')
             )
+            .setThumbnail('attachment://binh_tinh_hai.png')
             .setTimestamp();
+
+          filesToSend.push(new AttachmentBuilder('public/image/chi_bao/binh_tinh_hai.png'));
 
           // Broadcast to Thien Dao Luc with tag @everyone
           const announceMsg = `🌌 **Thiên Địa Dị Tượng - Chí Bảo Xuất Thế** 🌌\n\n` +
@@ -257,12 +261,12 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
             .setStyle(ButtonStyle.Danger)
         );
 
-        // Edit reply, clearing content text and clearing files array
+        // Edit reply, clearing content text and passing filesToSend array
         await interaction.editReply({
           content: null,
           embeds: [responseEmbed],
           components: [row],
-          files: []
+          files: filesToSend
         });
       });
 

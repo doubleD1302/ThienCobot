@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../database.js';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, AttachmentBuilder } from 'discord.js';
 
 class ThienDaoLuc extends Model {
   // Biến tĩnh chứa client instance để gửi thông báo Discord
@@ -68,9 +68,16 @@ class ThienDaoLuc extends Model {
                 .setTimestamp()
                 .setFooter({ text: `Đạo Niên thứ ${daoNien} · Thiên Đạo Lục` });
 
+              const files = [];
+              if (loai === 'Supreme') {
+                embed.setThumbnail('attachment://binh_tinh_hai.png');
+                files.push(new AttachmentBuilder('public/image/chi_bao/binh_tinh_hai.png'));
+              }
+
               await targetChannel.send({
                 content: loai === 'Supreme' ? '@everyone' : undefined,
-                embeds: [embed]
+                embeds: [embed],
+                files: files
               }).catch(err => {
                 console.error(`[Thiên Đạo Lục Broadcast] Không thể gửi tin nhắn đến guild ${guild.name}:`, err);
               });
