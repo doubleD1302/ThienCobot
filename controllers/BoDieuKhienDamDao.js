@@ -15,13 +15,13 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
     super();
   }
 
-  applyDamDaoTuVi(tuSi, goldChange) {
+  applyDamDaoTuVi(tuSi, goldChange, expMult = 1.0) {
     let tuViChange = 0;
     if (goldChange > 0) {
-      // Thắng: +1 tuvi mỗi 1k vàng kiếm được
-      tuViChange = goldChange / 1000.0;
+      // Thắng: +1 tuvi mỗi 1k vàng kiếm được * expMult
+      tuViChange = (goldChange / 1000.0) * expMult;
     } else if (goldChange < 0) {
-      // Thua: -0.9 tuvi mỗi 1k vàng mất đi
+      // Thua: -0.9 tuvi mỗi 1k vàng mất đi (không nhân hệ số buff)
       const goldLost = Math.abs(goldChange);
       tuViChange = -0.9 * (goldLost / 1000.0);
     }
@@ -75,6 +75,14 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
       let playerHand = [];
       let botHand = [];
 
+      const SUITS = ['♠️', '♦️', '♥️', '♣️'];
+      const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+      const drawCard = () => {
+        const value = VALUES[Math.floor(Math.random() * VALUES.length)];
+        const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+        return `${value}${suit}`;
+      };
+
       // ── Helper: Tạo giao diện lựa chọn game ─────────────────────────────────
       const buildChooseEmbed = () => {
         return new EmbedBuilder()
@@ -104,8 +112,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             .setLabel('🃏 Nhị Thập Nhất Lực (21)')
             .setStyle(ButtonStyle.Primary),
           new ButtonBuilder()
-            .setCustomId('game_nguhanh')
-            .setLabel('🔮 Thiên Mệnh Ngũ Hành')
+            .setCustomId('game_baucua')
+            .setLabel('🦀 Bầu Cua Tôm Cá')
             .setStyle(ButtonStyle.Primary)
         );
       };
@@ -140,10 +148,18 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           return;
         }
 
+        const getCardValue = (card) => {
+          const match = String(card).match(/^([AJQK2-9]|10)/);
+          if (!match) return 0;
+          const val = match[1];
+          if (val === 'A') return 11;
+          if (['J', 'Q', 'K'].includes(val)) return 10;
+          return parseInt(val, 10);
+        };
+
         const getSum = (hand) => {
-          let sum = hand.reduce((a, b) => a + b, 0);
-          // Cơ chế tính Ách (1 hoặc 11)
-          let aces = hand.filter(x => x === 11).length;
+          let sum = hand.reduce((a, card) => a + getCardValue(card), 0);
+          let aces = hand.filter(x => String(x).startsWith('A')).length;
           while (sum > 21 && aces > 0) {
             sum -= 10;
             aces -= 1;
@@ -205,11 +221,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             step = 'BLACKJACK';
             
             // Chia bài ban đầu
-            const drawCard = () => {
-              const r = Math.floor(Math.random() * 10) + 1; // 1 đến 10
-              return r === 1 ? 11 : r; // Quân 1 (Ách) tạm thời tính 11 điểm
-            };
-
             playerHand = [drawCard(), drawCard()];
             botHand = [drawCard(), drawCard()];
 
@@ -234,26 +245,37 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             await i.editReply({ embeds: [embed], components: [row] });
           }
 
-          else if (i.customId === 'game_nguhanh') {
-            step = 'NGU_HANH';
+          else if (i.customId === 'game_baucua') {
+            step = 'BAU_CUA';
             const embed = new EmbedBuilder()
-              .setTitle('🔮 Thiên Mệnh Ngũ Hành')
+              .setTitle('🦀 Bầu Cua Tôm Cá')
               .setColor(0x1abc9c)
               .setDescription(
-                `Đạo hữu hãy dự đoán khí kình của trời đất sẽ rơi vào hành nào trong Ngũ Hành.\n` +
-                `• Dự đoán trúng sẽ nhận tỉ lệ thắng lớn **1 ăn 4**!\n\n` +
-                `Chọn cung mệnh để đặt cược:`
+                `Đạo hữu hãy dự đoán linh thú nào sẽ xuất hiện trong 3 mặt Linh Xúc Xắc.\n` +
+                `• **Tỷ lệ nhận thưởng**:\n` +
+                `   - Xuất hiện 1 xúc xắc: **1 ăn 1**.\n` +
+                `   - Xuất hiện 2 xúc xắc: **1 ăn 2**.\n` +
+                `   - Xuất hiện 3 xúc xắc: **1 ăn 3**.\n\n` +
+                `Chọn linh thú để đặt cược:`
               );
 
-            const row = new ActionRowBuilder().addComponents(
-              new ButtonBuilder().setCustomId('nh_kim').setLabel('⚪ Kim').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId('nh_moc').setLabel('🟢 Mộc').setStyle(ButtonStyle.Success),
-              new ButtonBuilder().setCustomId('nh_thuy').setLabel('🔵 Thủy').setStyle(ButtonStyle.Primary),
-              new ButtonBuilder().setCustomId('nh_hoa').setLabel('🔴 Hỏa').setStyle(ButtonStyle.Danger),
-              new ButtonBuilder().setCustomId('nh_tho').setLabel('🟡 Thổ').setStyle(ButtonStyle.Warning)
+            const row1 = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('bc_bau').setLabel('🪵 Bầu').setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId('bc_cua').setLabel('🦀 Cua').setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId('bc_tom').setLabel('🦐 Tôm').setStyle(ButtonStyle.Secondary)
             );
 
-            await i.editReply({ embeds: [embed], components: [row] });
+            const row2 = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('bc_ca').setLabel('🐟 Cá').setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId('bc_ga').setLabel('🐓 Gà').setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId('bc_nai').setLabel('🦌 Nai').setStyle(ButtonStyle.Secondary)
+            );
+
+            const row3 = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('bc_cancel').setLabel('↩️ Trở Lại').setStyle(ButtonStyle.Danger)
+            );
+
+            await i.editReply({ embeds: [embed], components: [row1, row2, row3] });
           }
 
           else if (i.customId === 'game_cancel') {
@@ -280,9 +302,10 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           const isWin = choice === result;
 
           let tuViChange = 0;
+          const thienDao = await tuSi.layHeSoThienDao();
           if (isWin) {
             tuSi.linhThach += bet;
-            tuViChange = this.applyDamDaoTuVi(tuSi, bet);
+            tuViChange = this.applyDamDaoTuVi(tuSi, bet, thienDao.expMult);
           } else {
             tuSi.linhThach -= bet;
             tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
@@ -339,10 +362,11 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             outcome = 'LOSE';
           }
 
+          const thienDao = await tuSi.layHeSoThienDao();
           let tuViChange = 0;
           if (outcome === 'WIN') {
             tuSi.linhThach += bet;
-            tuViChange = this.applyDamDaoTuVi(tuSi, bet);
+            tuViChange = this.applyDamDaoTuVi(tuSi, bet, thienDao.expMult);
             await tuSi.save();
           } else if (outcome === 'LOSE') {
             tuSi.linhThach -= bet;
@@ -397,11 +421,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           }
 
           if (i.customId === 'bj_hit') {
-            const drawCard = () => {
-              const r = Math.floor(Math.random() * 10) + 1;
-              return r === 1 ? 11 : r;
-            };
-
             playerHand.push(drawCard());
             const pSum = getSum(playerHand);
 
@@ -449,11 +468,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
           else if (i.customId === 'bj_stand') {
             // Lượt Thiên Đạo rút bài
-            const drawCard = () => {
-              const r = Math.floor(Math.random() * 10) + 1;
-              return r === 1 ? 11 : r;
-            };
-
             let bSum = getSum(botHand);
             while (bSum < 16) {
               botHand.push(drawCard());
@@ -476,8 +490,9 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             if (isTie) {
               // Hòa
             } else if (isWin) {
+              const thienDao = await tuSi.layHeSoThienDao();
               tuSi.linhThach += bet;
-              tuViChange = this.applyDamDaoTuVi(tuSi, bet);
+              tuViChange = this.applyDamDaoTuVi(tuSi, bet, thienDao.expMult);
               await tuSi.save();
             } else {
               tuSi.linhThach -= bet;
@@ -523,31 +538,46 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         }
 
         // ══════════════════════════════════════════════════════════════
-        // 5. CHƠI THIÊN MỆNH NGŨ HÀNH (ROULETTE / COLOR)
+        // 5. CHƠI BẦU CUA TÔM CÁ
         // ══════════════════════════════════════════════════════════════
-        else if (step === 'NGU_HANH') {
-          const elementsMap = {
-            'nh_kim':  { name: '⚪ Kim',  color: 0xdcdde1 },
-            'nh_moc':  { name: '🟢 Mộc',  color: 0x2ecc71 },
-            'nh_thuy': { name: '🔵 Thủy', color: 0x3498db },
-            'nh_hoa':  { name: '🔴 Hỏa',  color: 0xe74c3c },
-            'nh_tho':  { name: '🟡 Thổ',  color: 0xf1c40f }
+        else if (step === 'BAU_CUA') {
+          if (i.customId === 'bc_cancel') {
+            step = 'CHOOSE_GAME';
+            await i.editReply({ embeds: [buildChooseEmbed()], components: [buildChooseButtons(), buildChooseRow2()] });
+            return;
+          }
+
+          const animalsMap = {
+            'bc_bau': { name: 'Bầu 🪵', emoji: '🪵' },
+            'bc_cua': { name: 'Cua 🦀', emoji: '🦀' },
+            'bc_tom': { name: 'Tôm 🦐', emoji: '🦐' },
+            'bc_ca':  { name: 'Cá 🐟',  emoji: '🐟' },
+            'bc_ga':  { name: 'Gà 🐓',  emoji: '🐓' },
+            'bc_nai': { name: 'Nai 🦌',  emoji: '🦌' }
           };
 
-          // ── Guard: bỏ qua nếu customId không phải nút Ngũ Hành ────────────
-          const playerChoice = elementsMap[i.customId];
-          if (!playerChoice) return; // Tránh crash khi click button lạ
+          const playerChoice = animalsMap[i.customId];
+          if (!playerChoice) return;
 
-          const choicesList = Object.values(elementsMap);
-          const rollChoice  = choicesList[Math.floor(Math.random() * choicesList.length)];
-          const isWin       = playerChoice.name === rollChoice.name;
+          const animalsList = Object.values(animalsMap);
+
+          // Gieo 3 viên xúc xắc
+          const roll1 = animalsList[Math.floor(Math.random() * animalsList.length)];
+          const roll2 = animalsList[Math.floor(Math.random() * animalsList.length)];
+          const roll3 = animalsList[Math.floor(Math.random() * animalsList.length)];
+
+          const rolls = [roll1, roll2, roll3];
+          const count = rolls.filter(r => r.name === playerChoice.name).length;
+          const isWin = count > 0;
 
           let tuViChange = 0;
-          const MAX_STONES = 2_000_000_000; // Giới hạn an toàn dưới MySQL INT max
+          const MAX_STONES = 2_000_000_000;
+
+          const thienDao = await tuSi.layHeSoThienDao();
           if (isWin) {
-            const reward = bet * 3;
+            const reward = bet * count;
             tuSi.linhThach = Math.min(MAX_STONES, tuSi.linhThach + reward);
-            tuViChange = this.applyDamDaoTuVi(tuSi, reward);
+            tuViChange = this.applyDamDaoTuVi(tuSi, reward, thienDao.expMult);
             await tuSi.save();
           } else {
             tuSi.linhThach = Math.max(0, tuSi.linhThach - bet);
@@ -556,14 +586,14 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           }
 
           const resultEmbed = new EmbedBuilder()
-            .setTitle(isWin ? '🌟 Thiên Mệnh Linh Ứng (Đại Thắng!)' : '⛈️ Ngũ Hành Khắc Chế (Thua)')
+            .setTitle(isWin ? '🌟 Linh Thú Linh Ứng (Đại Thắng!)' : '⛈️ Linh Vận Trầm Luân (Thua)')
             .setColor(isWin ? 0x2ecc71 : 0xe74c3c)
             .setDescription(
-              `• **Đạo hữu đặt hành**: **${playerChoice.name}**\n` +
-              `• **Trời đất hội tụ hành**: **${rollChoice.name}**\n\n` +
+              `• **Đạo hữu đặt cược**: **${playerChoice.name}**\n` +
+              `• **Kết quả gieo xúc xắc**: [ **${roll1.emoji} ${roll1.name.split(' ')[0]}** ] · [ **${roll2.emoji} ${roll2.name.split(' ')[0]}** ] · [ **${roll3.emoji} ${roll3.name.split(' ')[0]}** ]\n\n` +
               (isWin
-                ? `🚀 Ngũ hành tương sinh! Dự đoán thần sầu giúp đạo hữu đại thắng nhận \`+${(bet * 3).toLocaleString()}\` 🪙 Linh thạch (Nhân 4 tổng cược).`
-                : `💔 Khí thế tương khắc! Ngũ hành nghịch chuyển khiến đạo hữu tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`) +
+                ? `🚀 Tuyệt vời! **${playerChoice.name.split(' ')[0]}** xuất hiện **${count}** lần, đạo hữu thắng nhận \`+${(bet * count).toLocaleString()}\` 🪙 Linh thạch (tỉ lệ 1 ăn ${count}).`
+                : `💔 Không có **${playerChoice.name.split(' ')[0]}** nào xuất hiện! Đạo hữu tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`) +
               `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
               `🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
             )

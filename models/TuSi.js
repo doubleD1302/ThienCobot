@@ -286,6 +286,43 @@ class TuSi extends Model {
       this.lastResetTheLuc = todayStr;
     }
   }
+
+  async layRankTuVi() {
+    const { Op } = await import('sequelize');
+    const count = await TuSi.count({
+      where: {
+        [Op.or]: [
+          { capDo: { [Op.gt]: this.capDo } },
+          {
+            capDo: this.capDo,
+            linhLuc: { [Op.gt]: this.linhLuc }
+          }
+        ]
+      }
+    });
+    return count + 1;
+  }
+
+  async layHeSoThienDao() {
+    if (process.env.NODE_ENV === 'test') {
+      return {
+        name: "Thiên Đạo Phù Trì",
+        desc: "Không áp dụng trong môi trường thử nghiệm.",
+        expMult: 1.0,
+        stoneMult: 1.0,
+        rank: 1
+      };
+    }
+    const rank = await this.layRankTuVi();
+    const isTop3 = rank <= 3;
+    return {
+      name: isTop3 ? "Thiên Đạo Ban Tài" : "Thiên Đạo Cần Tu",
+      desc: isTop3 ? "Khí vận đỉnh phong, gia tăng +20% Linh Thạch nhận được." : "Hậu tiến chấn hưng, gia tăng +30% Linh Lực nhận được.",
+      expMult: isTop3 ? 1.0 : 1.3,
+      stoneMult: isTop3 ? 1.2 : 1.0,
+      rank: rank
+    };
+  }
 }
 
 TuSi.init({

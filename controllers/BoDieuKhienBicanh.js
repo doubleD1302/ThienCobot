@@ -363,9 +363,11 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let droppedItem = null;
         let droppedSeed = null;
 
+        const thienDao = await tuSi.layHeSoThienDao();
+
         if (isWin) {
-          gainedExp = Math.floor(dungeon.thuong.expMin + Math.random() * (dungeon.thuong.expMax - dungeon.thuong.expMin));
-          gainedStones = Math.floor(dungeon.thuong.stonesMin + Math.random() * (dungeon.thuong.stonesMax - dungeon.thuong.stonesMin));
+          gainedExp = Math.floor((dungeon.thuong.expMin + Math.random() * (dungeon.thuong.expMax - dungeon.thuong.expMin)) * thienDao.expMult);
+          gainedStones = Math.floor((dungeon.thuong.stonesMin + Math.random() * (dungeon.thuong.stonesMax - dungeon.thuong.stonesMin)) * thienDao.stoneMult);
 
           // Rơi trang bị/vật phẩm
           for (const drop of dungeon.drops) {
@@ -416,7 +418,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const expiresAt = new Date(Date.now() + 30 * 1000);
         await this.datThoiGianCho(tuSi.idNguoiDung, 'dungeon', expiresAt);
 
-        const embedResult = BoTaoEmbed.tranDauBiCanh(
+         const embedResult = BoTaoEmbed.tranDauBiCanh(
           tuSi,
           dungeon,
           battleLogs,
@@ -424,7 +426,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           gainedExp,
           gainedStones,
           droppedItem,
-          droppedSeed
+          droppedSeed,
+          thienDao
         );
 
         await i.editReply({

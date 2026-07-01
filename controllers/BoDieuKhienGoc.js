@@ -45,8 +45,9 @@ export class BoDieuKhienGoc {
       // Cộng thêm tốc độ tu luyện từ Động Phủ: mỗi cấp tăng +100% (cấp 1 x2, cấp 10 x11)
       const speedMult = 1 + lvDongPhu;
 
-      const rawExp = tocDoCoBan * multiplier * speedMult * elapsedDaoNien + (tuSi.linhLucDu || 0.0);
-      const rawStones = 10 * tuSi.capDo * elapsedDaoNien + (tuSi.linhThachDu || 0.0);
+      const thienDao = await tuSi.layHeSoThienDao();
+      const rawExp = tocDoCoBan * multiplier * speedMult * elapsedDaoNien * thienDao.expMult + (tuSi.linhLucDu || 0.0);
+      const rawStones = 10 * tuSi.capDo * elapsedDaoNien * thienDao.stoneMult + (tuSi.linhThachDu || 0.0);
 
       const gainedExp = Math.floor(rawExp);
       const gainedStones = Math.floor(rawStones);

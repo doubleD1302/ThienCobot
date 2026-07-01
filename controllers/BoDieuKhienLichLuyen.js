@@ -74,18 +74,20 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
       const effects = selectedEvent.hieuUng;
       let rewardText = '';
 
+      const thienDao = await tuSi.layHeSoThienDao();
+
       // Áp dụng các hiệu ứng ngẫu nhiên
       if (effects.exp) {
         const minExp = effects.exp.min || 10;
         const maxExp = effects.exp.max || 20;
-        const addedExp = Math.floor(minExp + Math.random() * (maxExp - minExp));
+        const addedExp = Math.floor((minExp + Math.random() * (maxExp - minExp)) * thienDao.expMult);
         tuSi.linhLuc += addedExp;
         rewardText += `• **Linh lực tích lũy**: \`+${addedExp}\` ✨\n`;
       }
       if (effects.stones) {
         const minStones = effects.stones.min || 5;
         const maxStones = effects.stones.max || 15;
-        const addedStones = Math.floor(minStones + Math.random() * (maxStones - minStones));
+        const addedStones = Math.floor((minStones + Math.random() * (maxStones - minStones)) * thienDao.stoneMult);
         tuSi.linhThach += addedStones;
         rewardText += `• **Linh thạch nhặt được**: \`+${addedStones}\` 💎\n`;
       }
@@ -141,6 +143,10 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
       if (effects.thienDaoLuc && sqlMessageCheck(effects.thienDaoLucMsg) && !effects.itemRandomEligible) {
         const formattedMsg = effects.thienDaoLucMsg.replace('{name}', `**${tuSi.ten}**`);
         await ThienDaoLuc.ghiLuc(formattedMsg, 'Explore');
+      }
+
+      if (thienDao && (thienDao.expMult > 1.0 || thienDao.stoneMult > 1.0)) {
+        rewardText += `• **Phù trì**: **${thienDao.name}** (${thienDao.expMult > 1.0 ? '+' + Math.floor((thienDao.expMult - 1) * 100) + '% Tu Vi' : '+' + Math.floor((thienDao.stoneMult - 1) * 100) + '% Linh Thạch'}) (Hạng ${thienDao.rank})\n`;
       }
 
       tuSi.theLuc = Math.max(0, tuSi.theLuc - 1);

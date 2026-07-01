@@ -32,6 +32,14 @@ import './models/GardenPlot.js';
 import './models/Pet.js';
 import { ChannelRestriction } from './models/ChannelRestriction.js';
 import './models/WorldBoss.js';
+// Bắt các lỗi promise không được catch toàn cục, tránh crash bot
+process.on('unhandledRejection', error => {
+  if (error && error.code === 10062) {
+    console.warn('[Warning] Phát hiện Unhandled Rejection (Unknown interaction) - Thao tác tương tác đã hết hạn hoặc bị hủy bởi Discord.');
+    return;
+  }
+  console.error('Unhandled promise rejection:', error);
+});
 
 // Khởi tạo Discord Client với các Intents cần thiết
 const client = new Client({
@@ -169,6 +177,11 @@ client.on('interactionCreate', async interaction => {
   try {
     await lenh.execute(interaction);
   } catch (error) {
+    if (error.code === 10062) {
+      console.warn(`[Warning] Tương tác lệnh /${interaction.commandName} đã hết hạn trước khi phản hồi (Unknown interaction).`);
+      return;
+    }
+
     console.error(`Lỗi khi thực thi lệnh ${interaction.commandName}:`, error);
 
     let tinNhanLoi;
@@ -194,9 +207,13 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(tinNhanLoi).catch(err => console.error('Failed to send error reply:', err));
+      await interaction.followUp(tinNhanLoi).catch(err => {
+        if (err.code !== 10062) console.error('Failed to send error reply:', err);
+      });
     } else {
-      await interaction.reply(tinNhanLoi).catch(err => console.error('Failed to send error reply:', err));
+      await interaction.reply(tinNhanLoi).catch(err => {
+        if (err.code !== 10062) console.error('Failed to send error reply:', err);
+      });
     }
   }
 });
@@ -205,11 +222,8 @@ async function start() {
   try {
     console.log('Khởi tạo cơ sở dữ liệu...');
     await sequelize.authenticate();
-    // Chỉ đồng bộ thay đổi (alter) riêng cho bảng abodes để bổ sung các cột mới
-    const { Abode } = await import('./models/Abode.js');
-    await Abode.sync({ alter: true });
-    const { TuSi } = await import('./models/TuSi.js');
-    await TuSi.sync({ alter: true });
+    // Đồng bộ thay đổi (alter) cho tất cả các bảng để bổ sung các bảng/cột mới tự động
+    await sequelize.sync({ alter: true });
 
     console.log('Cơ sở dữ liệu được đồng bộ hóa thành công.');
 
