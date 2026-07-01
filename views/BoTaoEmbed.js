@@ -462,15 +462,30 @@ export class BoTaoEmbed {
       );
     }
 
+    const buildSafeValue = (lines, emptyFallback) => {
+      if (lines.length === 0) return emptyFallback;
+      let result = '';
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const suffix = `*... và còn ${lines.length - i} kỹ năng khác.*`;
+        if (result.length + line.length + suffix.length + (result ? 1 : 0) > 1000) {
+          result += (result ? '\n' : '') + suffix;
+          break;
+        }
+        result += (result ? '\n' : '') + line;
+      }
+      return result;
+    };
+
     embed.addFields(
       {
         name: "🥋 Kỹ Năng Đã Lĩnh Hội",
-        value: learnedLines.length > 0 ? learnedLines.join('\n') : "• Chưa học kỹ năng nào. Hãy sử dụng nút để học kỹ năng cơ bản!",
+        value: buildSafeValue(learnedLines, "• Chưa học kỹ năng nào. Hãy sử dụng nút để học kỹ năng cơ bản!"),
         inline: false
       },
       {
         name: "📖 Kỹ Năng Có Thể Lĩnh Hội",
-        value: availableLines.length > 0 ? availableLines.join('\n') : "• Không có kỹ năng nào khả dụng tại cảnh giới này.",
+        value: buildSafeValue(availableLines, "• Không có kỹ năng nào khả dụng tại cảnh giới này."),
         inline: false
       }
     );
