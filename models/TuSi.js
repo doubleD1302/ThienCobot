@@ -15,6 +15,24 @@ class TuSi extends Model {
     this.danhSachLinhCanJson = JSON.stringify(value || []);
   }
 
+  async layChiSoDayDu() {
+    const { Inventory } = await import('./Inventory.js');
+    const { Item } = await import('./Item.js');
+    const { Pet } = await import('./Pet.js');
+
+    const equippedInv = await Inventory.findAll({
+      where: { idNguoiDung: this.idNguoiDung, trangBi: true }
+    });
+    for (const eq of equippedInv) {
+      const detail = await Item.findByPk(eq.itemId);
+      if (detail) {
+        eq.item = detail;
+      }
+    }
+    const activePet = await Pet.findOne({ where: { userId: this.idNguoiDung, isActive: true } });
+    return this.layChiSo(equippedInv, activePet);
+  }
+
   layChiSo(equippedInvList = [], activePet = null) {
     const huongTu = this.huongTu || 'Phap Tu';
     const pathConfig = config.HUONG_DI[huongTu] || config.HUONG_DI['Phap Tu'];

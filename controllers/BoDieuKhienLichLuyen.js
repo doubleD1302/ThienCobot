@@ -30,18 +30,7 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         });
       }
 
-      // 1. Kiểm tra trạng thái HP tối thiểu (HP > 10%)
-      const equippedInv = await Inventory.findAll({
-        where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
-      });
-      const equippedItems = [];
-      for (const eq of equippedInv) {
-        const detail = await Item.findByPk(eq.itemId);
-        if (detail) equippedItems.push(detail);
-      }
-      const { Pet } = await import('../models/Pet.js');
-      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
-      const stats = tuSi.layChiSo(equippedItems, activePet);
+      const stats = await tuSi.layChiSoDayDu();
 
       if (tuSi.hp <= Math.floor(stats.max_hp * 0.10)) {
         return await interaction.editReply({

@@ -148,7 +148,7 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         const { realmName: newRealmName, stageName: newStage } = config.layThongTinCanhGioi(tuSi.capDo);
 
         // Hồi phục toàn mãn trạng thái
-        const stats = tuSi.layChiSo();
+        const stats = await tuSi.layChiSoDayDu();
         tuSi.hp = stats.max_hp;
         tuSi.mp = stats.max_mp;
 
@@ -266,7 +266,7 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       }
 
       // Khôi phục HP/MP toàn mãn
-      const stats = tuSi.layChiSo();
+      const stats = await tuSi.layChiSoDayDu();
       tuSi.hp = stats.max_hp;
       tuSi.mp = stats.max_mp;
 

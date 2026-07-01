@@ -865,8 +865,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       };
     }
 
-    const equippedInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true } });
-    const stats  = tuSi.layChiSo(equippedInv);
+    const stats  = await tuSi.layChiSoDayDu();
     const effect = itemDetail.chiSo;
     let recoveryMsg = '';
 

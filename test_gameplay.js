@@ -23,6 +23,8 @@ const { ShopItem } = await import('./models/ShopItem.js');
 const { LichSuMua } = await import('./models/LichSuMua.js');
 const { ChannelRestriction } = await import('./models/ChannelRestriction.js');
 const { WorldBoss } = await import('./models/WorldBoss.js');
+const { GiftCode } = await import('./models/GiftCode.js');
+const { PlayerGiftCode } = await import('./models/PlayerGiftCode.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -1095,6 +1097,158 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     await PlayerSkill.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
     await sk.destroy();
+    await tuSi.destroy();
+  });
+
+  test('HP/MP Recovery with Bonus Stats (layChiSoDayDu)', async () => {
+    const tuSi = await TuSi.create({
+      idNguoiDung: "111222333444",
+      ten: "BonusRecover",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100,
+      hp: 10,
+      mp: 10
+    });
+
+    // Create item that gives +200 HP and +100 MP
+    const bonusItem = await Item.create({
+      id: 'test_bonus_armor',
+      ten: 'Hộ Giáp Siêu Cấp',
+      loai: 'Giáp',
+      doHiem: 'Hiếm',
+      giaCoSo: 100,
+      chiSoJson: '{"hp":200,"mp":100}',
+      yeuCauCanhGioi: 1
+    });
+
+    // Equip it on user
+    const invRecord = await Inventory.create({
+      idNguoiDung: tuSi.idNguoiDung,
+      itemId: 'test_bonus_armor',
+      soLuong: 1,
+      trangBi: true
+    });
+
+    // Verify layChiSoDayDu includes the bonus HP/MP
+    const stats = await tuSi.layChiSoDayDu();
+    assert.strictEqual(stats.max_hp, 320); // 120 base + 200 bonus = 320
+    assert.strictEqual(stats.max_mp, 250); // 150 base + 100 bonus = 250
+
+    // Test item recovery
+    const hpPotion = await Item.create({
+      id: 'test_recovery_potion',
+      ten: 'Đại Bổ Huyết Đan',
+      loai: 'Đan dược',
+      doHiem: 'Thường',
+      giaCoSo: 50,
+      chiSoJson: '{"hp_hoi":500}',
+      yeuCauCanhGioi: 1
+    });
+    const potionInv = await Inventory.create({
+      idNguoiDung: tuSi.idNguoiDung,
+      itemId: 'test_recovery_potion',
+      soLuong: 1,
+      trangBi: false
+    });
+
+    const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+    const useRes = await boDieuKhienVatPham._thucHienDungItem(tuSi, potionInv, 'test_recovery_potion');
+    assert.strictEqual(useRes.ok, true);
+
+    await tuSi.reload();
+    // HP should recover to max_hp (320) since 10 + 500 = 510, capped at 320
+    assert.strictEqual(tuSi.hp, 320);
+
+    // Test rest recovery (/nghi)
+    tuSi.hp = 1;
+    tuSi.mp = 1;
+    await tuSi.save();
+
+    const { boDieuKhienTuLuyen } = await import('./controllers/BoDieuKhienTuLuyen.js');
+    // Mock interaction for resting
+    const mockInteraction = {
+      user: { id: tuSi.idNguoiDung },
+      deferReply: () => Promise.resolve(),
+      editReply: (payload) => {
+        return Promise.resolve();
+      }
+    };
+    await boDieuKhienTuLuyen.lenhNghiNgoi.execute(mockInteraction);
+    await tuSi.reload();
+    // HP and MP should go to full bonus maximums (320 and 250)
+    assert.strictEqual(tuSi.hp, 320);
+    assert.strictEqual(tuSi.mp, 250);
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await bonusItem.destroy();
+    await hpPotion.destroy();
+    await tuSi.destroy();
+  });
+
+  test('Gift Code Redemption Logic (/code)', async () => {
+    const tuSi = await TuSi.create({
+      idNguoiDung: "222333444555",
+      ten: "GiftTester",
+      gioiTinh: "Nữ",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100,
+      vnd: 1000
+    });
+
+    const { GiftCode } = await import('./models/GiftCode.js');
+    const { PlayerGiftCode } = await import('./models/PlayerGiftCode.js');
+    const { boDieuKhienTuSi } = await import('./controllers/BoDieuKhienTuSi.js');
+
+    // Create a gift code
+    const codeObj = await GiftCode.create({
+      code: 'TESTCODE123',
+      linhThach: 500,
+      linhLuc: 100,
+      vnd: 200,
+      itemsJson: '[{"itemId":"dan_hp_1","soLuong":2}]'
+    });
+
+    // 1. Redeem with correct code (lowercase to test case-insensitivity)
+    const redeemRes = await boDieuKhienTuSi._thucHienNhapCode(tuSi, 'testcode123');
+    assert.strictEqual(redeemRes.ok, true);
+    assert.strictEqual(redeemRes.code, 'TESTCODE123');
+
+    await tuSi.reload();
+    assert.strictEqual(tuSi.linhThach, 100 + 500);
+    assert.strictEqual(tuSi.linhLuc, 100);
+    assert.strictEqual(tuSi.vnd, 1000 + 200);
+
+    // Verify items added to inventory
+    const itemsInInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'dan_hp_1' } });
+    assert.strictEqual(itemsInInv.length, 1);
+    assert.strictEqual(itemsInInv[0].soLuong, 2);
+
+    // Verify usage registered
+    const usage = await PlayerGiftCode.findOne({ where: { userId: tuSi.idNguoiDung, code: 'TESTCODE123' } });
+    assert.ok(usage);
+
+    // 2. Try redeeming it again (should fail)
+    const redeemRes2 = await boDieuKhienTuSi._thucHienNhapCode(tuSi, 'TESTCODE123');
+    assert.strictEqual(redeemRes2.ok, false);
+    assert.ok(redeemRes2.msg.includes('đã sử dụng'));
+
+    // 3. Try redeeming a non-existent code
+    const redeemRes3 = await boDieuKhienTuSi._thucHienNhapCode(tuSi, 'NONEXIST');
+    assert.strictEqual(redeemRes3.ok, false);
+    assert.ok(redeemRes3.msg.includes('không tồn tại'));
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await PlayerGiftCode.destroy({ where: { userId: tuSi.idNguoiDung } });
+    await codeObj.destroy();
     await tuSi.destroy();
   });
 

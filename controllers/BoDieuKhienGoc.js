@@ -61,7 +61,7 @@ export class BoDieuKhienGoc {
       tuSi.lastUpdateTuVi = new Date(lastUpdate + elapsedMinutes * 60000);
 
       // Hồi phục 20% hp/mp mỗi Đạo Niên tu luyện
-      const stats = tuSi.layChiSo([], activePet);
+      const stats = await tuSi.layChiSoDayDu();
       tuSi.hp = Math.min(stats.max_hp, tuSi.hp + Math.floor(stats.max_hp * 0.20 * elapsedDaoNien));
       tuSi.mp = Math.min(stats.max_mp, tuSi.mp + Math.floor(stats.max_mp * 0.20 * elapsedDaoNien));
 

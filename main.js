@@ -34,6 +34,8 @@ import './models/GardenPlot.js';
 import './models/Pet.js';
 import { ChannelRestriction } from './models/ChannelRestriction.js';
 import './models/WorldBoss.js';
+import './models/GiftCode.js';
+import './models/PlayerGiftCode.js';
 // Bắt các lỗi promise không được catch toàn cục, tránh crash bot
 process.on('unhandledRejection', error => {
   if (error && error.code === 10062) {

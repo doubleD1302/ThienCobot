@@ -472,19 +472,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         });
       }
 
-      // Load trang bị và Pet xuất chiến của tu sĩ để tính chỉ số
-      const equippedInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true } });
-      const equippedItems = [];
-      for (const eq of equippedInv) {
-        const itemDetail = await Item.findByPk(eq.itemId);
-        if (itemDetail) {
-          eq.item = itemDetail;
-          equippedItems.push(eq);
-        }
-      }
-      const { Pet } = await import('../models/Pet.js');
-      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
-      const stats = tuSi.layChiSo(equippedItems, activePet);
+      const stats = await tuSi.layChiSoDayDu();
 
       // Yêu cầu thể trạng
       if (tuSi.hp <= Math.floor(stats.max_hp * 0.10)) {

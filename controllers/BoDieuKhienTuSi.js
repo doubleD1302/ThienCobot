@@ -184,12 +184,124 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       await interaction.editReply({ embeds: [embed] });
     }
   };
+
+  // Logic thực thi nhập code
+  async _thucHienNhapCode(tuSi, codeInput) {
+    const { GiftCode } = await import('../models/GiftCode.js');
+    const { PlayerGiftCode } = await import('../models/PlayerGiftCode.js');
+    const { Inventory } = await import('../models/Inventory.js');
+    const { Item } = await import('../models/Item.js');
+    const { sequelize } = await import('../database.js');
+
+    // Tìm kiếm gift code không phân biệt hoa thường
+    const giftCode = await GiftCode.findOne({
+      where: sequelize.where(
+        sequelize.fn('lower', sequelize.col('code')),
+        codeInput.toLowerCase()
+      )
+    });
+
+    if (!giftCode) {
+      return { ok: false, msg: "Mã Gift Code không tồn tại hoặc đã hết hạn sử dụng!" };
+    }
+
+    // Kiểm tra xem gift code đã hết hạn chưa
+    if (giftCode.expiredAt && new Date(giftCode.expiredAt) < new Date()) {
+      return { ok: false, msg: "Mã Gift Code này đã hết hạn sử dụng!" };
+    }
+
+    // Kiểm tra xem người chơi đã sử dụng mã code này chưa
+    const usage = await PlayerGiftCode.findOne({
+      where: {
+        userId: tuSi.idNguoiDung,
+        code: giftCode.code
+      }
+    });
+
+    if (usage) {
+      return { ok: false, msg: "Đạo hữu đã sử dụng mã Gift Code này rồi. Mỗi người chơi chỉ được sử dụng mỗi code 1 lần!" };
+    }
+
+    // Trao thưởng
+    let rewardDesc = '';
+    if (giftCode.linhThach > 0) {
+      tuSi.linhThach = (tuSi.linhThach || 0) + giftCode.linhThach;
+      rewardDesc += `• **Linh thạch**: \`+${giftCode.linhThach.toLocaleString()}\` 🪙\n`;
+    }
+    if (giftCode.linhLuc > 0) {
+      tuSi.linhLuc = (tuSi.linhLuc || 0) + giftCode.linhLuc;
+      rewardDesc += `• **Linh lực**: \`+${giftCode.linhLuc.toLocaleString()}\` ✨\n`;
+    }
+    if (giftCode.vnd > 0) {
+      tuSi.vnd = (tuSi.vnd || 0) + giftCode.vnd;
+      rewardDesc += `• **VND**: \`+${giftCode.vnd.toLocaleString()}\` 💸\n`;
+    }
+
+    const rewardItems = giftCode.items;
+    if (rewardItems && rewardItems.length > 0) {
+      rewardDesc += `• **Vật phẩm**: \n`;
+      for (const rewardItem of rewardItems) {
+        const itemDetail = await Item.findByPk(rewardItem.itemId);
+        const itemName = itemDetail ? itemDetail.ten : rewardItem.itemId;
+        await Inventory.addVatPham(tuSi.idNguoiDung, rewardItem.itemId, rewardItem.soLuong);
+        rewardDesc += `   + **${itemName}** x${rewardItem.soLuong}\n`;
+      }
+    }
+
+    // Lưu trạng thái nhân vật và ghi nhận lịch sử dùng code
+    await tuSi.save();
+    await PlayerGiftCode.create({
+      userId: tuSi.idNguoiDung,
+      code: giftCode.code
+    });
+
+    return { ok: true, code: giftCode.code, rewardDesc };
+  }
+
+  // Lệnh /code: Nhập mã gift code
+  lenhNhapCode = {
+    data: new SlashCommandBuilder()
+      .setName('code')
+      .setDescription('Nhập mã Gift Code để nhận quà tặng')
+      .addStringOption(option =>
+        option.setName('ma')
+          .setDescription('Nhập mã Gift Code')
+          .setRequired(true)
+      ),
+    execute: async (interaction) => {
+      await interaction.deferReply();
+      const codeInput = interaction.options.getString('ma').trim();
+      
+      const tuSi = await this.layTuSi(interaction.user.id);
+      if (!tuSi) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
+        });
+      }
+
+      const result = await this._thucHienNhapCode(tuSi, codeInput);
+      if (!result.ok) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi(result.msg)]
+        });
+      }
+
+      const embed = BoTaoEmbed.thanhCong(
+        "🎁 Nhập Mã Gift Code Thành Công",
+        `Đạo hữu **${tuSi.ten}** đã kích hoạt thành công mã quà tặng \`${result.code}\`!\n\n` +
+        `**Phần quà nhận được:**\n${result.rewardDesc || '• Không có phần quà nào.'}`
+      );
+
+      await interaction.editReply({ embeds: [embed] });
+    }
+  };
 }
 
 const controller = new BoDieuKhienTuSi();
 export const danhSachLenhTuSi = [
   controller.lenhNhapThe,
   controller.lenhHoSo,
-  controller.lenhCanCo
+  controller.lenhCanCo,
+  controller.lenhNhapCode
 ];
 export { controller as boDieuKhienTuSi };

@@ -89,6 +89,27 @@ CREATE TABLE IF NOT EXISTS adventure_events (
   loai VARCHAR(30) NOT NULL,
   hieu_ung_json TEXT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.9 Tạo bảng Gift Code và lịch sử sử dụng Gift Code cho MySQL
+CREATE TABLE IF NOT EXISTS gift_codes (
+  code VARCHAR(50) PRIMARY KEY,
+  linh_thach INT NOT NULL DEFAULT 0,
+  linh_luc INT NOT NULL DEFAULT 0,
+  vnd INT NOT NULL DEFAULT 0,
+  items_json TEXT NOT NULL,
+  expired_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS player_gift_codes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  code VARCHAR(50) NOT NULL,
+  used_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES players(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (code) REFERENCES gift_codes(code) ON DELETE CASCADE,
+  UNIQUE(user_id, code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 */
 
 -- ==========================================
@@ -167,6 +188,27 @@ CREATE TABLE IF NOT EXISTS adventure_events (
   mo_ta TEXT NOT NULL,
   loai VARCHAR(30) NOT NULL,
   hieu_ung_json TEXT NOT NULL
+);
+
+-- 2.9 Tạo bảng Gift Code và lịch sử sử dụng Gift Code cho SQLite
+CREATE TABLE IF NOT EXISTS gift_codes (
+  code VARCHAR(50) PRIMARY KEY,
+  linh_thach INTEGER NOT NULL DEFAULT 0,
+  linh_luc INTEGER NOT NULL DEFAULT 0,
+  vnd INTEGER NOT NULL DEFAULT 0,
+  items_json TEXT NOT NULL DEFAULT '[]',
+  expired_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS player_gift_codes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id BIGINT NOT NULL,
+  code VARCHAR(50) NOT NULL,
+  used_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES players(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (code) REFERENCES gift_codes(code) ON DELETE CASCADE,
+  UNIQUE(user_id, code)
 );
 
 -- ==========================================
@@ -252,3 +294,6 @@ REPLACE INTO adventure_events (id, ten, mo_ta, loai, hieu_ung_json) VALUES
 
 -- INSERT OR IGNORE INTO player_skills (user_id, skill_id, cap_do, kinh_nghiem_skill) VALUES 
 -- (1234567890, 'thanh_phong_quyen', 1, 0);
+
+-- 3.6 Chèn các Gift Code mẫu
+
