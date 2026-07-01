@@ -43,8 +43,12 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
 
     const playerClass = tuSi.huongTu || 'Phap Tu';
     const expectedType = playerClass === 'The Tu' ? 'Vật lý' : 'Phép thuật';
+    const { Op } = await import('sequelize');
     const allSkills = await Skill.findAll({
-      where: { loai: expectedType }
+      where: {
+        loai: expectedType,
+        yeuCauCanhGioi: { [Op.lte]: tuSi.capDo }
+      }
     });
 
     const availableSkills = [];
@@ -93,6 +97,42 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
     return { ok: true, msg: `Lĩnh hội thành công chiêu thức **${skillDetail.ten}**!` };
   }
 
+  async xayDungEmbedHuongDanKyNang(tuSi, realmName) {
+    const playerClass = tuSi.huongTu || 'Phap Tu';
+    const expectedType = playerClass === 'The Tu' ? 'Vật lý' : 'Phép thuật';
+    const allSkills = await Skill.findAll({
+      where: { loai: expectedType }
+    });
+
+    const filteredSkills = allSkills.filter(sk => {
+      const { realmName: skRealm } = config.layThongTinCanhGioi(sk.yeuCauCanhGioi);
+      return skRealm === realmName;
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle(`📚 Bí Kíp Chiêu Thức - Cảnh Giới: ${realmName}`)
+      .setDescription(`Hướng tu luyện: **${playerClass === 'The Tu' ? 'Thể Tu (Vật lý)' : 'Pháp Tu (Phép thuật)'}**\n\nDưới đây là toàn bộ chiêu thức tông môn thuộc cảnh giới **${realmName}**:`)
+      .setColor(0xe74c3c)
+      .setTimestamp();
+
+    const skillLines = [];
+    for (const sk of filteredSkills) {
+      skillLines.push(
+        `• **${sk.ten}** (Yêu cầu cấp: \`${sk.yeuCauCanhGioi}\`)\n` +
+        `  *Sát thương*: \`${sk.satThuong}%\` | *Hồi chiêu*: \`${sk.cooldown}s\`\n` +
+        `  *Mô tả*: _${sk.moTa}_`
+      );
+    }
+
+    embed.addFields({
+      name: `🥋 Chiêu Thức Phái ${playerClass === 'The Tu' ? 'Thể Tu' : 'Pháp Tu'}`,
+      value: skillLines.length > 0 ? skillLines.join('\n') : `• Chưa có chiêu thức nào thuộc cảnh giới ${realmName} được ghi nhận trong phái này.`,
+      inline: false
+    });
+
+    return embed;
+  }
+
   lenhKyNang = {
     data: new SlashCommandBuilder()
       .setName('skill')
@@ -106,6 +146,13 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
           embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
         });
       }
+
+      const realmsList = ['Luyện Khí', 'Trúc Cơ', 'Kim Đan', 'Nguyên Anh', 'Hóa Thần', 'Phản Hư', 'Hợp Thể', 'Đại Thừa', 'Tiên Nhân'];
+      const { realmName: currentRealm } = config.layThongTinCanhGioi(tuSi.capDo);
+      let guideRealmIndex = realmsList.indexOf(currentRealm);
+      if (guideRealmIndex === -1) guideRealmIndex = 0;
+
+      let viewMode = 'main'; // 'main' hoặc 'guide'
 
       const buildComponents = (availableSkills, disabled = false) => {
         const rowMenu = new ActionRowBuilder();
@@ -138,6 +185,11 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
 
         const rowButtons = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
+            .setCustomId('skill_all_guide')
+            .setLabel('📚 Tất Cả Kỹ Năng')
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(disabled),
+          new ButtonBuilder()
             .setCustomId('skill_close')
             .setLabel('❌ Đóng Tàng Kinh Các')
             .setStyle(ButtonStyle.Danger)
@@ -147,14 +199,58 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
         return [rowMenu, rowButtons];
       };
 
-      // Tải dữ liệu ban đầu
-      let { playerSkillsList, availableSkills } = await this.layDanhSachKyNangData(tuSi);
-      const embed = BoTaoEmbed.kyNang(tuSi, playerSkillsList, availableSkills);
+      const buildGuideComponents = (disabled = false) => {
+        const rowMenu = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('skill_guide_realm_select')
+            .setPlaceholder('🔽 Chọn cảnh giới muốn tra cứu chiêu thức...')
+            .setDisabled(disabled)
+            .addOptions(realmsList.map((r, idx) => ({
+              label: `Cảnh giới: ${r}`,
+              value: idx.toString(),
+              emoji: '⛩️',
+              default: idx === guideRealmIndex
+            })))
+        );
 
-      const msg = await interaction.editReply({
-        embeds: [embed],
-        components: buildComponents(availableSkills)
-      });
+        const rowButtons = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('skill_guide_back')
+            .setLabel('↩️ Quay Lại')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled),
+          new ButtonBuilder()
+            .setCustomId('skill_close')
+            .setLabel('❌ Đóng Tàng Kinh Các')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled)
+        );
+
+        return [rowMenu, rowButtons];
+      };
+
+      const renderInterface = async () => {
+        if (viewMode === 'main') {
+          const { playerSkillsList, availableSkills } = await this.layDanhSachKyNangData(tuSi);
+          const embed = BoTaoEmbed.kyNang(tuSi, playerSkillsList, availableSkills);
+          await interaction.editReply({
+            embeds: [embed],
+            components: buildComponents(availableSkills)
+          });
+        } else {
+          const realmName = realmsList[guideRealmIndex];
+          const embed = await this.xayDungEmbedHuongDanKyNang(tuSi, realmName);
+          await interaction.editReply({
+            embeds: [embed],
+            components: buildGuideComponents()
+          });
+        }
+      };
+
+      // Tải giao diện ban đầu
+      await renderInterface();
+
+      const msg = await interaction.fetchReply();
 
       const collector = msg.createMessageComponentCollector({
         filter: i => i.user.id === interaction.user.id,
@@ -169,11 +265,28 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
           return;
         }
 
+        if (i.customId === 'skill_all_guide') {
+          viewMode = 'guide';
+          await renderInterface();
+          return;
+        }
+
+        if (i.customId === 'skill_guide_back') {
+          viewMode = 'main';
+          await renderInterface();
+          return;
+        }
+
+        if (i.customId === 'skill_guide_realm_select') {
+          guideRealmIndex = parseInt(i.values[0], 10);
+          await renderInterface();
+          return;
+        }
+
         if (i.customId === 'skill_learn_select') {
           const skillId = i.values[0];
           if (!skillId || skillId === '__empty__') return;
 
-          // Thực hiện học kỹ năng
           const result = await this._thucHienHocKyNang(tuSi, skillId);
 
           if (result.ok) {
@@ -181,15 +294,7 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
               embeds: [BoTaoEmbed.thanhCong('🥋 Lĩnh Hội Thành Công', result.msg)],
               ephemeral: true
             });
-            // Tải lại danh sách
-            const refreshed = await this.layDanhSachKyNangData(tuSi);
-            playerSkillsList = refreshed.playerSkillsList;
-            availableSkills = refreshed.availableSkills;
-
-            await interaction.editReply({
-              embeds: [BoTaoEmbed.kyNang(tuSi, playerSkillsList, availableSkills)],
-              components: buildComponents(availableSkills)
-            });
+            await renderInterface();
           } else {
             await i.followUp({
               embeds: [BoTaoEmbed.loi(result.msg)],
@@ -213,10 +318,16 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
               components: []
             });
           } else {
-            const current = await this.layDanhSachKyNangData(tuSi);
-            await interaction.editReply({
-              components: buildComponents(current.availableSkills, true)
-            });
+            if (viewMode === 'main') {
+              const current = await this.layDanhSachKyNangData(tuSi);
+              await interaction.editReply({
+                components: buildComponents(current.availableSkills, true)
+              });
+            } else {
+              await interaction.editReply({
+                components: buildGuideComponents(true)
+              });
+            }
           }
         } catch (_) {}
       });
