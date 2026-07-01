@@ -471,7 +471,16 @@ async function guiBxhAuto(client) {
       const channels = await guild.channels.fetch().catch(() => null);
       if (!channels) continue;
 
-      const bxhChannel = channels.find(ch => ch && ch.isTextBased() && ch.name && ch.name.toLowerCase() === 'bxh');
+      const bxhChannel = channels.find(ch => {
+        if (!ch || !ch.isTextBased() || !ch.name) return false;
+        const normalized = ch.name
+          .toLowerCase()
+          .replace(/ʙ/g, 'b')
+          .replace(/х/g, 'x') // Hỗ trợ chữ 'x' Cyrillic
+          .replace(/ʜ/g, 'h')
+          .replace(/[^a-z0-9]/g, '');
+        return normalized === 'bxh' || normalized.includes('bangxephang');
+      });
       if (bxhChannel) {
         // Dọn dẹp tin nhắn cũ của bot trong kênh này để tránh trôi tin nhắn
         const messages = await bxhChannel.messages.fetch({ limit: 50 }).catch(() => null);
