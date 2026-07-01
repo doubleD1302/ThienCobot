@@ -406,7 +406,7 @@ TuSi.init({
   vnd: {
     type: DataTypes.BIGINT,
     allowNull: false,
-    defaultValue: 0,
+    defaultValue: 100000,
     field: 'vnd'
   },
   idTongMon: {
