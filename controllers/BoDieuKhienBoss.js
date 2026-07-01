@@ -305,6 +305,9 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       // Hạn giờ biến mất: 30 phút
       const hetHan = new Date(Date.now() + 30 * 60000);
 
+      // Xóa boss cũ của Guild này nếu có để tránh lỗi trùng khóa chính (PRIMARY KEY unique violation)
+      await WorldBoss.destroy({ where: { idGuild: guildId } });
+
       // Tạo đối tượng Boss lưu vào Database
       const boss = await WorldBoss.create({
         idGuild: guildId,

@@ -398,7 +398,7 @@ TuSi.init({
     field: 'mp'
   },
   linhThach: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false,
     defaultValue: 0,
     field: 'linh_thach'

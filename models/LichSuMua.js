@@ -30,7 +30,7 @@ LichSuMua.init({
     field:        'so_luong'
   },
   giaDaTra: {
-    type:         DataTypes.INTEGER,
+    type:         DataTypes.BIGINT,
     allowNull:    false,
     defaultValue: 0,
     field:        'gia_da_tra'

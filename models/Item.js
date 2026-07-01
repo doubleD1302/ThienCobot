@@ -35,7 +35,7 @@ Item.init({
     field: 'do_hiem'
   },
   giaCoSo: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false,
     defaultValue: 0,
     field: 'gia_co_so'

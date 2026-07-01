@@ -20,7 +20,7 @@ ShopItem.init({
     field:     'item_id'
   },
   giaBan: {
-    type:         DataTypes.INTEGER,
+    type:         DataTypes.BIGINT,
     allowNull:    false,
     defaultValue: 0,
     field:        'gia_ban'
