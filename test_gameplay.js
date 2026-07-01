@@ -698,5 +698,103 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await mockTuSi.destroy();
   });
 
+  test('VND Currency and Lixi Mechanics', async () => {
+    // Create test players
+    const tuSiA = await TuSi.create({
+      idNguoiDung: "7777777777777777",
+      ten: "Đại Phú Hào",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Kim Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100,
+      vnd: 10000
+    });
+    tuSiA.linhCanList = ["Kim"];
+    await tuSiA.save();
+
+    const tuSiB = await TuSi.create({
+      idNguoiDung: "8888888888888888",
+      ten: "Bần Cùng Tu Sĩ",
+      gioiTinh: "Nữ",
+      huongTu: "The Tu",
+      linhCan: "Thổ Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 0,
+      vnd: 0
+    });
+    tuSiB.linhCanList = ["Tho"];
+    await tuSiB.save();
+
+    // Verify initial VND
+    assert.strictEqual(Number(tuSiA.vnd), 10000);
+    assert.strictEqual(Number(tuSiB.vnd), 0);
+
+    // Gifting VND simulation
+    const giftAmount = 2000;
+    tuSiA.vnd -= giftAmount;
+    tuSiB.vnd += giftAmount;
+    await tuSiA.save();
+    await tuSiB.save();
+
+    assert.strictEqual(Number(tuSiA.vnd), 8000);
+    assert.strictEqual(Number(tuSiB.vnd), 2000);
+
+    // Lixi creation simulation
+    const lixiVnd = 5000;
+    const slots = 2;
+    tuSiA.vnd -= lixiVnd;
+    await tuSiA.save();
+
+    assert.strictEqual(Number(tuSiA.vnd), 3000);
+
+    const { activeLixis, handleLixiGrab } = await import('./controllers/BoDieuKhienLiXi.js');
+    const lixiId = `lixi_test_${Date.now()}`;
+    const lixiData = {
+      id: lixiId,
+      creatorId: tuSiA.idNguoiDung,
+      creatorName: tuSiA.ten,
+      totalAmount: Number(lixiVnd),
+      remainingAmount: Number(lixiVnd),
+      totalSlots: slots,
+      remainingSlots: slots,
+      grabbers: []
+    };
+    activeLixis.set(lixiId, lixiData);
+
+    // Grabbing lixi
+    let grabReplyPayload = null;
+    let originalMsgPayload = null;
+
+    const mockInteraction = {
+      customId: `lixi_grab_${lixiId}`,
+      user: { id: tuSiB.idNguoiDung },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        grabReplyPayload = payload;
+      },
+      message: {
+        edit: async (payload) => {
+          originalMsgPayload = payload;
+        }
+      }
+    };
+
+    await handleLixiGrab(mockInteraction);
+
+    // Grabber got some VND
+    await tuSiB.reload();
+    assert.ok(Number(tuSiB.vnd) > 2000);
+    assert.strictEqual(lixiData.remainingSlots, 1);
+    assert.strictEqual(lixiData.grabbers.length, 1);
+
+    // Clean up
+    activeLixis.delete(lixiId);
+    await tuSiA.destroy();
+    await tuSiB.destroy();
+  });
+
 });
 

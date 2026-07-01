@@ -16,6 +16,7 @@ import { danhSachLenhTuongTac } from './controllers/BoDieuKhienTuongTac.js';
 import { danhSachLenhAdmin } from './controllers/BoDieuKhienAdmin.js';
 import { danhSachLenhBoss, boDieuKhienBoss } from './controllers/BoDieuKhienBoss.js';
 import { danhSachLenhHelp } from './controllers/BoDieuKhienHelp.js';
+import { danhSachLenhLiXi } from './controllers/BoDieuKhienLiXi.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/Item.js';
@@ -68,7 +69,8 @@ const tatCaLenh = [
   ...danhSachLenhTuongTac,
   ...danhSachLenhAdmin,
   ...danhSachLenhBoss,
-  ...danhSachLenhHelp
+  ...danhSachLenhHelp,
+  ...danhSachLenhLiXi
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
@@ -148,6 +150,17 @@ client.on('interactionCreate', async interaction => {
       await boDieuKhienBoss.handleInteraction(interaction);
     } catch (err) {
       console.error('Lỗi khi xử lý tương tác nút Boss:', err);
+    }
+    return;
+  }
+
+  // Xử lý các nút bấm tương tác Giật Lì Xì
+  if (interaction.isButton() && interaction.customId.startsWith('lixi_grab_')) {
+    try {
+      const { handleLixiGrab } = await import('./controllers/BoDieuKhienLiXi.js');
+      await handleLixiGrab(interaction);
+    } catch (err) {
+      console.error('Lỗi khi xử lý tương tác nút Lì Xì:', err);
     }
     return;
   }

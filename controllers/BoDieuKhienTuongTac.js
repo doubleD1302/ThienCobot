@@ -77,7 +77,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           .addFields(
             { name: '⚔️ Tỷ Thí Giao Hữu', value: 'Thách đấu tỉ thí pháp thuật phân cao thấp (không tốn HP).' },
             { name: '🤝 Truyền Công Thụ Pháp', value: 'Truyền một phần Linh Lực của bản thân cho đối phương (hao hụt 20%).' },
-            { name: '💎 Tặng Quà Linh Thạch', value: 'Tặng Linh Thạch của mình làm quà gặp mặt đạo hữu.' },
+            { name: '💵 Tặng Quà VND', value: 'Tặng VND của mình làm quà gặp mặt đạo hữu.' },
             { name: '👹 Cướp Đoạt Tài Phú', value: 'Cướp đoạt Linh Thạch đối phương (dựa trên chênh lệch cảnh giới, thất bại bị phản phệ phạt nặng).' },
             { name: '💖 Song Tu Đồng Đạo', value: 'Cùng tu luyện gia tăng lượng lớn tu vi linh lực (Tối đa 1 lần/ngày).' }
           )
@@ -88,7 +88,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
         return new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId('tt_tythi').setLabel('⚔️ Tỷ Thí').setStyle(ButtonStyle.Primary),
           new ButtonBuilder().setCustomId('tt_truyencong').setLabel('🤝 Truyền Công').setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId('tt_tangqua').setLabel('💎 Tặng Quà').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('tt_tangqua').setLabel('💵 Tặng Quà VND').setStyle(ButtonStyle.Primary),
           new ButtonBuilder().setCustomId('tt_cuopdoat').setLabel('👹 Cướp Đoạt').setStyle(ButtonStyle.Primary),
           new ButtonBuilder().setCustomId('tt_songtu').setLabel('💖 Song Tu').setStyle(ButtonStyle.Primary)
         );
@@ -327,15 +327,15 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
         else if (i.customId === 'tt_tangqua') {
           selectedOption = 'TANG_QUA';
           const embed = new EmbedBuilder()
-            .setTitle('💎 Tặng Quà Gặp Mặt')
+            .setTitle('💵 Tặng Quà VND')
             .setColor(0xf1c40f)
-            .setDescription(`Chọn số lượng Linh Thạch muốn trao tặng cho đạo hữu **${tuSiB.ten}**:`);
+            .setDescription(`Chọn số lượng VND muốn trao tặng cho đạo hữu **${tuSiB.ten}**:`);
 
           const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('tq_1000').setLabel('💎 1,000 Linh Thạch').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId('tq_10000').setLabel('💎 10,000 Linh Thạch').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId('tq_50000').setLabel('💎 50,000 Linh Thạch').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId('tq_100000').setLabel('💎 100,000 Linh Thạch').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('tq_1000').setLabel('💵 1,000 VND').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('tq_10000').setLabel('💵 10,000 VND').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('tq_50000').setLabel('💵 50,000 VND').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('tq_100000').setLabel('💵 100,000 VND').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId('tq_cancel').setLabel('↩️ Hủy').setStyle(ButtonStyle.Danger)
           );
 
@@ -350,25 +350,25 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           }
 
           const amount = parseInt(i.customId.replace('tq_', ''), 10);
-          if (tuSiA.linhThach < amount) {
+          if (tuSiA.vnd < amount) {
             await i.editReply({
-              embeds: [BoTaoEmbed.loi(`Linh thạch bất túc! Ngươi không đủ \`${amount.toLocaleString()}\` Linh Thạch để trao tặng.`)],
+              embeds: [BoTaoEmbed.loi(`VND bất túc! Ngươi không đủ \`${amount.toLocaleString()}\` VND để trao tặng.`)],
               components: []
             });
             collector.stop('finished');
             return;
           }
 
-          tuSiA.linhThach -= amount;
-          tuSiB.linhThach += amount;
+          tuSiA.vnd -= amount;
+          tuSiB.vnd += amount;
           await tuSiA.save();
           await tuSiB.save();
 
           const resultEmbed = new EmbedBuilder()
-            .setTitle('💎 Tặng Quà Hoàn Tất')
+            .setTitle('💵 Tặng Quà VND Hoàn Tất')
             .setColor(0x2ecc71)
             .setDescription(
-              `Đạo hữu **${tuSiA.ten}** đã gửi tặng túi trữ vật chứa **${amount.toLocaleString()}** 🪙 Linh Thạch đến tay **${tuSiB.ten}**.\n\n` +
+              `Đạo hữu **${tuSiA.ten}** đã gửi tặng túi trữ vật chứa **${amount.toLocaleString()}** VND đến tay **${tuSiB.ten}**.\n\n` +
               `*Tình nghĩa giao hảo của chư vị chốn tiên môn ngày một sâu đậm!*`
             )
             .setTimestamp();

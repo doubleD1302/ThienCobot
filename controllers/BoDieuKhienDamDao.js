@@ -43,10 +43,10 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
   lenhDamDao = {
     data: new SlashCommandBuilder()
       .setName('damdao')
-      .setDescription('Đàm đạo đỏ đen với cơ duyên thiên địa để thử vận may linh thạch')
+      .setDescription('Đàm đạo nhân sinh, đỏ đen bằng VND')
       .addIntegerOption(option =>
-        option.setName('linhthach')
-          .setDescription('Số lượng linh thạch đặt cược')
+        option.setName('vnd')
+          .setDescription('Số lượng VND cược')
           .setRequired(true)
           .setMinValue(100)
       ),
@@ -54,7 +54,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
     execute: async (interaction) => {
       await interaction.deferReply();
 
-      const bet = interaction.options.getInteger('linhthach');
+      const bet = interaction.options.getInteger('vnd');
       const tuSi = await this.layTuSi(interaction.user.id);
       if (!tuSi) {
         return await interaction.editReply({
@@ -62,9 +62,9 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         });
       }
 
-      if (tuSi.linhThach < bet) {
+      if (tuSi.vnd < bet) {
         return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi(`Linh thạch bất túc! Ngươi chỉ có \`${tuSi.linhThach.toLocaleString()}\` 🪙 Linh thạch, không đủ cược \`${bet.toLocaleString()}\` 🪙.`)]
+          embeds: [BoTaoEmbed.loi(`VND bất túc! Ngươi chỉ có \`${tuSi.vnd.toLocaleString()}\` VND, không đủ cược \`${bet.toLocaleString()}\` VND.`)]
         });
       }
 
@@ -90,8 +90,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           .setColor(color)
           .setDescription(
             `Đạo hữu **${tuSi.ten}** tiến vào sảnh đàm đạo nhân duyên.\n` +
-            `🪙 **Linh thạch cược**: \`${bet.toLocaleString()}\` 🪙\n` +
-            `🪙 **Linh thạch hiện có**: \`${tuSi.linhThach.toLocaleString()}\` 🪙\n\n` +
+            `💵 **VND cược**: \`${bet.toLocaleString()}\` VND\n` +
+            `💵 **VND hiện có**: \`${tuSi.vnd.toLocaleString()}\` VND\n\n` +
             `Hãy chọn trò chơi đỏ đen muốn đàm đạo dưới đây:`
           )
           .setTimestamp();
@@ -141,9 +141,9 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
       collector.on('collect', async i => {
         await i.deferUpdate();
 
-        // Kiểm tra số dư linh thạch liên tục
+        // Kiểm tra số dư VND liên tục
         await tuSi.reload();
-        if (tuSi.linhThach < bet) {
+        if (tuSi.vnd < bet) {
           collector.stop('insufficient_funds');
           return;
         }
@@ -301,13 +301,12 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           const result = sum >= 11 ? 'Tài' : 'Xỉu';
           const isWin = choice === result;
 
-          let tuViChange = 0;
           const thienDao = await tuSi.layHeSoThienDao();
           if (isWin) {
-            tuSi.linhThach += bet;
+            tuSi.vnd += bet;
             tuViChange = this.applyDamDaoTuVi(tuSi, bet, thienDao.expMult);
           } else {
-            tuSi.linhThach -= bet;
+            tuSi.vnd -= bet;
             tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
           }
           await tuSi.save();
@@ -321,10 +320,10 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               `• Xúc xắc: \`[ ${d1} ] · [ ${d2} ] · [ ${d3} ]\`\n` +
               `• Tổng điểm: \`${sum}\` ➔ **${result}**\n\n` +
               (isWin
-                ? `🚀 Đại cát đại lợi! Đạo hữu thắng cuộc nhận thêm \`+${bet.toLocaleString()}\` 🪙 Linh thạch.`
-                : `💔 Cơ duyên cạn kiệt! Đạo hữu thất bại tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`) +
+                ? `🚀 Đại cát đại lợi! Đạo hữu thắng cuộc nhận thêm \`+${bet.toLocaleString()}\` VND.`
+                : `💔 Cơ duyên cạn kiệt! Đạo hữu thất bại tổn hao \`-${bet.toLocaleString()}\` VND.`) +
               `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
-              `🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
+              `🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
             )
             .setTimestamp();
 
@@ -365,11 +364,11 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           const thienDao = await tuSi.layHeSoThienDao();
           let tuViChange = 0;
           if (outcome === 'WIN') {
-            tuSi.linhThach += bet;
+            tuSi.vnd += bet;
             tuViChange = this.applyDamDaoTuVi(tuSi, bet, thienDao.expMult);
             await tuSi.save();
           } else if (outcome === 'LOSE') {
-            tuSi.linhThach -= bet;
+            tuSi.vnd -= bet;
             tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
             await tuSi.save();
           }
@@ -381,15 +380,15 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           if (outcome === 'WIN') {
             outcomeTitle = '⚔️ Thắng Trận Đàm Đạo';
             outcomeColor = 0x2ecc71;
-            outcomeDesc = `🚀 Đạo hữu dùng **${playerChoice.name}** khắc chế hoàn hảo **${botChoice.name}** của phân thân, thắng nhận \`+${bet.toLocaleString()}\` 🪙 Linh thạch.`;
+            outcomeDesc = `🚀 Đạo hữu dùng **${playerChoice.name}** khắc chế hoàn hảo **${botChoice.name}** của phân thân, thắng nhận \`+${bet.toLocaleString()}\` VND.`;
           } else if (outcome === 'LOSE') {
             outcomeTitle = '💀 Bại Trận Đàm Đạo';
             outcomeColor = 0xe74c3c;
-            outcomeDesc = `💔 Phân thân xuất chiêu **${botChoice.name}** khắc chế **${playerChoice.name}** của đạo hữu, cống nạp \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`;
+            outcomeDesc = `💔 Phân thân xuất chiêu **${botChoice.name}** khắc chế **${playerChoice.name}** của đạo hữu, cống nạp \`-${bet.toLocaleString()}\` VND.`;
           } else {
             outcomeTitle = '⚖️ Lưỡng Bại Câu Thương';
             outcomeColor = 0xf1c40f;
-            outcomeDesc = `Cả hai cùng ra **${playerChoice.name}**, khí kình đối xung bất phân thắng bại! Cược \`${bet.toLocaleString()}\` 🪙 được hoàn trả vẹn nguyên.`;
+            outcomeDesc = `Cả hai cùng ra **${playerChoice.name}**, khí kình đối xung bất phân thắng bại! Cược \`${bet.toLocaleString()}\` VND được hoàn trả vẹn nguyên.`;
           }
 
           const expText = outcome !== 'TIE' ? `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).` : '';
@@ -402,7 +401,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               `• **Thiên Đạo ra chiêu**: **${botChoice.name}**\n\n` +
               outcomeDesc +
               expText +
-              `\n\n🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
+              `\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
             )
             .setTimestamp();
 
@@ -426,7 +425,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
             if (pSum > 21) {
               // Bị bùng bài (bust) - Thua ngay
-              tuSi.linhThach -= bet;
+              tuSi.vnd -= bet;
               const tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
               await tuSi.save();
 
@@ -437,9 +436,9 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
                   `Bài của đạo hữu đã vượt quá 21 điểm!\n\n` +
                   `• **BÀI CỦA BẠN**: \`[ ${playerHand.join(' ] · [ ')} ]\` (Tổng điểm: **${pSum}**)\n` +
                   `• **BÀI THIÊN ĐẠO**: \`[ ${botHand.join(' ] · [ ')} ]\` (Tổng: **${getSum(botHand)}**)\n\n` +
-                  `💔 Cường lượng bạo liệt! Đạo hữu nung bài quá tay tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.\n` +
+                  `💔 Cường lượng bạo liệt! Đạo hữu nung bài quá tay tổn hao \`-${bet.toLocaleString()}\` VND.\n` +
                   `⚡ **Tu vi biến động**: \`${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
-                  `🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
+                  `🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
                 )
                 .setTimestamp();
 
@@ -491,11 +490,11 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               // Hòa
             } else if (isWin) {
               const thienDao = await tuSi.layHeSoThienDao();
-              tuSi.linhThach += bet;
+              tuSi.vnd += bet;
               tuViChange = this.applyDamDaoTuVi(tuSi, bet, thienDao.expMult);
               await tuSi.save();
             } else {
-              tuSi.linhThach -= bet;
+              tuSi.vnd -= bet;
               tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
               await tuSi.save();
             }
@@ -507,15 +506,15 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             if (isTie) {
               title = '⚖️ Kỳ Phùng Địch Thủ (Hòa)';
               colorCode = 0xf1c40f;
-              desc = `Cả hai bên cùng đạt điểm số ngang nhau. Linh thạch cược được hoàn trả đầy đủ.`;
+              desc = `Cả hai bên cùng đạt điểm số ngang nhau. VND cược được hoàn trả đầy đủ.`;
             } else if (isWin) {
               title = '🎉 Thần Thông Áp Đảo (Thắng!)';
               colorCode = 0x2ecc71;
-              desc = `🚀 Đạo hữu thắng cuộc nhận thêm \`+${bet.toLocaleString()}\` 🪙 Linh thạch.`;
+              desc = `🚀 Đạo hữu thắng cuộc nhận thêm \`+${bet.toLocaleString()}\` VND.`;
             } else {
               title = '💀 Khí Vận Bại Thối (Thua!)';
               colorCode = 0xe74c3c;
-              desc = `💔 Đạo hữu bại trận tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`;
+              desc = `💔 Đạo hữu bại trận tổn hao \`-${bet.toLocaleString()}\` VND.`;
             }
 
             const expText = !isTie ? `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).` : '';
@@ -528,7 +527,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
                 `• **BÀI THIÊN ĐẠO**: \`[ ${botHand.join(' ] · [ ')} ]\` (Tổng điểm: **${bSum}**)\n\n` +
                 desc +
                 expText +
-                `\n\n🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
+                `\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
               )
               .setTimestamp();
 
@@ -576,11 +575,11 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           const thienDao = await tuSi.layHeSoThienDao();
           if (isWin) {
             const reward = bet * count;
-            tuSi.linhThach = Math.min(MAX_STONES, tuSi.linhThach + reward);
+            tuSi.vnd = Math.min(MAX_STONES, tuSi.vnd + reward);
             tuViChange = this.applyDamDaoTuVi(tuSi, reward, thienDao.expMult);
             await tuSi.save();
           } else {
-            tuSi.linhThach = Math.max(0, tuSi.linhThach - bet);
+            tuSi.vnd = Math.max(0, tuSi.vnd - bet);
             tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
             await tuSi.save();
           }
@@ -592,10 +591,10 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               `• **Đạo hữu đặt cược**: **${playerChoice.name}**\n` +
               `• **Kết quả gieo xúc xắc**: [ **${roll1.emoji} ${roll1.name.split(' ')[0]}** ] · [ **${roll2.emoji} ${roll2.name.split(' ')[0]}** ] · [ **${roll3.emoji} ${roll3.name.split(' ')[0]}** ]\n\n` +
               (isWin
-                ? `🚀 Tuyệt vời! **${playerChoice.name.split(' ')[0]}** xuất hiện **${count}** lần, đạo hữu thắng nhận \`+${(bet * count).toLocaleString()}\` 🪙 Linh thạch (tỉ lệ 1 ăn ${count}).`
-                : `💔 Không có **${playerChoice.name.split(' ')[0]}** nào xuất hiện! Đạo hữu tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`) +
+                ? `🚀 Tuyệt vời! **${playerChoice.name.split(' ')[0]}** xuất hiện **${count}** lần, đạo hữu thắng nhận \`+${(bet * count).toLocaleString()}\` VND (tỉ lệ 1 ăn ${count}).`
+                : `💔 Không có **${playerChoice.name.split(' ')[0]}** nào xuất hiện! Đạo hữu tổn hao \`-${bet.toLocaleString()}\` VND.`) +
               `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
-              `🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
+              `🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
             )
             .setTimestamp();
 
@@ -619,7 +618,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             });
           } else if (reason === 'insufficient_funds') {
             await interaction.editReply({
-              embeds: [BoTaoEmbed.loi('Linh thạch biến động không đủ cược! Tiến trình đàm đạo đã bị hủy.')],
+              embeds: [BoTaoEmbed.loi('VND biến động không đủ cược! Tiến trình đàm đạo đã bị hủy.')],
               components: []
             });
           } else if (reason !== 'finished') {

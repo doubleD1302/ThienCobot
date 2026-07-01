@@ -403,6 +403,12 @@ TuSi.init({
     defaultValue: 0,
     field: 'linh_thach'
   },
+  vnd: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    defaultValue: 0,
+    field: 'vnd'
+  },
   idTongMon: {
     type: DataTypes.INTEGER,
     allowNull: true,
