@@ -117,30 +117,6 @@ class BoDieuKhienAdmin {
           .setTimestamp();
       };
 
-      // ── Tạo các dòng nút toggle động (mỗi dòng tối đa 5 nút) ────────────────
-      const buildToggleButtons = () => {
-        const rows = [];
-        const chunkSize = 5;
-        
-        for (let i = 0; i < tatCaLenh.length; i += chunkSize) {
-          const chunk = tatCaLenh.slice(i, i + chunkSize);
-          const row = new ActionRowBuilder();
-          
-          for (const cmd of chunk) {
-            const isAllowed = pendingCmds.includes(cmd.name);
-            row.addComponents(
-              new ButtonBuilder()
-                .setCustomId(`toggle_${cmd.name}`)
-                .setLabel(`/${cmd.name}`)
-                .setEmoji(cmd.emoji)
-                .setStyle(isAllowed ? ButtonStyle.Success : ButtonStyle.Secondary)
-            );
-          }
-          rows.push(row);
-        }
-        return rows;
-      };
-
       // ── Tổng hợp payload theo mode ───────────────────────────────────────────
       const buildPayload = async () => {
         const tabRow = buildTabRow();
@@ -172,11 +148,23 @@ class BoDieuKhienAdmin {
           };
         }
 
-        // ── ADD — Bước 2: chọn lệnh bằng các nút toggle (3 hàng nút + 1 hàng lưu) ──
+        // ── ADD — Bước 2: chọn lệnh bằng Select Menu đa chọn (Hợp lệ, dưới 5 ActionRows) ──
         if (mode === 'ADD' && pendingChannelId) {
           const rows = [
             tabRow,
-            ...buildToggleButtons(),
+            new ActionRowBuilder().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('adm_cmds_select')
+                .setPlaceholder('🔽 Chọn các lệnh được phép hoạt động...')
+                .setMinValues(0)
+                .setMaxValues(tatCaLenh.length)
+                .addOptions(tatCaLenh.map(cmd => ({
+                  label: `/${cmd.name}`,
+                  value: cmd.name,
+                  emoji: cmd.emoji,
+                  default: pendingCmds.includes(cmd.name)
+                })))
+            ),
             new ActionRowBuilder().addComponents(
               new ButtonBuilder()
                 .setCustomId('adm_save')
@@ -257,14 +245,9 @@ class BoDieuKhienAdmin {
           pendingCmds        = existing ? [...existing.allowedCommands] : [];
         }
 
-        // ── Xử lý toggle các nút lệnh ───────────────────────────────────────────
-        if (i.customId.startsWith('toggle_')) {
-          const cmdName = i.customId.replace('toggle_', '');
-          if (pendingCmds.includes(cmdName)) {
-            pendingCmds = pendingCmds.filter(c => c !== cmdName);
-          } else {
-            pendingCmds.push(cmdName);
-          }
+        // ── Chọn Lệnh (Bước 2) ──────────────────────────────────────────────────
+        if (i.customId === 'adm_cmds_select') {
+          pendingCmds = i.values || [];
         }
 
         // ── Lưu ─────────────────────────────────────────────────────────────────
