@@ -136,9 +136,24 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
       );
     }
 
+    const buildSafeValue = (lines, emptyFallback) => {
+      if (lines.length === 0) return emptyFallback;
+      let result = '';
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const suffix = `\n*... và còn ${lines.length - i} kỹ năng khác.*`;
+        if (result.length + line.length + suffix.length + (result ? 1 : 0) > 1000) {
+          result += suffix;
+          break;
+        }
+        result += (result ? '\n' : '') + line;
+      }
+      return result;
+    };
+
     embed.addFields({
       name: `🥋 Chiêu Thức Phái ${playerClass === 'The Tu' ? 'Thể Tu' : 'Pháp Tu'}`,
-      value: skillLines.length > 0 ? skillLines.join('\n') : `• Chưa có chiêu thức nào thuộc cảnh giới ${realmName} được ghi nhận trong phái này.`,
+      value: buildSafeValue(skillLines, `• Chưa có chiêu thức nào thuộc cảnh giới ${realmName} được ghi nhận trong phái này.`),
       inline: false
     });
 
