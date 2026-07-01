@@ -297,7 +297,12 @@ export const ITEMS = [
 
   // Vật phẩm bổ trợ ấp trứng
   { id: 'trung_linh_thu', ten: 'Trứng Linh Thú 🥚', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Ấp nở tại Động Phủ để nhận được linh thú trung thành.' },
-  { id: 'trung_than_thu', ten: 'Trứng Thần Thú Thượng Cổ 🌟', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng thần thú thượng cổ cực kỳ quý hiếm.' }
+  { id: 'trung_than_thu', ten: 'Trứng Thần Thú Thượng Cổ 🌟', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng thần thú thượng cổ cực kỳ quý hiếm.' },
+
+  // Gacha & Chí Bảo
+  { id: 'co_duyen_lenh', ten: 'Cơ Duyên Lệnh 🎫', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tấm thẻ ẩn chứa cơ duyên thiên địa, dùng để quay Hồ Tạo Hóa.' },
+  { id: 'binh_tinh_hai', ten: 'Bình Tinh Hải 🏺', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Chí bảo thượng cổ, mỗi ngày có thể trích xuất sinh cơ để ngưng tụ 2 viên Đan Thần Phẩm.' },
+  { id: 'dan_than_pham', ten: 'Đan Thần Phẩm 🔴', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược thần cấp trích xuất từ Bình Tinh Hải, khi nuốt lập tức gia tăng tu vi tương đương 128 Đạo Niên tu luyện.' }
 ];
 
 // ==========================================
@@ -455,6 +460,27 @@ export const ADVENTURE_EVENTS = [
     moTa: 'Đạo hữu vô tình giẫm phải trận pháp huyễn cảnh bị bỏ hoang từ thời thái cổ. Trận pháp điên cuồng hút lấy linh lực của đạo hữu trước khi tự động sụp đổ giải giới.',
     loai: 'xui_xeo',
     hieuUngJson: '{"mpPhat":0.20}'
+  },
+  {
+    id: 'co_duyen_lichluyen_1',
+    ten: '🎫 Nhặt Được Cơ Duyên Lệnh 🎫',
+    moTa: 'Dưới gốc cây tùng cổ thụ ngàn năm tuổi, đạo hữu vô tình phát hiện ra một miếng ngọc giản cũ màu vàng nhạt, lấp lánh ánh kim. Nhìn kỹ thì ra đó chính là một tấm Cơ Duyên Lệnh!',
+    loai: 'dai_co_duyen',
+    hieuUngJson: '{"itemSpecified":{"itemId":"co_duyen_lenh","quantity":1},"thienDaoLuc":true,"thienDaoLucMsg":"🎫 **Cơ Duyên Lệnh Xuất Thế**: Đạo hữu {name} trong lúc lịch luyện nhặt được Cơ Duyên Lệnh cổ xưa!"}'
+  },
+  {
+    id: 'co_duyen_lichluyen_2',
+    ten: '✨ Thượng Cổ Di Chỉ ✨',
+    moTa: 'Khám phá một hang động đầy thạch nhũ lấp lánh, đạo hữu vô tình đào được chiếc rương gỗ mục nát dưới đống đổ nát, bên trong cất giấu một tấm Cơ Duyên Lệnh nguyên vẹn!',
+    loai: 'tot',
+    hieuUngJson: '{"itemSpecified":{"itemId":"co_duyen_lenh","quantity":1}}'
+  },
+  {
+    id: 'co_duyen_lichluyen_3',
+    ten: '👵 Lão Nhân Hào Sảng 👵',
+    moTa: 'Một bà lão tu sĩ bán nước chè bên đường nhìn thấy đạo hữu có cốt cách phi phàm, cười hiền từ rồi lặng lẽ nhét vào tay đạo hữu một tấm Cơ Duyên Lệnh làm quà gặp mặt!',
+    loai: 'tot',
+    hieuUngJson: '{"itemSpecified":{"itemId":"co_duyen_lenh","quantity":1}}'
   }
 ];
 

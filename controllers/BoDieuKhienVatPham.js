@@ -14,7 +14,7 @@ import { Item } from '../models/Item.js';
 
 // Loại item nào có thể trang bị / sử dụng
 const EQUIP_TYPES  = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'];
-const USABLE_TYPES = ['Đan dược', 'Linh thảo'];
+const USABLE_TYPES = ['Đan dược', 'Linh thảo', 'Chí bảo'];
 const ALL_TYPES    = [...EQUIP_TYPES, ...USABLE_TYPES];
 
 // ── Encode/decode toolbar value ──────────────────────────────────────────────
@@ -550,8 +550,8 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
     const isEgg = itemDetail.id === 'trung_linh_thu' || itemDetail.id === 'trung_than_thu';
 
-    if (itemDetail.loai !== 'Đan dược' && !isEgg) {
-      return { ok: false, msg: `Vật phẩm này không phải đan dược hay trứng linh thú có thể sử dụng.` };
+    if (itemDetail.loai !== 'Đan dược' && itemDetail.loai !== 'Chí bảo' && !isEgg) {
+      return { ok: false, msg: `Vật phẩm này không phải đan dược, chí bảo hay trứng linh thú có thể sử dụng.` };
     }
     if (tuSi.capDo < (itemDetail.yeuCauCanhGioi || 1)) {
       const { layThongTinCanhGioi } = await import('../config.js');
@@ -624,6 +624,55 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
              `• **Tên linh thú**: \`${pet.name}\`\n` +
              `• **Tư chất**: \`${pet.tuChat}\` *(chỉ số bất kỳ theo phẩm chất trứng)*\n` +
              `*Đạo hữu hãy gõ lệnh \`/dongphu\` (mục Linh Thú) để quản lý hoặc trang bị (cho xuất chiến) linh thú này.*`
+      };
+    }
+
+    // Xử lý Bình Tinh Hải
+    if (itemDetail.id === 'binh_tinh_hai') {
+      const today = new Date().toISOString().split('T')[0];
+      if (tuSi.lastUseBinhTinhHai === today) {
+        return { ok: false, msg: `Hôm nay đạo hữu đã trích xuất sinh cơ từ **Bình Tinh Hải 🏺** rồi, hãy đợi ngày mai!` };
+      }
+      
+      await Inventory.addVatPham(tuSi.idNguoiDung, 'dan_than_pham', 2);
+      tuSi.lastUseBinhTinhHai = today;
+      await tuSi.save();
+      
+      return {
+        ok: true,
+        msg: `Đạo hữu **${tuSi.ten}** đã sử dụng **Bình Tinh Hải 🏺** để trích xuất ra **2 viên Đan Thần Phẩm 🔴**! Bình Tinh Hải không bị tiêu hao.`
+      };
+    }
+
+    // Xử lý Đan Thần Phẩm
+    if (itemDetail.id === 'dan_than_pham') {
+      const { CanhGioi } = await import('../models/CanhGioi.js');
+      const { Abode } = await import('../models/Abode.js');
+      const { Pet } = await import('../models/Pet.js');
+
+      const cg = await CanhGioi.findByPk(tuSi.capDo);
+      const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
+
+      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      const multiplier = tuSi.layHeSoTuLuyen(activePet);
+
+      const abode = await Abode.findByPk(tuSi.idNguoiDung);
+      const lvDongPhu = abode ? abode.level : 0;
+      const speedMult = 1 + lvDongPhu;
+
+      const thienDao = await tuSi.layHeSoThienDao();
+      const expGained = Math.floor(128 * tocDoCoBan * multiplier * speedMult * thienDao.expMult);
+
+      tuSi.linhLuc += expGained;
+      await tuSi.save();
+
+      inv.soLuong -= 1;
+      if (inv.soLuong <= 0) await inv.destroy();
+      else await inv.save();
+
+      return {
+        ok: true,
+        msg: `Đạo hữu **${tuSi.ten}** đã nuốt **${itemDetail.ten} 🔴**! Cảm nhận linh khí bộc phát, tu vi gia tăng thần tốc **+${expGained.toLocaleString()} Linh Lực** *(tương đương 128 Đạo Niên tu luyện)*.`
       };
     }
 

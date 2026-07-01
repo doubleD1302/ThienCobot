@@ -362,6 +362,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let gainedStones = 0;
         let droppedItem = null;
         let droppedSeed = null;
+        let droppedCoDuyenLenh = false;
 
         const thienDao = await tuSi.layHeSoThienDao();
 
@@ -389,6 +390,15 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             if (seedDetail) {
               droppedSeed = seedDetail;
               await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);
+            }
+          }
+
+          // 1% rơi Cơ Duyên Lệnh
+          if (Math.random() <= 0.01) {
+            const cdDetail = await Item.findByPk('co_duyen_lenh');
+            if (cdDetail) {
+              droppedCoDuyenLenh = true;
+              await Inventory.addVatPham(tuSi.idNguoiDung, 'co_duyen_lenh', 1);
             }
           }
 
@@ -427,7 +437,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           gainedStones,
           droppedItem,
           droppedSeed,
-          thienDao
+          thienDao,
+          droppedCoDuyenLenh
         );
 
         await i.editReply({

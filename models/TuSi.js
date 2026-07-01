@@ -409,6 +409,11 @@ TuSi.init({
     defaultValue: 100000,
     field: 'vnd'
   },
+  lastUseBinhTinhHai: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    field: 'last_use_binh_tinh_hai'
+  },
   idTongMon: {
     type: DataTypes.INTEGER,
     allowNull: true,

@@ -115,6 +115,14 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
           rewardText += `• **Nhận Linh thảo**: **${itemDropped.ten}** x1 🌿\n`;
         }
       }
+      if (effects.itemSpecified) {
+        const itemDropped = await Item.findByPk(effects.itemSpecified.itemId);
+        if (itemDropped) {
+          const qty = effects.itemSpecified.quantity || 1;
+          await Inventory.addVatPham(tuSi.idNguoiDung, itemDropped.id, qty);
+          rewardText += `• **Nhận vật phẩm**: **${itemDropped.ten}** x${qty} 🎁\n`;
+        }
+      }
       if (effects.hpPhat) {
         const lostHp = Math.floor(stats.max_hp * effects.hpPhat);
         tuSi.hp = Math.max(1, tuSi.hp - lostHp);

@@ -493,7 +493,7 @@ export class BoTaoEmbed {
     return embed;
   }
 
-  static tranDauBiCanh(tuSi, dungeon, battleLogs, isWin, gainedExp, gainedStones, droppedItem = null, droppedSeed = null, thienDao = null) {
+  static tranDauBiCanh(tuSi, dungeon, battleLogs, isWin, gainedExp, gainedStones, droppedItem = null, droppedSeed = null, thienDao = null, droppedCoDuyenLenh = false) {
     const color = isWin ? 0x2ecc71 : 0xe74c3c;
     const title = isWin ? `🎉 Khiêu Chiến Thành Công: ${dungeon.ten} 🎉` : `💀 Khiêu Chiến Thất Bại: ${dungeon.ten} 💀`;
 
@@ -519,6 +519,9 @@ export class BoTaoEmbed {
       }
       if (droppedSeed) {
         rewardText += `\n• **Hạt giống nhặt được**: **${droppedSeed.ten}** 🌰`;
+      }
+      if (droppedCoDuyenLenh) {
+        rewardText += `\n• **Cơ duyên nhặt được**: **Cơ Duyên Lệnh 🎫** x1`;
       }
       if (thienDao && (thienDao.expMult > 1.0 || thienDao.stoneMult > 1.0)) {
         rewardText += `\n• **Phù trì**: **${thienDao.name}** (${thienDao.expMult > 1.0 ? '+' + Math.floor((thienDao.expMult - 1) * 100) + '% Tu Vi' : '+' + Math.floor((thienDao.stoneMult - 1) * 100) + '% Linh Thạch'})`;

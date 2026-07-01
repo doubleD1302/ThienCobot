@@ -779,5 +779,102 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSiB.destroy();
   });
 
+  test('Gacha, Supreme Treasure and Special Item Usages', async () => {
+    // Seed system items
+    const { Item } = await import('./models/Item.js');
+    const config = await import('./config.js');
+    for (const item of config.ITEMS) {
+      await Item.upsert({
+        id: item.id,
+        ten: item.ten,
+        loai: item.loai,
+        doHiem: item.doHiem,
+        giaCoSo: item.giaCoSo,
+        chiSoJson: item.chiSoJson,
+        yeuCauCanhGioi: item.yeuCauCanhGioi || 1,
+        moTa: item.moTa
+      });
+    }
+
+    // 1. Ensure the new items exist in database
+    const { Inventory } = await import('./models/Inventory.js');
+    const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+
+    const cdItem = await Item.findByPk('co_duyen_lenh');
+    const bthItem = await Item.findByPk('binh_tinh_hai');
+    const dtpItem = await Item.findByPk('dan_than_pham');
+
+    assert.ok(cdItem, "Cơ Duyên Lệnh phải tồn tại");
+    assert.ok(bthItem, "Bình Tinh Hải phải tồn tại");
+    assert.ok(dtpItem, "Đan Thần Phẩm phải tồn tại");
+    assert.strictEqual(bthItem.loai, 'Chí bảo', "Bình Tinh Hải phải thuộc loại Chí bảo");
+
+    // 2. Create player for testing
+    const tuSi = await TuSi.create({
+      idNguoiDung: "999888777666",
+      ten: "GachaMaster",
+      gioiTinh: "Nữ",
+      huongTu: "The Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 1000,
+      vnd: 100000
+    });
+
+    // Add Bình Tinh Hải
+    const invBth = await Inventory.addVatPham(tuSi.idNguoiDung, 'binh_tinh_hai', 1);
+    
+    // First usage of Bình Tinh Hải (should succeed)
+    const bthResult1 = await boDieuKhienVatPham._thucHienDungItem(tuSi, invBth, 'binh_tinh_hai');
+    assert.strictEqual(bthResult1.ok, true);
+    assert.ok(bthResult1.msg.includes('Bình Tinh Hải'));
+    
+    await tuSi.reload();
+    const today = new Date().toISOString().split('T')[0];
+    assert.strictEqual(tuSi.lastUseBinhTinhHai, today);
+
+    // Check inventory for Đan Thần Phẩm
+    let dtpInv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'dan_than_pham' } });
+    assert.ok(dtpInv);
+    assert.strictEqual(dtpInv.soLuong, 2);
+
+    // Second usage on the same day (should fail)
+    const bthResult2 = await boDieuKhienVatPham._thucHienDungItem(tuSi, invBth, 'binh_tinh_hai');
+    assert.strictEqual(bthResult2.ok, false);
+    assert.ok(bthResult2.msg.includes('đã trích xuất sinh cơ'));
+
+    // 3. Test using Đan Thần Phẩm
+    const prevLinhLuc = tuSi.linhLuc;
+    const dtpResult = await boDieuKhienVatPham._thucHienDungItem(tuSi, dtpInv, 'dan_than_pham');
+    assert.strictEqual(dtpResult.ok, true);
+    assert.ok(dtpResult.msg.includes('nuốt'));
+
+    await tuSi.reload();
+    await dtpInv.reload();
+    assert.strictEqual(dtpInv.soLuong, 1);
+    assert.ok(tuSi.linhLuc > prevLinhLuc, "Linh lực phải tăng");
+
+    // 4. Test dungeon 1% drop rate for co_duyen_lenh
+    // Since it's randomized, we can verify that the new property droppedCoDuyenLenh works inside tranDauBiCanh
+    const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
+    const embedResult = BoTaoEmbed.tranDauBiCanh(
+      tuSi,
+      { ten: "Bí cảnh Luyện Khí", quaiVat: { ten: "Yêu thú" }, theLuc: 10, theLucMax: 100 },
+      ["Giao đấu hiệp 1", "Chiến thắng"],
+      true, // isWin
+      100, // gainedExp
+      50,  // gainedStones
+      null, // droppedItem
+      null, // droppedSeed
+      null, // thienDao
+      true  // droppedCoDuyenLenh
+    );
+    assert.ok(JSON.stringify(embedResult.data).includes('Cơ Duyên Lệnh 🎫'));
+
+    // Clean up
+    await tuSi.destroy();
+  });
+
 });
 
