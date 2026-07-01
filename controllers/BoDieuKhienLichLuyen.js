@@ -146,6 +146,8 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
       tuSi.theLuc = Math.max(0, tuSi.theLuc - 1);
       await tuSi.save();
 
+      rewardText += `• **Tiêu hao thể lực**: \`-1\` 🔋 (Còn lại: \`${tuSi.theLuc}/${tuSi.theLucMax}\` 🔋)\n`;
+
       // Thiết lập cooldown lịch luyện (30 giây)
       const expiresAt = new Date(Date.now() + 30 * 1000);
       await this.datThoiGianCho(tuSi.idNguoiDung, 'lich_luyen', expiresAt);

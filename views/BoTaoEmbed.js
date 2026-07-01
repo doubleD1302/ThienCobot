@@ -505,6 +505,7 @@ export class BoTaoEmbed {
       if (droppedSeed) {
         rewardText += `\n• **Hạt giống nhặt được**: **${droppedSeed.ten}** 🌰`;
       }
+      rewardText += `\n• **Tiêu hao thể lực**: \`-1\` 🔋 (Còn lại: \`${tuSi.theLuc}/${tuSi.theLucMax}\` 🔋)`;
       embed.addFields({
         name: "🎁 Chiến Lợi Phẩm",
         value: rewardText,
@@ -513,7 +514,7 @@ export class BoTaoEmbed {
     } else {
       embed.addFields({
         name: "⚠️ Tổn Thất Căn Cơ",
-        value: `• Đạo hữu bị yêu thú đả thương nghiêm trọng, máu (HP) bị suy giảm về mức cực thấp (-30% HP tối đa).\n• Vui lòng dùng lệnh \`/nghi\` để tĩnh dưỡng hồi phục!`,
+        value: `• Đạo hữu bị yêu thú đả thương nghiêm trọng, máu (HP) bị suy giảm về mức cực thấp (-30% HP tối đa).\n• Vui lòng dùng lệnh \`/nghi\` để tĩnh dưỡng hồi phục!\n• **Tiêu hao thể lực**: \`-1\` 🔋 (Còn lại: \`${tuSi.theLuc}/${tuSi.theLucMax}\` 🔋)`,
         inline: false
       });
     }
