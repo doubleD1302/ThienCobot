@@ -260,7 +260,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         const { loai, itemId } = decoded;
         const isEgg    = itemId === 'trung_linh_thu' || itemId === 'trung_than_thu';
         const isEquip  = EQUIP_TYPES.includes(loai);
-        const isUsable = loai === 'Đan dược' || isEgg;
+        const isUsable = loai === 'Đan dược' || loai === 'Chí bảo' || isEgg;
         const components = [];
         components.push(new ButtonBuilder().setCustomId('balo_action_detail').setLabel('🔍 Chi Tiết').setStyle(ButtonStyle.Secondary));
         if (isEquip)  components.push(new ButtonBuilder().setCustomId('balo_action_equip').setLabel('⚔️ Trang Bị').setStyle(ButtonStyle.Primary));
