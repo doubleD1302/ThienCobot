@@ -86,6 +86,10 @@ client.once('ready', async () => {
     }]
   });
 
+  // Đăng ký client vào model ThienDaoLuc để gửi thông báo tự động
+  const { ThienDaoLuc } = await import('./models/ThienDaoLuc.js');
+  ThienDaoLuc.clientInstance = client;
+
   // Khởi động tiến trình quản lý Cự Thú
   boDieuKhienBoss.khoiThaoBossSchedule(client);
   // Khởi động tiến trình gửi Bảng Xếp Hạng tự động mỗi 10 phút
