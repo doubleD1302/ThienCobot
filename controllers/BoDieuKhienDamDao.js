@@ -15,30 +15,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
     super();
   }
 
-  applyDamDaoTuVi(tuSi, goldChange, expMult = 1.0) {
-    let tuViChange = 0;
-    if (goldChange > 0) {
-      // Thắng: +1 tuvi mỗi 1k vàng kiếm được * expMult
-      tuViChange = (goldChange / 1000.0) * expMult;
-    } else if (goldChange < 0) {
-      // Thua: -0.9 tuvi mỗi 1k vàng mất đi (không nhân hệ số buff)
-      const goldLost = Math.abs(goldChange);
-      tuViChange = -0.9 * (goldLost / 1000.0);
-    }
 
-    // Cập nhật tu vi và tu vi dư
-    const currentRaw = tuSi.linhLuc + (tuSi.linhLucDu || 0.0);
-    let nextRaw = currentRaw + tuViChange;
-    if (nextRaw < 0) {
-      nextRaw = 0;
-    }
-
-    const nextLinhLuc = Math.floor(nextRaw);
-    tuSi.linhLuc = nextLinhLuc;
-    tuSi.linhLucDu = nextRaw - nextLinhLuc;
-
-    return tuViChange;
-  }
 
   lenhDamDao = {
     data: new SlashCommandBuilder()
@@ -301,13 +278,10 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           const result = sum >= 11 ? 'Tài' : 'Xỉu';
           const isWin = choice === result;
 
-          const thienDao = await tuSi.layHeSoThienDao();
           if (isWin) {
             tuSi.vnd += bet;
-            tuViChange = this.applyDamDaoTuVi(tuSi, bet, thienDao.expMult);
           } else {
             tuSi.vnd -= bet;
-            tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
           }
           await tuSi.save();
 
@@ -322,8 +296,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               (isWin
                 ? `🚀 Đại cát đại lợi! Đạo hữu thắng cuộc nhận thêm \`+${bet.toLocaleString()}\` VND.`
                 : `💔 Cơ duyên cạn kiệt! Đạo hữu thất bại tổn hao \`-${bet.toLocaleString()}\` VND.`) +
-              `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
-              `🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
+              `\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
             )
             .setTimestamp();
 
@@ -361,15 +334,11 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             outcome = 'LOSE';
           }
 
-          const thienDao = await tuSi.layHeSoThienDao();
-          let tuViChange = 0;
           if (outcome === 'WIN') {
             tuSi.vnd += bet;
-            tuViChange = this.applyDamDaoTuVi(tuSi, bet, thienDao.expMult);
             await tuSi.save();
           } else if (outcome === 'LOSE') {
             tuSi.vnd -= bet;
-            tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
             await tuSi.save();
           }
 
@@ -378,6 +347,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           let outcomeDesc = '';
 
           if (outcome === 'WIN') {
+            outcomeTitle = '...';
             outcomeTitle = '⚔️ Thắng Trận Đàm Đạo';
             outcomeColor = 0x2ecc71;
             outcomeDesc = `🚀 Đạo hữu dùng **${playerChoice.name}** khắc chế hoàn hảo **${botChoice.name}** của phân thân, thắng nhận \`+${bet.toLocaleString()}\` VND.`;
@@ -391,8 +361,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             outcomeDesc = `Cả hai cùng ra **${playerChoice.name}**, khí kình đối xung bất phân thắng bại! Cược \`${bet.toLocaleString()}\` VND được hoàn trả vẹn nguyên.`;
           }
 
-          const expText = outcome !== 'TIE' ? `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).` : '';
-
           const resultEmbed = new EmbedBuilder()
             .setTitle(outcomeTitle)
             .setColor(outcomeColor)
@@ -400,7 +368,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               `• **Đạo hữu ra chiêu**: **${playerChoice.name}**\n` +
               `• **Thiên Đạo ra chiêu**: **${botChoice.name}**\n\n` +
               outcomeDesc +
-              expText +
               `\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
             )
             .setTimestamp();
@@ -426,7 +393,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             if (pSum > 21) {
               // Bị bùng bài (bust) - Thua ngay
               tuSi.vnd -= bet;
-              const tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
               await tuSi.save();
 
               const resultEmbed = new EmbedBuilder()
@@ -437,7 +403,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
                   `• **BÀI CỦA BẠN**: \`[ ${playerHand.join(' ] · [ ')} ]\` (Tổng điểm: **${pSum}**)\n` +
                   `• **BÀI THIÊN ĐẠO**: \`[ ${botHand.join(' ] · [ ')} ]\` (Tổng: **${getSum(botHand)}**)\n\n` +
                   `💔 Cường lượng bạo liệt! Đạo hữu nung bài quá tay tổn hao \`-${bet.toLocaleString()}\` VND.\n` +
-                  `⚡ **Tu vi biến động**: \`${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
                   `🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
                 )
                 .setTimestamp();
@@ -485,17 +450,13 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               isTie = true;
             }
 
-            let tuViChange = 0;
             if (isTie) {
               // Hòa
             } else if (isWin) {
-              const thienDao = await tuSi.layHeSoThienDao();
               tuSi.vnd += bet;
-              tuViChange = this.applyDamDaoTuVi(tuSi, bet, thienDao.expMult);
               await tuSi.save();
             } else {
               tuSi.vnd -= bet;
-              tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
               await tuSi.save();
             }
 
@@ -517,8 +478,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               desc = `💔 Đạo hữu bại trận tổn hao \`-${bet.toLocaleString()}\` VND.`;
             }
 
-            const expText = !isTie ? `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).` : '';
-
             const resultEmbed = new EmbedBuilder()
               .setTitle(title)
               .setColor(colorCode)
@@ -526,7 +485,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
                 `• **BÀI CỦA BẠN**: \`[ ${playerHand.join(' ] · [ ')} ]\` (Tổng điểm: **${pSum}**)\n` +
                 `• **BÀI THIÊN ĐẠO**: \`[ ${botHand.join(' ] · [ ')} ]\` (Tổng điểm: **${bSum}**)\n\n` +
                 desc +
-                expText +
                 `\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
               )
               .setTimestamp();
@@ -569,18 +527,13 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           const count = rolls.filter(r => r.name === playerChoice.name).length;
           const isWin = count > 0;
 
-          let tuViChange = 0;
           const MAX_STONES = 2_000_000_000;
-
-          const thienDao = await tuSi.layHeSoThienDao();
           if (isWin) {
             const reward = bet * count;
             tuSi.vnd = Math.min(MAX_STONES, tuSi.vnd + reward);
-            tuViChange = this.applyDamDaoTuVi(tuSi, reward, thienDao.expMult);
             await tuSi.save();
           } else {
             tuSi.vnd = Math.max(0, tuSi.vnd - bet);
-            tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
             await tuSi.save();
           }
 
@@ -593,8 +546,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               (isWin
                 ? `🚀 Tuyệt vời! **${playerChoice.name.split(' ')[0]}** xuất hiện **${count}** lần, đạo hữu thắng nhận \`+${(bet * count).toLocaleString()}\` VND (tỉ lệ 1 ăn ${count}).`
                 : `💔 Không có **${playerChoice.name.split(' ')[0]}** nào xuất hiện! Đạo hữu tổn hao \`-${bet.toLocaleString()}\` VND.`) +
-              `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
-              `🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
+              `\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
             )
             .setTimestamp();
 

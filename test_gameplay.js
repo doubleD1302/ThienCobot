@@ -638,23 +638,6 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(retrieved.theLucMax, 201);
     assert.strictEqual(retrieved.theLuc, 11);
 
-    // Test Debate Tu Vi changes
-    retrieved.linhLuc = 0;
-    retrieved.linhLucDu = 0.0;
-    const { boDieuKhienDamDao } = await import('./controllers/BoDieuKhienDamDao.js');
-    
-    // Win 1000: +1.0 Tu Vi
-    let change = boDieuKhienDamDao.applyDamDaoTuVi(retrieved, 1000);
-    assert.strictEqual(change, 1.0);
-    assert.strictEqual(retrieved.linhLuc, 1);
-    assert.strictEqual(retrieved.linhLucDu, 0);
-
-    // Lose 1000: -0.9 Tu Vi
-    change = boDieuKhienDamDao.applyDamDaoTuVi(retrieved, -1000);
-    assert.strictEqual(change, -0.9);
-    assert.strictEqual(retrieved.linhLuc, 0);
-    assert.ok(Math.abs(retrieved.linhLucDu - 0.1) < 1e-9); // Float carryover
-
     await player.destroy();
   });
 
