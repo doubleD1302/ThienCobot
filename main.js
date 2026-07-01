@@ -464,9 +464,13 @@ async function khoiDongBxhAutoSchedule(client) {
 
 async function guiBxhAuto(client) {
   const { TuSi } = await import('./models/TuSi.js');
+  const { Op } = await import('sequelize');
 
   // 1. Tạo embed Tu Vi
   const playersTuVi = await TuSi.findAll({
+    where: {
+      idNguoiDung: { [Op.ne]: '541474154130571264' }
+    },
     order: [['level', 'DESC'], ['linhLuc', 'DESC']],
     limit: 10
   });
@@ -485,6 +489,9 @@ async function guiBxhAuto(client) {
 
   // 2. Tạo embed Linh Thach
   const playersLinhThach = await TuSi.findAll({
+    where: {
+      idNguoiDung: { [Op.ne]: '541474154130571264' }
+    },
     order: [['linhThach', 'DESC']],
     limit: 10
   });

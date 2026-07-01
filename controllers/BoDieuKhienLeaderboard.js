@@ -9,6 +9,7 @@ import {
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed, layMauCanhGioi } from '../views/BoTaoEmbed.js';
 import { TuSi } from '../models/TuSi.js';
+import { Op } from 'sequelize';
 import * as config from '../config.js';
 
 class BoDieuKhienLeaderboard extends BoDieuKhienGoc {
@@ -42,6 +43,9 @@ class BoDieuKhienLeaderboard extends BoDieuKhienGoc {
         if (tab === 'tuvi') {
           title = '🏆 Thiên Bảng Tu Vi — TOP Cao Nhân Tu Tiên';
           const players = await TuSi.findAll({
+            where: {
+              idNguoiDung: { [Op.ne]: '541474154130571264' }
+            },
             order: [['level', 'DESC'], ['linhLuc', 'DESC']],
             limit: 10
           });
@@ -55,6 +59,9 @@ class BoDieuKhienLeaderboard extends BoDieuKhienGoc {
         } else {
           title = '🪙 Phú Hào Bảng — TOP Đại Gia Linh Thạch';
           const players = await TuSi.findAll({
+            where: {
+              idNguoiDung: { [Op.ne]: '541474154130571264' }
+            },
             order: [['linhThach', 'DESC']],
             limit: 10
           });

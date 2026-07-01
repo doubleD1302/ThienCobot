@@ -57,8 +57,11 @@ export class BoTaoEmbed {
 
   static hoSo(tuSi, user, chiSo, daoNien = null, tocDoTuLuyen = 100, reqExp = null, equippedItems = []) {
     const color = layMauCanhGioi(tuSi.canhGioi);
+    const isThienDao = String(tuSi.idNguoiDung) === '541474154130571264';
+    const titleText = isThienDao ? `🌌 Thiên Đạo Vô Thượng: ${tuSi.ten} 🌌` : `📜 Tiên Phả Tu Sĩ: ${tuSi.ten}`;
+    
     const embed = new EmbedBuilder()
-      .setTitle(`📜 Tiên Phả Tu Sĩ: ${tuSi.ten}`)
+      .setTitle(titleText)
       .setColor(color)
       .setTimestamp()
       .setImage("https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600");
@@ -78,7 +81,9 @@ export class BoTaoEmbed {
     embed.addFields(
       {
         name: "☯️ Linh Căn & Đạo Pháp",
-        value: `• **Giới tính**: ${tuSi.gioiTinh}\n• **Học thuyết**: \`${pathName}\`\n• **Linh căn**: \`${tuSi.linhCan}\`\n• **Tu luyện tốc độ**: \`+${tocDoTuLuyen}\` Linh lực/Đạo Niên ⚡`,
+        value: `• **Giới tính**: ${tuSi.gioiTinh}\n` +
+               (isThienDao ? `• **Danh hiệu**: \`Thiên Đạo\` 🌌\n` : '') +
+               `• **Học thuyết**: \`${pathName}\`\n• **Linh căn**: \`${tuSi.linhCan}\`\n• **Tu luyện tốc độ**: \`+${tocDoTuLuyen}\` Linh lực/Đạo Niên ⚡`,
         inline: true
       },
       {
