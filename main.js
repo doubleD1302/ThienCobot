@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, ActivityType, Collection } from 'discord.js';
+import { Client, GatewayIntentBits, ActivityType, Collection, EmbedBuilder } from 'discord.js';
 import { sequelize } from './database.js';
 import { DISCORD_TOKEN } from './config.js';
 import { danhSachLenhTuSi } from './controllers/BoDieuKhienTuSi.js';
@@ -88,6 +88,8 @@ client.once('ready', async () => {
 
   // Khởi động tiến trình quản lý Cự Thú
   boDieuKhienBoss.khoiThaoBossSchedule(client);
+  // Khởi động tiến trình gửi Bảng Xếp Hạng tự động mỗi 10 phút
+  khoiDongBxhAutoSchedule(client);
 });
 
 // Lắng nghe khi bot được thêm vào máy chủ mới để khởi tạo Đạo Niên
@@ -195,11 +197,11 @@ async function start() {
   try {
     console.log('Khởi tạo cơ sở dữ liệu...');
     await sequelize.authenticate();
-    await sequelize.sync();
-    
     // Chỉ đồng bộ thay đổi (alter) riêng cho bảng abodes để bổ sung các cột mới
     const { Abode } = await import('./models/Abode.js');
     await Abode.sync({ alter: true });
+    const { TuSi } = await import('./models/TuSi.js');
+    await TuSi.sync({ alter: true });
 
     console.log('Cơ sở dữ liệu được đồng bộ hóa thành công.');
 
@@ -409,3 +411,84 @@ async function start() {
 }
 
 start();
+
+async function khoiDongBxhAutoSchedule(client) {
+  console.log('[BXH Auto] Khởi động tiến trình gửi bảng xếp hạng tự động...');
+
+  // Chạy lần đầu sau 10 giây để tránh nghẽn lúc khởi động, sau đó cứ mỗi 10 phút
+  setTimeout(() => {
+    guiBxhAuto(client).catch(err => console.error('[BXH Auto] Lỗi khi gửi bxh:', err));
+  }, 10_000);
+
+  setInterval(async () => {
+    await guiBxhAuto(client).catch(err => console.error('[BXH Auto] Lỗi khi gửi bxh:', err));
+  }, 10 * 60 * 1000);
+}
+
+async function guiBxhAuto(client) {
+  const { TuSi } = await import('./models/TuSi.js');
+
+  // 1. Tạo embed Tu Vi
+  const playersTuVi = await TuSi.findAll({
+    order: [['level', 'DESC'], ['linhLuc', 'DESC']],
+    limit: 10
+  });
+  const descTuVi = playersTuVi.map((p, idx) => {
+    const crown = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🔹';
+    return `${crown} **TOP ${idx + 1}.** **${p.ten}**\n` +
+           `   *Cảnh giới:* \`${p.canhGioi} - Tầng ${p.tang}\` (Cấp ${p.capDo}) · Exp: \`${p.linhLuc}\``;
+  }).join('\n\n');
+
+  const embedTuVi = new EmbedBuilder()
+    .setTitle('🏆 Thiên Bảng Tu Vi — TOP Cao Nhân Tu Tiên')
+    .setColor(0xf1c40f)
+    .setDescription(descTuVi || '_Thiên địa sơ khai, chưa có tu sĩ nào ghi danh._')
+    .setTimestamp()
+    .setFooter({ text: 'Bảng xếp hạng cập nhật tự động mỗi 10 phút.' });
+
+  // 2. Tạo embed Linh Thach
+  const playersLinhThach = await TuSi.findAll({
+    order: [['linhThach', 'DESC']],
+    limit: 10
+  });
+  const descLinhThach = playersLinhThach.map((p, idx) => {
+    const crown = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🔹';
+    return `${crown} **TOP ${idx + 1}.** **${p.ten}**\n` +
+           `   *Tài phú:* \`${p.linhThach.toLocaleString()}\` 🪙 Linh Thạch`;
+  }).join('\n\n');
+
+  const embedLinhThach = new EmbedBuilder()
+    .setTitle('🪙 Phú Hào Bảng — TOP Đại Gia Linh Thạch')
+    .setColor(0x3498db)
+    .setDescription(descLinhThach || '_Thiên địa sơ khai, chưa có tu sĩ nào ghi danh._')
+    .setTimestamp()
+    .setFooter({ text: 'Bảng xếp hạng cập nhật tự động mỗi 10 phút.' });
+
+  // 3. Quét toàn bộ Guild của client để tìm kênh tên "bxh"
+  const guilds = client.guilds.cache;
+  for (const [_, guild] of guilds) {
+    try {
+      const channels = await guild.channels.fetch().catch(() => null);
+      if (!channels) continue;
+
+      const bxhChannel = channels.find(ch => ch && ch.isTextBased() && ch.name && ch.name.toLowerCase() === 'bxh');
+      if (bxhChannel) {
+        // Dọn dẹp tin nhắn cũ của bot trong kênh này để tránh trôi tin nhắn
+        const messages = await bxhChannel.messages.fetch({ limit: 50 }).catch(() => null);
+        if (messages) {
+          const oldBotMsgs = messages.filter(msg => msg.author.id === client.user.id);
+          for (const m of oldBotMsgs.values()) {
+            await m.delete().catch(() => null);
+          }
+        }
+
+        // Gửi 2 bảng xếp hạng mới
+        await bxhChannel.send({ embeds: [embedTuVi, embedLinhThach] }).catch(err => {
+          console.error(`[BXH Auto] Không thể gửi tin nhắn đến kênh bxh của guild ${guild.name}:`, err);
+        });
+      }
+    } catch (e) {
+      console.error(`[BXH Auto] Lỗi khi xử lý guild ${guild.name}:`, e);
+    }
+  }
+}

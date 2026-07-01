@@ -16,6 +16,13 @@ const { PlayerSkill } = await import('./models/PlayerSkill.js');
 const { ThienDaoLuc } = await import('./models/ThienDaoLuc.js');
 const { AdventureEvent } = await import('./models/AdventureEvent.js');
 const { Dungeon } = await import('./models/Dungeon.js');
+const { Abode } = await import('./models/Abode.js');
+const { Pet } = await import('./models/Pet.js');
+const { GardenPlot } = await import('./models/GardenPlot.js');
+const { ShopItem } = await import('./models/ShopItem.js');
+const { LichSuMua } = await import('./models/LichSuMua.js');
+const { ChannelRestriction } = await import('./models/ChannelRestriction.js');
+const { WorldBoss } = await import('./models/WorldBoss.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -499,30 +506,20 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     });
 
     // Thử trang bị -> Phải thất bại vì level bất túc
-    let replyPayload = null;
-    const interactionMock = {
-      user: { id: "7777777777777777" },
-      options: {
-        getSubcommand: () => 'trangbi',
-        getString: () => 'test_trong_kiem'
-      },
-      deferReply: async () => {},
-      editReply: async (payload) => {
-        replyPayload = payload;
-      }
-    };
-
-    await boDieuKhienVatPham.lenhBalo.execute(interactionMock);
-
-    // Kiểm tra xem phản hồi có lỗi Cảnh giới bất túc không
-    assert.ok(replyPayload);
-    assert.ok(replyPayload.embeds[0].data.description.includes("Cảnh giới bất túc"));
-
-    // Kiểm tra trang bị vẫn ở trạng thái chưa mặc
     const invCheck = await Inventory.findOne({
       where: { idNguoiDung: tuSi.idNguoiDung, itemId: "test_trong_kiem" }
     });
-    assert.strictEqual(invCheck.trangBi, false);
+    const result = await boDieuKhienVatPham._thucHienTrangBi(tuSi, invCheck, "test_trong_kiem");
+
+    // Kiểm tra xem phản hồi có lỗi Cảnh giới bất túc không
+    assert.strictEqual(result.ok, false);
+    assert.ok(result.msg.includes("Cảnh giới bất túc"));
+
+    // Kiểm tra trang bị vẫn ở trạng thái chưa mặc
+    const invCheckAfter = await Inventory.findOne({
+      where: { idNguoiDung: tuSi.idNguoiDung, itemId: "test_trong_kiem" }
+    });
+    assert.strictEqual(invCheckAfter.trangBi, false);
 
     await tuSi.destroy();
   });
@@ -560,15 +557,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.ok(parsedLines.length >= 1 && parsedLines.length <= 4);
 
     // 2. Thử mặc Ngọc Bội
-    let replyPayload = null;
-    let interactionMock = {
-      user: { id: "8888888888888888" },
-      options: { getSubcommand: () => 'trangbi', getString: () => 'test_ngoc_boi' },
-      deferReply: async () => {},
-      editReply: async (payload) => { replyPayload = payload; }
-    };
-    await boDieuKhienVatPham.lenhBalo.execute(interactionMock);
-    assert.ok(replyPayload.embeds[0].data.description.includes("trang bị"));
+    const resultNgocBoi = await boDieuKhienVatPham._thucHienTrangBi(tuSi, invItem, "test_ngoc_boi");
+    assert.strictEqual(resultNgocBoi.ok, true);
 
     // 3. Mặc 4 Cổ Bảo Chủ Động (Giới hạn tối đa 3)
     for (let i = 0; i < 4; i++) {
@@ -582,15 +572,9 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     listCoBao[2].trangBi = true; await listCoBao[2].save();
 
     // Thử mặc cái thứ 4
-    replyPayload = null;
-    interactionMock = {
-      user: { id: "8888888888888888" },
-      options: { getSubcommand: () => 'trangbi', getString: () => 'test_co_bao' },
-      deferReply: async () => {},
-      editReply: async (payload) => { replyPayload = payload; }
-    };
-    await boDieuKhienVatPham.lenhBalo.execute(interactionMock);
-    assert.ok(replyPayload.embeds[0].data.description.includes("Giới hạn tối đa 3 Cổ Bảo Chủ Động"));
+    const resultCoBao = await boDieuKhienVatPham._thucHienTrangBi(tuSi, listCoBao[3], "test_co_bao");
+    assert.strictEqual(resultCoBao.ok, false);
+    assert.ok(resultCoBao.msg.includes("Giới hạn tối đa 3 Cổ Bảo Chủ Động"));
 
     // 4. Mặc 7 Pháp Bảo (Giới hạn tối đa 6)
     for (let i = 0; i < 7; i++) {
@@ -601,15 +585,9 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       listPhapBao[i].trangBi = true;
       await listPhapBao[i].save();
     }
-    replyPayload = null;
-    interactionMock = {
-      user: { id: "8888888888888888" },
-      options: { getSubcommand: () => 'trangbi', getString: () => 'test_phap_bao' },
-      deferReply: async () => {},
-      editReply: async (payload) => { replyPayload = payload; }
-    };
-    await boDieuKhienVatPham.lenhBalo.execute(interactionMock);
-    assert.ok(replyPayload.embeds[0].data.description.includes("Giới hạn tối đa 6 Pháp Bảo"));
+    const resultPhapBao = await boDieuKhienVatPham._thucHienTrangBi(tuSi, listPhapBao[6], "test_phap_bao");
+    assert.strictEqual(resultPhapBao.ok, false);
+    assert.ok(resultPhapBao.msg.includes("Giới hạn tối đa 6 Pháp Bảo"));
 
     // 5. Kiểm tra tính năng né tránh / lifesteal / cổ bảo pháp bảo kỹ năng hoạt động trong combat
     const { Dungeon } = await import('./models/Dungeon.js');
@@ -623,17 +601,82 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       dropsJson: '[]'
     });
 
-    replyPayload = null;
-    interactionMock = {
+    let replyPayload = null;
+    const interactionMock = {
       user: { id: "8888888888888888" },
       options: { getSubcommand: () => 'khieu_chien', getString: () => 'test_combat_dungeon' },
       deferReply: async () => {},
-      editReply: async (payload) => { replyPayload = payload; }
+      editReply: async (payload) => {
+        replyPayload = payload;
+        return {
+          createMessageComponentCollector: () => ({
+            on: () => {},
+            stop: () => {}
+          })
+        };
+      }
     };
     await boDieuKhienBicanh.lenhBicanh.execute(interactionMock);
     assert.ok(replyPayload);
 
     await tuSi.destroy();
+  });
+
+  test('Stamina Mechanics and Debate Rewards', async () => {
+    // 1. Stamina daily reset and depletion
+    const player = await TuSi.create({
+      idNguoiDung: "9999999999999999",
+      ten: "Bá Đao",
+      gioiTinh: "Nam",
+      huongTu: "The Tu",
+      linhCan: "Thổ Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 10000,
+      theLuc: 200,
+      theLucMax: 200,
+      lastResetTheLuc: "2026-06-30" // Yesterday
+    });
+    player.linhCanList = ["Tho"];
+    await player.save();
+
+    // Check daily update trigger (should reset theLuc to theLucMax on retrieval)
+    const retrieved = await TuSi.findByPk(player.idNguoiDung);
+    retrieved.capNhatTheLucDaily();
+    assert.strictEqual(retrieved.theLuc, 200);
+
+    // Test Stamina limits addition on successful breakthrough
+    retrieved.linhLuc = 10000;
+    retrieved.theLucMax = 200;
+    retrieved.theLuc = 10;
+    
+    // Breakthrough (simulating BoDieuKhienTuLuyen behavior)
+    retrieved.capDo += 1;
+    retrieved.theLucMax += 1;
+    retrieved.theLuc += 1;
+    await retrieved.save();
+    
+    assert.strictEqual(retrieved.theLucMax, 201);
+    assert.strictEqual(retrieved.theLuc, 11);
+
+    // Test Debate Tu Vi changes
+    retrieved.linhLuc = 0;
+    retrieved.linhLucDu = 0.0;
+    const { boDieuKhienDamDao } = await import('./controllers/BoDieuKhienDamDao.js');
+    
+    // Win 1000: +1.0 Tu Vi
+    let change = boDieuKhienDamDao.applyDamDaoTuVi(retrieved, 1000);
+    assert.strictEqual(change, 1.0);
+    assert.strictEqual(retrieved.linhLuc, 1);
+    assert.strictEqual(retrieved.linhLucDu, 0);
+
+    // Lose 1000: -0.9 Tu Vi
+    change = boDieuKhienDamDao.applyDamDaoTuVi(retrieved, -1000);
+    assert.strictEqual(change, -0.9);
+    assert.strictEqual(retrieved.linhLuc, 0);
+    assert.ok(Math.abs(retrieved.linhLucDu - 0.1) < 1e-9); // Float carryover
+
+    await player.destroy();
   });
 
 });

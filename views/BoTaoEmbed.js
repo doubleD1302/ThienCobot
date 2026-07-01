@@ -110,7 +110,7 @@ export class BoTaoEmbed {
 
     embed.addFields({
       name: "🩺 Khí Huyết & Thần Thức",
-      value: `${hpDisplay}\n${mpDisplay}\n• **Linh thạch tích trữ**: \`${tuSi.linhThach}\` 🪙`,
+      value: `${hpDisplay}\n${mpDisplay}\n• **Thể lực**: \`${tuSi.theLuc || 0} / ${tuSi.theLucMax || 200}\` 🔋\n• **Linh thạch tích trữ**: \`${tuSi.linhThach}\` 🪙`,
       inline: false
     });
 

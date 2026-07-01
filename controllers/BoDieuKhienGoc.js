@@ -5,7 +5,12 @@ import * as config from '../config.js';
 
 export class BoDieuKhienGoc {
   async layTuSi(idNguoiDung) {
-    return await TuSi.findByPk(idNguoiDung);
+    const tuSi = await TuSi.findByPk(idNguoiDung);
+    if (tuSi) {
+      tuSi.capNhatTheLucDaily();
+      await tuSi.save();
+    }
+    return tuSi;
   }
 
   async layHoacTaoCauHinhGuild(idGuild) {

@@ -15,6 +15,31 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
     super();
   }
 
+  applyDamDaoTuVi(tuSi, goldChange) {
+    let tuViChange = 0;
+    if (goldChange > 0) {
+      // Thắng: +1 tuvi mỗi 1k vàng kiếm được
+      tuViChange = goldChange / 1000.0;
+    } else if (goldChange < 0) {
+      // Thua: -0.9 tuvi mỗi 1k vàng mất đi
+      const goldLost = Math.abs(goldChange);
+      tuViChange = -0.9 * (goldLost / 1000.0);
+    }
+
+    // Cập nhật tu vi và tu vi dư
+    const currentRaw = tuSi.linhLuc + (tuSi.linhLucDu || 0.0);
+    let nextRaw = currentRaw + tuViChange;
+    if (nextRaw < 0) {
+      nextRaw = 0;
+    }
+
+    const nextLinhLuc = Math.floor(nextRaw);
+    tuSi.linhLuc = nextLinhLuc;
+    tuSi.linhLucDu = nextRaw - nextLinhLuc;
+
+    return tuViChange;
+  }
+
   lenhDamDao = {
     data: new SlashCommandBuilder()
       .setName('damdao')
@@ -254,14 +279,13 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           const result = sum >= 11 ? 'Tài' : 'Xỉu';
           const isWin = choice === result;
 
-          const baseExp = Math.floor(bet / 1000);
-          const gainedExp = isWin ? baseExp * 2 : baseExp;
-
-          tuSi.linhLuc += gainedExp;
+          let tuViChange = 0;
           if (isWin) {
             tuSi.linhThach += bet;
+            tuViChange = this.applyDamDaoTuVi(tuSi, bet);
           } else {
             tuSi.linhThach -= bet;
+            tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
           }
           await tuSi.save();
 
@@ -276,7 +300,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               (isWin
                 ? `🚀 Đại cát đại lợi! Đạo hữu thắng cuộc nhận thêm \`+${bet.toLocaleString()}\` 🪙 Linh thạch.`
                 : `💔 Cơ duyên cạn kiệt! Đạo hữu thất bại tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`) +
-              `\n\n⚡ **Tu vi nhận được**: \`+${gainedExp.toLocaleString()}\` Linh Lực (Cứ 1k cược nhận 1 EXP, thắng nhận x2).\n` +
+              `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
               `🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
             )
             .setTimestamp();
@@ -315,16 +339,14 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             outcome = 'LOSE';
           }
 
-          let gainedExp = 0;
+          let tuViChange = 0;
           if (outcome === 'WIN') {
-            gainedExp = Math.floor(bet / 1000) * 2;
             tuSi.linhThach += bet;
-            tuSi.linhLuc += gainedExp;
+            tuViChange = this.applyDamDaoTuVi(tuSi, bet);
             await tuSi.save();
           } else if (outcome === 'LOSE') {
-            gainedExp = Math.floor(bet / 1000);
             tuSi.linhThach -= bet;
-            tuSi.linhLuc += gainedExp;
+            tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
             await tuSi.save();
           }
 
@@ -346,7 +368,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             outcomeDesc = `Cả hai cùng ra **${playerChoice.name}**, khí kình đối xung bất phân thắng bại! Cược \`${bet.toLocaleString()}\` 🪙 được hoàn trả vẹn nguyên.`;
           }
 
-          const expText = gainedExp > 0 ? `\n\n⚡ **Tu vi nhận được**: \`+${gainedExp.toLocaleString()}\` Linh Lực (Cứ 1k cược nhận 1 EXP, thắng nhận x2).` : '';
+          const expText = outcome !== 'TIE' ? `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).` : '';
 
           const resultEmbed = new EmbedBuilder()
             .setTitle(outcomeTitle)
@@ -385,9 +407,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
             if (pSum > 21) {
               // Bị bùng bài (bust) - Thua ngay
-              const gainedExp = Math.floor(bet / 1000);
               tuSi.linhThach -= bet;
-              tuSi.linhLuc += gainedExp;
+              const tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
               await tuSi.save();
 
               const resultEmbed = new EmbedBuilder()
@@ -398,7 +419,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
                   `• **BÀI CỦA BẠN**: \`[ ${playerHand.join(' ] · [ ')} ]\` (Tổng điểm: **${pSum}**)\n` +
                   `• **BÀI THIÊN ĐẠO**: \`[ ${botHand.join(' ] · [ ')} ]\` (Tổng: **${getSum(botHand)}**)\n\n` +
                   `💔 Cường lượng bạo liệt! Đạo hữu nung bài quá tay tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.\n` +
-                  `⚡ **Tu vi nhận được**: \`+${gainedExp.toLocaleString()}\` Linh Lực.\n` +
+                  `⚡ **Tu vi biến động**: \`${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
                   `🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
                 )
                 .setTimestamp();
@@ -451,18 +472,16 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               isTie = true;
             }
 
-            let gainedExp = 0;
+            let tuViChange = 0;
             if (isTie) {
-              gainedExp = 0;
+              // Hòa
             } else if (isWin) {
-              gainedExp = Math.floor(bet / 1000) * 2;
               tuSi.linhThach += bet;
-              tuSi.linhLuc += gainedExp;
+              tuViChange = this.applyDamDaoTuVi(tuSi, bet);
               await tuSi.save();
             } else {
-              gainedExp = Math.floor(bet / 1000);
               tuSi.linhThach -= bet;
-              tuSi.linhLuc += gainedExp;
+              tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
               await tuSi.save();
             }
 
@@ -484,7 +503,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               desc = `💔 Đạo hữu bại trận tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`;
             }
 
-            const expText = gainedExp > 0 ? `\n\n⚡ **Tu vi nhận được**: \`+${gainedExp.toLocaleString()}\` Linh Lực.` : '';
+            const expText = !isTie ? `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).` : '';
 
             const resultEmbed = new EmbedBuilder()
               .setTitle(title)
@@ -523,19 +542,16 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           const rollChoice  = choicesList[Math.floor(Math.random() * choicesList.length)];
           const isWin       = playerChoice.name === rollChoice.name;
 
-          // Thắng nhận gấp 4 lần cược, thua trừ bet
-          let gainedExp = 0;
+          let tuViChange = 0;
           const MAX_STONES = 2_000_000_000; // Giới hạn an toàn dưới MySQL INT max
           if (isWin) {
             const reward = bet * 3;
-            gainedExp = Math.floor(bet / 1000) * 2;
             tuSi.linhThach = Math.min(MAX_STONES, tuSi.linhThach + reward);
-            tuSi.linhLuc  += gainedExp;
+            tuViChange = this.applyDamDaoTuVi(tuSi, reward);
             await tuSi.save();
           } else {
-            gainedExp = Math.floor(bet / 1000);
             tuSi.linhThach = Math.max(0, tuSi.linhThach - bet);
-            tuSi.linhLuc  += gainedExp;
+            tuViChange = this.applyDamDaoTuVi(tuSi, -bet);
             await tuSi.save();
           }
 
@@ -548,7 +564,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               (isWin
                 ? `🚀 Ngũ hành tương sinh! Dự đoán thần sầu giúp đạo hữu đại thắng nhận \`+${(bet * 3).toLocaleString()}\` 🪙 Linh thạch (Nhân 4 tổng cược).`
                 : `💔 Khí thế tương khắc! Ngũ hành nghịch chuyển khiến đạo hữu tổn hao \`-${bet.toLocaleString()}\` 🪙 Linh thạch.`) +
-              `\n\n⚡ **Tu vi nhận được**: \`+${gainedExp.toLocaleString()}\` Linh Lực.\n` +
+              `\n\n⚡ **Tu vi biến động**: \`${tuViChange >= 0 ? '+' : ''}${tuViChange.toFixed(1)}\` Linh Lực (Thắng: +1/1k vàng kiếm được, Thua: -0.9/1k vàng mất đi).\n` +
               `🪙 **Số dư hiện tại**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch.`
             )
             .setTimestamp();

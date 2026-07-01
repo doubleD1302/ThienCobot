@@ -24,6 +24,12 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         });
       }
 
+      if (tuSi.theLuc < 1) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi(`Thể lực bất túc! Đạo hữu hôm nay đã cạn kiệt thể lực (Hiện có: \`0/${tuSi.theLucMax}\`). Hãy quay lại vào ngày mai.`)]
+        });
+      }
+
       // 1. Kiểm tra trạng thái HP tối thiểu (HP > 10%)
       const equippedInv = await Inventory.findAll({
         where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
@@ -137,6 +143,7 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         await ThienDaoLuc.ghiLuc(formattedMsg, 'Explore');
       }
 
+      tuSi.theLuc = Math.max(0, tuSi.theLuc - 1);
       await tuSi.save();
 
       // Thiết lập cooldown lịch luyện (30 giây)

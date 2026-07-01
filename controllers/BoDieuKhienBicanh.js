@@ -32,6 +32,12 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         });
       }
 
+      if (tuSi.theLuc < 1) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi(`Thể lực bất túc! Đạo hữu hôm nay đã cạn kiệt thể lực (Hiện có: \`0/${tuSi.theLucMax}\`). Hãy quay lại vào ngày mai.`)]
+        });
+      }
+
       const { Dungeon } = await import('../models/Dungeon.js');
       const dungeons = await Dungeon.findAll();
 
@@ -99,7 +105,18 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           return;
         }
 
-        // 1. Kiểm tra cooldown khiêu chiến (30 giây)
+        // 1. Kiểm tra thể lực
+        await tuSi.reload();
+        if (tuSi.theLuc < 1) {
+          await i.editReply({
+            embeds:     [BoTaoEmbed.loi(`Thể lực bất túc! Đạo hữu hôm nay đã cạn kiệt thể lực (Hiện có: \`0/${tuSi.theLucMax}\`).`)],
+            components: []
+          });
+          collector.stop('no_stamina');
+          return;
+        }
+
+        // 2. Kiểm tra cooldown khiêu chiến (30 giây)
         const activeCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'dungeon');
         if (activeCooldown) {
           const hetHanTime = new Date(activeCooldown.hetHan).getTime();
@@ -345,6 +362,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           // HP suy kiệt sau trận thua
           tuSi.hp = Math.max(1, Math.floor(tuSi.hp - stats.max_hp * 0.30));
         }
+        tuSi.theLuc = Math.max(0, tuSi.theLuc - 1);
 
         await tuSi.save();
 

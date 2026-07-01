@@ -746,6 +746,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           if (i.customId === 'main_build') {
             if (tuSi.linhThach >= 10000) {
               tuSi.linhThach -= 10000;
+              tuSi.theLucMax = (tuSi.theLucMax || 200) + 1;
+              tuSi.theLuc = (tuSi.theLuc || 200) + 1;
               await tuSi.save();
               abode.level = 1;
               await abode.save();
@@ -760,6 +762,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             const cost = ABODE_UPGRADE_BASE_COST * Math.pow(10, abode.level);
             if (tuSi.linhThach >= cost && abode.level < MAX_ABODE_LEVEL) {
               tuSi.linhThach -= cost;
+              tuSi.theLucMax = (tuSi.theLucMax || 200) + 1;
+              tuSi.theLuc = (tuSi.theLuc || 200) + 1;
               await tuSi.save();
               abode.level += 1;
               await abode.save();

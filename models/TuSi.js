@@ -278,6 +278,14 @@ class TuSi extends Model {
 
     return [statToPenalize, Math.floor(penalty * 100)];
   }
+
+  capNhatTheLucDaily() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (this.lastResetTheLuc !== todayStr) {
+      this.theLuc = this.theLucMax || 200;
+      this.lastResetTheLuc = todayStr;
+    }
+  }
 }
 
 TuSi.init({
@@ -403,6 +411,23 @@ TuSi.init({
     allowNull: false,
     defaultValue: 0.0,
     field: 'linh_thach_du'
+  },
+  theLuc: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 200,
+    field: 'the_luc'
+  },
+  theLucMax: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 200,
+    field: 'the_luc_max'
+  },
+  lastResetTheLuc: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    field: 'last_reset_theluc'
   }
 }, {
   sequelize,
