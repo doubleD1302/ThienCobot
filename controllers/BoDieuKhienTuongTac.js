@@ -245,18 +245,12 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             battleLogs.push(`⏳ Bất phân thắng bại sau 15 hiệp! Xét lượng khí huyết còn lại để định đoạt.`);
           }
 
-          // Cộng lượng Exp nhỏ làm phần thưởng giao hữu
-          const rewardExp = winner.capDo * 1000;
-          winner.linhLuc += rewardExp;
-          await winner.save();
-
           const resultEmbed = new EmbedBuilder()
             .setTitle(`⚔️ Kết Quả Tỷ Thí Giao Hữu`)
             .setColor(0x3498db)
             .setDescription(
               `⚔️ Cuộc tỷ thí long trời lở đất giữa hai vị đạo hữu kết thúc!\n\n` +
-              `🏆 **Người chiến thắng**: **${winner.ten}**\n` +
-              `🎁 **Phần thưởng chiến thắng**: \`+${rewardExp.toLocaleString()}\` Linh Lực.\n\n` +
+              `🏆 **Người chiến thắng**: **${winner.ten}**\n\n` +
               `📝 **Nhật ký tỷ thí**:\n` +
               (battleLogs.length > 8 ? battleLogs.slice(-8).join('\n') : battleLogs.join('\n'))
             )
