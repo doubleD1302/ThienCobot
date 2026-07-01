@@ -8,96 +8,144 @@ import {
 } from 'discord.js';
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed } from '../views/BoTaoEmbed.js';
+import { ChannelRestriction } from '../models/ChannelRestriction.js';
 
 class BoDieuKhienHelp extends BoDieuKhienGoc {
   constructor() {
     super();
   }
 
-  // Cấu hình các trang chi tiết
-  trangChiTiet = {
-    cat_basic: {
-      title: '🧘 Nhóm Lệnh: Cơ Bản & Tu Luyện',
-      color: 0x3498db,
-      description: 
-        `• \`/start [tên]\`: Khởi đầu nhân duyên, đặt tên đạo hiệu cho nhân vật của bạn.\n` +
-        `• \`/nv\` hoặc \`/profile\`: Xem thông tin nhân vật, cảnh giới, cấp độ, thuộc tính Công/Thủ/Né/Hút máu, và thể lực còn lại.\n` +
-        `• \`/tuluyen\`: Tĩnh tọa hấp thu linh khí bát hoang. Mỗi phút trôi qua offline hoặc online đều tích lũy linh lực. Khi đầy linh lực có thể đột phá cảnh giới.\n` +
-        `• \`/nghi\`: Trở về động phủ tĩnh dưỡng, hồi phục chỉ số máu (HP) và pháp lực (MP).\n` +
-        `• \`/bxh\`: Xem bảng vàng tôn vinh TOP 10 Tu Sĩ tu vi cao nhất và TOP 10 Phú Hào nhiều linh thạch nhất.`
-    },
-    cat_inventory: {
-      title: '🎒 Nhóm Lệnh: Hành Trang & Linh Bảo',
-      color: 0x2ecc71,
-      description:
-        `• \`/balo\`: Mở túi trữ vật. Cho phép xem, tháo/mặc trang bị (vũ khí, đạo bào, ngọc bội, cổ bảo, pháp bảo) và sử dụng linh đan hồi phục bằng nút bấm.\n` +
-        `• \`/skill\`: Mở Tàng Kinh Các để xem danh sách chiêu thức võ công phép thuật đã học và chọn lĩnh hội chiêu thức mới khi đạt đủ cảnh giới.\n` +
-        `• \`/shop\`: Ghé thăm tiên nhân thương hội để mua linh đan bổ trợ, hạt giống linh thảo, hoặc bán các dược liệu quý giá thu hoạch được.`
-    },
-    cat_explore: {
-      title: '🗻 Nhóm Lệnh: Khám Phá & Trừ Yêu',
-      color: 0xe67e22,
-      description:
-        `• \`/bc\`: Khiêu chiến phó bản bí cảnh. Lựa chọn phó bản phù hợp với cảnh giới để chiến đấu với yêu thú, săn tìm linh thạch, hạt giống và trang bị phẩm chất cao.\n` +
-        `• \`/lichluyen\`: Rời động phủ đi chu du đại lục, gặp gỡ tiên duyên hoặc đối mặt với họa sát thân ngẫu nhiên để nhận phần thưởng hoặc chịu phạt.\n` +
-        `• \`/boss\`: Kiểm tra tình trạng Cự Thú Hoang Cổ đang tàn phá máy chủ, cùng chung sức với các đồng đạo tiêu diệt Boss để chia phần thưởng lớn.\n` +
-        `• \`/thiendaoluc\`: Xem ký sự lịch sử của tiên giới. Nơi khắc ghi các sự kiện lớn như chuyển giao Đạo Niên hoặc các tu sĩ đạt thành tựu đột phá.`
-    },
-    cat_interaction: {
-      title: '🎰 Nhóm Lệnh: Đàm Đạo & Gia Viên',
-      color: 0x9b59b6,
-      description:
-        `• \`/dongphu\`: Quản lý gia viên cá nhân. Nâng cấp linh mạch tăng tốc độ tu luyện, khai hoang linh điền trồng cây thuốc, luyện chế linh đan nâng cao, rèn đúc linh binh, hoặc ấp trứng linh thú nuôi pet.\n` +
-        `• \`/damdao\`: Tham gia các trò chơi giải trí thử thách nhân phẩm đàm đạo cùng tiên giới (Tài Xỉu, Blackjack, Kéo Búa Bao, Ngũ Hành) để cá cược linh thạch và nhận tu vi thưởng.\n` +
-        `• \`/tuongtac\`: Thực hiện giao dịch vật phẩm/linh thạch với tu sĩ khác, gửi lời khiêu chiến tỷ thí võ công thân hữu, hoặc mời tu sĩ cùng song tu cộng hưởng.`
-    }
-  };
-
   lenhHelp = {
     data: new SlashCommandBuilder()
       .setName('help')
-      .setDescription('Mở Tiên Đạo Thư Viện để xem hướng dẫn chơi và danh sách câu lệnh'),
+      .setDescription('Xem hướng dẫn chơi và danh sách các lệnh có thể dùng tại kênh này'),
 
     execute: async (interaction) => {
       await interaction.deferReply({ ephemeral: true });
 
-      let currentCategory = 'cat_basic';
+      // Truy vấn giới hạn lệnh tại kênh hiện tại
+      const restriction = await ChannelRestriction.findByPk(interaction.channelId);
+      const allowedCmds = restriction ? restriction.allowedCommands : null;
+
+      // Danh mục hướng dẫn chi tiết của từng lệnh
+      const allCommandsInfo = {
+        start: { label: '`/start [tên]`', desc: 'Khởi đầu nhân duyên, đặt tên đạo hiệu cho nhân vật của bạn.' },
+        nv: { label: '`/nv` hoặc `/profile`', desc: 'Xem thông tin nhân vật, cảnh giới, cấp độ, Công/Thủ/Né/Hút máu, và thể lực còn lại.' },
+        tuluyen: { label: '`/tuluyen`', desc: 'Tĩnh tọa hấp thu linh khí bát hoang để tích lũy linh lực và đột phá cảnh giới.' },
+        nghi: { label: '`/nghi`', desc: 'Trở về động phủ tĩnh dưỡng, hồi phục đầy chỉ số máu (HP) và pháp lực (MP).' },
+        bxh: { label: '`/bxh`', desc: 'Xem bảng vàng tôn vinh TOP 10 Tu Sĩ tu vi cao nhất và TOP 10 Phú Hào linh thạch.' },
+        balo: { label: '`/balo`', desc: 'Mở túi trữ vật. Xem/tháo/mặc trang bị và sử dụng linh đan hồi phục bằng nút bấm.' },
+        skill: { label: '`/skill`', desc: 'Mở Tàng Kinh Các để xem chiêu thức võ công phép thuật đã học và chọn lĩnh hội chiêu thức mới.' },
+        shop: { label: '`/shop`', desc: 'Ghé thăm tiên nhân thương hội để mua linh đan, hạt giống linh thảo, hoặc bán dược liệu.' },
+        bc: { label: '`/bc`', desc: 'Khiêu chiến phó bản bí cảnh. Diệt yêu thú để săn linh thạch, hạt giống và trang bị xịn.' },
+        lichluyen: { label: '`/lichluyen`', desc: 'Rời động phủ chu du thiên hạ, đón nhận đại cơ duyên ngẫu nhiên hoặc chịu phạt.' },
+        boss: { label: '`/boss`', desc: 'Kiểm tra tình trạng Cự Thú Hoang Cổ, chung sức tiêu diệt Boss để chia phần thưởng.' },
+        thiendaoluc: { label: '`/thiendaoluc`', desc: 'Xem ký sự lịch sử của tiên giới ghi nhận các biến chuyển lớn của tu sĩ.' },
+        dongphu: { label: '`/dongphu`', desc: 'Quản lý động phủ. Nâng cấp linh mạch, trồng dược thảo, luyện đan, rèn binh khí, nuôi linh thú.' },
+        damdao: { label: '`/damdao`', desc: 'Tham gia trò chơi giải trí đàm đạo tiên giới (Tài Xỉu, Blackjack, Ngũ Hành) để cá cược linh thạch.' },
+        tuongtac: { label: '`/tuongtac`', desc: 'Giao dịch vật phẩm, tỷ thí võ công, hoặc mời tu sĩ song tu cộng hưởng.' },
+        admin: { label: '`/admin`', desc: 'Cấu hình giới hạn lệnh theo kênh Discord (Chỉ Admin).' }
+      };
+
+      const categoriesDef = [
+        { id: 'cat_basic', label: 'Cơ Bản & Tu Luyện', emoji: '🧘', commands: ['start', 'nv', 'tuluyen', 'nghi', 'bxh'], color: 0x3498db },
+        { id: 'cat_inventory', label: 'Hành Trang & Linh Bảo', emoji: '🎒', commands: ['balo', 'skill', 'shop'], color: 0x2ecc71 },
+        { id: 'cat_explore', label: 'Khám Phá & Trừ Yêu', emoji: '🗻', commands: ['bc', 'lichluyen', 'boss', 'thiendaoluc'], color: 0xe67e22 },
+        { id: 'cat_interaction', label: 'Đàm Đạo & Gia Viên', emoji: '🎰', commands: ['dongphu', 'damdao', 'tuongtac', 'admin'], color: 0x9b59b6 }
+      ];
+
+      // Lọc danh mục để chỉ giữ lại các lệnh được cho phép tại kênh này
+      const filteredCategories = [];
+      for (const cat of categoriesDef) {
+        const allowedInCat = allowedCmds 
+          ? cat.commands.filter(cmdName => allowedCmds.includes(cmdName))
+          : cat.commands;
+        
+        if (allowedInCat.length > 0) {
+          const lines = allowedInCat.map(cmdName => {
+            const info = allCommandsInfo[cmdName];
+            return `• ${info.label}: ${info.desc}`;
+          });
+
+          filteredCategories.push({
+            id: cat.id,
+            label: cat.label,
+            emoji: cat.emoji,
+            color: cat.color,
+            description: lines.join('\n')
+          });
+        }
+      }
+
+      let currentCategory = filteredCategories.length > 0 ? filteredCategories[0].id : null;
 
       const buildEmbed = () => {
-        const detail = this.trangChiTiet[currentCategory];
+        if (filteredCategories.length === 0) {
+          return new EmbedBuilder()
+            .setTitle(`📖 Tiên Đạo Thư Viện — Kênh Bị Khóa`)
+            .setColor(0xe74c3c)
+            .setDescription(
+              `⚠️ **Cảnh báo**: Kênh này hiện đã bị Admin **khóa toàn bộ lệnh**.\n` +
+              `Đạo hữu vui lòng di chuyển sang các kênh tu luyện khác để tiếp tục hành trình!`
+            )
+            .setTimestamp();
+        }
+
+        const cat = filteredCategories.find(c => c.id === currentCategory) || filteredCategories[0];
         return new EmbedBuilder()
-          .setTitle(`📖 Tiên Đạo Thư Viện — Hướng Dẫn Tu Tiên`)
-          .setColor(detail.color)
+          .setTitle(`📖 Tiên Đạo Thư Viện — Hướng Dẫn Kênh Hiện Tại`)
+          .setColor(cat.color)
           .setDescription(
-            `Chào mừng đạo hữu đến với thế giới **Thiên Đạo Tu Tiên RPG**!\n` +
-            `Dưới đây là chi tiết các câu lệnh hoạt động trong tiên giới:\n\n` +
-            `### ${detail.title}\n` +
-            `${detail.description}`
+            `Tại kênh <#${interaction.channelId}>, đạo hữu chỉ có quyền sử dụng các câu lệnh sau:\n\n` +
+            `### ${cat.emoji} Nhóm Lệnh: ${cat.label}\n` +
+            `${cat.description}`
           )
           .setTimestamp()
           .setFooter({ text: 'Sử dụng menu hoặc nút bấm để chuyển danh mục hướng dẫn.' });
       };
 
       const buildComponents = (disabled = false) => {
+        if (filteredCategories.length === 0) {
+          return [
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('btn_help_close')
+                .setLabel('❌ Đóng')
+                .setStyle(ButtonStyle.Danger)
+                .setDisabled(disabled)
+            )
+          ];
+        }
+
         const selectMenu = new ActionRowBuilder().addComponents(
           new StringSelectMenuBuilder()
             .setCustomId('help_select')
             .setPlaceholder('🔽 Chọn nhóm lệnh muốn xem hướng dẫn...')
             .setDisabled(disabled)
-            .addOptions([
-              { label: 'Cơ Bản & Tu Luyện', value: 'cat_basic', emoji: '🧘', default: currentCategory === 'cat_basic' },
-              { label: 'Hành Trang & Linh Bảo', value: 'cat_inventory', emoji: '🎒', default: currentCategory === 'cat_inventory' },
-              { label: 'Khám Phá & Trừ Yêu', value: 'cat_explore', emoji: '🗻', default: currentCategory === 'cat_explore' },
-              { label: 'Đàm Đạo & Gia Viên', value: 'cat_interaction', emoji: '🎰', default: currentCategory === 'cat_interaction' }
-            ])
+            .addOptions(filteredCategories.map(cat => ({
+              label: cat.label,
+              value: cat.id,
+              emoji: cat.emoji,
+              default: currentCategory === cat.id
+            })))
         );
 
-        const buttonsRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('btn_cat_basic').setLabel('🧘 Cơ Bản').setStyle(currentCategory === 'cat_basic' ? ButtonStyle.Primary : ButtonStyle.Secondary).setDisabled(disabled),
-          new ButtonBuilder().setCustomId('btn_cat_inventory').setLabel('🎒 Hành Trang').setStyle(currentCategory === 'cat_inventory' ? ButtonStyle.Primary : ButtonStyle.Secondary).setDisabled(disabled),
-          new ButtonBuilder().setCustomId('btn_cat_explore').setLabel('🗻 Khám Phá').setStyle(currentCategory === 'cat_explore' ? ButtonStyle.Primary : ButtonStyle.Secondary).setDisabled(disabled),
-          new ButtonBuilder().setCustomId('btn_cat_interaction').setLabel('🎰 Đàm Đạo').setStyle(currentCategory === 'cat_interaction' ? ButtonStyle.Primary : ButtonStyle.Secondary).setDisabled(disabled),
-          new ButtonBuilder().setCustomId('btn_help_close').setLabel('❌ Đóng').setStyle(ButtonStyle.Danger).setDisabled(disabled)
+        const buttonsRow = new ActionRowBuilder();
+        for (const cat of filteredCategories) {
+          buttonsRow.addComponents(
+            new ButtonBuilder()
+              .setCustomId(`btn_${cat.id}`)
+              .setLabel(cat.label.split(' & ')[0])
+              .setStyle(currentCategory === cat.id ? ButtonStyle.Primary : ButtonStyle.Secondary)
+              .setDisabled(disabled)
+          );
+        }
+        buttonsRow.addComponents(
+          new ButtonBuilder()
+            .setCustomId('btn_help_close')
+            .setLabel('❌ Đóng')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled)
         );
 
         return [selectMenu, buttonsRow];
