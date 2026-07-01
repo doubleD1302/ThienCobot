@@ -1,31 +1,103 @@
-import { SlashCommandBuilder } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder
+} from 'discord.js';
+
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed } from '../views/BoTaoEmbed.js';
 import { PlayerSkill } from '../models/PlayerSkill.js';
 import { Skill } from '../models/Skill.js';
+import * as config from '../config.js';
 
 class BoDieuKhienKyNang extends BoDieuKhienGoc {
   constructor() {
     super();
   }
 
+  async layDanhSachKyNangData(tuSi) {
+    const learned = await PlayerSkill.findAll({
+      where: { idNguoiDung: tuSi.idNguoiDung }
+    });
+
+    const playerSkillsList = [];
+    const learnedIds = new Set();
+    for (const psk of learned) {
+      const detail = await Skill.findByPk(psk.skillId);
+      if (detail) {
+        playerSkillsList.push({
+          id: detail.id,
+          ten: detail.ten,
+          loai: detail.loai,
+          satThuong: detail.satThuong,
+          cooldown: detail.cooldown,
+          capDo: psk.capDo,
+          moTa: detail.moTa
+        });
+        learnedIds.add(detail.id);
+      }
+    }
+
+    const playerClass = tuSi.huongTu || 'Phap Tu';
+    const expectedType = playerClass === 'The Tu' ? 'Vật lý' : 'Phép thuật';
+    const allSkills = await Skill.findAll({
+      where: { loai: expectedType }
+    });
+
+    const availableSkills = [];
+    for (const sk of allSkills) {
+      if (!learnedIds.has(sk.id)) {
+        availableSkills.push(sk);
+      }
+    }
+
+    return { playerSkillsList, availableSkills };
+  }
+
+  // Helper method to learn skills
+  async _thucHienHocKyNang(tuSi, skillId) {
+    const skillDetail = await Skill.findByPk(skillId);
+    if (!skillDetail) {
+      return { ok: false, msg: `Không tìm thấy thông tin chiêu thức.` };
+    }
+
+    const playerClass = tuSi.huongTu || 'Phap Tu';
+    const expectedType = playerClass === 'The Tu' ? 'Vật lý' : 'Phép thuật';
+    if (skillDetail.loai !== expectedType && skillDetail.congPhapId === null) {
+      return { ok: false, msg: `Chiêu thức \`${skillDetail.ten}\` không phù hợp với hướng tu đao thống.` };
+    }
+
+    const existing = await PlayerSkill.findOne({
+      where: { idNguoiDung: tuSi.idNguoiDung, skillId: skillId }
+    });
+    if (existing) {
+      return { ok: false, msg: `Đạo hữu đã lĩnh hội chiêu thức này rồi.` };
+    }
+
+    if (tuSi.capDo < skillDetail.yeuCauCanhGioi) {
+      const { layThongTinCanhGioi } = config;
+      const { stageName } = layThongTinCanhGioi(skillDetail.yeuCauCanhGioi);
+      return { ok: false, msg: `Căn cơ bất túc! Yêu cầu cảnh giới tối thiểu: **${stageName}** (Cấp ${skillDetail.yeuCauCanhGioi}).` };
+    }
+
+    await PlayerSkill.create({
+      idNguoiDung: tuSi.idNguoiDung,
+      skillId: skillId,
+      capDo: 1,
+      kinhNghiemSkill: 0
+    });
+
+    return { ok: true, msg: `Lĩnh hội thành công chiêu thức **${skillDetail.ten}**!` };
+  }
+
   lenhKyNang = {
     data: new SlashCommandBuilder()
       .setName('skill')
-      .setDescription('Quản lý chiêu thức phép thuật và luyện tập công pháp bí truyền')
-      .addSubcommand(sub =>
-        sub.setName('xem')
-          .setDescription('Xem danh sách kỹ năng hiện có và các chiêu thức có thể học')
-      )
-      .addSubcommand(sub =>
-        sub.setName('hoc')
-          .setDescription('Lĩnh hội chiêu thức mới khi đạt đủ Cảnh giới')
-          .addStringOption(opt =>
-            opt.setName('skill_id')
-              .setDescription('Mã kỹ năng muốn học (VD: thanh_phong_quyen)')
-              .setRequired(true)
-          )
-      ),
+      .setDescription('Mở Tàng Kinh Các để xem và lĩnh hội chiêu thức phép thuật'),
+
     execute: async (interaction) => {
       await interaction.deferReply();
       const tuSi = await this.layTuSi(interaction.user.id);
@@ -35,106 +107,119 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
         });
       }
 
-      const subcommand = interaction.options.getSubcommand();
-      const playerClass = tuSi.huongTu || 'Phap Tu'; // 'The Tu' hoặc 'Phap Tu'
+      const buildComponents = (availableSkills, disabled = false) => {
+        const rowMenu = new ActionRowBuilder();
+        if (availableSkills.length === 0) {
+          rowMenu.addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('skill_learn_select')
+              .setPlaceholder('⚠️ Đã lĩnh hội toàn bộ kỹ năng khả dụng')
+              .setDisabled(true)
+              .addOptions([{ label: '(Trống)', value: '__empty__' }])
+          );
+        } else {
+          rowMenu.addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('skill_learn_select')
+              .setPlaceholder('🔽 Chọn một chiêu thức để lĩnh hội...')
+              .setDisabled(disabled)
+              .addOptions(availableSkills.slice(0, 25).map(sk => {
+                const { layThongTinCanhGioi } = config;
+                const { stageName } = layThongTinCanhGioi(sk.yeuCauCanhGioi);
+                return {
+                  label: `Lĩnh hội: ${sk.ten}`.slice(0, 100),
+                  value: sk.id,
+                  emoji: '📖',
+                  description: `Yêu cầu: ${stageName} (Cấp ${sk.yeuCauCanhGioi})`.slice(0, 100)
+                };
+              }))
+          );
+        }
 
-      if (subcommand === 'xem') {
-        // 1. Lấy kỹ năng người chơi đã học
-        const learned = await PlayerSkill.findAll({
-          where: { idNguoiDung: tuSi.idNguoiDung }
-        });
+        const rowButtons = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('skill_close')
+            .setLabel('❌ Đóng Tàng Kinh Các')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled)
+        );
 
-        const playerSkillsList = [];
-        const learnedIds = new Set();
-        for (const psk of learned) {
-          const detail = await Skill.findByPk(psk.skillId);
-          if (detail) {
-            playerSkillsList.push({
-              id: detail.id,
-              ten: detail.ten,
-              loai: detail.loai,
-              satThuong: detail.satThuong,
-              cooldown: detail.cooldown,
-              capDo: psk.capDo,
-              moTa: detail.moTa
+        return [rowMenu, rowButtons];
+      };
+
+      // Tải dữ liệu ban đầu
+      let { playerSkillsList, availableSkills } = await this.layDanhSachKyNangData(tuSi);
+      const embed = BoTaoEmbed.kyNang(tuSi, playerSkillsList, availableSkills);
+
+      const msg = await interaction.editReply({
+        embeds: [embed],
+        components: buildComponents(availableSkills)
+      });
+
+      const collector = msg.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time: 180_000
+      });
+
+      collector.on('collect', async i => {
+        await i.deferUpdate();
+
+        if (i.customId === 'skill_close') {
+          collector.stop('closed');
+          return;
+        }
+
+        if (i.customId === 'skill_learn_select') {
+          const skillId = i.values[0];
+          if (!skillId || skillId === '__empty__') return;
+
+          // Thực hiện học kỹ năng
+          const result = await this._thucHienHocKyNang(tuSi, skillId);
+
+          if (result.ok) {
+            await i.followUp({
+              embeds: [BoTaoEmbed.thanhCong('🥋 Lĩnh Hội Thành Công', result.msg)],
+              ephemeral: true
             });
-            learnedIds.add(detail.id);
+            // Tải lại danh sách
+            const refreshed = await this.layDanhSachKyNangData(tuSi);
+            playerSkillsList = refreshed.playerSkillsList;
+            availableSkills = refreshed.availableSkills;
+
+            await interaction.editReply({
+              embeds: [BoTaoEmbed.kyNang(tuSi, playerSkillsList, availableSkills)],
+              components: buildComponents(availableSkills)
+            });
+          } else {
+            await i.followUp({
+              embeds: [BoTaoEmbed.loi(result.msg)],
+              ephemeral: true
+            });
           }
         }
+      });
 
-        // 2. Lấy kỹ năng có thể học của phái tương ứng
-        // Thể Tu học kỹ năng 'Vật lý', Pháp Tu học kỹ năng 'Phép thuật'
-        const expectedType = playerClass === 'The Tu' ? 'Vật lý' : 'Phép thuật';
-        const allSkills = await Skill.findAll({
-          where: { loai: expectedType }
-        });
-
-        const availableSkills = [];
-        for (const sk of allSkills) {
-          if (!learnedIds.has(sk.id)) {
-            availableSkills.push(sk);
+      collector.on('end', async (_, reason) => {
+        try {
+          if (reason === 'closed') {
+            await interaction.editReply({
+              embeds: [
+                new EmbedBuilder()
+                  .setTitle('📖 Tàng Kinh Các — Đã Đóng')
+                  .setDescription('Cánh cửa Tàng Kinh Các đã khép lại.')
+                  .setColor(0x7f8c8d)
+                  .setTimestamp()
+              ],
+              components: []
+            });
+          } else {
+            const current = await this.layDanhSachKyNangData(tuSi);
+            await interaction.editReply({
+              components: buildComponents(current.availableSkills, true)
+            });
           }
-        }
-
-        const embed = BoTaoEmbed.kyNang(tuSi, playerSkillsList, availableSkills);
-        return await interaction.editReply({ embeds: [embed] });
-      }
-
-      if (subcommand === 'hoc') {
-        const skillId = interaction.options.getString('skill_id');
-        const skillDetail = await Skill.findByPk(skillId);
-
-        if (!skillDetail) {
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Không tìm thấy bí tịch chiêu thức nào có mã ID \`${skillId}\`.`)]
-          });
-        }
-
-        // Kiểm tra loại kỹ năng tương thích với phái
-        const expectedType = playerClass === 'The Tu' ? 'Vật lý' : 'Phép thuật';
-        if (skillDetail.loai !== expectedType && skillDetail.congPhapId === null) {
-          // Lỗi nếu là kỹ năng phái khác (chỉ cho học tự do nếu đó là công pháp bí truyền rớt ra từ quái/boss - tạm thời check congPhapId)
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Chiêu thức \`${skillDetail.ten}\` thuộc loại **${skillDetail.loai}**, không phù hợp với hướng tu **${tuSi.huongTu}** của đạo hữu.`)]
-          });
-        }
-
-        // Kiểm tra xem đã học chưa
-        const existing = await PlayerSkill.findOne({
-          where: { idNguoiDung: tuSi.idNguoiDung, skillId: skillId }
-        });
-        if (existing) {
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Đạo hữu đã lĩnh hội chiêu thức **${skillDetail.ten}** rồi.`)]
-          });
-        }
-
-        // Kiểm tra cảnh giới (level) yêu cầu
-        if (tuSi.capDo < skillDetail.yeuCauCanhGioi) {
-          const { layThongTinCanhGioi } = await import('../config.js');
-          const { stageName } = layThongTinCanhGioi(skillDetail.yeuCauCanhGioi);
-          return await interaction.editReply({
-            embeds: [BoTaoEmbed.loi(`Căn cơ bất túc! Để lĩnh hội chiêu thức này, đạo hữu cần đạt cảnh giới tối thiểu là **${stageName}** (Cấp ${skillDetail.yeuCauCanhGioi}).`)]
-          });
-        }
-
-        // Học kỹ năng
-        await PlayerSkill.create({
-          idNguoiDung: tuSi.idNguoiDung,
-          skillId: skillId,
-          capDo: 1,
-          kinhNghiemSkill: 0
-        });
-
-        return await interaction.editReply({
-          embeds: [
-            BoTaoEmbed.thanhCong(
-              "🥋 Lĩnh Hội Chiêu Thức Mới",
-              `Chúc mừng đạo hữu **${tuSi.ten}** đã ngộ ra đạo lý sâu xa, thành công học được chiêu thức **${skillDetail.ten}**!`
-            )
-          ]
-        });
-      }
+        } catch (_) {}
+      });
     }
   };
 }

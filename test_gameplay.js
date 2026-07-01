@@ -373,21 +373,9 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       }
     });
 
-    // Giả lập lệnh gọi của Discord để học skill cấp 1 (Hợp lệ)
-    let replyEmbeds = [];
-    const interactionMock1 = {
-      user: { id: "8888888888888888" },
-      options: {
-        getSubcommand: () => 'hoc',
-        getString: () => 'test_hoa_diem'
-      },
-      deferReply: async () => {},
-      editReply: async (payload) => {
-        replyEmbeds = payload.embeds;
-      }
-    };
-
-    await boDieuKhienKyNang.lenhKyNang.execute(interactionMock1);
+    // Giả lập học chiêu thức cấp 1 (Hợp lệ)
+    const result1 = await boDieuKhienKyNang._thucHienHocKyNang(tuSi, "test_hoa_diem");
+    assert.strictEqual(result1.ok, true);
 
     const checkPsk = await PlayerSkill.findOne({
       where: { idNguoiDung: tuSi.idNguoiDung, skillId: "test_hoa_diem" }
@@ -396,19 +384,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(checkPsk.capDo, 1);
 
     // Thử học skill cấp 10 (Trúc Cơ) trong khi tu sĩ mới level 1 (Luyện Khí) -> Phải thất bại
-    const interactionMock2 = {
-      user: { id: "8888888888888888" },
-      options: {
-        getSubcommand: () => 'hoc',
-        getString: () => 'test_ngu_loi'
-      },
-      deferReply: async () => {},
-      editReply: async (payload) => {
-        replyEmbeds = payload.embeds;
-      }
-    };
+    const result2 = await boDieuKhienKyNang._thucHienHocKyNang(tuSi, "test_ngu_loi");
+    assert.strictEqual(result2.ok, false);
+    assert.ok(result2.msg.includes("Căn cơ bất túc"));
 
-    await boDieuKhienKyNang.lenhKyNang.execute(interactionMock2);
     const checkPsk2 = await PlayerSkill.findOne({
       where: { idNguoiDung: tuSi.idNguoiDung, skillId: "test_ngu_loi" }
     });
