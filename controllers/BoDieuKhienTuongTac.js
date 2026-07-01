@@ -126,6 +126,28 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           let hpA = statsA.max_hp;
           let hpB = statsB.max_hp;
 
+          // Tải kỹ năng đã học cho cả A và B
+          const { PlayerSkill } = await import('../models/PlayerSkill.js');
+          const { Skill } = await import('../models/Skill.js');
+
+          const learnedA = await PlayerSkill.findAll({ where: { idNguoiDung: tuSiA.idNguoiDung } });
+          const skillsA = [];
+          for (const psk of learnedA) {
+            const detail = await Skill.findByPk(psk.skillId);
+            if (detail) {
+              skillsA.push({ detail, capDo: psk.capDo, nextRoundAvailable: 1 });
+            }
+          }
+
+          const learnedB = await PlayerSkill.findAll({ where: { idNguoiDung: tuSiB.idNguoiDung } });
+          const skillsB = [];
+          for (const psk of learnedB) {
+            const detail = await Skill.findByPk(psk.skillId);
+            if (detail) {
+              skillsB.push({ detail, capDo: psk.capDo, nextRoundAvailable: 1 });
+            }
+          }
+
           const battleLogs = [];
           let round = 1;
           let winner = null;
@@ -138,15 +160,37 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
 
           while (hpA > 0 && hpB > 0 && round <= 15) {
             // Lượt A đánh B
-            let dmgA = Math.max(1, atkA - defB);
-            const critA = Math.random() <= statsA.crit_rate;
-            if (critA) dmgA = Math.floor(dmgA * statsA.crit_dmg);
+            const readySkillA = skillsA.find(s => s.nextRoundAvailable <= round);
+            let dmgA = 0;
+            let castMsgA = '';
+            let isCritA = Math.random() <= statsA.crit_rate;
+
+            if (readySkillA) {
+              const skill = readySkillA.detail;
+              const capDo = readySkillA.capDo;
+              const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
+              let rawDmg = atkA * skillMult;
+
+              if (isCritA) rawDmg = rawDmg * statsA.crit_dmg;
+              dmgA = Math.max(1, Math.floor(rawDmg) - defB);
+
+              const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
+              readySkillA.nextRoundAvailable = round + cooldownRounds;
+
+              castMsgA = `thi triển **${skill.ten} (Cấp ${capDo})**`;
+            } else {
+              let rawDmg = atkA;
+              if (isCritA) rawDmg = rawDmg * statsA.crit_dmg;
+              dmgA = Math.max(1, Math.floor(rawDmg) - defB);
+
+              castMsgA = `đánh thường`;
+            }
 
             if (Math.random() <= statsB.ne) {
-              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiB.ten}** ảo ảnh lướt nhẹ, né tránh thành công chiêu thức của **${tuSiA.ten}**.`);
+              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiA.ten}** ${castMsgA} nhưng **${tuSiB.ten}** ảo ảnh lướt nhẹ né tránh thành công!`);
             } else {
               hpB = Math.max(0, hpB - dmgA);
-              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiA.ten}** xuất chiêu gây \`${dmgA}\`${critA ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiB.ten}** (HP còn: \`${hpB}\`).`);
+              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiA.ten}** ${castMsgA} gây \`${dmgA}\`${isCritA ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiB.ten}** (HP còn: \`${hpB}\`).`);
             }
 
             if (hpB <= 0) {
@@ -155,15 +199,37 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             }
 
             // Lượt B đánh A
-            let dmgB = Math.max(1, atkB - defA);
-            const critB = Math.random() <= statsB.crit_rate;
-            if (critB) dmgB = Math.floor(dmgB * statsB.crit_dmg);
+            const readySkillB = skillsB.find(s => s.nextRoundAvailable <= round);
+            let dmgB = 0;
+            let castMsgB = '';
+            let isCritB = Math.random() <= statsB.crit_rate;
+
+            if (readySkillB) {
+              const skill = readySkillB.detail;
+              const capDo = readySkillB.capDo;
+              const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
+              let rawDmg = atkB * skillMult;
+
+              if (isCritB) rawDmg = rawDmg * statsB.crit_dmg;
+              dmgB = Math.max(1, Math.floor(rawDmg) - defA);
+
+              const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
+              readySkillB.nextRoundAvailable = round + cooldownRounds;
+
+              castMsgB = `thi triển **${skill.ten} (Cấp ${capDo})**`;
+            } else {
+              let rawDmg = atkB;
+              if (isCritB) rawDmg = rawDmg * statsB.crit_dmg;
+              dmgB = Math.max(1, Math.floor(rawDmg) - defA);
+
+              castMsgB = `phản kích đánh thường`;
+            }
 
             if (Math.random() <= statsA.ne) {
-              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiA.ten}** né tránh thành công chiêu thức của **${tuSiB.ten}**.`);
+              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiB.ten}** ${castMsgB} nhưng **${tuSiA.ten}** né tránh thành công!`);
             } else {
               hpA = Math.max(0, hpA - dmgB);
-              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiB.ten}** phản kích gây \`${dmgB}\`${critB ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiA.ten}** (HP còn: \`${hpA}\`).`);
+              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiB.ten}** ${castMsgB} gây \`${dmgB}\`${isCritB ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiA.ten}** (HP còn: \`${hpA}\`).`);
             }
 
             if (hpA <= 0) {
