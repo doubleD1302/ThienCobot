@@ -245,6 +245,19 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             battleLogs.push(`⏳ Bất phân thắng bại sau 15 hiệp! Xét lượng khí huyết còn lại để định đoạt.`);
           }
 
+          const displayLogs = battleLogs.length > 8 ? battleLogs.slice(-8) : battleLogs;
+          let logsText = '';
+          for (let i = displayLogs.length - 1; i >= 0; i--) {
+            const line = displayLogs[i];
+            const nextText = (logsText ? '\n' : '') + line;
+            if (logsText.length + nextText.length > 900) {
+              logsText = '...\n' + logsText;
+              break;
+            }
+            logsText = line + (logsText ? '\n' + logsText : '');
+          }
+          if (!logsText) logsText = 'Trận đấu diễn ra quá nhanh...';
+
           const resultEmbed = new EmbedBuilder()
             .setTitle(`⚔️ Kết Quả Tỷ Thí Giao Hữu`)
             .setColor(0x3498db)
@@ -252,7 +265,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
               `⚔️ Cuộc tỷ thí long trời lở đất giữa hai vị đạo hữu kết thúc!\n\n` +
               `🏆 **Người chiến thắng**: **${winner.ten}**\n\n` +
               `📝 **Nhật ký tỷ thí**:\n` +
-              (battleLogs.length > 8 ? battleLogs.slice(-8).join('\n') : battleLogs.join('\n'))
+              logsText
             )
             .setTimestamp();
 

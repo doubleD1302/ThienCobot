@@ -509,12 +509,23 @@ export class BoTaoEmbed {
       .setColor(color)
       .setTimestamp();
 
-    // Giới hạn log chiến đấu tối đa 5 round gần cuối để tránh vượt quá limit 1024 ký tự của Discord field
+    // Giới hạn log chiến đấu tối đa để tránh vượt quá limit 1024 ký tự của Discord field
     const displayLogs = battleLogs.length > 8 ? battleLogs.slice(-8) : battleLogs;
+    let logsText = '';
+    for (let i = displayLogs.length - 1; i >= 0; i--) {
+      const line = displayLogs[i];
+      const nextText = (logsText ? '\n' : '') + line;
+      if (logsText.length + nextText.length > 1000) {
+        logsText = '...\n' + logsText;
+        break;
+      }
+      logsText = line + (logsText ? '\n' + logsText : '');
+    }
+    if (!logsText) logsText = 'Trận đấu diễn ra quá nhanh...';
 
     embed.addFields({
       name: "⚔️ Diễn Biến Trận Đánh",
-      value: displayLogs.join('\n'),
+      value: logsText,
       inline: false
     });
 
