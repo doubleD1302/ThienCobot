@@ -46,6 +46,12 @@ Pet.init({
     defaultValue: 100, // Tư chất (ảnh hưởng đến lực lượng chỉ số gia tăng)
     field:        'tu_chat'
   },
+  tienHoa: {
+    type:         DataTypes.INTEGER,
+    allowNull:    false,
+    defaultValue: 0,
+    field:        'tien_hoa'
+  },
   isActive: {
     type:         DataTypes.BOOLEAN,
     allowNull:    false,

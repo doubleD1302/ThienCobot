@@ -320,6 +320,17 @@ async function start() {
         console.log(`Đã dọn dẹp ${deletedCount} bản ghi nhân vật lỗi (ID tự tăng) từ cơ sở dữ liệu.`);
       }
 
+      const petsDesc = await queryInterface.describeTable('pets');
+      if (!petsDesc.tien_hoa) {
+        console.log('Phát hiện thiếu cột tien_hoa. Tiến hành thêm vào bảng pets...');
+        await queryInterface.addColumn('pets', 'tien_hoa', {
+          type: DataTypes.INTEGER,
+          allowNull: false,
+          defaultValue: 0,
+          field: 'tien_hoa'
+        });
+      }
+
       // Khắc phục lỗi schema cũ cho guild_settings
       const guildSettingsDesc = await queryInterface.describeTable('guild_settings');
       if (guildSettingsDesc.guild_id && guildSettingsDesc.guild_id.autoIncrement) {

@@ -1926,4 +1926,81 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.ok(pvpSub.options.find(opt => opt.name === 'user'));
   });
 
+  test('Pet Evolution and Stat Boost Calculations', async () => {
+    const { Pet } = await import('./models/Pet.js');
+    const { TuSi } = await import('./models/TuSi.js');
+
+    // 1. Test naming cleaning and suffix +X
+    const mockPet = {
+      name: 'Thần Viên',
+      tienHoa: 0
+    };
+
+    // Evolve once
+    mockPet.tienHoa += 1;
+    let cleanName = mockPet.name.replace(/(\s\+\d+|\[Tiến Hóa\]\s*)/g, '').trim();
+    mockPet.name = `${cleanName} +${mockPet.tienHoa}`;
+    assert.strictEqual(mockPet.name, 'Thần Viên +1');
+
+    // Evolve twice
+    mockPet.tienHoa += 1;
+    cleanName = mockPet.name.replace(/(\s\+\d+|\[Tiến Hóa\]\s*)/g, '').trim();
+    mockPet.name = `${cleanName} +${mockPet.tienHoa}`;
+    assert.strictEqual(mockPet.name, 'Thần Viên +2');
+
+    // Test old [Tiến Hóa] prefix cleaning
+    mockPet.name = '[Tiến Hóa] Thần Viên';
+    cleanName = mockPet.name.replace(/(\s\+\d+|\[Tiến Hóa\]\s*)/g, '').trim();
+    assert.strictEqual(cleanName, 'Thần Viên');
+
+    // 2. Test evolution cost calculations
+    // Cost at level +0 (tienHoa = 0)
+    let cost = Math.floor(1000 * Math.pow(1.5, 0));
+    assert.strictEqual(cost, 1000);
+
+    // Cost at level +1 (tienHoa = 1)
+    cost = Math.floor(1000 * Math.pow(1.5, 1));
+    assert.strictEqual(cost, 1500);
+
+    // Cost at level +2 (tienHoa = 2)
+    cost = Math.floor(1000 * Math.pow(1.5, 2));
+    assert.strictEqual(cost, 2250);
+
+    // 3. Test guard protect bonus boost in TuSi.layChiSo
+    const tuSi = await TuSi.create({
+      idNguoiDung: "9999999999999991",
+      ten: "TestPetTuSi",
+      gioiTinh: "Nam",
+      huongTu: "The Tu",
+      linhCan: "Thổ Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 10000
+    });
+    tuSi.linhCanList = ["Tho"];
+
+    const pet = await Pet.create({
+      userId: tuSi.idNguoiDung,
+      name: "Thiết Tý Thần Viên",
+      type: "than_vien",
+      level: 1,
+      tuChat: 100,
+      isActive: true,
+      tienHoa: 1 // +1 Evolution (+10% protect stats)
+    });
+
+    const stats = tuSi.layChiSo([], pet);
+    // Base hp for capDo 1 = 200.
+    // Tho Linh Can: +10% max HP -> 200 * 1.1 = 220 HP.
+    // Than Vien base protect: +15% HP, scale = (level 1 * tuChat 100)/100 = 1.0.
+    // evoMult = 1.0 + 1 * 0.10 = 1.10.
+    // HP bonus: 200 * 0.15 * 1.0 * 1.10 = 33 HP.
+    // Total HP should be 220 + 33 = 253.
+    assert.strictEqual(stats.max_hp, 253);
+
+    // Clean up
+    await pet.destroy();
+    await tuSi.destroy();
+  });
+
 });

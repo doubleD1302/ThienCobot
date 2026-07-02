@@ -56,23 +56,38 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       .setDescription('Mở động phủ tu chân của ngươi để trồng trọt, luyện đan, rèn khí và nuôi sủng vật'),
 
     execute: async (interaction) => {
-      await interaction.deferReply();
+      await this._thucHienDongPhu(interaction, ['MAIN']);
+    }
+  };
 
-      const tuSi = await this.layTuSi(interaction.user.id);
-      if (!tuSi) {
-        return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
-        });
-      }
+  lenhPet = {
+    data: new SlashCommandBuilder()
+      .setName('pet')
+      .setDescription('Quản lý, chăm sóc và tiến hóa sủng vật của ngươi'),
 
-      // ── Khởi tạo Động phủ trong database nếu chưa có ──────────────────────────
-      let [abode, created] = await Abode.findOrCreate({
-        where: { userId: tuSi.idNguoiDung },
-        defaults: { level: 0, gardenLevel: 1, waterCount: 0 }
+    execute: async (interaction) => {
+      await this._thucHienDongPhu(interaction, ['PETS']);
+    }
+  };
+
+  async _thucHienDongPhu(interaction, initialStack = ['MAIN']) {
+    await interaction.deferReply();
+
+    const tuSi = await this.layTuSi(interaction.user.id);
+    if (!tuSi) {
+      return await interaction.editReply({
+        embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
       });
+    }
 
-      // Trạng thái UI
-      let menuStack = ['MAIN']; // Stack màn hình tuỳ chỉnh để back/quay lại
+    // ── Khởi tạo Động phủ trong database nếu chưa có ──────────────────────────
+    let [abode, created] = await Abode.findOrCreate({
+      where: { userId: tuSi.idNguoiDung },
+      defaults: { level: 0, gardenLevel: 1, waterCount: 0 }
+    });
+
+    // Trạng thái UI
+    let menuStack = [...initialStack]; // Stack màn hình tuỳ chỉnh để back/quay lại
       let selectedSlotIndex = null; // Ô đất đang chọn
       let selectedPetId = null;     // Sủng vật đang chọn để thao tác
       let actionMessage = null;     // Lưu thông báo kết quả hành động
@@ -274,6 +289,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             const activeTag = pet.isActive ? ' 🟢 [Đang Xuất Chiến]' : ' 💤 [Đang Nghỉ Ngơi]';
             const rarityTag = pet.rarity === 'ANCIENT' ? ' 🌟 Thần Thú Thượng Cổ' : ' 🐾 Linh Thú Thường';
             const nextLvlExp = pet.level * 100;
+            const evoTxt = pet.tienHoa > 0 ? ` (+${pet.tienHoa * 10}% Hộ Thể & +${pet.tienHoa * 5}% Kỹ Năng)` : '';
 
             const embed = new EmbedBuilder()
               .setTitle(`🐯 Sủng Vật: ${pet.name}`)
@@ -284,7 +300,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 `• **Trạng thái**: **${activeTag}**\n` +
                 `• **Cấp độ**: \`Cấp ${pet.level}\` (EXP: \`${pet.exp} / ${nextLvlExp}\`)\n` +
                 `• **Tư chất**: \`${pet.tuChat} / 250\` *(Tư chất càng cao chỉ số cộng cho tu sĩ càng lớn)*\n` +
-                `• **Hiệu ứng hộ thể**: ${PET_TEMPLATES[pet.type]?.desc ?? ''}`
+                `• **Hiệu ứng hộ thể**: ${PET_TEMPLATES[pet.type]?.desc ?? ''}${evoTxt}`
               );
             embeds.push(embed);
           }
@@ -736,6 +752,9 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         if (i.customId === 'btn_back') {
           if (menuStack.length > 1) {
             menuStack.pop();
+          } else {
+            collector.stop('closed');
+            return;
           }
           selectedSlotIndex = null;
           selectedPetId = null;
@@ -981,12 +1000,16 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 );
               }
             } else if (i.customId === 'pet_action_evolve') {
-              if (tuSi.linhThach >= 5000 && pet.level >= 10) {
-                tuSi.linhThach -= 5000;
+              const cost = Math.floor(1000 * Math.pow(1.5, pet.tienHoa || 0));
+              if (tuSi.linhThach >= cost && pet.level >= 10) {
+                tuSi.linhThach -= cost;
                 await tuSi.save();
 
+                pet.tienHoa = (pet.tienHoa || 0) + 1;
                 pet.tuChat = Math.min(250, pet.tuChat + 50);
-                pet.name = `[Tiến Hóa] ${pet.name}`;
+
+                let cleanName = pet.name.replace(/(\s\+\d+|\[Tiến Hóa\]\s*)/g, '').trim();
+                pet.name = `${cleanName} +${pet.tienHoa}`;
                 await pet.save();
 
                 actionMessage = BoTaoEmbed.thanhCong(
@@ -1053,7 +1076,6 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         } catch (_) {}
       });
     }
-  };
 
   // ─────────────────────────────────────────────────────────────────────────
   //  PRIVATE HELPER: XỬ LÝ LUYỆN ĐAN
@@ -1466,5 +1488,5 @@ function getPlotAgeAndHerb(plot) {
 }
 
 const controller = new BoDieuKhienDongPhu();
-export const danhSachLenhDongPhu = [controller.lenhDongPhu];
+export const danhSachLenhDongPhu = [controller.lenhDongPhu, controller.lenhPet];
 export { controller as boDieuKhienDongPhu };

@@ -376,15 +376,16 @@ async function autoDiBiCanh(tuSi) {
       if (isWin) break;
 
       if (activePet && activePet.rarity === 'ANCIENT' && Math.random() <= 0.20) {
+        const petEvoSkillMult = 1.0 + (activePet.tienHoa || 0) * 0.05;
         if (activePet.type === 'to_long') {
-          const petDmg = Math.floor(stats.max_hp * 0.15);
+          const petDmg = Math.floor(stats.max_hp * 0.15 * petEvoSkillMult);
           monsterHp = Math.max(0, monsterHp - petDmg);
           if (monsterHp <= 0) {
             isWin = true;
             break;
           }
         } else if (activePet.type === 'ky_lan') {
-          const petShield = Math.floor(stats.max_hp * 0.20);
+          const petShield = Math.floor(stats.max_hp * 0.20 * petEvoSkillMult);
           playerShield += petShield;
         }
       }
@@ -414,7 +415,8 @@ async function autoDiBiCanh(tuSi) {
       if (playerHp <= 0) {
         if (activePet && activePet.type === 'phuong_hoang' && !phoenixTriggered) {
           phoenixTriggered = true;
-          playerHp = Math.floor(stats.max_hp * 0.30);
+          const petEvoSkillMult = 1.0 + (activePet.tienHoa || 0) * 0.05;
+          playerHp = Math.floor(stats.max_hp * 0.30 * petEvoSkillMult);
         } else {
           isWin = false;
           break;

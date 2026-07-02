@@ -178,23 +178,24 @@ class TuSi extends Model {
     // 4. Cộng sủng vật (Pet) nếu có xuất chiến
     if (activePet) {
       const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
+      const evoMult = 1.0 + (activePet.tienHoa || 0) * 0.10;
       if (activePet.type === 'ma_lang') {
-        vatCong += baseVatCongVal * 0.10 * scale;
+        vatCong += baseVatCongVal * 0.10 * scale * evoMult;
       } else if (activePet.type === 'loi_diep') {
-        critRate += 0.05 * scale;
+        critRate += 0.05 * scale * evoMult;
       } else if (activePet.type === 'than_vien') {
-        maxHp += baseHpVal * 0.15 * scale;
-        giap += baseStats.giap * 0.10 * scale;
+        maxHp += baseHpVal * 0.15 * scale * evoMult;
+        giap += baseStats.giap * 0.10 * scale * evoMult;
       } else if (activePet.type === 'to_long') {
-        phapCong += basePhapCongVal * 0.25 * scale;
-        vatCong += baseVatCongVal * 0.15 * scale;
+        phapCong += basePhapCongVal * 0.25 * scale * evoMult;
+        vatCong += baseVatCongVal * 0.15 * scale * evoMult;
       } else if (activePet.type === 'phuong_hoang') {
-        maxHp += baseHpVal * 0.25 * scale;
-        ne += 0.20 * scale;
+        maxHp += baseHpVal * 0.25 * scale * evoMult;
+        ne += 0.20 * scale * evoMult;
       } else if (activePet.type === 'ky_lan') {
-        giap += baseStats.giap * 0.25 * scale;
-        vatCong += baseVatCongVal * 0.25 * scale;
-        phapCong += basePhapCongVal * 0.25 * scale;
+        giap += baseStats.giap * 0.25 * scale * evoMult;
+        vatCong += baseVatCongVal * 0.25 * scale * evoMult;
+        phapCong += basePhapCongVal * 0.25 * scale * evoMult;
       }
     }
 
@@ -257,7 +258,8 @@ class TuSi extends Model {
     // Tốc độ tu luyện cộng thêm từ sủng vật Lôi Điệp (nếu có và xuất chiến)
     if (activePet && activePet.type === 'loi_diep') {
       const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
-      mult *= (1.0 + 0.10 * scale);
+      const evoMult = 1.0 + (activePet.tienHoa || 0) * 0.10;
+      mult *= (1.0 + 0.10 * scale * evoMult);
     }
 
     return mult;

@@ -304,18 +304,19 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
           // Sủng Vật Thần Thú chủ động (20%)
           if (activePet && activePet.rarity === 'ANCIENT' && Math.random() <= 0.20) {
+            const petEvoSkillMult = 1.0 + (activePet.tienHoa || 0) * 0.05;
             if (activePet.type === 'to_long') {
-              const petDmg = Math.floor(stats.max_hp * 0.15);
+              const petDmg = Math.floor(stats.max_hp * 0.15 * petEvoSkillMult);
               monsterHp = Math.max(0, monsterHp - petDmg);
-              battleLogs.push(`🐉 **Thần Thú [Tổ Long]** phẫn nộ thét gào, phun trào Long Thần Chi Nộ oanh kích \`${petDmg}\` sát thương chí mạng lên yêu thú! (HP: \`${monsterHp}\`).`);
+              battleLogs.push(`🐉 **Thần Thú [Tổ Long]** phẫn nộ thét gào, phun trào Long Thần Chi Nộ oanh kích \`${petDmg.toLocaleString()}\` sát thương oanh tạc oanh kích lên yêu thú! (HP: \`${monsterHp.toLocaleString()}\`).`);
               if (monsterHp <= 0) {
                 isWin = true;
                 break;
               }
             } else if (activePet.type === 'ky_lan') {
-              const petShield = Math.floor(stats.max_hp * 0.20);
+              const petShield = Math.floor(stats.max_hp * 0.20 * petEvoSkillMult);
               playerShield += petShield;
-              battleLogs.push(`🦄 **Thần Thú [Kỳ Lân]** thi triển Kỳ Lân Hộ Thể, ngưng tụ lá chắn thần thánh bảo vệ tu sĩ hấp thụ \`${petShield}\` sát thương.`);
+              battleLogs.push(`🦄 **Thần Thú [Kỳ Lân]** thi triển Kỳ Lân Hộ Thể, ngưng tụ lá chắn thần thánh bảo vệ tu sĩ hấp thụ \`${petShield.toLocaleString()}\` sát thương.`);
             }
           }
 
@@ -348,8 +349,9 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           if (playerHp <= 0) {
             if (activePet && activePet.type === 'phuong_hoang' && !phoenixTriggered) {
               phoenixTriggered = true;
-              playerHp = Math.floor(stats.max_hp * 0.30);
-              battleLogs.push(`🐦 **Thần Thú [Phượng Hoàng]** kích hoạt Niết Bàn Trùng Sinh, hy sinh thọ nguyên hồi sinh đạo hữu từ cõi chết với \`${playerHp}\` HP!`);
+              const petEvoSkillMult = 1.0 + (activePet.tienHoa || 0) * 0.05;
+              playerHp = Math.floor(stats.max_hp * 0.30 * petEvoSkillMult);
+              battleLogs.push(`🐦 **Thần Thú [Phượng Hoàng]** kích hoạt Niết Bàn Trùng Sinh, hy sinh thọ nguyên hồi sinh đạo hữu từ cõi chết với \`${playerHp.toLocaleString()}\` HP!`);
             } else {
               isWin = false;
               break;
