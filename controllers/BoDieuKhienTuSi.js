@@ -248,6 +248,47 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       }
     }
 
+    // Đặc biệt: Code TANTHU tặng thêm 6 Pháp Bảo ngẫu nhiên phù hợp cảnh giới hiện tại
+    if (giftCode.code.toUpperCase() === 'TANTHU') {
+      const config = await import('../config.js');
+      const realmInfo = config.layThongTinCanhGioi(tuSi.capDo);
+      const realmObj = config.CANH_GIOI_LIST.find(r => r.name === realmInfo.realmName) || config.CANH_GIOI_LIST[0];
+      const minLvl = realmObj.min_level;
+      const maxLvl = realmObj.max_level;
+
+      // Tìm các Pháp Bảo có yeuCauCanhGioi nằm trong khoảng cấp độ của cảnh giới hiện tại
+      const { Op } = sequelize.Sequelize || sequelize;
+      let candidatePBs = await Item.findAll({
+        where: {
+          loai: 'Pháp Bảo',
+          yeuCauCanhGioi: {
+            [Op.between]: [minLvl, maxLvl]
+          }
+        }
+      });
+
+      // Nếu cảnh giới hiện tại chưa có Pháp Bảo tương ứng, lấy tất cả Pháp Bảo yêu cầu cấp <= nhân vật
+      if (candidatePBs.length === 0) {
+        candidatePBs = await Item.findAll({
+          where: {
+            loai: 'Pháp Bảo',
+            yeuCauCanhGioi: {
+              [Op.lte]: tuSi.capDo
+            }
+          }
+        });
+      }
+
+      if (candidatePBs.length > 0) {
+        rewardDesc += `• **Quà Pháp Bảo Tân Thủ (${realmInfo.realmName})**: \n`;
+        for (let i = 0; i < 6; i++) {
+          const drawn = candidatePBs[Math.floor(Math.random() * candidatePBs.length)];
+          await Inventory.addVatPham(tuSi.idNguoiDung, drawn.id, 1);
+          rewardDesc += `   + **${drawn.ten}** (${drawn.doHiem})\n`;
+        }
+      }
+    }
+
     // Lưu trạng thái nhân vật và ghi nhận lịch sử dùng code
     await tuSi.save();
     await PlayerGiftCode.create({

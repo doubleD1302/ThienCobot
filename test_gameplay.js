@@ -1324,4 +1324,73 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(logs[0], 'expired_Hỗn Độn Thần Lực');
   });
 
+  test('TANTHU Gift Code Redeems 6 Random Pháp Bảo', async () => {
+    const tuSi = await TuSi.create({
+      idNguoiDung: "888888888888",
+      ten: "TânThủHọcGiả",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 10, // Trúc Cơ
+      linhLuc: 0,
+      linhThach: 100,
+      vnd: 1000
+    });
+
+    const { GiftCode } = await import('./models/GiftCode.js');
+    const { PlayerGiftCode } = await import('./models/PlayerGiftCode.js');
+    const { boDieuKhienTuSi } = await import('./controllers/BoDieuKhienTuSi.js');
+
+    // Create the TANTHU code in DB
+    const codeObj = await GiftCode.create({
+      code: 'TANTHU',
+      linhThach: 1000,
+      linhLuc: 0,
+      vnd: 0,
+      itemsJson: '[]'
+    });
+
+    // Make sure we have some Pháp Bảo in DB for Trúc Cơ (yeuCauCanhGioi = 10)
+    const pb1 = await Item.create({
+      id: 'pb_tc_mock1',
+      ten: 'Mộc Cầm 🪕',
+      loai: 'Pháp Bảo',
+      doHiem: 'Hiếm',
+      giaCoSo: 100,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 10
+    });
+
+    const pb2 = await Item.create({
+      id: 'pb_tc_mock2',
+      ten: 'Mộc Kiếm 🗡️',
+      loai: 'Pháp Bảo',
+      doHiem: 'Hiếm',
+      giaCoSo: 100,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 10
+    });
+
+    const res = await boDieuKhienTuSi._thucHienNhapCode(tuSi, 'TANTHU');
+    assert.strictEqual(res.ok, true);
+    assert.ok(res.rewardDesc.includes('Quà Pháp Bảo Tân Thủ'));
+
+    // Count items in inventory: should be 6
+    const itemsInInv = await Inventory.findAll({
+      where: {
+        idNguoiDung: tuSi.idNguoiDung
+      }
+    });
+    const totalCount = itemsInInv.reduce((sum, record) => sum + record.soLuong, 0);
+    assert.strictEqual(totalCount, 6);
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await PlayerGiftCode.destroy({ where: { userId: tuSi.idNguoiDung } });
+    await codeObj.destroy();
+    await pb1.destroy();
+    await pb2.destroy();
+    await tuSi.destroy();
+  });
+
 });

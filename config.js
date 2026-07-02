@@ -624,8 +624,81 @@ export const KYNANG_PHAPBAO_ACTIVE = {
 };
 
 export function layKyNangPhapBaoActive(itemId) {
-  return KYNANG_PHAPBAO_ACTIVE[itemId] || {
-    ten: "Linh Khí Bộc Phát",
+  if (KYNANG_PHAPBAO_ACTIVE[itemId]) {
+    return KYNANG_PHAPBAO_ACTIVE[itemId];
+  }
+
+  // Phân tích mã ID của 100 Pháp bảo mới: pb_[lk/tc/kd/na]_[num]
+  const match = itemId.match(/^pb_(lk|tc|kd|na)_(\d+)$/);
+  if (match) {
+    const realm = match[1]; // 'lk', 'tc', 'kd', 'na'
+    const index = parseInt(match[2], 10);
+
+    // Chỉ số động dựa trên cảnh giới yêu cầu của Pháp Bảo
+    let baseDmg = 50;
+    let healPct = 5;
+    let buffPct = 5;
+    let duration = 2;
+
+    if (realm === 'lk') {
+      baseDmg = 50 + index;
+      healPct = 5;
+      buffPct = 5;
+      duration = 2;
+    } else if (realm === 'tc') {
+      baseDmg = 120 + index * 2;
+      healPct = 10;
+      buffPct = 10;
+      duration = 3;
+    } else if (realm === 'kd') {
+      baseDmg = 250 + index * 3;
+      healPct = 15;
+      buffPct = 15;
+      duration = 3;
+    } else if (realm === 'na') {
+      baseDmg = 400 + index * 4;
+      healPct = 20;
+      buffPct = 20;
+      duration = 4;
+    }
+
+    // Chọn ngẫu nhiên loại kỹ năng chủ động dựa theo ID chẵn lẻ
+    const typeMod = index % 3;
+    if (typeMod === 0) {
+      const healingNames = ["Hồi Xuân Thuật 🌿", "Sinh Mệnh Chi Quang ❇️", "Cam Lộ Linh Quang 💧", "Thủy Vân Trị Liệu 🌊", "Mộc Linh Tiên Lộ 🍃"];
+      const ten = healingNames[index % healingNames.length];
+      return {
+        ten,
+        loai: "hoi_mau_pct",
+        triGia: healPct,
+        duration: 0,
+        moTa: `Hồi phục ${healPct}% HP tối đa của bản thân khi vào trận.`
+      };
+    } else if (typeMod === 1) {
+      const buffNames = ["Kim Cang Thần Lực 💪", "Hóa Thần Chi Uy 🌌", "Chân Ma Chi Nộ 👹", "Tử Khí Đông Lai 🔮", "Ngũ Hành Linh Lực 🌀"];
+      const ten = buffNames[index % buffNames.length];
+      return {
+        ten,
+        loai: "tang_cong_pct",
+        triGia: buffPct,
+        duration,
+        moTa: `Tăng ${buffPct}% Công kích trong ${duration} hiệp đầu trận.`
+      };
+    } else {
+      const attackNames = ["Lôi Đình Vạn Quân ⚡", "U Minh Luyện Hỏa 🔥", "Băng Thiên Tuyết Địa ❄️", "Phá Thiên Nhất Kích ☄️", "Huyền Âm Kiếm Khí 🗡️"];
+      const ten = attackNames[index % attackNames.length];
+      return {
+        ten,
+        loai: "tan_cong",
+        triGia: baseDmg,
+        duration: 0,
+        moTa: `Gây ${baseDmg} sát thương cố định lên đối phương khi vào trận.`
+      };
+    }
+  }
+
+  return {
+    ten: "Linh Khí Bộc Phát 💥",
     loai: "tan_cong",
     triGia: 100,
     duration: 0,
