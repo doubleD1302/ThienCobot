@@ -113,7 +113,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
   // Tìm cảnh giới của boss để thưởng trang bị
   const bossLevel = boss.level;
   const realmInfo = config.layThongTinCanhGioi(bossLevel);
-  
+
   // Tìm tất cả item có yeuCauCanhGioi phù hợp
   // Tìm các cấp độ tối thiểu và tối đa của cảnh giới này
   const realmObj = config.CANH_GIOI_LIST.find(r => r.name === realmInfo.realmName) || config.CANH_GIOI_LIST[0];
@@ -154,7 +154,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
     if (lhTuSi) {
       const extraStones = boss.level * 10000;
       lhTuSi.linhThach = Math.min(2_000_000_000, lhTuSi.linhThach + extraStones);
-      
+
       const gift = getGiftItem();
       let giftName = '';
       if (gift) {
@@ -168,15 +168,15 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
 
         await Inventory.create({
           idNguoiDung: lastHitterId,
-          itemId:      gift.id,
-          soLuong:     1,
-          trangBi:     false,
+          itemId: gift.id,
+          soLuong: 1,
+          trangBi: false,
           dongChiSoJson: dongChiSoJson
         });
         const rarityText = isRed ? 'Thần Cấp 🔴' : 'Thần Thoại 🟠';
         giftName = ` & nhận **${gift.ten}** (${rarityText})`;
       }
-      
+
       await lhTuSi.save();
       lastHitterMsg = `🏆 **Người Kích Sát**: <@${lastHitterId}> nhận thêm \`+${extraStones.toLocaleString()}\` 🪙 Linh thạch${giftName}!\n\n`;
     }
@@ -200,7 +200,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
 
     tuSi.linhThach = Math.min(2_000_000_000, tuSi.linhThach + gainedStones);
     tuSi.linhLuc += gainedExp;
-    
+
     let giftMsg = '';
     // Top 1 được chắc chắn nhận 1 trang bị ngẫu nhiên của Cảnh Giới hiện tại
     // Các vị trí khác có tỉ lệ (Top 2: 50%, Top 3: 30%, khác: 5%)
@@ -222,9 +222,9 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
 
         await Inventory.create({
           idNguoiDung: tuSi.idNguoiDung,
-          itemId:      gift.id,
-          soLuong:     1,
-          trangBi:     false,
+          itemId: gift.id,
+          soLuong: 1,
+          trangBi: false,
           dongChiSoJson: dongChiSoJson
         });
         const rarityText = isRed ? 'Thần Cấp 🔴' : 'Thần Thoại 🟠';
@@ -306,12 +306,12 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
   // Khởi động vòng lặp kiểm tra tự động sinh Boss
   khoiThaoBossSchedule(client) {
     console.log('[Boss System] Khởi động tiến trình quản lý Cự Thú...');
-    
+
     // Kiểm tra mỗi 1 phút
     setInterval(async () => {
       try {
         const now = new Date();
-        
+
         // 1. Kiểm tra và dọn dẹp Boss đã quá giờ
         const activeBosses = await WorldBoss.findAll({ where: { active: true } });
         for (const boss of activeBosses) {
@@ -383,8 +383,8 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         targetChannelId = guildChannels[Math.floor(Math.random() * guildChannels.length)].channelId;
       } else {
         // Fallback: Tìm kênh văn bản đầu tiên có quyền gửi tin nhắn
-        const textChannel = guild.channels.cache.find(c => 
-          c.type === ChannelType.GuildText && 
+        const textChannel = guild.channels.cache.find(c =>
+          c.type === ChannelType.GuildText &&
           c.permissionsFor(guild.members.me).has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])
         );
         if (!textChannel) return;
@@ -394,19 +394,19 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       // Đọc cấu hình đạo niên để tính toán sức mạnh Boss
       const guildConfig = await this.layHoacTaoCauHinhGuild(guildId);
       const daoNien = guildConfig.layDaoNienHienTai();
-      
+
       // Sức mạnh boss tỷ lệ thuận với Đạo Niên của Server
       const bossLevel = Math.min(30, Math.floor(daoNien / 2) + 1);
 
       // Chọn ngẫu nhiên một loài Boss
       const tpl = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
 
-      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 100;
-      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 100;
-      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 100;
+      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 10;
+      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10;
+      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10;
       const vatPhong = bossLevel * 100 + 50;
       const phapPhong = bossLevel * 100 + 50;
-      const giap = bossLevel * 50 + 20;
+      const giap = bossLevel * 10 + 20;
 
       // Hạn giờ biến mất: 30 phút
       const hetHan = new Date(Date.now() + 30 * 60000);
@@ -493,10 +493,10 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
     // 1. Admin bấm triệu hồi Boss
     if (customId === `boss_admin_spawn_${guildId}`) {
       await interaction.deferUpdate();
-      
+
       const client = interaction.client;
       const guild = interaction.guild;
-      
+
       // Hủy tin nhắn triệu hồi
       await interaction.editReply({
         embeds: [new EmbedBuilder().setColor(0x2ecc71).setDescription('⏳ Đang tiến hành triệu hồi Cự Thú Thái Cổ...')],
@@ -504,7 +504,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       });
 
       await this.trieuHoiWorldBossTuDong(client, guildId, guild);
-      
+
       await interaction.editReply({
         embeds: [new EmbedBuilder().setColor(0x2ecc71).setDescription('✅ Triệu hồi thành công! Hãy theo dõi thông báo tại kênh giới hạn.')],
         components: []
