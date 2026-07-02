@@ -180,7 +180,11 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         }
       }
 
-      const embed = BoTaoEmbed.canCo(tuSi, daoNien);
+      const { Abode } = await import('../models/Abode.js');
+      const abode = await Abode.findByPk(tuSi.idNguoiDung);
+      const lvDongPhu = abode ? abode.level : 0;
+
+      const embed = BoTaoEmbed.canCo(tuSi, daoNien, lvDongPhu);
       await interaction.editReply({ embeds: [embed] });
     }
   };

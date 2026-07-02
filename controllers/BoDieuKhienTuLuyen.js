@@ -55,11 +55,15 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 
       // Lấy tốc độ tu luyện và Linh lực yêu cầu từ CanhGioi
       const { CanhGioi } = await import('../models/CanhGioi.js');
+      const { Abode } = await import('../models/Abode.js');
       const cg = await CanhGioi.findByPk(tuSi.capDo);
       const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
       const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
       const heSoTuLuyen = tuSi.layHeSoTuLuyen();
-      const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen);
+      
+      const abode = await Abode.findByPk(tuSi.idNguoiDung);
+      const lvDongPhu = abode ? abode.level : 0;
+      const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen * (1 + lvDongPhu));
 
       const embed = BoTaoEmbed.tuVi(tuSi, null, daoNien, reqExp, tocDoTuLuyen);
       await interaction.editReply({ embeds: [embed] });

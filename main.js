@@ -145,14 +145,14 @@ function isDbConnectionError(error) {
   if (!error) return false;
   const name = error.name || '';
   const message = error.message || '';
-  return name.includes('Connection') || 
-         name.includes('Host') || 
-         name.includes('AccessDenied') ||
-         message.includes('EAI_AGAIN') || 
-         message.includes('ETIMEDOUT') ||
-         message.includes('connection') ||
-         message.includes('database') ||
-         message.includes('unreachable');
+  return name.includes('Connection') ||
+    name.includes('Host') ||
+    name.includes('AccessDenied') ||
+    message.includes('EAI_AGAIN') ||
+    message.includes('ETIMEDOUT') ||
+    message.includes('connection') ||
+    message.includes('database') ||
+    message.includes('unreachable');
 }
 
 // Lắng nghe các tương tác lệnh (Slash Commands)
@@ -198,7 +198,7 @@ client.on('interactionCreate', async interaction => {
         });
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   try {
     await lenh.execute(interaction);
@@ -257,7 +257,7 @@ async function start() {
     try {
       const { DataTypes } = await import('sequelize');
       const queryInterface = sequelize.getQueryInterface();
-      
+
       const playersDesc = await queryInterface.describeTable('players');
       if (playersDesc.user_id && playersDesc.user_id.autoIncrement) {
         console.log('Phát hiện cột user_id trong bảng players có thuộc tính autoIncrement. Tiến hành sửa đổi schema...');
@@ -293,7 +293,7 @@ async function start() {
           defaultValue: 0.0
         });
       }
-      
+
       const cooldownsDesc = await queryInterface.describeTable('cooldowns');
       if (cooldownsDesc.user_id && cooldownsDesc.user_id.autoIncrement) {
         console.log('Phát hiện cột user_id trong bảng cooldowns có thuộc tính autoIncrement. Tiến hành sửa đổi schema...');
@@ -522,7 +522,7 @@ async function guiBxhAuto(client) {
   const descTuVi = playersTuVi.map((p, idx) => {
     const crown = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🔹';
     return `${crown} **TOP ${idx + 1}.** **${p.ten}**\n` +
-           `   *Cảnh giới:* \`${p.canhGioi} - Tầng ${p.tang}\` (Cấp ${p.capDo}) · Exp: \`${p.linhLuc}\``;
+      `   *Cảnh giới:* \`${p.canhGioi} - Tầng ${p.tang}\` (Cấp ${p.capDo}) · Exp: \`${p.linhLuc}\``;
   }).join('\n\n');
 
   const embedTuVi = new EmbedBuilder()
@@ -543,7 +543,7 @@ async function guiBxhAuto(client) {
   const descLinhThach = playersLinhThach.map((p, idx) => {
     const crown = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🔹';
     return `${crown} **TOP ${idx + 1}.** **${p.ten}**\n` +
-           `   *Tài phú:* \`${p.linhThach.toLocaleString()}\` 🪙 Linh Thạch`;
+      `   *Tài phú:* \`${p.linhThach.toLocaleString()}\` 🪙 Linh Thạch`;
   }).join('\n\n');
 
   const embedLinhThach = new EmbedBuilder()

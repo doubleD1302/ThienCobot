@@ -172,7 +172,7 @@ export class BoTaoEmbed {
     return embed;
   }
 
-  static canCo(tuSi, daoNien = null) {
+  static canCo(tuSi, daoNien = null, lvDongPhu = 0) {
     const color = layMauCanhGioi(tuSi.canhGioi);
     const embed = new EmbedBuilder()
       .setTitle(`🧬 Tiên Thiên Căn Cơ: ${tuSi.ten}`)
@@ -197,6 +197,7 @@ export class BoTaoEmbed {
     const elementsDesc = descList.length > 0 ? descList.join('\n') : "• Không có linh căn thụ động.";
 
     const pathInfo = config.HUONG_DI[tuSi.huongTu] || { name: "Chưa rõ", desc: "" };
+    const absorptionCoef = tuSi.layHeSoTuLuyen() * (1 + lvDongPhu);
     embed.addFields(
       {
         name: "🌱 Linh Căn Bản Mệnh",
@@ -205,7 +206,7 @@ export class BoTaoEmbed {
       },
       {
         name: "⚡ Tu Luyện Tinh Hoa",
-        value: `• **Hệ số hấp thu**: \`x${tuSi.layHeSoTuLuyen().toFixed(1)}\`\n• **Đạo thống truyền thừa**: \`${pathInfo.name}\` (${pathInfo.desc})`,
+        value: `• **Hệ số hấp thu**: \`x${absorptionCoef.toFixed(1)}\`\n• **Đạo thống truyền thừa**: \`${pathInfo.name}\` (${pathInfo.desc})`,
         inline: false
       }
     );
