@@ -296,8 +296,8 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       const tpl = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
 
       const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000);
-      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000);
-      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000);
+      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 100;
+      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 100;
       const vatPhong = bossLevel * 100 + 50;
       const phapPhong = bossLevel * 100 + 50;
       const giap = bossLevel * 50 + 20;

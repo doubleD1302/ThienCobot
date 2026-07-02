@@ -14,6 +14,18 @@ class TuSi extends Model {
   set linhCanList(value) {
     this.danhSachLinhCanJson = JSON.stringify(value || []);
   }
+  
+  get thongKeAuto() {
+    try {
+      return JSON.parse(this.thongKeAutoJson || '{}');
+    } catch (e) {
+      return {};
+    }
+  }
+
+  set thongKeAuto(value) {
+    this.thongKeAutoJson = JSON.stringify(value || {});
+  }
 
   async layChiSoDayDu() {
     const { Inventory } = await import('./Inventory.js');
@@ -494,6 +506,24 @@ TuSi.init({
     type: DataTypes.DATEONLY,
     allowNull: true,
     field: 'last_reset_theluc'
+  },
+  thoiGianAuto: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    field: 'thoi_gian_auto'
+  },
+  kichHoatAuto: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    field: 'kich_hoat_auto'
+  },
+  thongKeAutoJson: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    defaultValue: '{}',
+    field: 'thong_ke_auto_json'
   }
 }, {
   sequelize,

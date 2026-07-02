@@ -256,13 +256,13 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const minLvl = realmObj.min_level;
       const maxLvl = realmObj.max_level;
 
-      // Tìm các Pháp Bảo có yeuCauCanhGioi nằm trong khoảng cấp độ của cảnh giới hiện tại
-      const { Op } = sequelize.Sequelize || sequelize;
+      // Tìm các Pháp Bảo có yeuCauCanhGioi nằm trong khoảng cấp độ của cảnh giới hiện tại và <= cấp độ nhân vật
+      const { Op } = await import('sequelize');
       let candidatePBs = await Item.findAll({
         where: {
           loai: 'Pháp Bảo',
           yeuCauCanhGioi: {
-            [Op.between]: [minLvl, maxLvl]
+            [Op.between]: [minLvl, Math.min(maxLvl, tuSi.capDo)]
           }
         }
       });

@@ -18,6 +18,7 @@ import { danhSachLenhBoss, boDieuKhienBoss } from './controllers/BoDieuKhienBoss
 import { danhSachLenhHelp } from './controllers/BoDieuKhienHelp.js';
 import { danhSachLenhLiXi } from './controllers/BoDieuKhienLiXi.js';
 import { danhSachLenhGacha } from './controllers/BoDieuKhienGacha.js';
+import { danhSachLenhAuto, khoiDongAutoSchedule } from './controllers/BoDieuKhienAuto.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/Item.js';
@@ -74,7 +75,8 @@ const tatCaLenh = [
   ...danhSachLenhBoss,
   ...danhSachLenhHelp,
   ...danhSachLenhLiXi,
-  ...danhSachLenhGacha
+  ...danhSachLenhGacha,
+  ...danhSachLenhAuto
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
@@ -114,6 +116,8 @@ client.once('ready', async () => {
   boDieuKhienBoss.khoiThaoBossSchedule(client);
   // Khởi động tiến trình gửi Bảng Xếp Hạng tự động mỗi 10 phút
   khoiDongBxhAutoSchedule(client);
+  // Khởi động tiến trình tự động tu luyện bát hoang
+  khoiDongAutoSchedule(client);
 });
 
 // Lắng nghe khi bot được thêm vào máy chủ mới để khởi tạo Đạo Niên

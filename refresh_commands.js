@@ -17,6 +17,7 @@ import { danhSachLenhBoss } from './controllers/BoDieuKhienBoss.js';
 import { danhSachLenhHelp } from './controllers/BoDieuKhienHelp.js';
 import { danhSachLenhLiXi } from './controllers/BoDieuKhienLiXi.js';
 import { danhSachLenhGacha } from './controllers/BoDieuKhienGacha.js';
+import { danhSachLenhAuto } from './controllers/BoDieuKhienAuto.js';
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
@@ -39,7 +40,8 @@ const tatCaLenh = [
   ...danhSachLenhBoss,
   ...danhSachLenhHelp,
   ...danhSachLenhLiXi,
-  ...danhSachLenhGacha
+  ...danhSachLenhGacha,
+  ...danhSachLenhAuto
 ];
 
 client.once('ready', async () => {

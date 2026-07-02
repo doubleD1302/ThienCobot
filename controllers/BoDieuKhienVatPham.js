@@ -43,7 +43,8 @@ async function reloadItemsList(idNguoiDung) {
       soLuong:       inv.soLuong,
       trangBi:       inv.trangBi,
       nangCapSao:    inv.nangCapSao,
-      dongChiSoJson: inv.dongChiSoJson
+      dongChiSoJson: inv.dongChiSoJson,
+      khoa:          inv.khoa
     });
   }
   return result;
@@ -249,6 +250,9 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
           if (qsType !== 'tat_ca' && item.loai !== qsType) continue;
 
+          if (inv.khoa) continue;
+          if (item.loai === 'Chí bảo') continue;
+
           if (item.giaCoSo > 0) {
             matchingItems.push({ inv, item });
             const donGia = Math.floor(item.giaCoSo * 0.3);
@@ -344,17 +348,27 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
       // ── Builder: Dropdown chọn vật phẩm để dùng/trang bị ──────────────────
       const buildToolbarSelectRow = (curVal) => {
-        const usableItems = itemsList.filter(o => USABLE_TYPES.includes(o.item.loai) && o.soLuong > 0);
-        const equipItems  = itemsList.filter(o => EQUIP_TYPES.includes(o.item.loai) && !o.trangBi);
-        const khaDung     = [...usableItems, ...equipItems];
+        const activeSheet = sheets[sheetIdx];
+        if (!activeSheet) return null;
+
+        let khaDung = [];
+        if (activeSheet.value === 'trangbi') {
+          khaDung = itemsList.filter(o => ['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(o.item.loai) && !o.trangBi);
+        } else if (activeSheet.value === 'cobao') {
+          khaDung = itemsList.filter(o => ['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(o.item.loai) && !o.trangBi);
+        } else if (activeSheet.value === 'danduo') {
+          khaDung = itemsList.filter(o => o.item.loai === 'Đan dược' && o.soLuong > 0);
+        } else if (activeSheet.value === 'linhthao') {
+          khaDung = itemsList.filter(o => o.item.loai === 'Linh thảo' && o.soLuong > 0);
+        }
 
         if (khaDung.length === 0) {
           return new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
-              .setCustomId('balo_item_select')
-              .setPlaceholder('⚠️ Không có vật phẩm khả dụng')
+              .setCustomId('balo_item_select_empty')
+              .setPlaceholder('🎒 Danh mục này trống...')
               .setDisabled(true)
-              .addOptions([{ label: '(Kho trống)', value: '__empty__' }])
+              .addOptions([{ label: '(Trống)', value: '__empty__' }])
           );
         }
 
@@ -381,13 +395,24 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         if (!curVal) return null;
         const decoded = decodeToolbarValue(curVal);
         if (!decoded) return null;
-        const { loai, itemId } = decoded;
+        const { invId, loai, itemId } = decoded;
         const isEgg    = itemId === 'trung_linh_thu' || itemId === 'trung_than_thu';
         const isEquip  = EQUIP_TYPES.includes(loai);
         const isUsable = loai === 'Đan dược' || loai === 'Chí bảo' || isEgg;
+        const selectedItem = itemsList.find(o => o.invId === invId);
+        const isLocked = selectedItem ? selectedItem.khoa : false;
+
         const components = [];
         components.push(new ButtonBuilder().setCustomId('balo_action_detail').setLabel('🔍 Chi Tiết').setStyle(ButtonStyle.Secondary));
-        if (isEquip)  components.push(new ButtonBuilder().setCustomId('balo_action_equip').setLabel('⚔️ Trang Bị').setStyle(ButtonStyle.Primary));
+        if (isEquip)  {
+          components.push(new ButtonBuilder().setCustomId('balo_action_equip').setLabel('⚔️ Trang Bị').setStyle(ButtonStyle.Primary));
+          components.push(
+            new ButtonBuilder()
+              .setCustomId('balo_action_lock')
+              .setLabel(isLocked ? '🔓 Mở Khóa' : '🔒 Khóa')
+              .setStyle(isLocked ? ButtonStyle.Success : ButtonStyle.Danger)
+          );
+        }
         if (isUsable) components.push(new ButtonBuilder().setCustomId('balo_action_use').setLabel(isEgg ? '🥚 Ấp Trứng' : '💊 Sử Dụng').setStyle(ButtonStyle.Success));
         components.push(new ButtonBuilder().setCustomId('balo_action_cancel').setLabel('↩️ Bỏ Chọn').setStyle(ButtonStyle.Secondary));
         return new ActionRowBuilder().addComponents(components);
@@ -685,6 +710,38 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
               result.ok
                 ? BoTaoEmbed.thanhCong('💊 Sử Dụng Thành Công', result.msg)
                 : BoTaoEmbed.loi(result.msg),
+              sheets[sheetIdx].pages[pageIdx]
+            ],
+            components: buildAllComponents()
+          });
+          return;
+        }
+        else if (i.customId === 'balo_action_lock') {
+          if (!selectedVal) { await i.editReply(await buildPayload()); return; }
+          const decoded = decodeToolbarValue(selectedVal);
+          if (!decoded)   { await i.editReply(await buildPayload()); return; }
+
+          const invObj = await Inventory.findOne({ where: { id: decoded.invId, idNguoiDung: tuSi.idNguoiDung } });
+          if (!invObj) {
+            await i.editReply({
+              embeds: [BoTaoEmbed.loi(`Không tìm thấy vật phẩm trong túi đồ.`), sheets[sheetIdx].pages[pageIdx]],
+              components: buildAllComponents()
+            });
+            return;
+          }
+
+          invObj.khoa = !invObj.khoa;
+          await invObj.save();
+          await refreshInventory();
+
+          const statusText = invObj.khoa ? '🔒 Khóa' : '🔓 Mở Khóa';
+          const msgText = invObj.khoa
+            ? `Đạo hữu đã **Khóa** trang bị thành công. Trang bị này sẽ không thể bị bán.`
+            : `Đạo hữu đã **Mở Khóa** trang bị thành công.`;
+
+          await i.editReply({
+            embeds: [
+              BoTaoEmbed.thanhCong(`${statusText} Thành Công`, msgText),
               sheets[sheetIdx].pages[pageIdx]
             ],
             components: buildAllComponents()

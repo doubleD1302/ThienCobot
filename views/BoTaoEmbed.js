@@ -336,9 +336,10 @@ export class BoTaoEmbed {
     const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [];
 
     for (const itemObj of itemsList) {
-      const { item, soLuong, trangBi: isEquipped, nangCapSao, invId } = itemObj;
+      const { item, soLuong, trangBi: isEquipped, nangCapSao, invId, khoa } = itemObj;
       const starText = nangCapSao > 0 ? ` (+${nangCapSao}⭐)` : '';
       const equipText = isEquipped ? ' 🛡️ **[Đang mặc]**' : '';
+      const lockText = khoa ? ' 🔒' : '';
 
       let reqText = '';
       if (item.yeuCauCanhGioi && item.yeuCauCanhGioi > 1) {
@@ -347,7 +348,7 @@ export class BoTaoEmbed {
       }
 
       // Sử dụng mã ID duy nhất của dòng vật phẩm trong balo để phân biệt các trang bị trùng tên
-      const formattedLine = `• **${item.ten}**${starText}${equipText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
+      const formattedLine = `• **${item.ten}**${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
 
       if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
       else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);

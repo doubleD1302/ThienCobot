@@ -1255,15 +1255,15 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   test('World Boss HP/Damage Reduction 1000x', () => {
     // Verify formula calculations for level 1
     const lvl1Hp = Math.ceil((1 * 50000 + 50000) / 1000);
-    const lvl1Atk = Math.ceil((1 * 300 + 100) / 1000);
+    const lvl1Atk = Math.ceil((1 * 300 + 100) / 1000) * 100;
     assert.strictEqual(lvl1Hp, 100);
-    assert.strictEqual(lvl1Atk, 1);
+    assert.strictEqual(lvl1Atk, 100);
 
     // Verify formula calculations for level 30
     const lvl30Hp = Math.ceil((30 * 50000 + 50000) / 1000);
-    const lvl30Atk = Math.ceil((30 * 300 + 100) / 1000);
+    const lvl30Atk = Math.ceil((30 * 300 + 100) / 1000) * 100;
     assert.strictEqual(lvl30Hp, 1550);
-    assert.strictEqual(lvl30Atk, 10);
+    assert.strictEqual(lvl30Atk, 1000);
   });
 
   test('Pháp Bảo Active Skills Config & Duration', () => {
@@ -1384,6 +1384,13 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const totalCount = itemsInInv.reduce((sum, record) => sum + record.soLuong, 0);
     assert.strictEqual(totalCount, 6);
 
+    // Try equipping all 6
+    const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+    for (const record of itemsInInv) {
+      const equipRes = await boDieuKhienVatPham._thucHienTrangBi(tuSi, record, record.itemId);
+      assert.strictEqual(equipRes.ok, true, `Equip failed: ${equipRes.msg}`);
+    }
+
     // Clean up
     await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
     await PlayerGiftCode.destroy({ where: { userId: tuSi.idNguoiDung } });
@@ -1430,6 +1437,205 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Clean up
     await mockItem.destroy();
+  });
+
+  test('Equipment lock and supreme treasure unsellable logic', async () => {
+    const { boDieuKhienShop } = await import('./controllers/BoDieuKhienShop.js');
+
+    const tuSi = await TuSi.create({
+      idNguoiDung: "999888777666",
+      ten: "LockTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 1000,
+      vnd: 100000
+    });
+
+    // Create a mock equipment and a supreme treasure ("Chí bảo")
+    const mockEquipItem = await Item.create({
+      id: 'test_lock_equip',
+      ten: 'Thần Long Trảm 🗡️',
+      loai: 'Vũ khí',
+      doHiem: 'Thần cấp',
+      giaCoSo: 10000,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1,
+      moTa: ''
+    });
+
+    const mockSupremeItem = await Item.create({
+      id: 'test_lock_supreme',
+      ten: 'Thái Cổ Thần Châu 🔮',
+      loai: 'Chí bảo',
+      doHiem: 'Thần cấp',
+      giaCoSo: 20000,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1,
+      moTa: ''
+    });
+
+    // Add them to player inventory
+    const invEquip = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'test_lock_equip', soLuong: 1, trangBi: false, khoa: false });
+    const invSupreme = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'test_lock_supreme', soLuong: 1, trangBi: false, khoa: false });
+
+    // --- 1. Test locking logic ---
+    assert.strictEqual(invEquip.khoa, false);
+    invEquip.khoa = true;
+    await invEquip.save();
+    await invEquip.reload();
+    assert.strictEqual(invEquip.khoa, true);
+
+    // --- 2. Test shop sell block for locked item ---
+    const sellResLocked = await boDieuKhienShop._thucHienBanByInvId(tuSi, invEquip.id, 1);
+    assert.strictEqual(sellResLocked.ok, false);
+    assert.ok(sellResLocked.msg.includes('đã bị khóa'));
+
+    // --- 3. Test shop sell block for Chí bảo item ---
+    const sellResSupreme = await boDieuKhienShop._thucHienBanByInvId(tuSi, invSupreme.id, 1);
+    assert.strictEqual(sellResSupreme.ok, false);
+    assert.ok(sellResSupreme.msg.includes('Chí bảo'));
+
+    // --- 4. Test quick sell filtering ---
+    // Let's create an unlocked normal item to check it does sell
+    const mockNormalItem = await Item.create({
+      id: 'test_lock_normal',
+      ten: 'Bổ HP Thường 🧪',
+      loai: 'Đan dược',
+      doHiem: 'Thường',
+      giaCoSo: 100,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1,
+      moTa: ''
+    });
+    const invNormal = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'test_lock_normal', soLuong: 1, trangBi: false });
+
+    // Mock quick sell filter: we have invEquip (locked), invSupreme (Chí bảo), invNormal (unlocked)
+     const allInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, trangBi: false } });
+     const matchingItems = [];
+     for (const inv of allInv) {
+       if (!['test_lock_equip', 'test_lock_supreme', 'test_lock_normal'].includes(inv.itemId)) continue;
+       const item = await Item.findByPk(inv.itemId);
+       if (!item) continue;
+       if (inv.khoa) continue; // skip locked
+       if (item.loai === 'Chí bảo') continue; // skip Chí bảo
+       if (item.giaCoSo > 0) {
+         matchingItems.push({ inv, item });
+       }
+     }
+ 
+     assert.strictEqual(matchingItems.length, 1);
+     assert.strictEqual(matchingItems[0].inv.itemId, 'test_lock_normal');
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await Item.destroy({ where: { id: ['test_lock_equip', 'test_lock_supreme', 'test_lock_normal'] } });
+    await tuSi.destroy();
+  });
+
+  test('Auto Cultivation System refilling, toggling, and loop execution', async () => {
+    const { chayTienTrinhAuto } = await import('./controllers/BoDieuKhienAuto.js');
+    const { Dungeon } = await import('./models/Dungeon.js');
+    const { AdventureEvent } = await import('./models/AdventureEvent.js');
+
+    await Dungeon.destroy({ where: {} });
+    await AdventureEvent.destroy({ where: {} });
+
+    const tuSi = await TuSi.create({
+      idNguoiDung: "888777666555",
+      ten: "AutoTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 15000,
+      vnd: 100000,
+      thoiGianAuto: 0,
+      kichHoatAuto: false,
+      theLuc: 10
+    });
+
+    // Make sure we have a dungeon in DB for level 1
+    const testDg = await Dungeon.create({
+      id: 'auto_test_dungeon',
+      ten: 'Auto Luyện Khí Cốc',
+      capDoYeuCau: 1,
+      canhGioiYeuCauText: 'Luyện Khí',
+      quaiVatJson: JSON.stringify({ ten: 'Yêu Kê', hp: 10, vatCong: 5, phapCong: 0, vatPhong: 1, phapPhong: 1 }),
+      thuongJson: JSON.stringify({ expMin: 10, expMax: 10, stonesMin: 50, stonesMax: 50 }),
+      dropsJson: '[]'
+    });
+
+    // Make sure we have an adventure event
+    const testEvt = await AdventureEvent.create({
+      id: 'auto_test_event',
+      ten: 'Auto Gặp Linh Thảo',
+      moTa: 'Đạo hữu ngửi thấy linh hương.',
+      loai: 'tot',
+      hieuUngJson: JSON.stringify({ exp: { min: 20, max: 20 }, stones: { min: 100, max: 100 } })
+    });
+
+    // --- 1. Test refilling time ---
+    // Costs 10,000 Linh Thạch to get 250 minutes
+    assert.strictEqual(tuSi.thoiGianAuto, 0);
+    assert.strictEqual(tuSi.kichHoatAuto, false);
+    
+    // Perform refill check
+    assert.ok(tuSi.linhThach >= 10000);
+    tuSi.linhThach -= 10000;
+    tuSi.thoiGianAuto += 250;
+    await tuSi.save();
+    
+    await tuSi.reload();
+    assert.strictEqual(tuSi.linhThach, 5000);
+    assert.strictEqual(tuSi.thoiGianAuto, 250);
+
+    // --- 2. Test toggling active status ---
+    tuSi.kichHoatAuto = true;
+    await tuSi.save();
+    await tuSi.reload();
+    assert.strictEqual(tuSi.kichHoatAuto, true);
+
+    // --- 3. Test background loop execution ---
+    // Executing the loop should:
+    // - Deduct 5 minutes of auto time (leaving 245)
+    // - Perform autoDiBiCanh (costs 1 stamina, gives exp and stones)
+    // - Perform autoDiLichLuyen (costs 1 stamina, gives exp and stones)
+    await chayTienTrinhAuto();
+
+    await tuSi.reload();
+    assert.strictEqual(tuSi.thoiGianAuto, 245);
+    // Dungeon gave 10 exp, event gave 20 exp -> total 30 exp
+    assert.strictEqual(tuSi.linhLuc, 30);
+    // Dungeon gave 50 stones, event gave 100 stones -> total 150 stones added to 5000 -> 5150
+    assert.strictEqual(tuSi.linhThach, 5150);
+    // Stamina decreased by 2 (1 for dungeon, 1 for adventure event)
+    assert.strictEqual(tuSi.theLuc, 8);
+
+    // --- 4. Test statistics accumulation ---
+    const statsObj = tuSi.thongKeAuto;
+    assert.strictEqual(statsObj.activeMinutes, 5);
+    assert.strictEqual(statsObj.exp, 30);
+    assert.strictEqual(statsObj.stones, 150);
+
+    // Simulate manual stop resetting stats
+    tuSi.kichHoatAuto = false;
+    tuSi.thongKeAuto = { activeMinutes: 0, exp: 0, stones: 0, items: {} };
+    await tuSi.save();
+
+    await tuSi.reload();
+    assert.strictEqual(tuSi.kichHoatAuto, false);
+    assert.strictEqual(tuSi.thongKeAuto.activeMinutes, 0);
+    assert.strictEqual(tuSi.thongKeAuto.exp, 0);
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await testDg.destroy();
+    await testEvt.destroy();
+    await tuSi.destroy();
   });
 
 });

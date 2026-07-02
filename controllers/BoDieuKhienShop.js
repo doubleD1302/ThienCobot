@@ -274,6 +274,9 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         for (const inv of invList) {
           const itemDetail = await Item.findByPk(inv.itemId);
           if (itemDetail && itemDetail.giaCoSo > 0) {
+            if (inv.khoa) continue;
+            if (itemDetail.loai === 'Chí bảo') continue;
+
             sellable.push({
               invId:         inv.id,
               item:          itemDetail,
@@ -863,6 +866,14 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
     const itemDetail = await Item.findByPk(inv.itemId);
     if (!itemDetail) {
       return { ok: false, msg: `Thông tin vật phẩm tĩnh cho mã \`${inv.itemId}\` đã bị thất lạc.` };
+    }
+
+    if (inv.khoa) {
+      return { ok: false, msg: `Vật phẩm **${itemDetail.ten}** đã bị khóa, không thể bán!` };
+    }
+
+    if (itemDetail.loai === 'Chí bảo') {
+      return { ok: false, msg: `Vật phẩm **${itemDetail.ten}** là Chí bảo thượng cổ, không thể bán!` };
     }
 
     if (!itemDetail.giaCoSo || itemDetail.giaCoSo <= 0) {

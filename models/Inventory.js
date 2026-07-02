@@ -81,6 +81,12 @@ Inventory.init({
     allowNull: true,
     defaultValue: null,
     field: 'dong_chi_so_json'
+  },
+  khoa: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    field: 'khoa'
   }
 }, {
   sequelize,
