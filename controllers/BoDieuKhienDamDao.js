@@ -15,17 +15,16 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
     super();
   }
 
-
-
   lenhDamDao = {
     data: new SlashCommandBuilder()
       .setName('damdao')
       .setDescription('Đàm đạo nhân sinh, đỏ đen bằng VND')
       .addIntegerOption(option =>
         option.setName('vnd')
-          .setDescription('Số lượng VND cược')
+          .setDescription('Số lượng VND cược (Tối đa 1.000.000)')
           .setRequired(true)
           .setMinValue(100)
+          .setMaxValue(1000000)
       ),
 
     execute: async (interaction) => {
@@ -39,6 +38,13 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         });
       }
 
+      // Khống chế mức cược tối đa 1,000,000
+      if (bet > 1000000) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi(`Mức cược tối đa là 1.000.000 VND / Linh Thạch!`)]
+        });
+      }
+
       if (tuSi.vnd < bet) {
         return await interaction.editReply({
           embeds: [BoTaoEmbed.loi(`VND bất túc! Ngươi chỉ có \`${tuSi.vnd.toLocaleString()}\` VND, không đủ cược \`${bet.toLocaleString()}\` VND.`)]
@@ -46,7 +52,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
       }
 
       const color = layMauCanhGioi(tuSi.canhGioi);
-      let step = 'CHOOSE_GAME'; // CHOOSE_GAME, TAI_XIU, KIEM_GIAP_PHAP, BLACKJACK, NGU_HANH
+      let step = 'CHOOSE_GAME'; // CHOOSE_GAME, TAI_XIU, KIEM_GIAP_PHAP, BLACKJACK, BAU_CUA
 
       // State Blackjack
       let playerHand = [];
@@ -112,7 +118,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
       const collector = msg.createMessageComponentCollector({
         filter: i => i.user.id === interaction.user.id,
-        time:   120_000 // Tăng thời gian chờ lên 2 phút
+        idle:   60000 // Tự đóng sau 1 phút không có phản hồi
       });
 
       collector.on('collect', async i => {
@@ -163,8 +169,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
             const row = new ActionRowBuilder().addComponents(
               new ButtonBuilder().setCustomId('tx_tai').setLabel('🔴 Tài (11-18)').setStyle(ButtonStyle.Success),
-              new ButtonBuilder().setCustomId('tx_xiu').setLabel('🔵 Xỉu (3-10)').setStyle(ButtonStyle.Primary),
-              new ButtonBuilder().setCustomId('tx_cancel').setLabel('↩️ Trở Lại').setStyle(ButtonStyle.Secondary)
+              new ButtonBuilder().setCustomId('tx_xiu').setLabel('🔵 Xỉu (3-10)').setStyle(ButtonStyle.Primary)
             );
 
             await i.editReply({ embeds: [embed], components: [row] });
@@ -187,8 +192,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             const row = new ActionRowBuilder().addComponents(
               new ButtonBuilder().setCustomId('kgp_kiem').setLabel('🗡️ Kiếm').setStyle(ButtonStyle.Primary),
               new ButtonBuilder().setCustomId('kgp_giap').setLabel('🛡️ Giáp').setStyle(ButtonStyle.Success),
-              new ButtonBuilder().setCustomId('kgp_phap').setLabel('📜 Pháp Bùa').setStyle(ButtonStyle.Warning),
-              new ButtonBuilder().setCustomId('kgp_cancel').setLabel('↩️ Trở Lại').setStyle(ButtonStyle.Secondary)
+              new ButtonBuilder().setCustomId('kgp_phap').setLabel('📜 Pháp Bùa').setStyle(ButtonStyle.Warning)
             );
 
             await i.editReply({ embeds: [embed], components: [row] });
@@ -215,8 +219,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
             const row = new ActionRowBuilder().addComponents(
               new ButtonBuilder().setCustomId('bj_hit').setLabel('➕ Rút Thêm').setStyle(ButtonStyle.Success).setDisabled(pSum >= 21),
-              new ButtonBuilder().setCustomId('bj_stand').setLabel('✋ Dừng Bài').setStyle(ButtonStyle.Primary),
-              new ButtonBuilder().setCustomId('bj_cancel').setLabel('↩️ Trở Lại').setStyle(ButtonStyle.Secondary)
+              new ButtonBuilder().setCustomId('bj_stand').setLabel('✋ Dừng Bài').setStyle(ButtonStyle.Primary)
             );
 
             await i.editReply({ embeds: [embed], components: [row] });
@@ -248,11 +251,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               new ButtonBuilder().setCustomId('bc_nai').setLabel('🦌 Nai').setStyle(ButtonStyle.Secondary)
             );
 
-            const row3 = new ActionRowBuilder().addComponents(
-              new ButtonBuilder().setCustomId('bc_cancel').setLabel('↩️ Trở Lại').setStyle(ButtonStyle.Danger)
-            );
-
-            await i.editReply({ embeds: [embed], components: [row1, row2, row3] });
+            await i.editReply({ embeds: [embed], components: [row1, row2] });
           }
 
           else if (i.customId === 'game_cancel') {
@@ -264,12 +263,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         // 2. CHƠI TÀI XỈU
         // ══════════════════════════════════════════════════════════════
         else if (step === 'TAI_XIU') {
-          if (i.customId === 'tx_cancel') {
-            step = 'CHOOSE_GAME';
-            await i.editReply({ embeds: [buildChooseEmbed()], components: [buildChooseButtons(), buildChooseRow2()] });
-            return;
-          }
-
           const choice = i.customId === 'tx_tai' ? 'Tài' : 'Xỉu';
           const d1 = Math.floor(Math.random() * 6) + 1;
           const d2 = Math.floor(Math.random() * 6) + 1;
@@ -308,12 +301,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         // 3. CHƠI KIẾM - GIÁP - PHÁP
         // ══════════════════════════════════════════════════════════════
         else if (step === 'KIEM_GIAP_PHAP') {
-          if (i.customId === 'kgp_cancel') {
-            step = 'CHOOSE_GAME';
-            await i.editReply({ embeds: [buildChooseEmbed()], components: [buildChooseButtons(), buildChooseRow2()] });
-            return;
-          }
-
           const choices = {
             'kgp_kiem': { name: '🗡️ Kiếm', beats: '📜 Pháp Bùa' },
             'kgp_giap': { name: '🛡️ Giáp', beats: '🗡️ Kiếm' },
@@ -347,7 +334,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           let outcomeDesc = '';
 
           if (outcome === 'WIN') {
-            outcomeTitle = '...';
             outcomeTitle = '⚔️ Thắng Trận Đàm Đạo';
             outcomeColor = 0x2ecc71;
             outcomeDesc = `🚀 Đạo hữu dùng **${playerChoice.name}** khắc chế hoàn hảo **${botChoice.name}** của phân thân, thắng nhận \`+${bet.toLocaleString()}\` VND.`;
@@ -380,12 +366,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         // 4. CHƠI NHỊ THẬP NHẤT LỰC (BLACKJACK)
         // ══════════════════════════════════════════════════════════════
         else if (step === 'BLACKJACK') {
-          if (i.customId === 'bj_cancel') {
-            step = 'CHOOSE_GAME';
-            await i.editReply({ embeds: [buildChooseEmbed()], components: [buildChooseButtons(), buildChooseRow2()] });
-            return;
-          }
-
           if (i.customId === 'bj_hit') {
             playerHand.push(drawCard());
             const pSum = getSum(playerHand);
@@ -422,8 +402,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
               const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('bj_hit').setLabel('➕ Rút Thêm').setStyle(ButtonStyle.Success).setDisabled(pSum >= 21),
-                new ButtonBuilder().setCustomId('bj_stand').setLabel('✋ Dừng Bài').setStyle(ButtonStyle.Primary),
-                new ButtonBuilder().setCustomId('bj_cancel').setLabel('↩️ Trở Lại').setStyle(ButtonStyle.Secondary)
+                new ButtonBuilder().setCustomId('bj_stand').setLabel('✋ Dừng Bài').setStyle(ButtonStyle.Primary)
               );
 
               await i.editReply({ embeds: [embed], components: [row] });
@@ -498,12 +477,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         // 5. CHƠI BẦU CUA TÔM CÁ
         // ══════════════════════════════════════════════════════════════
         else if (step === 'BAU_CUA') {
-          if (i.customId === 'bc_cancel') {
-            step = 'CHOOSE_GAME';
-            await i.editReply({ embeds: [buildChooseEmbed()], components: [buildChooseButtons(), buildChooseRow2()] });
-            return;
-          }
-
           const animalsMap = {
             'bc_bau': { name: 'Bầu 🪵', emoji: '🪵' },
             'bc_cua': { name: 'Cua 🦀', emoji: '🦀' },
@@ -574,7 +547,15 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               components: []
             });
           } else if (reason !== 'finished') {
+            // Tự đóng do hết thời gian chờ hoặc không phản hồi (idle)
             await interaction.editReply({
+              embeds: [
+                new EmbedBuilder()
+                  .setTitle('🌌 Thiên Cơ Đàm Đạo — Hết Giờ')
+                  .setDescription('Tiến trình đàm đạo đã tự động đóng do quá lâu không có phản hồi.')
+                  .setColor(0x7f8c8d)
+                  .setTimestamp()
+              ],
               components: []
             });
           }

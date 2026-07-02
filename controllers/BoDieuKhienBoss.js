@@ -344,15 +344,23 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         }
 
         // 2. Tự động sinh Boss ngẫu nhiên cho các Server hoạt động
-        const guilds = client.guilds.cache;
-        for (const [guildId, guild] of guilds) {
-          // Kiểm tra xem Guild này đã có Boss đang active chưa
-          const hasActive = await WorldBoss.findOne({ where: { idGuild: guildId, active: true } });
-          if (hasActive) continue;
+        const localHour = parseInt(new Date().toLocaleTimeString('en-US', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          hour12: false,
+          hour: '2-digit'
+        }), 10);
 
-          // Xác định tỉ lệ xuất hiện Boss (Mỗi phút có 1.5% tỉ lệ xuất hiện Boss)
-          if (Math.random() <= 0.015) {
-            await this.trieuHoiWorldBossTuDong(client, guildId, guild);
+        if (localHour >= 8 && localHour < 24) {
+          const guilds = client.guilds.cache;
+          for (const [guildId, guild] of guilds) {
+            // Kiểm tra xem Guild này đã có Boss đang active chưa
+            const hasActive = await WorldBoss.findOne({ where: { idGuild: guildId, active: true } });
+            if (hasActive) continue;
+
+            // Xác định tỉ lệ xuất hiện Boss (Mỗi phút có 5% tỉ lệ xuất hiện Boss)
+            if (Math.random() <= 0.05) {
+              await this.trieuHoiWorldBossTuDong(client, guildId, guild);
+            }
           }
         }
 
@@ -393,7 +401,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       // Chọn ngẫu nhiên một loài Boss
       const tpl = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
 
-      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000);
+      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 100;
       const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 100;
       const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 100;
       const vatPhong = bossLevel * 100 + 50;
@@ -471,28 +479,6 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         });
       }
 
-      // Nếu không có boss đang hoạt động và người gọi lệnh là Admin Server
-      const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
-      if (isAdmin) {
-        const embed = new EmbedBuilder()
-          .setTitle('👾 Triệu Hồi Cự Thú Thế Giới')
-          .setColor(0xe67e22)
-          .setDescription('Hiện tại không có Cự Thú nào thức tỉnh.\n\nLà Quản trị viên máy chủ, đạo hữu có muốn trực tiếp **triệu hồi** một Cự Thú để bắt đầu săn lùng thiên tài địa bảo không?');
-
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`boss_admin_spawn_${guildId}`)
-            .setLabel('👹 Triệu Hồi Cự Thú')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId('boss_cancel')
-            .setLabel('❌ Hủy')
-            .setStyle(ButtonStyle.Secondary)
-        );
-
-        return await interaction.editReply({ embeds: [embed], components: [row] });
-      }
-
       return await interaction.editReply({
         embeds: [BoTaoEmbed.thongTin('🌌 Thái Bình Thịnh Thế', 'Yêu thú lánh đời, đất trời yên ả. Hiện tại không có Cự Thú thế giới nào giáng lâm.')]
       });
@@ -560,6 +546,14 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       if (!tuSi) {
         return await interaction.editReply({
           embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
+        });
+      }
+
+      const activeCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'boss');
+      if (activeCooldown) {
+        const leftSecs = Math.max(0, Math.ceil((new Date(activeCooldown.hetHan).getTime() - Date.now()) / 1000));
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi(`Đạo hữu đang hồi chiêu sau khi khiêu chiến Cự Thú! Vui lòng chờ \`${leftSecs}\` giây.`)]
         });
       }
 
@@ -675,6 +669,10 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       // Lưu thay đổi tu sĩ
       await tuSi.save();
       await boss.save();
+
+      // Đặt thời gian chờ khiêu chiến mới (1 phút)
+      const expiresAt = new Date(Date.now() + 60 * 1000);
+      await this.datThoiGianCho(tuSi.idNguoiDung, 'boss', expiresAt);
 
       // Kiểm tra Cự Thú đã bị tiêu diệt hay chưa
       if (boss.hp <= 0) {
