@@ -369,6 +369,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let droppedItem = null;
         let droppedSeed = null;
         let droppedCoDuyenLenh = false;
+        let droppedBreakthrough = null;
 
         const thienDao = await tuSi.layHeSoThienDao();
 
@@ -389,7 +390,6 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             }
           }
 
-          let droppedBreakthrough = null;
           // 15% cơ hội rơi nguyên liệu hoặc đan đột phá phù hợp cảnh giới
           const btData = config.layVatPhamDotPhaTheoCapDo(tuSi.capDo);
           if (btData && Math.random() <= 0.15) {
