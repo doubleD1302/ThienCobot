@@ -375,8 +375,9 @@ async function autoDiBiCanh(tuSi) {
 
       if (isWin) break;
 
-      if (activePet && activePet.rarity === 'ANCIENT' && Math.random() <= 0.20) {
-        const petEvoSkillMult = 1.0 + (activePet.tienHoa || 0) * 0.05;
+      if (activePet && (activePet.rarity === 'ANCIENT' || activePet.rarity === 'SUPREME') && Math.random() <= 0.20) {
+        const totalEvolves = (activePet.rarity === 'SUPREME' ? 20 : (activePet.rarity === 'ANCIENT' ? 10 : 0)) + (activePet.tienHoa || 0);
+        const petEvoSkillMult = 1.0 + totalEvolves * 0.05;
         if (activePet.type === 'to_long') {
           const petDmg = Math.floor(stats.max_hp * 0.15 * petEvoSkillMult);
           monsterHp = Math.max(0, monsterHp - petDmg);
@@ -415,7 +416,8 @@ async function autoDiBiCanh(tuSi) {
       if (playerHp <= 0) {
         if (activePet && activePet.type === 'phuong_hoang' && !phoenixTriggered) {
           phoenixTriggered = true;
-          const petEvoSkillMult = 1.0 + (activePet.tienHoa || 0) * 0.05;
+          const totalEvolves = (activePet.rarity === 'SUPREME' ? 20 : (activePet.rarity === 'ANCIENT' ? 10 : 0)) + (activePet.tienHoa || 0);
+          const petEvoSkillMult = 1.0 + totalEvolves * 0.05;
           playerHp = Math.floor(stats.max_hp * 0.30 * petEvoSkillMult);
         } else {
           isWin = false;

@@ -267,7 +267,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           const myPets = await Pet.findAll({ where: { userId: tuSi.idNguoiDung } });
           const desc = myPets.map((p, idx) => {
             const activeTag = p.isActive ? ' 🟢 **[Xuất Chiến]**' : '';
-            const rarityTag = p.rarity === 'ANCIENT' ? ' 🌟 [Thượng Cổ]' : '';
+            const rarityTag = p.rarity === 'SUPREME' ? ' 👑 [Chí Tôn]' : (p.rarity === 'ANCIENT' ? ' 🌟 [Thượng Cổ]' : '');
             return `**${idx + 1}.** **${p.name}**${rarityTag}${activeTag}\n` +
                    `   *Loài:* ${PET_TEMPLATES[p.type]?.name ?? p.type} · *Cấp:* \`${p.level}\` · *Tư chất:* \`${p.tuChat} / 250\`\n` +
                    `   *Hiệu ứng:* ${PET_TEMPLATES[p.type]?.desc ?? ''}`;
@@ -287,9 +287,10 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           const pet = await Pet.findByPk(selectedPetId);
           if (pet) {
             const activeTag = pet.isActive ? ' 🟢 [Đang Xuất Chiến]' : ' 💤 [Đang Nghỉ Ngơi]';
-            const rarityTag = pet.rarity === 'ANCIENT' ? ' 🌟 Thần Thú Thượng Cổ' : ' 🐾 Linh Thú Thường';
+            const rarityTag = pet.rarity === 'SUPREME' ? ' 👑 Chí Tôn Thần Thú' : (pet.rarity === 'ANCIENT' ? ' 🌟 Thần Thú Thượng Cổ' : ' 🐾 Linh Thú Thường');
             const nextLvlExp = pet.level * 100;
-            const evoTxt = pet.tienHoa > 0 ? ` (+${pet.tienHoa * 10}% Hộ Thể & +${pet.tienHoa * 5}% Kỹ Năng)` : '';
+            const totalEvolves = (pet.rarity === 'SUPREME' ? 20 : (pet.rarity === 'ANCIENT' ? 10 : 0)) + pet.tienHoa;
+            const evoTxt = totalEvolves > 0 ? ` (+${totalEvolves * 10}% Hộ Thể & +${totalEvolves * 5}% Kỹ Năng)` : '';
 
             const embed = new EmbedBuilder()
               .setTitle(`🐯 Sủng Vật: ${pet.name}`)
@@ -671,12 +672,14 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           );
 
           if (pet && pet.level >= 10) {
+            const currentTotalEvolves = (pet.rarity === 'SUPREME' ? 20 : (pet.rarity === 'ANCIENT' ? 10 : 0)) + (pet.tienHoa || 0);
+            const cost = Math.floor(1000 * Math.pow(1.5, currentTotalEvolves));
             actionRow2.addComponents(
               new ButtonBuilder()
                 .setCustomId('pet_action_evolve')
-                .setLabel('🧬 Tiến Hóa (Tốn 5k 🪙)')
+                .setLabel(`🧬 Tiến Hóa (Tốn ${cost.toLocaleString()} 🪙)`)
                 .setStyle(ButtonStyle.Success)
-                .setDisabled(tuSi.linhThach < 5000)
+                .setDisabled(tuSi.linhThach < cost)
             );
           }
           rows.push(actionRow2);
@@ -1000,7 +1003,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 );
               }
             } else if (i.customId === 'pet_action_evolve') {
-              const cost = Math.floor(1000 * Math.pow(1.5, pet.tienHoa || 0));
+              const currentTotalEvolves = (pet.rarity === 'SUPREME' ? 20 : (pet.rarity === 'ANCIENT' ? 10 : 0)) + (pet.tienHoa || 0);
+              const cost = Math.floor(1000 * Math.pow(1.5, currentTotalEvolves));
               if (tuSi.linhThach >= cost && pet.level >= 10) {
                 tuSi.linhThach -= cost;
                 await tuSi.save();
@@ -1008,13 +1012,36 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 pet.tienHoa = (pet.tienHoa || 0) + 1;
                 pet.tuChat = Math.min(250, pet.tuChat + 50);
 
-                let cleanName = pet.name.replace(/(\s\+\d+|\[Tiến Hóa\]\s*)/g, '').trim();
-                pet.name = `${cleanName} +${pet.tienHoa}`;
+                let isUpgraded = false;
+                let oldRarity = pet.rarity;
+                if (pet.tienHoa >= 10) {
+                  pet.tienHoa = 0;
+                  if (pet.rarity === 'NORMAL') {
+                    pet.rarity = 'ANCIENT';
+                    isUpgraded = true;
+                  } else if (pet.rarity === 'ANCIENT') {
+                    pet.rarity = 'SUPREME';
+                    isUpgraded = true;
+                  }
+                }
+
+                let cleanName = pet.name.replace(/(\s\+\d+|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
+                if (pet.tienHoa > 0) {
+                  pet.name = `${cleanName} +${pet.tienHoa}`;
+                } else {
+                  pet.name = cleanName;
+                }
                 await pet.save();
+
+                const rarityText = pet.rarity === 'SUPREME' ? 'Chí Tôn Thần Thú 👑' : (pet.rarity === 'ANCIENT' ? 'Thần Thú Thượng Cổ 🌟' : 'Linh Thú Thường 🐾');
+                let upgradeMsg = '';
+                if (isUpgraded) {
+                  upgradeMsg = `\n🎉 **Bộc phát tiềm năng!** Sủng vật đã đột phá phẩm cấp lên **${rarityText}** và thiết lập lại cấp tiến hóa về \`+0\`!`;
+                }
 
                 actionMessage = BoTaoEmbed.thanhCong(
                   '🧬 Sủng Vật Tiến Hóa',
-                  `**${pet.name}** đã hoàn tất đột phá tiến hóa! Tư chất tăng mạnh thêm \`+50\` điểm.`
+                  `**${pet.name}** đã hoàn tất đột phá tiến hóa! Tư chất tăng mạnh thêm \`+50\` điểm.${upgradeMsg}`
                 );
               }
             }

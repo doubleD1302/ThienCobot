@@ -331,6 +331,50 @@ async function start() {
         });
       }
 
+      // Thực hiện migration cho các sủng vật đã tiến hóa từ trước
+      try {
+        const { Pet } = await import('./models/Pet.js');
+        const allPets = await Pet.findAll();
+        for (const pet of allPets) {
+          let count = 0;
+          const regex = /\[Tiến\s*[Hh]óa\]/g;
+          const matches = pet.name.match(regex);
+          if (matches) {
+            count = matches.length;
+          }
+
+          if (count > 0) {
+            console.log(`[Migration] Phát hiện sủng vật ${pet.name} có ${count} lần tiến hóa.`);
+            let totalEvolves = count;
+            let currentRarity = pet.rarity || 'NORMAL';
+
+            while (totalEvolves >= 10) {
+              totalEvolves -= 10;
+              if (currentRarity === 'NORMAL') {
+                currentRarity = 'ANCIENT';
+              } else if (currentRarity === 'ANCIENT') {
+                currentRarity = 'SUPREME';
+              }
+            }
+
+            pet.tienHoa = totalEvolves;
+            pet.rarity = currentRarity;
+
+            let cleanName = pet.name.replace(/(\s\+\d+|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
+            if (pet.tienHoa > 0) {
+              pet.name = `${cleanName} +${pet.tienHoa}`;
+            } else {
+              pet.name = cleanName;
+            }
+
+            await pet.save();
+            console.log(`[Migration] Đã cập nhật sủng vật thành: ${pet.name} (Rarity: ${pet.rarity}, tienHoa: ${pet.tienHoa})`);
+          }
+        }
+      } catch (err) {
+        console.error('[Migration] Lỗi khi di cư dữ liệu sủng vật:', err);
+      }
+
       // Khắc phục lỗi schema cũ cho guild_settings
       const guildSettingsDesc = await queryInterface.describeTable('guild_settings');
       if (guildSettingsDesc.guild_id && guildSettingsDesc.guild_id.autoIncrement) {

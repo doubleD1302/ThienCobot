@@ -2003,4 +2003,87 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Pet Legacy Migration and 10-Evolve Reset Rules', async () => {
+    const { Pet } = await import('./models/Pet.js');
+    const { TuSi } = await import('./models/TuSi.js');
+
+    // 1. Mock migration for 11 evolves (e.g. "[Tiến Hóa]... [Tiến Hóa] (11 times) Thần Viên")
+    const legacyName = "[Tiến Hóa]".repeat(11) + " Thiết Tý Thần Viên";
+    const regex = /\[Tiến\s*[Hh]óa\]/g;
+    const matches = legacyName.match(regex);
+    assert.strictEqual(matches.length, 11);
+
+    // Run tier progression logic
+    let totalEvolves = matches.length;
+    let currentRarity = "NORMAL";
+
+    while (totalEvolves >= 10) {
+      totalEvolves -= 10;
+      if (currentRarity === 'NORMAL') {
+        currentRarity = 'ANCIENT';
+      } else if (currentRarity === 'ANCIENT') {
+        currentRarity = 'SUPREME';
+      }
+    }
+
+    assert.strictEqual(currentRarity, 'ANCIENT');
+    assert.strictEqual(totalEvolves, 1); // 11 - 10 = 1
+
+    let cleanName = legacyName.replace(/(\s\+\d+|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
+    assert.strictEqual(cleanName, 'Thiết Tý Thần Viên');
+
+    // Final formatted name
+    const finalName = `${cleanName} +${totalEvolves}`;
+    assert.strictEqual(finalName, 'Thiết Tý Thần Viên +1');
+
+    // 2. Test evolving up to 10 times in test DB
+    const tuSi = await TuSi.create({
+      idNguoiDung: "9999999999999992",
+      ten: "EvolveTestUser",
+      gioiTinh: "Nam",
+      huongTu: "The Tu",
+      linhCan: "Thổ Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100000000
+    });
+    tuSi.linhCanList = ["Tho"];
+
+    const pet = await Pet.create({
+      userId: tuSi.idNguoiDung,
+      name: "Thiết Tý Thần Viên",
+      type: "than_vien",
+      level: 10,
+      tuChat: 100,
+      isActive: true,
+      tienHoa: 9
+    });
+
+    // Run evolution simulation matching pet_action_evolve
+    const currentTotalEvolves = (pet.rarity === 'SUPREME' ? 20 : (pet.rarity === 'ANCIENT' ? 10 : 0)) + (pet.tienHoa || 0);
+    assert.strictEqual(currentTotalEvolves, 9);
+
+    // Evolve once
+    pet.tienHoa = (pet.tienHoa || 0) + 1;
+    assert.strictEqual(pet.tienHoa, 10);
+
+    // Check tier reset
+    let isUpgraded = false;
+    if (pet.tienHoa >= 10) {
+      pet.tienHoa = 0;
+      if (pet.rarity === 'NORMAL') {
+        pet.rarity = 'ANCIENT';
+        isUpgraded = true;
+      }
+    }
+
+    assert.strictEqual(isUpgraded, true);
+    assert.strictEqual(pet.rarity, 'ANCIENT');
+    assert.strictEqual(pet.tienHoa, 0);
+
+    // Clean up
+    await pet.destroy();
+    await tuSi.destroy();
+  });
+
 });

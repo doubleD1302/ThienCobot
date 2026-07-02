@@ -178,7 +178,8 @@ class TuSi extends Model {
     // 4. Cộng sủng vật (Pet) nếu có xuất chiến
     if (activePet) {
       const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
-      const evoMult = 1.0 + (activePet.tienHoa || 0) * 0.10;
+      const totalEvolves = (activePet.rarity === 'SUPREME' ? 20 : (activePet.rarity === 'ANCIENT' ? 10 : 0)) + (activePet.tienHoa || 0);
+      const evoMult = 1.0 + totalEvolves * 0.10;
       if (activePet.type === 'ma_lang') {
         vatCong += baseVatCongVal * 0.10 * scale * evoMult;
       } else if (activePet.type === 'loi_diep') {
@@ -258,7 +259,8 @@ class TuSi extends Model {
     // Tốc độ tu luyện cộng thêm từ sủng vật Lôi Điệp (nếu có và xuất chiến)
     if (activePet && activePet.type === 'loi_diep') {
       const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
-      const evoMult = 1.0 + (activePet.tienHoa || 0) * 0.10;
+      const totalEvolves = (activePet.rarity === 'SUPREME' ? 20 : (activePet.rarity === 'ANCIENT' ? 10 : 0)) + (activePet.tienHoa || 0);
+      const evoMult = 1.0 + totalEvolves * 0.10;
       mult *= (1.0 + 0.10 * scale * evoMult);
     }
 
