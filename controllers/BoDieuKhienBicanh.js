@@ -131,8 +131,23 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
         collector.stop('combating');
 
-        // 2. Tải chỉ số đầy đủ
-        const stats = await tuSi.layChiSoDayDu();
+        // 2. Tải trang bị và thần thú xuất chiến để tính chỉ số và giả lập chiến đấu
+        const { Inventory } = await import('../models/Inventory.js');
+        const { Item } = await import('../models/Item.js');
+        const equippedInv = await Inventory.findAll({
+          where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true }
+        });
+        const equippedItems = [];
+        for (const eq of equippedInv) {
+          const detail = await Item.findByPk(eq.itemId);
+          if (detail) {
+            eq.item = detail;
+            equippedItems.push(eq);
+          }
+        }
+        const { Pet } = await import('../models/Pet.js');
+        const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+        const stats = tuSi.layChiSo(equippedItems, activePet);
 
         // Yêu cầu HP tối thiểu
         if (tuSi.hp <= Math.floor(stats.max_hp * 0.10)) {
