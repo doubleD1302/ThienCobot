@@ -20,6 +20,7 @@ import { danhSachLenhLiXi } from './controllers/BoDieuKhienLiXi.js';
 import { danhSachLenhGacha } from './controllers/BoDieuKhienGacha.js';
 import { danhSachLenhAuto, khoiDongAutoSchedule } from './controllers/BoDieuKhienAuto.js';
 import { danhSachLenhDongGop } from './controllers/BoDieuKhienDongGop.js';
+import { danhSachLenhDmg } from './controllers/BoDieuKhienDmg.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/DongGopEmoji.js';
@@ -79,7 +80,8 @@ const tatCaLenh = [
   ...danhSachLenhLiXi,
   ...danhSachLenhGacha,
   ...danhSachLenhAuto,
-  ...danhSachLenhDongGop
+  ...danhSachLenhDongGop,
+  ...danhSachLenhDmg
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);

@@ -19,6 +19,7 @@ import { danhSachLenhLiXi } from './controllers/BoDieuKhienLiXi.js';
 import { danhSachLenhGacha } from './controllers/BoDieuKhienGacha.js';
 import { danhSachLenhAuto } from './controllers/BoDieuKhienAuto.js';
 import { danhSachLenhDongGop } from './controllers/BoDieuKhienDongGop.js';
+import { danhSachLenhDmg } from './controllers/BoDieuKhienDmg.js';
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
@@ -43,7 +44,8 @@ const tatCaLenh = [
   ...danhSachLenhLiXi,
   ...danhSachLenhGacha,
   ...danhSachLenhAuto,
-  ...danhSachLenhDongGop
+  ...danhSachLenhDongGop,
+  ...danhSachLenhDmg
 ];
 
 client.once('ready', async () => {

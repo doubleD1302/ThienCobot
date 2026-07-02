@@ -564,6 +564,23 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         });
       }
 
+      // Khống chế KS: Khi Boss dưới 10% HP, phải khiêu chiến trong vòng 2 phút trước đó
+      if (boss.hp <= boss.maxHp * 0.10) {
+        const lastAttackCd = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'boss_last_attack');
+        let canAttack = false;
+        if (lastAttackCd) {
+          const lastAttackTime = lastAttackCd.duLieu.lastAttackTime || 0;
+          if (Date.now() - lastAttackTime <= 2 * 60 * 1000) {
+            canAttack = true;
+          }
+        }
+        if (!canAttack) {
+          return await interaction.editReply({
+            embeds: [BoTaoEmbed.loi('Cự Thú sắp gục ngã (dưới 10% HP)! Đạo hữu chưa từng tham gia khiêu chiến trước đó hoặc đã không khiêu chiến trong 2 phút vừa qua, Thiên Đạo hạn chế quyền tham chiến để tránh hành vi cướp đoạt công lao (KS).')]
+          });
+        }
+      }
+
       const stats = await tuSi.layChiSoDayDu();
 
       // Yêu cầu thể trạng
@@ -673,6 +690,10 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       // Đặt thời gian chờ khiêu chiến mới (1 phút)
       const expiresAt = new Date(Date.now() + 60 * 1000);
       await this.datThoiGianCho(tuSi.idNguoiDung, 'boss', expiresAt);
+
+      // Ghi nhận thời gian tấn công boss cuối cùng (lưu trữ 100 năm)
+      const farFuture = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+      await this.datThoiGianCho(tuSi.idNguoiDung, 'boss_last_attack', farFuture, { lastAttackTime: Date.now() });
 
       // Kiểm tra Cự Thú đã bị tiêu diệt hay chưa
       if (boss.hp <= 0) {

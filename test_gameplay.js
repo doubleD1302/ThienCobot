@@ -1859,4 +1859,71 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await Inventory.destroy({ where: { idNguoiDung: userId } });
   });
 
+  test('World Boss anti-KS logic (<= 10% HP restriction)', async () => {
+    const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+    const { boDieuKhienBoss } = await import('./controllers/BoDieuKhienBoss.js');
+
+    const userId = "test_user_ks_boss";
+    await ThoiGianCho.destroy({ where: { idNguoiDung: userId, hanhDong: 'boss_last_attack' } });
+
+    // Mock a boss with 10% or less HP
+    const bossMaxHp = 100000;
+    const bossHp = 5000; // 5% HP
+
+    // Helper check function matching controllers/BoDieuKhienBoss.js logic
+    const checkCanAttack = async (uid) => {
+      if (bossHp <= bossMaxHp * 0.10) {
+        const lastAttackCd = await boDieuKhienBoss.kiemTraThoiGianCho(uid, 'boss_last_attack');
+        let canAttack = false;
+        if (lastAttackCd) {
+          const lastAttackTime = lastAttackCd.duLieu.lastAttackTime || 0;
+          if (Date.now() - lastAttackTime <= 2 * 60 * 1000) {
+            canAttack = true;
+          }
+        }
+        return canAttack;
+      }
+      return true;
+    };
+
+    // 1. Should be blocked initially because no attack history exists
+    let allowed = await checkCanAttack(userId);
+    assert.strictEqual(allowed, false);
+
+    // 2. Mock an old attack history (2.5 minutes ago)
+    const farFuture = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+    const oldTime = Date.now() - 2.5 * 60 * 1000;
+    await boDieuKhienBoss.datThoiGianCho(userId, 'boss_last_attack', farFuture, { lastAttackTime: oldTime });
+
+    allowed = await checkCanAttack(userId);
+    assert.strictEqual(allowed, false);
+
+    // 3. Mock a recent attack history (1.5 minutes ago)
+    const recentTime = Date.now() - 1.5 * 60 * 1000;
+    await boDieuKhienBoss.datThoiGianCho(userId, 'boss_last_attack', farFuture, { lastAttackTime: recentTime });
+
+    allowed = await checkCanAttack(userId);
+    assert.strictEqual(allowed, true);
+
+    // Clean up
+    await ThoiGianCho.destroy({ where: { idNguoiDung: userId } });
+  });
+
+  test('Damage simulator (/dmg boss and /dmg pvp @user) mechanics', async () => {
+    const { boDieuKhienDmg } = await import('./controllers/BoDieuKhienDmg.js');
+
+    // Verify /dmg command properties exist
+    assert.strictEqual(boDieuKhienDmg.lenhDmg.data.name, 'dmg');
+    assert.ok(boDieuKhienDmg.lenhDmg.data.options.length > 0);
+
+    // Verify boss subcommand exists
+    const bossSub = boDieuKhienDmg.lenhDmg.data.options.find(opt => opt.name === 'boss');
+    assert.ok(bossSub);
+
+    // Verify pvp subcommand and options exist
+    const pvpSub = boDieuKhienDmg.lenhDmg.data.options.find(opt => opt.name === 'pvp');
+    assert.ok(pvpSub);
+    assert.ok(pvpSub.options.find(opt => opt.name === 'user'));
+  });
+
 });
