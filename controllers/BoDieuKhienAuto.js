@@ -45,7 +45,7 @@ const buildAutoComponents = (tuSi) => {
       .setDisabled(!tuSi.kichHoatAuto && tuSi.thoiGianAuto <= 0),
     new ButtonBuilder()
       .setCustomId('auto_refill')
-      .setLabel('⚡ Bổ Sung Thời Gian (20k Linh Thạch = +250 phút)')
+      .setLabel('⚡ Bổ Sung Thời Gian (10k Linh Thạch = +250 phút)')
       .setStyle(ButtonStyle.Primary)
   );
   return [row];
@@ -136,14 +136,14 @@ class BoDieuKhienAuto extends BoDieuKhienGoc {
           }
           await freshTuSi.save();
         } else if (i.customId === 'auto_refill') {
-          if (freshTuSi.linhThach < 20000) {
+          if (freshTuSi.linhThach < 10000) {
             await i.followUp({
-              content: `❌ Linh thạch bất túc! Đạo hữu cần có ít nhất \`20,000\` Linh Thạch để mua thêm thời gian (Hiện có: \`${freshTuSi.linhThach.toLocaleString()}\` Linh Thạch).`,
+              content: `❌ Linh thạch bất túc! Đạo hữu cần có ít nhất \`10,000\` Linh Thạch để mua thêm thời gian (Hiện có: \`${freshTuSi.linhThach.toLocaleString()}\` Linh Thạch).`,
               ephemeral: true
             });
             return;
           }
-          freshTuSi.linhThach -= 20000;
+          freshTuSi.linhThach -= 10000;
           freshTuSi.thoiGianAuto += 250;
           await freshTuSi.save();
         }

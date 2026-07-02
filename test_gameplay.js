@@ -1551,7 +1551,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       linhCan: "Thủy Linh Căn",
       capDo: 1,
       linhLuc: 0,
-      linhThach: 25000,
+      linhThach: 15000,
       vnd: 100000,
       thoiGianAuto: 0,
       kichHoatAuto: false,
@@ -1579,13 +1579,13 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     });
 
     // --- 1. Test refilling time ---
-    // Costs 20,000 Linh Thạch to get 250 minutes
+    // Costs 10,000 Linh Thạch to get 250 minutes
     assert.strictEqual(tuSi.thoiGianAuto, 0);
     assert.strictEqual(tuSi.kichHoatAuto, false);
     
     // Perform refill check
-    assert.ok(tuSi.linhThach >= 20000);
-    tuSi.linhThach -= 20000;
+    assert.ok(tuSi.linhThach >= 10000);
+    tuSi.linhThach -= 10000;
     tuSi.thoiGianAuto += 250;
     await tuSi.save();
     
