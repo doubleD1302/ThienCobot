@@ -615,3 +615,20 @@ export function rollDynamicStats(item) {
 
   return lines;
 }
+
+// Cấu hình Kỹ Năng Chủ Động của Pháp Bảo
+export const KYNANG_PHAPBAO_ACTIVE = {
+  phap_bao_ho_than: { ten: "Thủy Vân Trị Liệu", loai: "hoi_mau_pct", triGia: 15, duration: 0, moTa: "Hồi phục 15% HP tối đa khi vào trận chiến." },
+  phap_bao_cong_kich: { ten: "Liệt Diễm Tiễn", loai: "tan_cong", triGia: 250, duration: 0, moTa: "Gây 250 sát thương cố định khi vào trận chiến." },
+  phap_bao_hon_ton: { ten: "Hỗn Độn Thần Lực", loai: "tang_cong_pct", triGia: 20, duration: 3, moTa: "Tăng 20% Công kích trong 3 hiệp đầu trận." }
+};
+
+export function layKyNangPhapBaoActive(itemId) {
+  return KYNANG_PHAPBAO_ACTIVE[itemId] || {
+    ten: "Linh Khí Bộc Phát",
+    loai: "tan_cong",
+    triGia: 100,
+    duration: 0,
+    moTa: "Gây 100 sát thương cố định khi vào trận chiến."
+  };
+}

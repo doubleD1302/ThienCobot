@@ -175,6 +175,35 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         const activeTreasures = equippedItems.filter(x => x.item.loai === 'Cổ Bảo Chủ Động');
         const dharmaTreasures = equippedItems.filter(x => x.item.loai === 'Pháp Bảo');
 
+        // Kích hoạt kỹ năng chủ động của Pháp Bảo khi vào chiến đấu
+        const activeBuffs = [];
+        for (const eq of dharmaTreasures) {
+          const activeSkill = config.layKyNangPhapBaoActive(eq.itemId);
+          if (activeSkill) {
+            if (activeSkill.loai === 'tan_cong') {
+              monsterHp = Math.max(0, monsterHp - activeSkill.triGia);
+              battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, gây \`${activeSkill.triGia}\` sát thương lên **${monster.ten}** (HP còn: \`${monsterHp}\`).`);
+            } else if (activeSkill.loai === 'hoi_mau_pct') {
+              const healAmt = Math.floor(stats.max_hp * (activeSkill.triGia / 100));
+              playerHp = Math.min(stats.max_hp, playerHp + healAmt);
+              battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, hồi phục \`+${healAmt}\` HP (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+            } else if (activeSkill.loai === 'tang_cong_pct') {
+              activeBuffs.push({
+                ten: activeSkill.ten,
+                pbTen: eq.item.ten,
+                loai: 'tang_cong_pct',
+                triGia: activeSkill.triGia,
+                roundsLeft: activeSkill.duration
+              });
+              battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, gia tăng \`+${activeSkill.triGia}%\` Công kích trong \`${activeSkill.duration}\` hiệp.`);
+            }
+          }
+        }
+
+        if (monsterHp <= 0) {
+          isWin = true;
+        }
+
         // Tải kỹ năng đã học để dùng trong Bí Cảnh
         const { PlayerSkill } = await import('../models/PlayerSkill.js');
         const { Skill } = await import('../models/Skill.js');
@@ -189,6 +218,15 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         }
 
         while (monsterHp > 0 && playerHp > 0 && round <= 15) {
+          // Tính công kích thực tế dựa trên buff Pháp Bảo đang hoạt động
+          let roundAtkMult = 1.0;
+          for (const buff of activeBuffs) {
+            if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
+              roundAtkMult += buff.triGia / 100;
+            }
+          }
+          const currentRoundPlayerAtk = Math.floor(playerAtk * roundAtkMult);
+
           // Lượt chơi: Người tấn công trước
           const readySkill = skills.find(s => s.nextRoundAvailable <= round);
           let pDmg = 0;
@@ -199,7 +237,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             const skill = readySkill.detail;
             const capDo = readySkill.capDo;
             const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
-            let rawDmg = playerAtk * skillMult;
+            let rawDmg = currentRoundPlayerAtk * skillMult;
 
             if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
             pDmg = Math.max(1, Math.floor(rawDmg) - monsterDef);
@@ -210,7 +248,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
             castMsg = `thi triển **${skill.ten} (Cấp ${capDo})**`;
           } else {
-            let rawDmg = playerAtk;
+            let rawDmg = currentRoundPlayerAtk;
             if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
             pDmg = Math.max(1, Math.floor(rawDmg) - monsterDef);
 
@@ -252,46 +290,12 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
           if (isWin) break;
 
-          // Pháp Bảo (25%)
-          for (const eq of dharmaTreasures) {
-            if (Math.random() <= 0.25) {
-              const kynang = config.KYNANG_TRANGBI[eq.itemId];
-              if (kynang) {
-                let pbCritRate = stats.crit_rate;
-                let pbCritDmg = stats.crit_dmg;
-                let pbDmgBonus = 1.0;
-                let pbShieldBonus = 1.0;
-
-                if (eq.dongChiSoJson) {
-                  try {
-                    const lines = JSON.parse(eq.dongChiSoJson);
-                    for (const line of lines) {
-                      if (line.thuocTinh === 'crit_rate_pb') pbCritRate += line.phanTram / 100;
-                      if (line.thuocTinh === 'crit_dmg_pb') pbCritDmg += line.phanTram / 100;
-                      if (line.thuocTinh === 'sat_thuong_pb' || line.thuocTinh === 'phap_thuong_pb') pbDmgBonus += line.phanTram / 100;
-                      if (line.thuocTinh === 'khien_pb') pbShieldBonus += line.phanTram / 100;
-                    }
-                  } catch (e) {}
-                }
-
-                if (kynang.baseDmg) {
-                  let pbDmg = Math.floor(kynang.baseDmg * pbDmgBonus);
-                  const isPbCrit = Math.random() <= pbCritRate;
-                  if (isPbCrit) pbDmg = Math.floor(pbDmg * pbCritDmg);
-                  pbDmg = Math.max(1, pbDmg - monsterDef);
-                  monsterHp = Math.max(0, monsterHp - pbDmg);
-                  battleLogs.push(`📿 **Pháp Bảo**: **${eq.item.ten}** tung **${kynang.ten}** gây \`${pbDmg}\`${isPbCrit ? ' 💥 (Bạo!)' : ''} sát thương (HP: \`${monsterHp}\`).`);
-                  if (monsterHp <= 0) {
-                    isWin = true;
-                    break;
-                  }
-                }
-
-                if (kynang.baseShield) {
-                  const pbShield = Math.floor(kynang.baseShield * pbShieldBonus);
-                  playerShield += pbShield;
-                  battleLogs.push(`📿 **Pháp Bảo**: **${eq.item.ten}** tạo kết giới hộ thể chặn \`${pbShield}\` sát thương.`);
-                }
+          // Giảm thời gian hiệu lực của Pháp Bảo ở cuối mỗi hiệp
+          for (const buff of activeBuffs) {
+            if (buff.roundsLeft > 0) {
+              buff.roundsLeft--;
+              if (buff.roundsLeft === 0) {
+                battleLogs.push(`✨ Hiệu ứng [${buff.ten}] của **${buff.pbTen}** đã hết tác dụng.`);
               }
             }
           }

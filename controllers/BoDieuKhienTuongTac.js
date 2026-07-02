@@ -152,6 +152,70 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           let round = 1;
           let winner = null;
 
+          // Kích hoạt kỹ năng chủ động của Pháp Bảo khi vào chiến đấu
+          const activeBuffsA = [];
+          const activeBuffsB = [];
+
+          // Phát động Pháp Bảo của A
+          const dharmaA = eqA.inv.filter(x => x.item.loai === 'Pháp Bảo');
+          for (const eq of dharmaA) {
+            const activeSkill = config.layKyNangPhapBaoActive(eq.itemId);
+            if (activeSkill) {
+              if (activeSkill.loai === 'tan_cong') {
+                hpB = Math.max(0, hpB - activeSkill.triGia);
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, gây \`${activeSkill.triGia}\` sát thương lên **${tuSiB.ten}** (HP còn: \`${hpB}\`).`);
+              } else if (activeSkill.loai === 'hoi_mau_pct') {
+                const healAmt = Math.floor(statsA.max_hp * (activeSkill.triGia / 100));
+                hpA = Math.min(statsA.max_hp, hpA + healAmt);
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, hồi phục \`+${healAmt}\` HP (Hiện tại: \`${hpA}/${statsA.max_hp}\`).`);
+              } else if (activeSkill.loai === 'tang_cong_pct') {
+                activeBuffsA.push({
+                  ten: activeSkill.ten,
+                  pbTen: eq.item.ten,
+                  loai: 'tang_cong_pct',
+                  triGia: activeSkill.triGia,
+                  roundsLeft: activeSkill.duration
+                });
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, gia tăng \`+${activeSkill.triGia}%\` Công kích trong \`${activeSkill.duration}\` hiệp.`);
+              }
+            }
+          }
+
+          // Phát động Pháp Bảo của B
+          const dharmaB = eqB.inv.filter(x => x.item.loai === 'Pháp Bảo');
+          for (const eq of dharmaB) {
+            const activeSkill = config.layKyNangPhapBaoActive(eq.itemId);
+            if (activeSkill) {
+              if (activeSkill.loai === 'tan_cong') {
+                hpA = Math.max(0, hpA - activeSkill.triGia);
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, gây \`${activeSkill.triGia}\` sát thương lên **${tuSiA.ten}** (HP còn: \`${hpA}\`).`);
+              } else if (activeSkill.loai === 'hoi_mau_pct') {
+                const healAmt = Math.floor(statsB.max_hp * (activeSkill.triGia / 100));
+                hpB = Math.min(statsB.max_hp, hpB + healAmt);
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, hồi phục \`+${healAmt}\` HP (Hiện tại: \`${hpB}/${statsB.max_hp}\`).`);
+              } else if (activeSkill.loai === 'tang_cong_pct') {
+                activeBuffsB.push({
+                  ten: activeSkill.ten,
+                  pbTen: eq.item.ten,
+                  loai: 'tang_cong_pct',
+                  triGia: activeSkill.triGia,
+                  roundsLeft: activeSkill.duration
+                });
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, gia tăng \`+${activeSkill.triGia}%\` Công kích trong \`${activeSkill.duration}\` hiệp.`);
+              }
+            }
+          }
+
+          if (hpA <= 0 || hpB <= 0) {
+            if (hpA <= 0 && hpB <= 0) {
+              winner = hpA >= hpB ? tuSiA : tuSiB;
+            } else if (hpA <= 0) {
+              winner = tuSiB;
+            } else {
+              winner = tuSiA;
+            }
+          }
+
           const atkA = tuSiA.huongTu === 'The Tu' ? statsA.vat_cong : statsA.phap_cong;
           const defB = tuSiA.huongTu === 'The Tu' ? statsB.vat_phong : statsB.phap_phong;
 
@@ -160,6 +224,14 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
 
           while (hpA > 0 && hpB > 0 && round <= 15) {
             // Lượt A đánh B
+            let roundAtkAMult = 1.0;
+            for (const buff of activeBuffsA) {
+              if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
+                roundAtkAMult += buff.triGia / 100;
+              }
+            }
+            const currentRoundAtkA = Math.floor(atkA * roundAtkAMult);
+
             const readySkillA = skillsA.find(s => s.nextRoundAvailable <= round);
             let dmgA = 0;
             let castMsgA = '';
@@ -169,7 +241,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
               const skill = readySkillA.detail;
               const capDo = readySkillA.capDo;
               const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
-              let rawDmg = atkA * skillMult;
+              let rawDmg = currentRoundAtkA * skillMult;
 
               if (isCritA) rawDmg = rawDmg * statsA.crit_dmg;
               dmgA = Math.max(1, Math.floor(rawDmg) - defB);
@@ -179,7 +251,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
 
               castMsgA = `thi triển **${skill.ten} (Cấp ${capDo})**`;
             } else {
-              let rawDmg = atkA;
+              let rawDmg = currentRoundAtkA;
               if (isCritA) rawDmg = rawDmg * statsA.crit_dmg;
               dmgA = Math.max(1, Math.floor(rawDmg) - defB);
 
@@ -199,6 +271,14 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             }
 
             // Lượt B đánh A
+            let roundAtkBMult = 1.0;
+            for (const buff of activeBuffsB) {
+              if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
+                roundAtkBMult += buff.triGia / 100;
+              }
+            }
+            const currentRoundAtkB = Math.floor(atkB * roundAtkBMult);
+
             const readySkillB = skillsB.find(s => s.nextRoundAvailable <= round);
             let dmgB = 0;
             let castMsgB = '';
@@ -208,7 +288,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
               const skill = readySkillB.detail;
               const capDo = readySkillB.capDo;
               const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
-              let rawDmg = atkB * skillMult;
+              let rawDmg = currentRoundAtkB * skillMult;
 
               if (isCritB) rawDmg = rawDmg * statsB.crit_dmg;
               dmgB = Math.max(1, Math.floor(rawDmg) - defA);
@@ -218,7 +298,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
 
               castMsgB = `thi triển **${skill.ten} (Cấp ${capDo})**`;
             } else {
-              let rawDmg = atkB;
+              let rawDmg = currentRoundAtkB;
               if (isCritB) rawDmg = rawDmg * statsB.crit_dmg;
               dmgB = Math.max(1, Math.floor(rawDmg) - defA);
 
@@ -235,6 +315,25 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             if (hpA <= 0) {
               winner = tuSiB;
               break;
+            }
+
+            // Giảm thời gian hiệu lực của Pháp Bảo A
+            for (const buff of activeBuffsA) {
+              if (buff.roundsLeft > 0) {
+                buff.roundsLeft--;
+                if (buff.roundsLeft === 0) {
+                  battleLogs.push(`✨ Hiệu ứng [${buff.ten}] của **${buff.pbTen}** (${tuSiA.ten}) đã hết tác dụng.`);
+                }
+              }
+            }
+            // Giảm thời gian hiệu lực của Pháp Bảo B
+            for (const buff of activeBuffsB) {
+              if (buff.roundsLeft > 0) {
+                buff.roundsLeft--;
+                if (buff.roundsLeft === 0) {
+                  battleLogs.push(`✨ Hiệu ứng [${buff.ten}] của **${buff.pbTen}** (${tuSiB.ten}) đã hết tác dụng.`);
+                }
+              }
             }
 
             round++;

@@ -295,9 +295,9 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       // Chọn ngẫu nhiên một loài Boss
       const tpl = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
 
-      const maxHp = bossLevel * 50000 + 50000;
-      const vatCong = bossLevel * 300 + 100;
-      const phapCong = bossLevel * 300 + 100;
+      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000);
+      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000);
+      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000);
       const vatPhong = bossLevel * 100 + 50;
       const phapPhong = bossLevel * 100 + 50;
       const giap = bossLevel * 50 + 20;
@@ -481,9 +481,40 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         });
       }
 
+      // Kích hoạt kỹ năng chủ động của Pháp Bảo khi vào chiến đấu
+      let playerAtkMult = 1.0;
+      let pbExtraDmg = 0;
+      const pbLogs = [];
+      const equippedInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, trangBi: true } });
+      const dharmaTreasures = [];
+      for (const eq of equippedInv) {
+        const detail = await Item.findByPk(eq.itemId);
+        if (detail && detail.loai === 'Pháp Bảo') {
+          eq.item = detail;
+          dharmaTreasures.push(eq);
+        }
+      }
+
+      for (const eq of dharmaTreasures) {
+        const activeSkill = config.layKyNangPhapBaoActive(eq.itemId);
+        if (activeSkill) {
+          if (activeSkill.loai === 'tan_cong') {
+            pbExtraDmg += activeSkill.triGia;
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gây thêm \`+${activeSkill.triGia}\` sát thương.`);
+          } else if (activeSkill.loai === 'hoi_mau_pct') {
+            const healAmt = Math.floor(stats.max_hp * (activeSkill.triGia / 100));
+            tuSi.hp = Math.min(stats.max_hp, tuSi.hp + healAmt);
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Hồi phục \`+${healAmt}\` HP (Hiện tại: \`${tuSi.hp}/${stats.max_hp}\`).`);
+          } else if (activeSkill.loai === 'tang_cong_pct') {
+            playerAtkMult += activeSkill.triGia / 100;
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gia tăng \`+${activeSkill.triGia}%\` Công kích.`);
+          }
+        }
+      }
+
       // Tính toán sát thương gây ra
       const isPhysical = tuSi.huongTu === 'Thể Tu';
-      const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
+      const playerAtk = Math.floor((isPhysical ? stats.vat_cong : stats.phap_cong) * playerAtkMult);
       const bossDef = isPhysical ? boss.vatPhong : boss.phapPhong;
 
       // Tải kỹ năng đã học để dùng khi đánh Boss
@@ -523,15 +554,16 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       }
 
       // Giảm máu Boss
-      boss.hp = Math.max(0, boss.hp - pDmg);
+      const finalPlayerDmg = pDmg + pbExtraDmg;
+      boss.hp = Math.max(0, boss.hp - finalPlayerDmg);
 
       // Ghi nhận đóng góp sát thương
       const dealers = boss.damageDealers;
-      dealers[tuSi.idNguoiDung] = (dealers[tuSi.idNguoiDung] || 0) + pDmg;
+      dealers[tuSi.idNguoiDung] = (dealers[tuSi.idNguoiDung] || 0) + finalPlayerDmg;
       boss.damageDealers = dealers; // Save getter/setter JSON
 
       // Cự Thú phản công tu sĩ
-      let bossDmg = Math.max(5, boss.vatCong - stats.vat_phong);
+      let bossDmg = Math.max(1, boss.vatCong - stats.vat_phong);
       const isDodge = Math.random() <= stats.ne;
       let dodgeMsg = '';
 
@@ -609,10 +641,12 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       }
 
       // Trả lời kết quả tấn công riêng tư (ephemeral)
-      const logs = [
-        `💥 Đạo hữu **${tuSi.ten}** ${castMsg} lên **${boss.ten}** gây \`${pDmg.toLocaleString()}\` sát thương.${isCrit ? ' **(BẠO KÍCH!)**' : ''}`,
-        dodgeMsg ? dodgeMsg : `👹 Cự thú giận dữ tát lại, gây \`-${bossDmg}\` sát thương (HP của ngươi: \`${tuSi.hp}/${stats.max_hp}\`).`
-      ];
+      const logs = [];
+      if (pbLogs.length > 0) {
+        logs.push(pbLogs.join('\n'));
+      }
+      logs.push(`💥 Đạo hữu **${tuSi.ten}** ${castMsg} lên **${boss.ten}** gây \`${finalPlayerDmg.toLocaleString()}\` sát thương.${isCrit ? ' **(BẠO KÍCH!)**' : ''}`);
+      logs.push(dodgeMsg ? dodgeMsg : `👹 Cự thú giận dữ tát lại, gây \`-${bossDmg}\` sát thương (HP của ngươi: \`${tuSi.hp}/${stats.max_hp}\`).`);
 
       return await interaction.editReply({
         embeds: [

@@ -1252,4 +1252,76 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('World Boss HP/Damage Reduction 1000x', () => {
+    // Verify formula calculations for level 1
+    const lvl1Hp = Math.ceil((1 * 50000 + 50000) / 1000);
+    const lvl1Atk = Math.ceil((1 * 300 + 100) / 1000);
+    assert.strictEqual(lvl1Hp, 100);
+    assert.strictEqual(lvl1Atk, 1);
+
+    // Verify formula calculations for level 30
+    const lvl30Hp = Math.ceil((30 * 50000 + 50000) / 1000);
+    const lvl30Atk = Math.ceil((30 * 300 + 100) / 1000);
+    assert.strictEqual(lvl30Hp, 1550);
+    assert.strictEqual(lvl30Atk, 10);
+  });
+
+  test('Pháp Bảo Active Skills Config & Duration', () => {
+    // 1. Verify active skills configuration mapping
+    const pbHoThan = config.layKyNangPhapBaoActive('phap_bao_ho_than');
+    assert.strictEqual(pbHoThan.ten, 'Thủy Vân Trị Liệu');
+    assert.strictEqual(pbHoThan.loai, 'hoi_mau_pct');
+    assert.strictEqual(pbHoThan.triGia, 15);
+    assert.strictEqual(pbHoThan.duration, 0); // Instant
+
+    const pbCongKich = config.layKyNangPhapBaoActive('phap_bao_cong_kich');
+    assert.strictEqual(pbCongKich.ten, 'Liệt Diễm Tiễn');
+    assert.strictEqual(pbCongKich.loai, 'tan_cong');
+    assert.strictEqual(pbCongKich.triGia, 250);
+    assert.strictEqual(pbCongKich.duration, 0); // Instant
+
+    const pbHonTon = config.layKyNangPhapBaoActive('phap_bao_hon_ton');
+    assert.strictEqual(pbHonTon.ten, 'Hỗn Độn Thần Lực');
+    assert.strictEqual(pbHonTon.loai, 'tang_cong_pct');
+    assert.strictEqual(pbHonTon.triGia, 20);
+    assert.strictEqual(pbHonTon.duration, 3); // 3 rounds duration
+
+    // 2. Mock duration decrement behavior
+    const activeBuffs = [{
+      ten: pbHonTon.ten,
+      pbTen: 'Hỗn Độn Chung 🔔',
+      loai: 'tang_cong_pct',
+      triGia: pbHonTon.triGia,
+      roundsLeft: pbHonTon.duration
+    }];
+
+    const logs = [];
+    const runRoundEndBuffDecrement = (buffs) => {
+      for (const buff of buffs) {
+        if (buff.roundsLeft > 0) {
+          buff.roundsLeft--;
+          if (buff.roundsLeft === 0) {
+            logs.push(`expired_${buff.ten}`);
+          }
+        }
+      }
+    };
+
+    // Round 1
+    runRoundEndBuffDecrement(activeBuffs);
+    assert.strictEqual(activeBuffs[0].roundsLeft, 2);
+    assert.strictEqual(logs.length, 0);
+
+    // Round 2
+    runRoundEndBuffDecrement(activeBuffs);
+    assert.strictEqual(activeBuffs[0].roundsLeft, 1);
+    assert.strictEqual(logs.length, 0);
+
+    // Round 3
+    runRoundEndBuffDecrement(activeBuffs);
+    assert.strictEqual(activeBuffs[0].roundsLeft, 0);
+    assert.strictEqual(logs.length, 1);
+    assert.strictEqual(logs[0], 'expired_Hỗn Độn Thần Lực');
+  });
+
 });
