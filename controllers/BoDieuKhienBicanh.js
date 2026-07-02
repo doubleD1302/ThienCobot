@@ -178,7 +178,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         // Kích hoạt kỹ năng chủ động của Pháp Bảo khi vào chiến đấu
         const activeBuffs = [];
         for (const eq of dharmaTreasures) {
-          const activeSkill = config.layKyNangPhapBaoActive(eq.itemId);
+          const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
           if (activeSkill) {
             if (activeSkill.loai === 'tan_cong') {
               monsterHp = Math.max(0, monsterHp - activeSkill.triGia);

@@ -13,6 +13,18 @@ class Item extends Model {
   set chiSo(value) {
     this.chiSoJson = JSON.stringify(value || {});
   }
+
+  get activeSkill() {
+    try {
+      return JSON.parse(this.activeSkillJson || 'null');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  set activeSkill(value) {
+    this.activeSkillJson = JSON.stringify(value || null);
+  }
 }
 
 Item.init({
@@ -56,6 +68,11 @@ Item.init({
     allowNull: false,
     defaultValue: 1,
     field: 'yeu_cau_canh_gioi'
+  },
+  activeSkillJson: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    field: 'active_skill_json'
   }
 }, {
   sequelize,

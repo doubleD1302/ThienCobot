@@ -1393,4 +1393,43 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Pháp Bảo Active Skill Load from Database Column', async () => {
+    const { Item } = await import('./models/Item.js');
+    const config = await import('./config.js');
+
+    // Create a mock Pháp Bảo item with active_skill_json defined
+    const mockItem = await Item.create({
+      id: 'pb_db_test_skill',
+      ten: 'Hắc Long Trướng ⚡',
+      loai: 'Pháp Bảo',
+      doHiem: 'Cực hiếm',
+      giaCoSo: 1000,
+      chiSoJson: '{"phap_cong":50}',
+      yeuCauCanhGioi: 10,
+      activeSkillJson: JSON.stringify({
+        ten: 'Hắc Long Chi Uy 🐉',
+        loai: 'tang_cong_pct',
+        triGia: 30,
+        duration: 5,
+        moTa: 'Tăng 30% Công kích trong 5 hiệp.'
+      })
+    });
+
+    // Load from DB
+    const loadedItem = await Item.findByPk('pb_db_test_skill');
+    assert.ok(loadedItem);
+    assert.strictEqual(loadedItem.activeSkill.ten, 'Hắc Long Chi Uy 🐉');
+    assert.strictEqual(loadedItem.activeSkill.loai, 'tang_cong_pct');
+    assert.strictEqual(loadedItem.activeSkill.triGia, 30);
+    assert.strictEqual(loadedItem.activeSkill.duration, 5);
+
+    // Call layKyNangPhapBaoActive with the loaded item
+    const resolvedSkill = config.layKyNangPhapBaoActive(loadedItem);
+    assert.strictEqual(resolvedSkill.ten, 'Hắc Long Chi Uy 🐉');
+    assert.strictEqual(resolvedSkill.triGia, 30);
+
+    // Clean up
+    await mockItem.destroy();
+  });
+
 });

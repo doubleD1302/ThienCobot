@@ -496,7 +496,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       }
 
       for (const eq of dharmaTreasures) {
-        const activeSkill = config.layKyNangPhapBaoActive(eq.itemId);
+        const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
         if (activeSkill) {
           if (activeSkill.loai === 'tan_cong') {
             pbExtraDmg += activeSkill.triGia;

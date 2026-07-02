@@ -159,7 +159,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           // Phát động Pháp Bảo của A
           const dharmaA = eqA.inv.filter(x => x.item.loai === 'Pháp Bảo');
           for (const eq of dharmaA) {
-            const activeSkill = config.layKyNangPhapBaoActive(eq.itemId);
+            const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
             if (activeSkill) {
               if (activeSkill.loai === 'tan_cong') {
                 hpB = Math.max(0, hpB - activeSkill.triGia);
@@ -184,7 +184,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           // Phát động Pháp Bảo của B
           const dharmaB = eqB.inv.filter(x => x.item.loai === 'Pháp Bảo');
           for (const eq of dharmaB) {
-            const activeSkill = config.layKyNangPhapBaoActive(eq.itemId);
+            const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
             if (activeSkill) {
               if (activeSkill.loai === 'tan_cong') {
                 hpA = Math.max(0, hpA - activeSkill.triGia);

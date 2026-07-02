@@ -623,7 +623,14 @@ export const KYNANG_PHAPBAO_ACTIVE = {
   phap_bao_hon_ton: { ten: "Hỗn Độn Thần Lực", loai: "tang_cong_pct", triGia: 20, duration: 3, moTa: "Tăng 20% Công kích trong 3 hiệp đầu trận." }
 };
 
-export function layKyNangPhapBaoActive(itemId) {
+export function layKyNangPhapBaoActive(itemOrId) {
+  const itemId = typeof itemOrId === 'string' ? itemOrId : (itemOrId?.id || '');
+  const dbActiveSkill = typeof itemOrId === 'object' ? itemOrId?.activeSkill : null;
+
+  if (dbActiveSkill) {
+    return dbActiveSkill;
+  }
+
   if (KYNANG_PHAPBAO_ACTIVE[itemId]) {
     return KYNANG_PHAPBAO_ACTIVE[itemId];
   }
