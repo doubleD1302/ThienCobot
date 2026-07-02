@@ -1,4 +1,11 @@
-import { SlashCommandBuilder } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  EmbedBuilder
+} from 'discord.js';
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed } from '../views/BoTaoEmbed.js';
 import { ThoiGianCho } from '../models/ThoiGianCho.js';
@@ -107,8 +114,10 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
       }
 
       // Kiểm tra linh thạch yêu cầu đối với đột phá Đại Cảnh Giới
-      const currentRealmName = config.layThongTinCanhGioi(tuSi.capDo).realmName;
-      const nextRealmName = config.layThongTinCanhGioi(tuSi.capDo + 1).realmName;
+      const currentRealmInfo = config.layThongTinCanhGioi(tuSi.capDo);
+      const nextRealmInfo = config.layThongTinCanhGioi(tuSi.capDo + 1);
+      const currentRealmName = currentRealmInfo.realmName;
+      const nextRealmName = nextRealmInfo.realmName;
 
       const isMajor = currentRealmName !== nextRealmName;
       let stoneCost = 0;
@@ -126,118 +135,369 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
         }
       }
 
-      // Thực thi vòng quay đột phá
-      const chance = config.layTiLeDotPha(tuSi.capDo);
-      const roll = Math.random();
+      const { Inventory } = await import('../models/Inventory.js');
+      const { Item } = await import('../models/Item.js');
 
-      if (roll <= chance) {
-        // ĐỘT PHÁ THÀNH CÔNG
-        tuSi.capDo += 1;
-        tuSi.linhLuc -= reqExp;
-        if (tuSi.linhLuc < 0) {
-          tuSi.linhLuc = 0;
+      // Tỉ lệ gốc
+      const baseChance = config.layTiLeDotPha(tuSi.capDo);
+      const btData = config.layVatPhamDotPhaTheoCapDo(tuSi.capDo);
+      const requiredPillId = btData ? btData.pillId : null;
+      const requiredPillItem = requiredPillId ? await Item.findByPk(requiredPillId) : null;
+
+      // Chuẩn bị Embed xác nhận
+      const buildConfirmEmbed = (selectedPillData = null) => {
+        let title = '⚡ THIÊN KIẾP XÁC NHẬN ĐỘT PHÁ ⚡';
+        let color = 0xf39c12; // Orange
+        let desc = 
+          `Đạo hữu **${tuSi.ten}**,\n` +
+          `Ngươi đang chuẩn bị đột phá cảnh giới:\n` +
+          `• **Hiện tại**: \`${currentRealmName} - ${currentRealmInfo.stageName}\`\n` +
+          `• **Mục tiêu**: ✨ **${nextRealmName} - ${nextRealmInfo.stageName}** ✨\n\n` +
+          `📊 **Tỉ lệ thành công gốc**: \`${(baseChance * 100).toFixed(0)}%\`\n`;
+
+        if (selectedPillData) {
+          const finalChance = Math.min(1.0, baseChance + (selectedPillData.phanTramHoTro / 100));
+          desc += 
+            `💊 **Đan dược hỗ trợ**: **${selectedPillData.ten}** (${selectedPillData.phamChat} +${selectedPillData.phanTramHoTro}%)\n` +
+            `📈 **Tỉ lệ thành công thực tế**: 🔥 **${(finalChance * 100).toFixed(0)}%** 🔥\n\n`;
+        } else {
+          desc += `📈 **Tỉ lệ thành công thực tế**: \`${(baseChance * 100).toFixed(0)}%\`\n\n`;
         }
 
-        if (isMajor) {
-          tuSi.linhThach -= stoneCost;
+        desc += 
+          `⚠️ **THIÊN PHẠT THẤT BẠI (Nếu thất bại)**:\n` +
+          `• 💥 **Kinh mạch đứt gãy**: Phạt ngẫu nhiên 5%-10% thuộc tính vĩnh viễn (HP/MP/Vật Công/Pháp Công).\n` +
+          `• 📉 **Thối lui tu vi**: Hạ \`1\` tiểu tầng cảnh giới.\n` +
+          `• 🌪️ **Linh lực tán loạn**: Khấu trừ \`30%\` linh lực tích lũy hiện có.\n` +
+          `• ⏳ **Tâm ma quấn thân**: Thần trí bất ổn, phạt tĩnh dưỡng \`1 Đạo Niên\` (15 phút) không thể đột phá.\n\n` +
+          `*Đạo hữu có muốn sử dụng Đan Đột Phá hỗ trợ để gia tăng tỉ lệ thành công không?*`;
+
+        return new EmbedBuilder()
+          .setTitle(title)
+          .setDescription(desc)
+          .setColor(color)
+          .setTimestamp()
+          .setFooter({ text: 'Thiên Đạo Tu Tiên RPG Breakthrough System' });
+      };
+
+      // Helper thực hiện đột phá thực sự
+      const executeBreakthroughAction = async (pillInvId = null) => {
+        let finalChance = baseChance;
+        let consumedPillText = '';
+        let pillRecord = null;
+
+        if (pillInvId) {
+          pillRecord = await Inventory.findOne({ where: { id: pillInvId, idNguoiDung: tuSi.idNguoiDung } });
+          if (!pillRecord || pillRecord.soLuong <= 0) {
+            return { ok: false, msg: 'Không tìm thấy đan dược đột phá được chọn trong túi đồ hoặc đã bị sử dụng.' };
+          }
+          const pillItem = await Item.findByPk(pillRecord.itemId);
+          const pillInfo = JSON.parse(pillRecord.dongChiSoJson || '{}');
+          finalChance = Math.min(1.0, baseChance + ((pillInfo.phanTramHoTro || 0) / 100));
+          consumedPillText = `\n• **Đan dược đã dùng**: **${pillItem.ten}** (${pillInfo.phamChat} +${pillInfo.phanTramHoTro}%)`;
         }
 
-        tuSi.dongBoCanhGioi();
-        tuSi.theLucMax = (tuSi.theLucMax || 200) + 1;
-        tuSi.theLuc = (tuSi.theLuc || 200) + 1;
-        const { realmName: newRealmName, stageName: newStage } = config.layThongTinCanhGioi(tuSi.capDo);
+        // Trừ tiền / Linh lực
+        const roll = Math.random();
+        if (roll <= finalChance) {
+          // ĐỘT PHÁ THÀNH CÔNG
+          // Tiêu hao pill
+          if (pillRecord) {
+            pillRecord.soLuong -= 1;
+            if (pillRecord.soLuong <= 0) await pillRecord.destroy();
+            else await pillRecord.save();
+          }
 
-        // Hồi phục toàn mãn trạng thái
-        const stats = await tuSi.layChiSoDayDu();
-        tuSi.hp = stats.max_hp;
-        tuSi.mp = stats.max_mp;
+          tuSi.capDo += 1;
+          tuSi.linhLuc -= reqExp;
+          if (tuSi.linhLuc < 0) {
+            tuSi.linhLuc = 0;
+          }
 
-        await tuSi.save();
+          if (isMajor) {
+            tuSi.linhThach -= stoneCost;
+          }
 
-        try {
-          const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
-          const { TuSi: ModelTuSi } = await import('../models/TuSi.js');
-          const { Op } = await import('sequelize');
-          const count = await ModelTuSi.count({
-            where: {
-              capDo: { [Op.gte]: tuSi.capDo },
-              idNguoiDung: { [Op.ne]: tuSi.idNguoiDung }
+          tuSi.dongBoCanhGioi();
+          tuSi.theLucMax = (tuSi.theLucMax || 200) + 1;
+          tuSi.theLuc = (tuSi.theLuc || 200) + 1;
+          const { realmName: newRealmName, stageName: newStage } = config.layThongTinCanhGioi(tuSi.capDo);
+
+          // Hồi phục toàn mãn trạng thái
+          const stats = await tuSi.layChiSoDayDu();
+          tuSi.hp = stats.max_hp;
+          tuSi.mp = stats.max_mp;
+
+          await tuSi.save();
+
+          // Thiên Đạo Lục
+          try {
+            const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
+            const { TuSi: ModelTuSi } = await import('../models/TuSi.js');
+            const { Op } = await import('sequelize');
+            const count = await ModelTuSi.count({
+              where: {
+                capDo: { [Op.gte]: tuSi.capDo },
+                idNguoiDung: { [Op.ne]: tuSi.idNguoiDung }
+              }
+            });
+
+            if (count === 0) {
+              await ThienDaoLuc.ghiLuc(
+                `⚡ **Thiên Địa Chấn Động**: Tu sĩ **${tuSi.ten}** vượt qua thiên kiếp, thành công trở thành **người đầu tiên** đột phá cảnh giới **${newRealmName} (${newStage})**!`,
+                'Realm'
+              );
+            } else if (isMajor) {
+              await ThienDaoLuc.ghiLuc(
+                `🌀 **Đại Phá Cảnh Giới**: Tu sĩ **${tuSi.ten}** nghịch thiên cải mệnh, thăng cấp đại cảnh giới lên **${newRealmName} (${newStage})**!`,
+                'Realm'
+              );
             }
+          } catch (err) {
+            console.error('Lỗi Thiên Đạo Lục:', err);
+          }
+
+          const congratsEmbed = BoTaoEmbed.thanhCong(
+            "🎉 ĐỘT PHÁ THÀNH CÔNG! 🎉",
+            `Đạo hữu **${tuSi.ten}** đã nghịch thiên thăng cấp thành công!\n` +
+            `• **Cảnh giới cũ**: \`${currentRealmName} - ${currentRealmInfo.stageName}\`\n` +
+            `• **Cảnh giới mới**: ✨ **${newRealmName} - ${newStage}** ✨${consumedPillText}\n` +
+            `• **Chỉ số sinh mệnh**: HP/MP khôi phục toàn mãn!`
+          );
+          congratsEmbed.addFields(
+            { name: "❤️ Máu tối đa", value: `\`${stats.max_hp}\``, inline: true },
+            { name: "⚔️ Sức mạnh công kích", value: `Vật công: \`${stats.vat_cong}\` | Pháp công: \`${stats.phap_cong}\``, inline: false }
+          );
+
+          return { ok: true, embed: congratsEmbed };
+        } else {
+          // ĐỘT PHÁ THẤT BẠI
+          if (pillRecord) {
+            pillRecord.soLuong -= 1;
+            if (pillRecord.soLuong <= 0) await pillRecord.destroy();
+            else await pillRecord.save();
+          }
+
+          const [statDamaged, penaltyPct] = tuSi.nhanPhatDotPhaThatBai();
+
+          // Khấu trừ linh lực tích lũy (mất 30%) và linh thạch (mất 50% chi phí thăng cảnh giới nếu có)
+          tuSi.linhLuc = Math.floor(tuSi.linhLuc * 0.70);
+          if (isMajor) {
+            tuSi.linhThach -= Math.floor(stoneCost * 0.50);
+          }
+
+          // Tạo khóa thời gian chờ vết thương: 1 Đạo Niên (config.DAO_NIEN_SECONDS)
+          const expiresAt = new Date(Date.now() + config.DAO_NIEN_SECONDS * 1000);
+          await this.datThoiGianCho(tuSi.idNguoiDung, 'breakthrough_lock', expiresAt);
+          await tuSi.save();
+
+          try {
+            const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
+            if (isMajor) {
+              await ThienDaoLuc.ghiLuc(
+                `💥 **Thiên Kiếp Giáng Thế**: Đạo hữu **${tuSi.ten}** khi đột phá đại cảnh giới **${currentRealmName}** đã bị tâm ma cắn trả, đứt gãy kinh mạch, căn cơ bị tổn hao nặng nề!`,
+                'BreakthroughFail'
+              );
+            }
+          } catch (err) {
+            console.error('Lỗi Thiên Đạo Lục đột phá thất bại:', err);
+          }
+
+          let penaltyStatName = 'Khí Huyết';
+          if (statDamaged === 'mp') penaltyStatName = 'Pháp Lực';
+          else if (statDamaged === 'vatCong') penaltyStatName = 'Vật Công';
+          else if (statDamaged === 'phapCong') penaltyStatName = 'Pháp Công';
+
+          const failEmbed = BoTaoEmbed.loi(
+            `💥 **Đột Phá Thất Bại!** 💥\n\n` +
+            `Đạo hữu **${tuSi.ten}** đã thất bại khi cố gắng đột phá đại kiếp cảnh giới!\n` +
+            `• **Cảnh giới bị thối lui**: \`${currentRealmName} - ${currentRealmInfo.stageName}\` -> \`${config.layThongTinCanhGioi(tuSi.capDo).realmName} - ${config.layThongTinCanhGioi(tuSi.capDo).stageName}\`\n` +
+            `• **Thiên phạt kinh mạch**: Giảm vĩnh viễn \`-${penaltyPct}%\` thuộc tính **${penaltyStatName}**.\n` +
+            `• **Hệ quả**: Mất \`30%\` linh lực tích lũy, HP/MP kiệt quệ.${consumedPillText}\n` +
+            `• **Trạng thái**: Căn cơ tổn hao! Cần dưỡng thương trong \`15 phút\` (1 Đạo Niên) để phục hồi.`
+          );
+
+          return { ok: true, embed: failEmbed };
+        }
+      };
+
+      // ── Hiển thị UI ban đầu ────────────────────────────────────────────────
+      const mainRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('confirm_use_pill')
+          .setLabel('🟢 Có, Dùng Đan')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId('confirm_no_pill')
+          .setLabel('🔴 Không, Đột Phá Ngay')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId('confirm_cancel')
+          .setLabel('❌ Hủy Bỏ')
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      const msg = await interaction.editReply({
+        embeds: [buildConfirmEmbed()],
+        components: [mainRow]
+      });
+
+      const collector = msg.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time: 60000
+      });
+
+      collector.on('collect', async (i) => {
+        await i.deferUpdate();
+
+        if (i.customId === 'confirm_cancel') {
+          collector.stop('cancelled');
+          await interaction.editReply({
+            embeds: [BoTaoEmbed.thongTin('⚡ Đột Phá Cảnh Giới', 'Đạo hữu đã quyết định bảo toàn tu vi, hủy bỏ đột phá.')],
+            components: []
+          });
+          return;
+        }
+
+        if (i.customId === 'confirm_no_pill') {
+          collector.stop('done');
+          const res = await executeBreakthroughAction();
+          await interaction.editReply({
+            embeds: [res.embed],
+            components: []
+          });
+          return;
+        }
+
+        if (i.customId === 'confirm_use_pill') {
+          // Tìm đan dược trong túi đồ phù hợp
+          if (!requiredPillId) {
+            return await interaction.followUp({
+              embeds: [BoTaoEmbed.loi('Không có đan dược đột phá khả dụng cho cảnh giới này!')],
+              ephemeral: true
+            });
+          }
+
+          const userPills = await Inventory.findAll({
+            where: { idNguoiDung: tuSi.idNguoiDung, itemId: requiredPillId, trangBi: false }
           });
 
-          if (count === 0) {
-            await ThienDaoLuc.ghiLuc(
-              `⚡ **Thiên Địa Chấn Động**: Tu sĩ **${tuSi.ten}** vượt qua thiên kiếp, thành công trở thành **người đầu tiên** đột phá cảnh giới **${newRealmName} (${newStage})**!`,
-              'Realm'
-            );
-          } else if (isMajor) {
-            await ThienDaoLuc.ghiLuc(
-              `🌀 **Đại Phá Cảnh Giới**: Tu sĩ **${tuSi.ten}** nghịch thiên cải mệnh, thăng cấp đại cảnh giới lên **${newRealmName} (${newStage})**!`,
-              'Realm'
-            );
+          if (userPills.length === 0) {
+            return await interaction.followUp({
+              embeds: [BoTaoEmbed.loi(
+                `Đạo hữu không có **${requiredPillItem?.ten || 'Đan Đột Phá phù hợp'}** trong túi đồ!\n` +
+                `Hãy đi **Mua tại /shop** hoặc **Luyện tại Lò luyện đan** ở động phủ.`
+              )],
+              ephemeral: true
+            });
           }
-        } catch (err) {
-          console.error('Lỗi khi ghi Thiên Đạo Lục đột phá thành công:', err);
+
+          // Build select menu
+          const selectOptions = userPills.map(p => {
+            const info = JSON.parse(p.dongChiSoJson || '{}');
+            return {
+              label: `${requiredPillItem?.ten || 'Đan'} [${info.phamChat} +${info.phanTramHoTro}%]`,
+              description: `Tỉ lệ hỗ trợ: +${info.phanTramHoTro}% | Đang có: ${p.soLuong}`,
+              value: p.id.toString()
+            };
+          });
+
+          const selectRow = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('select_breakthrough_pill')
+              .setPlaceholder('🔮 Chọn viên đan đột phá muốn dùng...')
+              .addOptions(selectOptions)
+          );
+
+          const cancelRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('btn_back_confirm')
+              .setLabel('↩️ Quay Lại')
+              .setStyle(ButtonStyle.Secondary)
+          );
+
+          await interaction.editReply({
+            embeds: [
+              new EmbedBuilder()
+                .setTitle('💊 SỬ DỤNG ĐAN DƯỢC HỖ TRỢ ĐỘT PHÁ 💊')
+                .setColor(0x9b59b6)
+                .setDescription(
+                  `Đạo hữu **${tuSi.ten}** đang chuẩn bị đột phá cảnh giới từ \`${currentRealmName}\` lên \`${nextRealmName}\`.\n` +
+                  `Vui lòng chọn viên Đan Dược hỗ trợ đột phá dưới đây để gia tăng tỉ lệ thành công:`
+                )
+            ],
+            components: [selectRow, cancelRow]
+          });
+          return;
         }
 
-        const congratsEmbed = BoTaoEmbed.thanhCong(
-          "🎉 Đột Phá Thành Công! 🎉",
-          `Đạo hữu **${tuSi.ten}** đã nghịch thiên thăng cấp thành công!\n` +
-          `• **Cảnh giới cũ**: \`${currentRealmName}\`\n` +
-          `• **Cảnh giới mới**: ✨ **${newRealmName} - ${newStage}** ✨\n` +
-          `• **Chỉ số sinh mệnh**: HP/MP khôi phục toàn mãn!`
-        );
-        congratsEmbed.addFields(
-          { name: "❤️ Máu tối đa", value: `\`${stats.max_hp}\``, inline: true },
-          { name: "⚔️ Sức mạnh công kích", value: `Vật công: \`${stats.vat_cong}\` | Pháp công: \`${stats.phap_cong}\``, inline: false }
-        );
-
-        await interaction.editReply({ embeds: [congratsEmbed] });
-      } else {
-        // ĐỘT PHÁ THẤT BẠI
-        const [statDamaged, penaltyPct] = tuSi.nhanPhatDotPhaThatBai();
-
-        // Khấu trừ linh lực tích lũy (mất 30%) và linh thạch (mất 50% chi phí thăng cảnh giới nếu có)
-        tuSi.linhLuc = Math.floor(tuSi.linhLuc * 0.70);
-        if (isMajor) {
-          tuSi.linhThach -= Math.floor(stoneCost * 0.50);
+        if (i.customId === 'btn_back_confirm') {
+          await interaction.editReply({
+            embeds: [buildConfirmEmbed()],
+            components: [mainRow]
+          });
+          return;
         }
 
-        // Tạo khóa thời gian chờ vết thương: 1 Đạo Niên (config.DAO_NIEN_SECONDS)
-        const expiresAt = new Date(Date.now() + config.DAO_NIEN_SECONDS * 1000);
-        await this.datThoiGianCho(tuSi.idNguoiDung, 'breakthrough_lock', expiresAt);
-        await tuSi.save();
-
-        try {
-          const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
-          if (isMajor) {
-            await ThienDaoLuc.ghiLuc(
-              `💥 **Thiên Kiếp Giáng Thế**: Đạo hữu **${tuSi.ten}** khi đột phá đại cảnh giới **${currentRealmName}** đã bị tâm ma cắn trả, đứt gãy kinh mạch, căn cơ bị tổn hao nặng nề!`,
-              'BreakthroughFail'
-            );
+        if (i.customId === 'select_breakthrough_pill') {
+          const pillInvId = parseInt(i.values[0], 10);
+          const pillRecord = await Inventory.findOne({ where: { id: pillInvId, idNguoiDung: tuSi.idNguoiDung } });
+          if (!pillRecord) {
+            return await interaction.followUp({
+              embeds: [BoTaoEmbed.loi('Không tìm thấy viên đan dược tương ứng!')],
+              ephemeral: true
+            });
           }
-        } catch (err) {
-          console.error('Lỗi khi ghi Thiên Đạo Lục đột phá thất bại:', err);
+
+          const pillInfo = JSON.parse(pillRecord.dongChiSoJson || '{}');
+          const pillItem = await Item.findByPk(pillRecord.itemId);
+
+          const pillData = {
+            ten: pillItem.ten,
+            phamChat: pillInfo.phamChat,
+            phanTramHoTro: pillInfo.phanTramHoTro
+          };
+
+          const finalConfirmRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`execute_breakthrough::${pillInvId}`)
+              .setLabel('⚡ Tiến Hành Đột Phá')
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId('btn_back_confirm')
+              .setLabel('↩️ Chọn Lại')
+              .setStyle(ButtonStyle.Secondary)
+          );
+
+          await interaction.editReply({
+            embeds: [buildConfirmEmbed(pillData)],
+            components: [finalConfirmRow]
+          });
+          return;
         }
 
-        const statMap = {
-          hp: "Máu tối đa (Max HP)",
-          mp: "Pháp lực tối đa (Max MP)",
-          vatCong: "Sức Vật Công",
-          phapCong: "Sức Pháp Công",
-        };
+        if (i.customId.startsWith('execute_breakthrough::')) {
+          collector.stop('done');
+          const pillInvId = parseInt(i.customId.split('::')[1], 10);
+          const res = await executeBreakthroughAction(pillInvId);
+          await interaction.editReply({
+            embeds: [res.embed],
+            components: []
+          });
+          return;
+        }
+      });
 
-        const failEmbed = BoTaoEmbed.loi(
-          `💥 Đột Phá Thất Bại! 💥\n` +
-          `Tâm ma bùng phát, đạo hữu **${tuSi.ten}** bị cắn trả nghiêm trọng!\n\n` +
-          `• **Hậu quả**: Bị tụt về cảnh giới \`${tuSi.canhGioi} - ${config.layThongTinCanhGioi(tuSi.capDo).stageName}\`\n` +
-          `• **Tổn thương căn cơ**: Giảm vĩnh viễn **${penaltyPct}%** \`${statMap[statDamaged]}\` giới hạn!\n` +
-          `• **Trạng thái**: Trọng thương (HP/MP giảm còn 10%)\n` +
-          `• **Bế quan tĩnh dưỡng**: Kinh mạch hỗn loạn, bị khóa đột phá trong \`1 Đạo Niên\` (15 phút).`
-        );
-
-        await interaction.editReply({ embeds: [failEmbed] });
-      }
+      collector.on('end', async (_, reason) => {
+        if (reason === 'time') {
+          try {
+            await interaction.editReply({
+              embeds: [BoTaoEmbed.thongTin('⚡ Đột Phá Cảnh Giới', 'Đã hết thời gian chờ xác nhận đột phá.')],
+              components: []
+            });
+          } catch (e) {}
+        }
+      });
     }
   };
 

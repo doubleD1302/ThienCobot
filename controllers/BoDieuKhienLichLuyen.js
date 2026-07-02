@@ -133,6 +133,26 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         }
       }
 
+      // 10% cơ hội rơi nguyên liệu hoặc đan đột phá phù hợp cảnh giới
+      const btData = config.layVatPhamDotPhaTheoCapDo(tuSi.capDo);
+      if (btData && Math.random() <= 0.10) {
+        const randType = Math.random();
+        let targetId = btData.seedId;
+        let typeStr = 'Hạt giống';
+        if (randType >= 0.85) {
+          targetId = btData.pillId;
+          typeStr = 'Đan dược';
+        } else if (randType >= 0.50) {
+          targetId = btData.herbId;
+          typeStr = 'Dược thảo';
+        }
+        const itemDetail = await Item.findByPk(targetId);
+        if (itemDetail) {
+          await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+          rewardText += `• **Phá cảnh phẩm**: Nhận được **${itemDetail.ten}** (${typeStr}) 🔮\n`;
+        }
+      }
+
       // Xử lý Thiên Đạo Lục đối với các đại cơ duyên chung không phụ thuộc vào rơi đồ
       function sqlMessageCheck(msg) {
         return msg && typeof msg === 'string';

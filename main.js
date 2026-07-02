@@ -19,8 +19,10 @@ import { danhSachLenhHelp } from './controllers/BoDieuKhienHelp.js';
 import { danhSachLenhLiXi } from './controllers/BoDieuKhienLiXi.js';
 import { danhSachLenhGacha } from './controllers/BoDieuKhienGacha.js';
 import { danhSachLenhAuto, khoiDongAutoSchedule } from './controllers/BoDieuKhienAuto.js';
+import { danhSachLenhDongGop } from './controllers/BoDieuKhienDongGop.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
+import './models/DongGopEmoji.js';
 import './models/Item.js';
 import './models/Inventory.js';
 import './models/Skill.js';
@@ -76,7 +78,8 @@ const tatCaLenh = [
   ...danhSachLenhHelp,
   ...danhSachLenhLiXi,
   ...danhSachLenhGacha,
-  ...danhSachLenhAuto
+  ...danhSachLenhAuto,
+  ...danhSachLenhDongGop
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
@@ -380,6 +383,40 @@ async function start() {
         });
       }
       console.log(`Đã đồng bộ thành công ${config.ITEMS.length} vật phẩm mẫu vào CSDL.`);
+
+      // Đồng bộ ShopItem cho các hạt giống và đan dược đột phá mới
+      const { ShopItem } = await import('./models/ShopItem.js');
+      const breakthroughShopItems = [
+        { itemId: 'hat_giong_luyen_khi_thao', giaBan: 200, yeuCauCapDo: 1 },
+        { itemId: 'dan_dot_pha_1', giaBan: 2000, yeuCauCapDo: 1 },
+        { itemId: 'hat_giong_truc_co_thao', giaBan: 200, yeuCauCapDo: 10 },
+        { itemId: 'dan_dot_pha_2', giaBan: 2000, yeuCauCapDo: 10 },
+        { itemId: 'hat_giong_kim_dan_hoa', giaBan: 200, yeuCauCapDo: 13 },
+        { itemId: 'dan_dot_pha_3', giaBan: 2000, yeuCauCapDo: 13 },
+        { itemId: 'hat_giong_nguyen_anh_qua', giaBan: 200, yeuCauCapDo: 16 },
+        { itemId: 'dan_dot_pha_4', giaBan: 2000, yeuCauCapDo: 16 },
+        { itemId: 'hat_giong_hoa_than_chi', giaBan: 200, yeuCauCapDo: 19 },
+        { itemId: 'dan_dot_pha_5', giaBan: 2000, yeuCauCapDo: 19 },
+        { itemId: 'hat_giong_phan_hu_dang', giaBan: 200, yeuCauCapDo: 22 },
+        { itemId: 'dan_dot_pha_6', giaBan: 2000, yeuCauCapDo: 22 },
+        { itemId: 'hat_giong_hop_the_lien', giaBan: 200, yeuCauCapDo: 25 },
+        { itemId: 'dan_dot_pha_7', giaBan: 2000, yeuCauCapDo: 25 },
+        { itemId: 'hat_giong_dai_thua_qua', giaBan: 200, yeuCauCapDo: 28 },
+        { itemId: 'dan_dot_pha_8', giaBan: 2000, yeuCauCapDo: 28 }
+      ];
+      for (const entry of breakthroughShopItems) {
+        await ShopItem.findOrCreate({
+          where: { itemId: entry.itemId },
+          defaults: {
+            giaBan: entry.giaBan,
+            giaLoai: 'Linh thạch',
+            soLuongTon: -1,
+            yeuCauCapDo: entry.yeuCauCapDo,
+            hienThi: true,
+            thuTu: 100
+          }
+        });
+      }
 
       // Khởi tạo và đồng bộ dữ liệu mẫu cho bảng skills
       const { Skill } = await import('./models/Skill.js');

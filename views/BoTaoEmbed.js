@@ -336,10 +336,20 @@ export class BoTaoEmbed {
     const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [];
 
     for (const itemObj of itemsList) {
-      const { item, soLuong, trangBi: isEquipped, nangCapSao, invId, khoa } = itemObj;
+      const { item, soLuong, trangBi: isEquipped, nangCapSao, invId, khoa, dongChiSoJson } = itemObj;
       const starText = nangCapSao > 0 ? ` (+${nangCapSao}⭐)` : '';
       const equipText = isEquipped ? ' 🛡️ **[Đang mặc]**' : '';
       const lockText = khoa ? ' 🔒' : '';
+
+      let pillQualityText = '';
+      if (item.id.startsWith('dan_dot_pha_') && dongChiSoJson) {
+        try {
+          const pillData = JSON.parse(dongChiSoJson);
+          if (pillData && pillData.phamChat) {
+            pillQualityText = ` (${pillData.phamChat} +${pillData.phanTramHoTro}%)`;
+          }
+        } catch (e) {}
+      }
 
       let reqText = '';
       if (item.yeuCauCanhGioi && item.yeuCauCanhGioi > 1) {
@@ -348,7 +358,7 @@ export class BoTaoEmbed {
       }
 
       // Sử dụng mã ID duy nhất của dòng vật phẩm trong balo để phân biệt các trang bị trùng tên
-      const formattedLine = `• **${item.ten}**${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
+      const formattedLine = `• **${item.ten}**${pillQualityText}${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
 
       if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
       else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);
@@ -502,7 +512,7 @@ export class BoTaoEmbed {
     return embed;
   }
 
-  static tranDauBiCanh(tuSi, dungeon, battleLogs, isWin, gainedExp, gainedStones, droppedItem = null, droppedSeed = null, thienDao = null, droppedCoDuyenLenh = false) {
+  static tranDauBiCanh(tuSi, dungeon, battleLogs, isWin, gainedExp, gainedStones, droppedItem = null, droppedSeed = null, thienDao = null, droppedCoDuyenLenh = false, droppedBreakthrough = null) {
     const color = isWin ? 0x2ecc71 : 0xe74c3c;
     const title = isWin ? `🎉 Khiêu Chiến Thành Công: ${dungeon.ten} 🎉` : `💀 Khiêu Chiến Thất Bại: ${dungeon.ten} 💀`;
 
@@ -539,6 +549,9 @@ export class BoTaoEmbed {
       }
       if (droppedSeed) {
         rewardText += `\n• **Hạt giống nhặt được**: **${droppedSeed.ten}** 🌰`;
+      }
+      if (droppedBreakthrough) {
+        rewardText += `\n• **Phá cảnh phẩm**: **${droppedBreakthrough.ten}** 🔮`;
       }
       if (droppedCoDuyenLenh) {
         rewardText += `\n• **Cơ duyên nhặt được**: **Cơ Duyên Lệnh 🎫** x1`;
@@ -609,7 +622,7 @@ export class BoTaoEmbed {
       try {
         const lines = JSON.parse(dongChiSoJson);
         if (Array.isArray(lines) && lines.length > 0) {
-          const colorEmojis = { cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
+          const colorEmojis = { do: '🔴', cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
           const linesTxt = lines.map(line => {
             const emoji = colorEmojis[line.mau] || '⚪';
             const sign = line.phanTram >= 0 ? '+' : '';

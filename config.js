@@ -205,6 +205,39 @@ function selectRandom(array, num) {
 // THÔNG TIN VẬT PHẨM MẪU (ITEMS)
 // ==========================================
 export const ITEMS = [
+  // ==================== NGUYÊN LIỆU & ĐAN DƯỢC ĐỘT PHÁ ====================
+  { id: 'hat_giong_luyen_khi_thao', ten: 'Hạt Giống Luyện Khí Thảo 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Hạt giống Luyện Khí Thảo, gieo trồng tại dược viên.' },
+  { id: 'linh_thao_luyen_khi', ten: 'Luyện Khí Thảo 🌿', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh thảo hấp thu khí thiên địa sơ khởi, nguyên liệu luyện chế Luyện Khí Phá Cảnh Đan.' },
+  { id: 'dan_dot_pha_1', ten: 'Luyện Khí Phá Cảnh Đan 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược hỗ trợ đột phá cảnh giới Luyện Khí.' },
+
+  { id: 'hat_giong_truc_co_thao', ten: 'Hạt Giống Trúc Cơ Thảo 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Hạt giống Trúc Cơ Thảo, gieo trồng tại dược viên.' },
+  { id: 'linh_thao_truc_co', ten: 'Trúc Cơ Thảo 🌿', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Thảo dược ngưng tụ linh lực làm nền móng nhục thân, nguyên liệu luyện chế Trúc Cơ Phá Cảnh Đan.' },
+  { id: 'dan_dot_pha_2', ten: 'Trúc Cơ Phá Cảnh Đan 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Đan dược hỗ trợ đột phá cảnh giới Trúc Cơ.' },
+
+  { id: 'hat_giong_kim_dan_hoa', ten: 'Hạt Giống Kim Đan Hoa 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Hạt giống Kim Đan Hoa, gieo trồng tại dược viên.' },
+  { id: 'linh_thao_kim_dan', ten: 'Kim Đan Hoa 🌸', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Kỳ hoa ngưng kết lực quy nhất nội đan, nguyên liệu luyện chế Kim Đan Phá Cảnh Đan.' },
+  { id: 'dan_dot_pha_3', ten: 'Kim Đan Phá Cảnh Đan 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Đan dược hỗ trợ đột phá cảnh giới Kim Đan.' },
+
+  { id: 'hat_giong_nguyen_anh_qua', ten: 'Hạt Giống Nguyên Anh Quả 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 16, moTa: 'Hạt giống Nguyên Anh Linh Quả, gieo trồng tại dược viên.' },
+  { id: 'linh_thao_nguyen_anh', ten: 'Nguyên Anh Linh Quả 🍒', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 16, moTa: 'Linh quả dựng dục nguyên thần anh nhi linh phách, nguyên liệu luyện chế Nguyên Anh Phá Cảnh Đan.' },
+  { id: 'dan_dot_pha_4', ten: 'Nguyên Anh Phá Cảnh Đan 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 16, moTa: 'Đan dược hỗ trợ đột phá cảnh giới Nguyên Anh.' },
+
+  { id: 'hat_giong_hoa_than_chi', ten: 'Hạt Giống Hóa Thần Chi 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 19, moTa: 'Hạt giống Hóa Thần Chi, gieo trồng tại dược viên.' },
+  { id: 'linh_thao_hoa_than', ten: 'Hóa Thần Chi 🍄', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 19, moTa: 'Nấm thiêng dung hòa thân thần thức tỉnh ngộ đạo, nguyên liệu luyện chế Hóa Thần Phá Cảnh Đan.' },
+  { id: 'dan_dot_pha_5', ten: 'Hóa Thần Phá Cảnh Đan 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 19, moTa: 'Đan dược hỗ trợ đột phá cảnh giới Hóa Thần.' },
+
+  { id: 'hat_giong_phan_hu_dang', ten: 'Hạt Giống Phản Hư Đằng 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 22, moTa: 'Hạt giống Phản Hư Đằng, gieo trồng tại dược viên.' },
+  { id: 'linh_thao_phan_hu', ten: 'Phản Hư Đằng 🍀', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 22, moTa: 'Dây leo cổ linh ngưng tụ pháp thân thoát ly trần thế, nguyên liệu luyện chế Phản Hư Phá Cảnh Đan.' },
+  { id: 'dan_dot_pha_6', ten: 'Phản Hư Phá Cảnh Đan 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 22, moTa: 'Đan dược hỗ trợ đột phá cảnh giới Phản Hư.' },
+
+  { id: 'hat_giong_hop_the_lien', ten: 'Hạt Giống Hợp Thể Liên 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 25, moTa: 'Hạt giống Hợp Thể Liên, gieo trồng tại dược viên.' },
+  { id: 'linh_thao_hop_the', ten: 'Hợp Thể Liên 💮', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 25, moTa: 'Tòa sen hợp nhất nguyên thần và nhục thân hoàn mỹ, nguyên liệu luyện chế Hợp Thể Phá Cảnh Đan.' },
+  { id: 'dan_dot_pha_7', ten: 'Hợp Thể Phá Cảnh Đan 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 25, moTa: 'Đan dược hỗ trợ đột phá cảnh giới Hợp Thể.' },
+
+  { id: 'hat_giong_dai_thua_qua', ten: 'Hạt Giống Đại Thừa Quả 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 28, moTa: 'Hạt giống Đại Thừa Tinh Quả, gieo trồng tại dược viên.' },
+  { id: 'linh_thao_dai_thua', ten: 'Đại Thừa Tinh Quả 🍇', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 28, moTa: 'Quả chín ngưng tụ thiên đạo quy nguyên phi thăng chi cơ, nguyên liệu luyện chế Đại Thừa Phá Cảnh Đan.' },
+  { id: 'dan_dot_pha_8', ten: 'Đại Thừa Phá Cảnh Đan 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 28, moTa: 'Đan dược hỗ trợ đột phá cảnh giới Đại Thừa.' },
+
   // ==================== CẢNH GIỚI: LUYỆN KHÍ (YÊU CẦU CẤP 1) ====================
   // Vũ khí Thể Tu
   { id: 'kiem_go', ten: 'Kiếm Gỗ 🪵', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{"vat_cong":10}', yeuCauCanhGioi: 1, moTa: 'Thanh kiếm gỗ thô sơ cho tân thủ.' },
@@ -711,4 +744,25 @@ export function layKyNangPhapBaoActive(itemOrId) {
     duration: 0,
     moTa: "Gây 100 sát thương cố định khi vào trận chiến."
   };
+}
+
+export function layVatPhamDotPhaTheoCapDo(level) {
+  if (level >= 1 && level <= 9) {
+    return { seedId: 'hat_giong_luyen_khi_thao', herbId: 'linh_thao_luyen_khi', pillId: 'dan_dot_pha_1' };
+  } else if (level >= 10 && level <= 12) {
+    return { seedId: 'hat_giong_truc_co_thao', herbId: 'linh_thao_truc_co', pillId: 'dan_dot_pha_2' };
+  } else if (level >= 13 && level <= 15) {
+    return { seedId: 'hat_giong_kim_dan_hoa', herbId: 'linh_thao_kim_dan', pillId: 'dan_dot_pha_3' };
+  } else if (level >= 16 && level <= 18) {
+    return { seedId: 'hat_giong_nguyen_anh_qua', herbId: 'linh_thao_nguyen_anh', pillId: 'dan_dot_pha_4' };
+  } else if (level >= 19 && level <= 21) {
+    return { seedId: 'hat_giong_hoa_than_chi', herbId: 'linh_thao_hoa_than', pillId: 'dan_dot_pha_5' };
+  } else if (level >= 22 && level <= 24) {
+    return { seedId: 'hat_giong_phan_hu_dang', herbId: 'linh_thao_phan_hu', pillId: 'dan_dot_pha_6' };
+  } else if (level >= 25 && level <= 27) {
+    return { seedId: 'hat_giong_hop_the_lien', herbId: 'linh_thao_hop_the', pillId: 'dan_dot_pha_7' };
+  } else if (level >= 28 && level <= 30) {
+    return { seedId: 'hat_giong_dai_thua_qua', herbId: 'linh_thao_dai_thua', pillId: 'dan_dot_pha_8' };
+  }
+  return null;
 }

@@ -15,6 +15,7 @@ import { ChannelRestriction } from '../models/ChannelRestriction.js';
 import { Inventory } from '../models/Inventory.js';
 import { Item } from '../models/Item.js';
 import * as config from '../config.js';
+import { Op } from 'sequelize';
 
 // Danh sách các loài boss truyền thuyết
 const BOSS_TEMPLATES = [
@@ -29,6 +30,74 @@ const BOSS_TEMPLATES = [
 function layRealmNameTuCapDo(capDo) {
   const { realmName } = config.layThongTinCanhGioi(capDo);
   return realmName;
+}
+
+// Helper: Sinh dòng linh khí (chỉ số ẩn) chất lượng cao cho Boss drops (90% Cam Thần Thoại 15-20%, 10% Đỏ Thần Cấp 30-50%)
+function rollBossDropStats(item, isRed) {
+  const loai = item.loai;
+  const POOLS = {
+    "Vũ khí": ["vat_cong", "phap_cong", "crit_rate", "crit_dmg", "xuyen_giap"],
+    "Giáp": ["vat_phong", "phap_phong", "max_mp", "max_hp"],
+    "Ngọc Bội": ["max_hp", "max_mp", "ne", "lifesteal"],
+    "Cổ Bảo Chủ Động": ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal"],
+    "Pháp Bảo": [
+      "vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal",
+      "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb"
+    ]
+  };
+
+  const pool = POOLS[loai];
+  if (!pool) return null;
+
+  const numLines = Math.floor(Math.random() * 4) + 1;
+  const shuffled = [...pool].sort(() => 0.5 - Math.random());
+  const selectedStats = shuffled.slice(0, Math.min(numLines, pool.length));
+
+  const NAME_MAP = {
+    "vat_cong": "Sát thương Vật lý",
+    "phap_cong": "Sát thương Pháp thuật",
+    "crit_rate": "Tỷ lệ Bạo kích",
+    "crit_dmg": "Sát thương Bạo kích",
+    "xuyen_giap": "Xuyên giáp hộ thể",
+    "vat_phong": "Vật phòng nhục thân",
+    "phap_phong": "Pháp phòng khí hải",
+    "max_mp": "Chân nguyên linh khí (MP)",
+    "max_hp": "Khí huyết cơ bản (HP)",
+    "ne": "Né tránh yêu pháp",
+    "lifesteal": "Hút máu sinh cơ",
+    "crit_rate_pb": "Bạo kích Pháp bảo",
+    "crit_dmg_pb": "Bạo thương Pháp bảo",
+    "sat_thuong_pb": "Sát thương Pháp bảo",
+    "phap_thuong_pb": "Pháp thương Pháp bảo",
+    "khien_pb": "Hộ tẫn Hấp thụ Pháp bảo"
+  };
+
+  const lines = [];
+  for (const stat of selectedStats) {
+    let quality, color, minPercent, maxPercent;
+    if (isRed) {
+      quality = "Thần Cấp";
+      color = "do";
+      minPercent = 30;
+      maxPercent = 50;
+    } else {
+      quality = "Thần Thoại";
+      color = "cam";
+      minPercent = 15;
+      maxPercent = 20;
+    }
+
+    const value = parseFloat((minPercent + Math.random() * (maxPercent - minPercent)).toFixed(1));
+    lines.push({
+      thuocTinh: stat,
+      ten: NAME_MAP[stat] || stat,
+      mau: color,
+      phamChat: quality,
+      phanTram: value
+    });
+  }
+
+  return lines;
 }
 
 // Helper: Phân bổ phần thưởng khi boss bị tiêu diệt
@@ -54,12 +123,21 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
   const candidateItems = await Item.findAll({
     where: {
       yeuCauCanhGioi: {
-        [config.sequelize.Sequelize.Op.between]: [minLvl, maxLvl]
+        [Op.between]: [minLvl, maxLvl]
+      },
+      loai: {
+        [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo']
       }
     }
   });
 
-  const fallbackItems = await Item.findAll();
+  const fallbackItems = await Item.findAll({
+    where: {
+      loai: {
+        [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo']
+      }
+    }
+  });
   const getGiftItem = () => {
     if (candidateItems.length > 0) {
       return candidateItems[Math.floor(Math.random() * candidateItems.length)];
@@ -80,13 +158,23 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
       const gift = getGiftItem();
       let giftName = '';
       if (gift) {
+        const isRed = Math.random() <= 0.10;
+        const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(gift.loai);
+        let dongChiSoJson = null;
+        if (isEquipable) {
+          const stats = rollBossDropStats(gift, isRed);
+          dongChiSoJson = JSON.stringify(stats);
+        }
+
         await Inventory.create({
           idNguoiDung: lastHitterId,
           itemId:      gift.id,
           soLuong:     1,
-          trangBi:     false
+          trangBi:     false,
+          dongChiSoJson: dongChiSoJson
         });
-        giftName = ` & nhận **${gift.ten}** (${gift.doHiem})`;
+        const rarityText = isRed ? 'Thần Cấp 🔴' : 'Thần Thoại 🟠';
+        giftName = ` & nhận **${gift.ten}** (${rarityText})`;
       }
       
       await lhTuSi.save();
@@ -124,13 +212,23 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
     if (Math.random() <= dropChance) {
       const gift = getGiftItem();
       if (gift) {
+        const isRed = Math.random() <= 0.10;
+        const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(gift.loai);
+        let dongChiSoJson = null;
+        if (isEquipable) {
+          const stats = rollBossDropStats(gift, isRed);
+          dongChiSoJson = JSON.stringify(stats);
+        }
+
         await Inventory.create({
           idNguoiDung: tuSi.idNguoiDung,
           itemId:      gift.id,
           soLuong:     1,
-          trangBi:     false
+          trangBi:     false,
+          dongChiSoJson: dongChiSoJson
         });
-        giftMsg = ` 🎁 Nhận được: **${gift.ten}** (${gift.doHiem})`;
+        const rarityText = isRed ? 'Thần Cấp 🔴' : 'Thần Thoại 🟠';
+        giftMsg = ` 🎁 Nhận được: **${gift.ten}** (${rarityText})`;
       }
     }
 
@@ -663,4 +761,4 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
 const controller = new BoDieuKhienBoss();
 export const danhSachLenhBoss = [controller.lenhBoss];
-export { controller as boDieuKhienBoss };
+export { controller as boDieuKhienBoss, phanBoPhanThuongBoss };

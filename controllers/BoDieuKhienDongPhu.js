@@ -444,7 +444,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
 
           if (plot.status === 'EMPTY') {
             // Hiển thị danh sách hạt giống trong túi để trồng
-            const seeds = sellableList.filter(e => e.item.id === 'hat_giong_linh_chi' || e.item.id === 'hat_giong_nhan_sam');
+            const seeds = sellableList.filter(e => e.item.loai === 'Linh thảo' && e.item.id.startsWith('hat_giong_'));
             if (seeds.length === 0) {
               rows.push(
                 new ActionRowBuilder().addComponents(
@@ -1076,6 +1076,42 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     await tuSi.save();
 
     // Xác định phẩm chất dựa theo nguyên liệu linh thảo đầu vào
+    const isBreakthroughHerb = herbId.startsWith('linh_thao_');
+    if (isBreakthroughHerb) {
+      const mapping = {
+        'linh_thao_luyen_khi': 'dan_dot_pha_1',
+        'linh_thao_truc_co': 'dan_dot_pha_2',
+        'linh_thao_kim_dan': 'dan_dot_pha_3',
+        'linh_thao_nguyen_anh': 'dan_dot_pha_4',
+        'linh_thao_hoa_than': 'dan_dot_pha_5',
+        'linh_thao_phan_hu': 'dan_dot_pha_6',
+        'linh_thao_hop_the': 'dan_dot_pha_7',
+        'linh_thao_dai_thua': 'dan_dot_pha_8'
+      };
+      const targetPillId = mapping[herbId];
+      if (!targetPillId) {
+        return { ok: false, msg: 'Không tìm thấy công thức luyện đan cho linh thảo này.' };
+      }
+
+      const roll = Math.random() * 100;
+      let phamChat = 'Phế phẩm';
+      let phanTramHoTro = 5;
+      if (roll <= 1) { phamChat = 'Tiên phẩm'; phanTramHoTro = 35; }
+      else if (roll <= 5) { phamChat = 'Tuyệt phẩm'; phanTramHoTro = 25; }
+      else if (roll <= 15) { phamChat = 'Siêu phẩm'; phanTramHoTro = 20; }
+      else if (roll <= 30) { phamChat = 'Ưu phẩm'; phanTramHoTro = 15; }
+      else if (roll <= 60) { phamChat = 'Phàm phẩm'; phanTramHoTro = 10; }
+
+      const qualityInfo = { phamChat, phanTramHoTro };
+      await Inventory.addVatPham(tuSi.idNguoiDung, targetPillId, 1, { quality: qualityInfo });
+      const targetItem = config.ITEMS.find(e => e.id === targetPillId);
+
+      return {
+        ok: true,
+        msg: `Luyện đan hoàn tất! Đạo hữu luyện chế ra: **${targetItem?.ten ?? targetPillId} (${phamChat} +${phanTramHoTro}%)**.`
+      };
+    }
+
     const colorCode = herbId.split('_').pop(); // 'luc', 'lam', 'tim', 'vang', 'do'
     const roll = Math.random() * 100;
 
@@ -1359,7 +1395,25 @@ function getPlotAgeAndHerb(plot) {
   const age = elapsedMins / (config.DAO_NIEN_SECONDS / 60);
 
   const isLinhChi = plot.seedItemId === 'hat_giong_linh_chi';
-  const seedName = isLinhChi ? 'Hạt giống Linh Chi 🌰' : 'Hạt giống Nhân Sâm 🌰';
+  const isNhanSam = plot.seedItemId === 'hat_giong_nhan_sam';
+
+  const SEED_TO_HERB_MAP = {
+    'hat_giong_luyen_khi_thao': { herbId: 'linh_thao_luyen_khi', name: 'Luyện Khí Thảo 🌿' },
+    'hat_giong_truc_co_thao': { herbId: 'linh_thao_truc_co', name: 'Trúc Cơ Thảo 🌿' },
+    'hat_giong_kim_dan_hoa': { herbId: 'linh_thao_kim_dan', name: 'Kim Đan Hoa 🌸' },
+    'hat_giong_nguyen_anh_qua': { herbId: 'linh_thao_nguyen_anh', name: 'Nguyên Anh Linh Quả 🍒' },
+    'hat_giong_hoa_than_chi': { herbId: 'linh_thao_hoa_than', name: 'Hóa Thần Chi 🍄' },
+    'hat_giong_phan_hu_dang': { herbId: 'linh_thao_phan_hu', name: 'Phản Hư Đằng 🍀' },
+    'hat_giong_hop_the_lien': { herbId: 'linh_thao_hop_the', name: 'Hợp Thể Liên 💮' },
+    'hat_giong_dai_thua_qua': { herbId: 'linh_thao_dai_thua', name: 'Đại Thừa Tinh Quả 🍇' }
+  };
+
+  let seedName = 'Hạt giống Linh Thảo 🌰';
+  if (isLinhChi) seedName = 'Hạt giống Linh Chi 🌰';
+  else if (isNhanSam) seedName = 'Hạt giống Nhân Sâm 🌰';
+  else if (SEED_TO_HERB_MAP[plot.seedItemId]) {
+    seedName = `Hạt giống ${SEED_TO_HERB_MAP[plot.seedItemId].name.replace(/🌿|🌸|🍒|🍄|🍀|💮|🍇/, '').trim()} 🌰`;
+  }
 
   let herbId = '';
   let herbName = '';
@@ -1368,21 +1422,43 @@ function getPlotAgeAndHerb(plot) {
   // Cấu hình thời gian trồng và phẩm chất thu hoạch
   if (age >= 4) {
     ready = true;
-    if (age < 8) {
-      herbId   = isLinhChi ? 'linh_chi_luc' : 'nhan_sam_luc';
-      herbName = isLinhChi ? 'U Minh Linh Chi (Phàm) 🍄' : 'Tuyết Sơn Nhân Sâm (Phàm) 🥕';
-    } else if (age < 16) {
-      herbId   = isLinhChi ? 'linh_chi_lam' : 'nhan_sam_lam';
-      herbName = isLinhChi ? 'U Minh Linh Chi (Ưu) 🍄' : 'Tuyết Sơn Nhân Sâm (Ưu) 🥕';
-    } else if (age < 32) {
-      herbId   = isLinhChi ? 'linh_chi_tim' : 'nhan_sam_tim';
-      herbName = isLinhChi ? 'U Minh Linh Chi (Siêu) 🍄' : 'Tuyết Sơn Nhân Sâm (Siêu) 🥕';
-    } else if (age < 64) {
-      herbId   = isLinhChi ? 'linh_chi_vang' : 'nhan_sam_vang';
-      herbName = isLinhChi ? 'U Minh Linh Chi (Tuyệt) 🍄' : 'Tuyết Sơn Nhân Sâm (Tuyệt) 🥕';
-    } else {
-      herbId   = isLinhChi ? 'linh_chi_do' : 'nhan_sam_do';
-      herbName = isLinhChi ? 'U Minh Linh Chi (Tiên) 🍄' : 'Tuyết Sơn Nhân Sâm (Tiên) 🥕';
+    if (isLinhChi) {
+      if (age < 8) {
+        herbId   = 'linh_chi_luc';
+        herbName = 'U Minh Linh Chi (Phàm) 🍄';
+      } else if (age < 16) {
+        herbId   = 'linh_chi_lam';
+        herbName = 'U Minh Linh Chi (Ưu) 🍄';
+      } else if (age < 32) {
+        herbId   = 'linh_chi_tim';
+        herbName = 'U Minh Linh Chi (Siêu) 🍄';
+      } else if (age < 64) {
+        herbId   = 'linh_chi_vang';
+        herbName = 'U Minh Linh Chi (Tuyệt) 🍄';
+      } else {
+        herbId   = 'linh_chi_do';
+        herbName = 'U Minh Linh Chi (Tiên) 🍄';
+      }
+    } else if (isNhanSam) {
+      if (age < 8) {
+        herbId   = 'nhan_sam_luc';
+        herbName = 'Tuyết Sơn Nhân Sâm (Phàm) 🥕';
+      } else if (age < 16) {
+        herbId   = 'nhan_sam_lam';
+        herbName = 'Tuyết Sơn Nhân Sâm (Ưu) 🥕';
+      } else if (age < 32) {
+        herbId   = 'nhan_sam_tim';
+        herbName = 'Tuyết Sơn Nhân Sâm (Siêu) 🥕';
+      } else if (age < 64) {
+        herbId   = 'nhan_sam_vang';
+        herbName = 'Tuyết Sơn Nhân Sâm (Tuyệt) 🥕';
+      } else {
+        herbId   = 'nhan_sam_do';
+        herbName = 'Tuyết Sơn Nhân Sâm (Tiên) 🥕';
+      }
+    } else if (SEED_TO_HERB_MAP[plot.seedItemId]) {
+      herbId = SEED_TO_HERB_MAP[plot.seedItemId].herbId;
+      herbName = SEED_TO_HERB_MAP[plot.seedItemId].name;
     }
   }
 

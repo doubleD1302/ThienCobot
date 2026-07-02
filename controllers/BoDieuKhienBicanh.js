@@ -389,6 +389,24 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             }
           }
 
+          let droppedBreakthrough = null;
+          // 15% cơ hội rơi nguyên liệu hoặc đan đột phá phù hợp cảnh giới
+          const btData = config.layVatPhamDotPhaTheoCapDo(tuSi.capDo);
+          if (btData && Math.random() <= 0.15) {
+            const randType = Math.random();
+            let targetId = btData.seedId;
+            if (randType >= 0.85) {
+              targetId = btData.pillId;
+            } else if (randType >= 0.50) {
+              targetId = btData.herbId;
+            }
+            const itemDetail = await Item.findByPk(targetId);
+            if (itemDetail) {
+              droppedBreakthrough = itemDetail;
+              await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+            }
+          }
+
           // 20% rơi hạt giống dược viên
           if (Math.random() <= 0.20) {
             const seedId = Math.random() < 0.5 ? 'hat_giong_linh_chi' : 'hat_giong_nhan_sam';
@@ -444,7 +462,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           droppedItem,
           droppedSeed,
           thienDao,
-          droppedCoDuyenLenh
+          droppedCoDuyenLenh,
+          droppedBreakthrough
         );
 
         await i.editReply({

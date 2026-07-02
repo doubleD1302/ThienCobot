@@ -1,8 +1,18 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../database.js';
 
+function rollPillQuality() {
+  const roll = Math.random() * 100;
+  if (roll <= 1) return { phamChat: 'Tiên phẩm', phanTramHoTro: 35 };
+  if (roll <= 5) return { phamChat: 'Tuyệt phẩm', phanTramHoTro: 25 };
+  if (roll <= 15) return { phamChat: 'Siêu phẩm', phanTramHoTro: 20 };
+  if (roll <= 30) return { phamChat: 'Ưu phẩm', phanTramHoTro: 15 };
+  if (roll <= 60) return { phamChat: 'Phàm phẩm', phanTramHoTro: 10 };
+  return { phamChat: 'Phế phẩm', phanTramHoTro: 5 };
+}
+
 class Inventory extends Model {
-  static async addVatPham(idNguoiDung, itemId, soLuong = 1) {
+  static async addVatPham(idNguoiDung, itemId, soLuong = 1, options = {}) {
     const { Item } = await import('./Item.js');
     const { rollDynamicStats } = await import('../config.js');
     
@@ -10,6 +20,7 @@ class Inventory extends Model {
     if (!item) return null;
 
     const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
+    const isBreakthroughPill = item.id.startsWith('dan_dot_pha_');
 
     if (isEquipable) {
       // Mỗi trang bị chiếm 1 dòng duy nhất, sinh chỉ số ngẫu nhiên
@@ -27,10 +38,24 @@ class Inventory extends Model {
         records.push(record);
       }
       return records[0];
+    } else if (isBreakthroughPill) {
+      // Đan đột phá cộng dồn theo phẩm chất (dongChiSoJson)
+      const qualityObj = options.quality || rollPillQuality();
+      const dongChiSoJson = JSON.stringify(qualityObj);
+
+      const [record, created] = await Inventory.findOrCreate({
+        where: { idNguoiDung, itemId, trangBi: false, dongChiSoJson },
+        defaults: { soLuong, nangCapSao: 0, dongChiSoJson }
+      });
+      if (!created) {
+        record.soLuong += soLuong;
+        await record.save();
+      }
+      return record;
     } else {
       // Các vật phẩm thường (Đan dược, Linh thảo) cộng dồn số lượng
       const [record, created] = await Inventory.findOrCreate({
-        where: { idNguoiDung, itemId, trangBi: false },
+        where: { idNguoiDung, itemId, trangBi: false, dongChiSoJson: null },
         defaults: { soLuong, nangCapSao: 0, dongChiSoJson: null }
       });
       if (!created) {

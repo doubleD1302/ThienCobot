@@ -46,7 +46,12 @@ const buildAutoComponents = (tuSi) => {
     new ButtonBuilder()
       .setCustomId('auto_refill')
       .setLabel('⚡ Bổ Sung Thời Gian (10k Linh Thạch = +250 phút)')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId('auto_harvest')
+      .setLabel('🌾 Thu Hoạch')
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(!tuSi.kichHoatAuto)
   );
   return [row];
 };
@@ -145,6 +150,48 @@ class BoDieuKhienAuto extends BoDieuKhienGoc {
           }
           freshTuSi.linhThach -= 10000;
           freshTuSi.thoiGianAuto += 250;
+          await freshTuSi.save();
+        } else if (i.customId === 'auto_harvest') {
+          if (!freshTuSi.kichHoatAuto) {
+            await i.followUp({
+              content: '❌ Hệ thống đang tạm dừng, không có chiến lợi phẩm cần thu hoạch!',
+              ephemeral: true
+            });
+            return;
+          }
+
+          const statsObj = freshTuSi.thongKeAuto;
+          const activeMins = statsObj.activeMinutes || 0;
+          const expGained = statsObj.exp || 0;
+          const stonesGained = statsObj.stones || 0;
+          const itemsMap = statsObj.items || {};
+
+          let itemLines = '';
+          for (const [name, qty] of Object.entries(itemsMap)) {
+            itemLines += `• **${name}** x${qty}\n`;
+          }
+          if (!itemLines) itemLines = '_Không thu hoạch được vật phẩm nào._';
+
+          const reportEmbed = new EmbedBuilder()
+            .setTitle('🌾 BÁO CÁO THU HOẠCH CHIẾN LỢI PHẨM 🌾')
+            .setColor(0x2ecc71)
+            .setDescription(
+              `Đạo hữu **${freshTuSi.ten}** đã tiến hành thu hoạch chiến lợi phẩm tích lũy:\n\n` +
+              `• **Thời gian tích lũy**: \`${activeMins} phút\` ⏳\n` +
+              `• **Tu vi nhận được**: \`+${expGained}\` Exp ✨\n` +
+              `• **Linh thạch nhận được**: \`+${stonesGained.toLocaleString()}\` Linh Thạch 💎\n\n` +
+              `**Vật phẩm thu hoạch**:\n${itemLines}`
+            )
+            .setTimestamp()
+            .setFooter({ text: 'Thiên Đạo Tu Tiên RPG Auto System' });
+
+          await i.followUp({
+            embeds: [reportEmbed],
+            ephemeral: false
+          });
+
+          // Reset the statistics counter for the next harvest/stop report
+          freshTuSi.thongKeAuto = { activeMinutes: 0, exp: 0, stones: 0, items: {} };
           await freshTuSi.save();
         }
 
@@ -412,6 +459,23 @@ async function autoDiBiCanh(tuSi) {
         itemsMap[seedName] = (itemsMap[seedName] || 0) + 1;
       }
 
+      // 15% cơ hội rơi nguyên liệu hoặc đan đột phá phù hợp cảnh giới
+      const btData = config.layVatPhamDotPhaTheoCapDo(tuSi.capDo);
+      if (btData && Math.random() <= 0.15) {
+        const randType = Math.random();
+        let targetId = btData.seedId;
+        if (randType >= 0.85) {
+          targetId = btData.pillId;
+        } else if (randType >= 0.50) {
+          targetId = btData.herbId;
+        }
+        const itemDetail = await Item.findByPk(targetId);
+        if (itemDetail) {
+          await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+          itemsMap[itemDetail.ten] = (itemsMap[itemDetail.ten] || 0) + 1;
+        }
+      }
+
       if (Math.random() <= 0.03) {
         await Inventory.addVatPham(tuSi.idNguoiDung, 'co_duyen_lenh', 1);
         itemsMap['Cơ Duyên Lệnh'] = (itemsMap['Cơ Duyên Lệnh'] || 0) + 1;
@@ -529,6 +593,23 @@ async function autoDiLichLuyen(tuSi) {
       const seedName = seedId === 'hat_giong_linh_chi' ? 'Hạt Giống Linh Chi' : 'Hạt Giống Nhân Sâm';
       await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);
       itemsMap[seedName] = (itemsMap[seedName] || 0) + 1;
+    }
+
+    // 10% cơ hội rơi nguyên liệu hoặc đan đột phá phù hợp cảnh giới
+    const btData = config.layVatPhamDotPhaTheoCapDo(tuSi.capDo);
+    if (btData && Math.random() <= 0.10) {
+      const randType = Math.random();
+      let targetId = btData.seedId;
+      if (randType >= 0.85) {
+        targetId = btData.pillId;
+      } else if (randType >= 0.50) {
+        targetId = btData.herbId;
+      }
+      const itemDetail = await Item.findByPk(targetId);
+      if (itemDetail) {
+        await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+        itemsMap[itemDetail.ten] = (itemsMap[itemDetail.ten] || 0) + 1;
+      }
     }
 
     if (effects.thienDaoLuc && effects.thienDaoLucMsg && !effects.itemRandomEligible) {

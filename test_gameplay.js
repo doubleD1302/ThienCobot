@@ -25,6 +25,7 @@ const { ChannelRestriction } = await import('./models/ChannelRestriction.js');
 const { WorldBoss } = await import('./models/WorldBoss.js');
 const { GiftCode } = await import('./models/GiftCode.js');
 const { PlayerGiftCode } = await import('./models/PlayerGiftCode.js');
+const { DongGopEmoji } = await import('./models/DongGopEmoji.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -1621,21 +1622,241 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(statsObj.exp, 30);
     assert.strictEqual(statsObj.stones, 150);
 
-    // Simulate manual stop resetting stats
-    tuSi.kichHoatAuto = false;
+    // --- 5. Test harvest action resets stats ---
     tuSi.thongKeAuto = { activeMinutes: 0, exp: 0, stones: 0, items: {} };
     await tuSi.save();
 
     await tuSi.reload();
-    assert.strictEqual(tuSi.kichHoatAuto, false);
     assert.strictEqual(tuSi.thongKeAuto.activeMinutes, 0);
     assert.strictEqual(tuSi.thongKeAuto.exp, 0);
+    assert.strictEqual(tuSi.thongKeAuto.stones, 0);
+
+    // --- 6. Test subsequent loop execution accumulates from 0 ---
+    // Restore health so it can run another round
+    tuSi.hp = 100;
+    await tuSi.save();
+
+    // Clear cooldowns so it can run immediately
+    const { ThoiGianCho } = await import('./models/ThoiGianCho.js');
+    await ThoiGianCho.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+
+    await chayTienTrinhAuto();
+    await tuSi.reload();
+    assert.strictEqual(tuSi.thoiGianAuto, 240); // 245 - 5
+    assert.strictEqual(tuSi.thongKeAuto.activeMinutes, 5); // reset back to 5
+    assert.strictEqual(tuSi.thongKeAuto.exp, 30); // 10 (dungeon) + 20 (event)
+    assert.strictEqual(tuSi.thongKeAuto.stones, 150); // 50 (dungeon) + 100 (event)
 
     // Clean up
     await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
     await testDg.destroy();
     await testEvt.destroy();
     await tuSi.destroy();
+  });
+
+  test('World Boss Drop Quality and Rarity Distribution', async () => {
+    const { phanBoPhanThuongBoss } = await import('./controllers/BoDieuKhienBoss.js');
+    const { Item } = await import('./models/Item.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { TuSi } = await import('./models/TuSi.js');
+
+    // Create a mock player
+    const tuSi = await TuSi.create({
+      idNguoiDung: "999888777666",
+      ten: "BossRewardTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 10,
+      linhLuc: 0,
+      linhThach: 1000,
+      vnd: 0,
+      theLuc: 10
+    });
+
+    // Make sure we have items at level 10
+    const items = await Item.findAll({ where: { yeuCauCanhGioi: 10 } });
+    if (items.length === 0) {
+      await Item.create({
+        id: 'test_boss_item',
+        ten: 'Boss Test Sword',
+        loai: 'Vũ khí',
+        doHiem: 'Hiếm',
+        giaCoSo: 500,
+        chiSoJson: '{"vat_cong":30}',
+        yeuCauCanhGioi: 10,
+        moTa: 'Test sword.'
+      });
+    }
+
+    // Mock a Boss object
+    const mockBoss = {
+      level: 10,
+      ten: 'Thượng Cổ Long Vương',
+      maxHp: 100000,
+      damageDealers: {
+        "999888777666": 50000
+      }
+    };
+
+    // Clean inventory for the test user first
+    await Inventory.destroy({ where: { idNguoiDung: "999888777666" } });
+
+    // Call reward distributor
+    await phanBoPhanThuongBoss(null, mockBoss, null, "999888777666");
+
+    // Fetch the drops from the DB
+    const drops = await Inventory.findAll({ where: { idNguoiDung: "999888777666" } });
+    
+    // There should be items awarded (last hitter is guaranteed to get 1, top 1 is guaranteed to get 1, so 2 drops)
+    assert.ok(drops.length >= 1);
+    
+    for (const drop of drops) {
+      assert.ok(drop.dongChiSoJson);
+      const parsedStats = JSON.parse(drop.dongChiSoJson);
+      assert.ok(Array.isArray(parsedStats) && parsedStats.length > 0);
+
+      for (const line of parsedStats) {
+        assert.ok(line.mau === 'cam' || line.mau === 'do');
+        if (line.mau === 'do') {
+          assert.strictEqual(line.phamChat, 'Thần Cấp');
+          assert.ok(line.phanTram >= 30 && line.phanTram <= 50);
+        } else {
+          assert.strictEqual(line.phamChat, 'Thần Thoại');
+          assert.ok(line.phanTram >= 15 && line.phanTram <= 20);
+        }
+      }
+    }
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: "999888777666" } });
+    await tuSi.destroy();
+  });
+
+  test('Emoji and Image Contribution model / command execution', async () => {
+    const { DongGopEmoji } = await import('./models/DongGopEmoji.js');
+    await DongGopEmoji.destroy({ where: {} });
+
+    // 1. Simulate emoji contribution parsing logic
+    const emojiInput = "<a:pepe_animated:987654321098765432>";
+    const match = emojiInput.trim().match(/<(a?):([a-zA-Z0-9_]+):([0-9]+)>/);
+    assert.ok(match);
+    const isAnimated = match[1] === 'a';
+    const emojiId = match[3];
+    const ext = isAnimated ? 'gif' : 'png';
+    const imageUrl = `https://cdn.discordapp.com/emojis/${emojiId}.${ext}`;
+
+    assert.strictEqual(isAnimated, true);
+    assert.strictEqual(emojiId, '987654321098765432');
+    assert.strictEqual(imageUrl, 'https://cdn.discordapp.com/emojis/987654321098765432.gif');
+
+    // Create record in DB
+    const rec1 = await DongGopEmoji.create({
+      idNguoiDung: "999888777666",
+      tenEmoji: "pepe_animated",
+      rawEmoji: match[0],
+      imageUrl: imageUrl,
+      trangThai: 'PENDING'
+    });
+
+    assert.strictEqual(rec1.tenEmoji, "pepe_animated");
+    assert.strictEqual(rec1.rawEmoji, "<a:pepe_animated:987654321098765432>");
+    assert.strictEqual(rec1.imageUrl, "https://cdn.discordapp.com/emojis/987654321098765432.gif");
+    assert.strictEqual(rec1.trangThai, "PENDING");
+
+    // 2. Simulate file contribution logic
+    const fileUrl = "https://cdn.discordapp.com/attachments/112233/445566/image.png";
+    const rec2 = await DongGopEmoji.create({
+      idNguoiDung: "999888777666",
+      tenEmoji: "cool_meme",
+      rawEmoji: null,
+      imageUrl: fileUrl,
+      trangThai: 'PENDING'
+    });
+
+    assert.strictEqual(rec2.tenEmoji, "cool_meme");
+    assert.strictEqual(rec2.rawEmoji, null);
+    assert.strictEqual(rec2.imageUrl, fileUrl);
+
+    // Clean up
+    await DongGopEmoji.destroy({ where: {} });
+  });
+
+  test('Breakthrough Pills, Herbs, and Cauldron refining mechanics', async () => {
+    const { Item } = await import('./models/Item.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
+    const { boDieuKhienDongPhu } = await import('./controllers/BoDieuKhienDongPhu.js');
+
+    // 1. Verify breakthrough items exist in DB (synced from config.ITEMS)
+    const seed = await Item.findByPk('hat_giong_luyen_khi_thao');
+    const herb = await Item.findByPk('linh_thao_luyen_khi');
+    const pill = await Item.findByPk('dan_dot_pha_1');
+
+    assert.ok(seed);
+    assert.ok(herb);
+    assert.ok(pill);
+    assert.strictEqual(seed.loai, 'Linh thảo');
+    assert.strictEqual(herb.loai, 'Linh thảo');
+    assert.strictEqual(pill.loai, 'Đan dược');
+
+    // 2. Test Inventory.addVatPham auto-assigns quality for breakthrough pills
+    const userId = "test_user_breakthrough";
+    await Inventory.destroy({ where: { idNguoiDung: userId } });
+
+    const invPill = await Inventory.addVatPham(userId, 'dan_dot_pha_1', 1);
+    assert.ok(invPill);
+    assert.ok(invPill.dongChiSoJson);
+    const pillInfo = JSON.parse(invPill.dongChiSoJson);
+    assert.ok(pillInfo.phamChat);
+    assert.ok(pillInfo.phanTramHoTro);
+
+    // 3. Test Balo Embed formatting includes quality details
+    const itemsList = [{
+      invId: invPill.id,
+      item: pill,
+      soLuong: 1,
+      trangBi: false,
+      nangCapSao: 0,
+      dongChiSoJson: invPill.dongChiSoJson,
+      khoa: false
+    }];
+    const parsed = BoTaoEmbed._phanLoaiItems(itemsList);
+    assert.ok(parsed.danDuoc[0].includes(pillInfo.phamChat));
+    assert.ok(parsed.danDuoc[0].includes(`+${pillInfo.phanTramHoTro}%`));
+
+    // 4. Test Cauldron Alchemy consumes 3 herbs and refines 1 breakthrough pill
+    // Add 3 herbs to user inventory
+    await Inventory.create({
+      idNguoiDung: userId,
+      itemId: 'linh_thao_luyen_khi',
+      soLuong: 3,
+      trangBi: false,
+      nangCapSao: 0
+    });
+
+    const mockTuSi = {
+      idNguoiDung: userId,
+      ten: 'Luyện Đan Sư',
+      linhThach: 100,
+      save: async function() {}
+    };
+
+    const res = await boDieuKhienDongPhu._processAlchemy(mockTuSi, 'linh_thao_luyen_khi');
+    assert.strictEqual(res.ok, true);
+    assert.ok(res.msg.includes('Luyện Khí Phá Cảnh Đan'));
+    assert.strictEqual(mockTuSi.linhThach, 50); // consumed 50 stones
+
+    // Check that herbs were consumed
+    const remainingHerbs = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'linh_thao_luyen_khi' } });
+    assert.strictEqual(remainingHerbs, null);
+
+    // Check breakthrough pills in inventory
+    const pills = await Inventory.findAll({ where: { idNguoiDung: userId, itemId: 'dan_dot_pha_1' } });
+    assert.ok(pills.length > 0);
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: userId } });
   });
 
 });
