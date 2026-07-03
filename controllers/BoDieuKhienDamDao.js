@@ -48,8 +48,8 @@ const BAU_CUA_CHOICES = {
   bc_bau: { id: 'bc_bau', name: '🪵 Bầu', short: 'Bầu', label: '🪵 Bầu' },
   bc_cua: { id: 'bc_cua', name: '🦀 Cua', short: 'Cua', label: '🦀 Cua' },
   bc_tom: { id: 'bc_tom', name: '🦐 Tôm', short: 'Tôm', label: '🦐 Tôm' },
-  bc_ca:  { id: 'bc_ca',  name: '🐟 Cá',  short: 'Cá',  label: '🐟 Cá' },
-  bc_ga:  { id: 'bc_ga',  name: '🐓 Gà',  short: 'Gà',  label: '🐓 Gà' },
+  bc_ca: { id: 'bc_ca', name: '🐟 Cá', short: 'Cá', label: '🐟 Cá' },
+  bc_ga: { id: 'bc_ga', name: '🐓 Gà', short: 'Gà', label: '🐓 Gà' },
   bc_nai: { id: 'bc_nai', name: '🦌 Nai', short: 'Nai', label: '🦌 Nai' }
 };
 
@@ -101,7 +101,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
       }
 
       const color = layMauCanhGioi(tuSi.canhGioi);
-      let step = 'CHOOSE_GAME'; 
+      let step = 'CHOOSE_GAME';
 
       let playerHand = [];
       let botHand = [];
@@ -388,13 +388,13 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
       };
 
       const msg = await interaction.editReply({
-        embeds:     [buildChooseEmbed()],
+        embeds: [buildChooseEmbed()],
         components: [buildChooseButtons(), buildChooseRow2()]
       });
 
       const collector = msg.createMessageComponentCollector({
         filter: i => i.message.id === msg.id,
-        idle:   ROOM_IDLE_TIME
+        idle: ROOM_IDLE_TIME
       });
 
       collector.on('collect', async i => {
@@ -453,7 +453,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
             await interaction.editReply({ embeds: [buildRoomEmbed()], components: buildRoomComponents() });
             await submission.editReply({ embeds: [BoTaoEmbed.thanhCong('🤝 Đã Tham Gia Sòng', `Ngươi đã tham gia sòng với mức cược \`${roomBet.toLocaleString()}\` VND.`)] });
-          } catch (_) {}
+          } catch (_) { }
 
           return;
         }
@@ -571,12 +571,12 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           }
           else if (i.customId === 'game_blackjack') {
             step = 'BLACKJACK';
-            
+
             playerHand = [drawCard(), drawCard()];
             botHand = [drawCard(), drawCard()];
 
             const pSum = getSum(playerHand);
-            
+
             const embed = new EmbedBuilder()
               .setTitle('🃏 Nhị Thập Nhất Lực (Blackjack 21)')
               .setColor(0x3498db)
@@ -780,7 +780,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             let isTie = false;
 
             if (bSum > 21) {
-              isWin = true; 
+              isWin = true;
             } else if (pSum > bSum) {
               isWin = true;
             } else if (pSum === bSum) {
@@ -921,7 +921,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               components: []
             });
           }
-        } catch (_) {}
+        } catch (_) { }
       });
     } // <-- Đã fix lỗi thiếu đóng ngoặc tại đây
   }; // <-- Đã fix lỗi thiếu đóng ngoặc tại đây
