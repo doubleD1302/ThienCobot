@@ -293,6 +293,148 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       }
     }
 
+    // Đặc biệt: Code BOSS cung cấp cho người chơi đồ Truyền Thuyết với 5 dòng đỏ ngẫu nhiên phù hợp phái tu và cảnh giới
+    if (giftCode.code.toUpperCase() === 'BOSS') {
+      const config = await import('../config.js');
+      const realmInfo = config.layThongTinCanhGioi(tuSi.capDo);
+      const realmObj = config.CANH_GIOI_LIST.find(r => r.name === realmInfo.realmName) || config.CANH_GIOI_LIST[0];
+      const minLvl = realmObj.min_level;
+      const maxLvl = realmObj.max_level;
+
+      const { Op } = await import('sequelize');
+      const { Inventory } = await import('../models/Inventory.js');
+      const { Item } = await import('../models/Item.js');
+
+      // Tìm các vật phẩm trang bị có yeuCauCanhGioi nằm trong cảnh giới của người chơi
+      let candidates = await Item.findAll({
+        where: {
+          loai: {
+            [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo']
+          },
+          yeuCauCanhGioi: {
+            [Op.between]: [minLvl, Math.min(maxLvl, tuSi.capDo)]
+          }
+        }
+      });
+
+      if (candidates.length === 0) {
+        candidates = await Item.findAll({
+          where: {
+            loai: {
+              [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo']
+            },
+            yeuCauCanhGioi: {
+              [Op.lte]: tuSi.capDo
+            }
+          }
+        });
+      }
+
+      // Lọc theo phái tu (Thể Tu vs Pháp Tu)
+      const huongTu = (tuSi.huongTu || 'Phap Tu').normalize('NFC');
+      const isPhysical = huongTu.includes('The Tu') || huongTu.includes('Thể Tu');
+
+      const filteredCandidates = candidates.filter(item => {
+        if (item.loai !== 'Vũ khí') return true;
+        // Lọc vũ khí dựa trên chỉ số có sẵn
+        const statsStr = item.chiSoJson || '{}';
+        if (isPhysical) {
+          return statsStr.includes('vat_cong');
+        } else {
+          return statsStr.includes('phap_cong');
+        }
+      });
+
+      // Nếu bộ lọc quá khắt khe khiến không có vật phẩm nào, sử dụng danh sách gốc
+      const finalCandidates = filteredCandidates.length > 0 ? filteredCandidates : candidates;
+
+      if (finalCandidates.length > 0) {
+        // Xác định số lượng đồ thần phẩm nhận được dựa trên xác suất:
+        // 1% nhận được 4 đồ, 5% nhận được 3 đồ, 10% nhận được 2 đồ, còn lại 1 đồ
+        let count = 1;
+        const roll = Math.random();
+        if (roll <= 0.01) {
+          count = 4;
+        } else if (roll <= 0.01 + 0.05) {
+          count = 3;
+        } else if (roll <= 0.01 + 0.05 + 0.10) {
+          count = 2;
+        }
+
+        rewardDesc += `• **Quà BOSS Truyền Thuyết (${realmInfo.realmName})**: \n`;
+
+        for (let cIdx = 0; cIdx < count; cIdx++) {
+          const drawn = finalCandidates[Math.floor(Math.random() * finalCandidates.length)];
+          
+          // Tạo 5 dòng chỉ số đỏ (Truyền Thuyết) ngẫu nhiên
+          const loaiNormalized = drawn.loai ? drawn.loai.normalize('NFC') : '';
+          const POOLS = {
+            ["Vũ khí".normalize('NFC')]: ["vat_cong", "phap_cong", "crit_rate", "crit_dmg", "xuyen_giap"],
+            ["Giáp".normalize('NFC')]: ["vat_phong", "phap_phong", "max_mp", "max_hp"],
+            ["Ngọc Bội".normalize('NFC')]: ["max_hp", "max_mp", "ne", "lifesteal"],
+            ["Cổ Bảo Chủ Động".normalize('NFC')]: ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal"],
+            ["Pháp Bảo".normalize('NFC')]: [
+              "vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal",
+              "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb"
+            ]
+          };
+
+          const pool = [...(POOLS[loaiNormalized] || ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal"])];
+          const generalStats = ["max_hp", "max_mp", "ne", "lifesteal", "vat_phong", "phap_phong"];
+          for (const g of generalStats) {
+            if (pool.length >= 5) break;
+            if (!pool.includes(g)) pool.push(g);
+          }
+
+          const shuffled = [...pool].sort(() => 0.5 - Math.random());
+          const selectedStats = shuffled.slice(0, 5);
+
+          const NAME_MAP = {
+            "vat_cong": "Sát thương Vật lý",
+            "phap_cong": "Sát thương Pháp thuật",
+            "crit_rate": "Tỷ lệ Bạo kích",
+            "crit_dmg": "Sát thương Bạo kích",
+            "xuyen_giap": "Xuyên giáp hộ thể",
+            "vat_phong": "Vật phòng nhục thân",
+            "phap_phong": "Pháp phòng khí hải",
+            "max_mp": "Chân nguyên linh khí (MP)",
+            "max_hp": "Khí huyết cơ bản (HP)",
+            "ne": "Né tránh yêu pháp",
+            "lifesteal": "Hút máu sinh cơ",
+            "crit_rate_pb": "Bạo kích Pháp bảo",
+            "crit_dmg_pb": "Bạo thương Pháp bảo",
+            "sat_thuong_pb": "Sát thương Pháp bảo",
+            "phap_thuong_pb": "Pháp thương Pháp bảo",
+            "khien_pb": "Hộ tẫn Hấp thụ Pháp bảo"
+          };
+
+          const customLines = [];
+          for (const stat of selectedStats) {
+            const value = parseFloat((30 + Math.random() * 20).toFixed(1)); // 30% - 50%
+            customLines.push({
+              thuocTinh: stat,
+              ten: NAME_MAP[stat] || stat,
+              mau: "do",
+              phamChat: "Truyền Thuyết",
+              phanTram: value
+            });
+          }
+
+          const dongChiSoJson = JSON.stringify(customLines);
+
+          await Inventory.create({
+            idNguoiDung: tuSi.idNguoiDung,
+            itemId: drawn.id,
+            soLuong: 1,
+            trangBi: false,
+            dongChiSoJson: dongChiSoJson
+          });
+
+          rewardDesc += `   + **${drawn.ten}** (5 Dòng Truyền Thuyết 🔴)\n`;
+        }
+      }
+    }
+
     // Lưu trạng thái nhân vật và ghi nhận lịch sử dùng code
     await tuSi.save();
     await PlayerGiftCode.create({

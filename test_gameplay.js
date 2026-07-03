@@ -1402,6 +1402,78 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('BOSS Gift Code Redeems Red Quality Items with 5 Lines', async () => {
+    const { GiftCode } = await import('./models/GiftCode.js');
+    const { PlayerGiftCode } = await import('./models/PlayerGiftCode.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { Item } = await import('./models/Item.js');
+    const { boDieuKhienTuSi } = await import('./controllers/BoDieuKhienTuSi.js');
+
+    // Create the BOSS code in DB if not exist, or delete previous
+    await GiftCode.destroy({ where: { code: 'BOSS' } });
+    const codeObj = await GiftCode.create({
+      code: 'BOSS',
+      linhThach: 0,
+      linhLuc: 0,
+      vnd: 0,
+      items: []
+    });
+
+    // Create a Thể Tu player
+    const tuSi = await TuSi.create({
+      idNguoiDung: "777666555444",
+      ten: "BossCodeTester",
+      gioiTinh: "Nam",
+      huongTu: "Thể Tu",
+      linhCan: "Kim Linh Căn",
+      capDo: 10,
+      linhLuc: 0,
+      linhThach: 0,
+      vnd: 0,
+      theLuc: 10
+    });
+
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await PlayerGiftCode.destroy({ where: { userId: tuSi.idNguoiDung } });
+
+    // Redeem code BOSS
+    const res = await boDieuKhienTuSi._thucHienNhapCode(tuSi, 'BOSS');
+    assert.strictEqual(res.ok, true, `Mã code BOSS nhập thất bại: ${res.msg}`);
+
+    // Check inventory
+    const itemsInInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    assert.ok(itemsInInv.length >= 1 && itemsInInv.length <= 4, `Số lượng đồ nhận phải từ 1 đến 4, nhận được: ${itemsInInv.length}`);
+
+    for (const record of itemsInInv) {
+      const itemDetail = await Item.findByPk(record.itemId);
+      assert.ok(itemDetail);
+      
+      // If it is a weapon, it must be physical (Thể Tu)
+      if (itemDetail.loai === 'Vũ khí') {
+        const statsStr = itemDetail.chiSoJson || '{}';
+        assert.ok(statsStr.includes('vat_cong'), `Vũ khí cho Thể Tu phải có vật lý công kích`);
+      }
+
+      // Check stats: must have exactly 5 red quality lines
+      assert.ok(record.dongChiSoJson);
+      const parsedStats = JSON.parse(record.dongChiSoJson);
+      assert.strictEqual(parsedStats.length, 5, "Đồ rơi ra phải có chính xác 5 dòng chỉ số");
+
+      for (const line of parsedStats) {
+        assert.strictEqual(line.mau, 'do', "Chỉ số phải có màu đỏ");
+        assert.strictEqual(line.phamChat, 'Truyền Thuyết', "Chất lượng phải là Truyền Thuyết");
+        assert.ok(line.phanTram >= 30 && line.phanTram <= 50, `Giá trị dòng phải từ 30% đến 50%, nhận được: ${line.phanTram}`);
+      }
+    }
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await PlayerGiftCode.destroy({ where: { userId: tuSi.idNguoiDung } });
+    await codeObj.destroy();
+    await tuSi.destroy();
+  });
+
   test('Pháp Bảo Active Skill Load from Database Column', async () => {
     const { Item } = await import('./models/Item.js');
     const config = await import('./config.js');

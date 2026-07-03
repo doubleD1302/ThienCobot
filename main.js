@@ -629,6 +629,16 @@ async function start() {
         await AdventureEvent.bulkCreate(seedAdventureEvents);
         console.log(`Đã tạo thành công ${seedAdventureEvents.length} sự kiện cơ duyên mẫu.`);
       }
+      // Khởi tạo và đồng bộ Gift Code BOSS
+      const { GiftCode } = await import('./models/GiftCode.js');
+      await GiftCode.upsert({
+        code: 'BOSS',
+        linhThach: 0,
+        linhLuc: 0,
+        vnd: 0,
+        itemsJson: '[]'
+      });
+      console.log('Đã đồng bộ thành công Gift Code BOSS vào CSDL.');
     } catch (err) {
       console.error('Không thể tự động sửa đổi schema hoặc dọn dẹp bản ghi rác/seeding:', err);
     }
