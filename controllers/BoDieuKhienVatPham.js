@@ -359,7 +359,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         } else if (activeSheet.value === 'danduo') {
           khaDung = itemsList.filter(o => o.item.loai === 'Đan dược' && o.soLuong > 0);
         } else if (activeSheet.value === 'linhthao') {
-          khaDung = itemsList.filter(o => o.item.loai === 'Linh thảo' && o.soLuong > 0);
+          khaDung = itemsList.filter(o => !['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo', 'Đan dược'].includes(o.item.loai) && o.soLuong > 0);
         }
 
         if (khaDung.length === 0) {

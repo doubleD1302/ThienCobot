@@ -1257,15 +1257,15 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   test('World Boss HP/Damage Reduction 1000x', () => {
     // Verify formula calculations for level 1
     const lvl1Hp = Math.ceil((1 * 50000 + 50000) / 1000);
-    const lvl1Atk = Math.ceil((1 * 300 + 100) / 1000) * 100;
+    const lvl1Atk = Math.ceil((1 * 300 + 100) / 1000) * 10000;
     assert.strictEqual(lvl1Hp, 100);
-    assert.strictEqual(lvl1Atk, 100);
+    assert.strictEqual(lvl1Atk, 10000);
 
     // Verify formula calculations for level 30
     const lvl30Hp = Math.ceil((30 * 50000 + 50000) / 1000);
-    const lvl30Atk = Math.ceil((30 * 300 + 100) / 1000) * 100;
+    const lvl30Atk = Math.ceil((30 * 300 + 100) / 1000) * 10000;
     assert.strictEqual(lvl30Hp, 1550);
-    assert.strictEqual(lvl30Atk, 1000);
+    assert.strictEqual(lvl30Atk, 100000);
   });
 
   test('Pháp Bảo Active Skills Config & Duration', () => {
@@ -1720,10 +1720,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       for (const line of parsedStats) {
         assert.ok(line.mau === 'cam' || line.mau === 'do');
         if (line.mau === 'do') {
-          assert.strictEqual(line.phamChat, 'Thần Cấp');
+          assert.strictEqual(line.phamChat, 'Truyền Thuyết');
           assert.ok(line.phanTram >= 30 && line.phanTram <= 50);
         } else {
-          assert.strictEqual(line.phamChat, 'Thần Thoại');
+          assert.strictEqual(line.phamChat, 'Tiên Phẩm');
           assert.ok(line.phanTram >= 15 && line.phanTram <= 20);
         }
       }
@@ -1732,6 +1732,129 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Clean up
     await Inventory.destroy({ where: { idNguoiDung: "999888777666" } });
     await tuSi.destroy();
+  });
+
+  test('World Boss Doubled Rewards Verification', async () => {
+    const { phanBoPhanThuongBoss } = await import('./controllers/BoDieuKhienBoss.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+
+    // Create 4 mock players
+    const players = [];
+    for (let i = 1; i <= 4; i++) {
+      const idNguoiDung = `88877766655${i}`;
+      // Clean up previous runs if any
+      await TuSi.destroy({ where: { idNguoiDung } });
+      const p = await TuSi.create({
+        idNguoiDung,
+        ten: `Tester ${i}`,
+        gioiTinh: "Nam",
+        huongTu: "Phap Tu",
+        linhCan: "Thủy Linh Căn",
+        capDo: 1,
+        linhLuc: 0,
+        linhThach: 0,
+        vnd: 0,
+        theLuc: 10
+      });
+      players.push(p);
+      await Inventory.destroy({ where: { idNguoiDung: p.idNguoiDung } });
+    }
+
+    const mockBoss = {
+      level: 1,
+      ten: 'Thượng Cổ Hổ Vương',
+      maxHp: 100000,
+      damageDealers: {
+        "888777666551": 40000, // Top 1
+        "888777666552": 30000, // Top 2
+        "888777666553": 20000, // Top 3
+        "888777666554": 10000  // Top 4 (Non-top-3)
+      }
+    };
+
+    // Call reward distributor (lastHitterId = null, to only test participant rewards)
+    await phanBoPhanThuongBoss(null, mockBoss, null, null);
+
+    // Reload all players
+    for (const p of players) {
+      await p.reload();
+    }
+
+    const p1 = players[0];
+    const p2 = players[1];
+    const p3 = players[2];
+    const p4 = players[3];
+
+    // Assert base rewards for Top 4:
+    // baseStones = 2000, baseExp = 500
+    // gainedStones = (2000 + random) * 2 >= 4000
+    // gainedExp = (500 + random) * 2 >= 1000
+    assert.ok(p4.linhThach >= 4000 && p4.linhThach <= 4400, `Top 4 nhận đúng linh thạch nền: ${p4.linhThach}`);
+    assert.ok(p4.linhLuc >= 1000 && p4.linhLuc <= 1100, `Top 4 nhận đúng tu vi nền: ${p4.linhLuc}`);
+
+    // Assert Top 3 bonus: +1000*2 = +2000 stones, +300*2 = +600 exp
+    // expected stones = base + 2000 >= 6000
+    // expected exp = base + 600 >= 1600
+    assert.ok(p3.linhThach >= 6000 && p3.linhThach <= 6400, `Top 3 nhận đúng linh thạch: ${p3.linhThach}`);
+    assert.ok(p3.linhLuc >= 1600 && p3.linhLuc <= 1700, `Top 3 nhận đúng tu vi: ${p3.linhLuc}`);
+
+    // Assert Top 2 bonus: +2000*2 = +4000 stones, +500*2 = +1000 exp
+    // expected stones = base + 4000 >= 8000
+    // expected exp = base + 1000 >= 2000
+    assert.ok(p2.linhThach >= 8000 && p2.linhThach <= 8400, `Top 2 nhận đúng linh thạch: ${p2.linhThach}`);
+    assert.ok(p2.linhLuc >= 2000 && p2.linhLuc <= 2100, `Top 2 nhận đúng tu vi: ${p2.linhLuc}`);
+
+    // Assert Top 1 bonus: +3000*2 = +6000 stones, +800*2 = +1600 exp
+    // expected stones = base + 6000 >= 10000
+    // expected exp = base + 1600 >= 2600
+    assert.ok(p1.linhThach >= 10000 && p1.linhThach <= 10400, `Top 1 nhận đúng linh thạch: ${p1.linhThach}`);
+    assert.ok(p1.linhLuc >= 2600 && p1.linhLuc <= 2700, `Top 1 nhận đúng tu vi: ${p1.linhLuc}`);
+
+    // Clean up
+    for (const p of players) {
+      await Inventory.destroy({ where: { idNguoiDung: p.idNguoiDung } });
+      await p.destroy();
+    }
+  });
+
+  test('World Boss Spawn Schedule Hour Detection', () => {
+    const tzOptions = {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+
+    const allowedHours = [6, 12, 22];
+
+    const checkTime = (date) => {
+      const localTimeStr = date.toLocaleTimeString('en-US', tzOptions);
+      const [hStr, mStr] = localTimeStr.split(':');
+      const localHour = parseInt(hStr, 10);
+      const localMinute = parseInt(mStr, 10);
+      return allowedHours.includes(localHour) && localMinute === 0;
+    };
+
+    // Test case 1: 06:00 UTC+7 (e.g. 2026-07-03T06:00:00+07:00)
+    const date1 = new Date('2026-07-03T06:00:00+07:00');
+    assert.strictEqual(checkTime(date1), true, "06:00+07:00 should match spawn time");
+
+    // Test case 2: 12:00 UTC+7 (e.g. 2026-07-03T12:00:00+07:00)
+    const date2 = new Date('2026-07-03T12:00:00+07:00');
+    assert.strictEqual(checkTime(date2), true, "12:00+07:00 should match spawn time");
+
+    // Test case 3: 22:00 UTC+7 (e.g. 2026-07-03T22:00:00+07:00)
+    const date3 = new Date('2026-07-03T22:00:00+07:00');
+    assert.strictEqual(checkTime(date3), true, "22:00+07:00 should match spawn time");
+
+    // Test case 4: 06:01 UTC+7 (should not match)
+    const date4 = new Date('2026-07-03T06:01:00+07:00');
+    assert.strictEqual(checkTime(date4), false, "06:01 should not match spawn time");
+
+    // Test case 5: 07:00 UTC+7 (should not match)
+    const date5 = new Date('2026-07-03T07:00:00+07:00');
+    assert.strictEqual(checkTime(date5), false, "07:00 should not match spawn time");
   });
 
   test('Emoji and Image Contribution model / command execution', async () => {

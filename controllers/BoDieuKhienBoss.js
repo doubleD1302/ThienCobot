@@ -76,12 +76,12 @@ function rollBossDropStats(item, isRed) {
   for (const stat of selectedStats) {
     let quality, color, minPercent, maxPercent;
     if (isRed) {
-      quality = "Thần Cấp";
+      quality = "Truyền Thuyết";
       color = "do";
       minPercent = 30;
       maxPercent = 50;
     } else {
-      quality = "Thần Thoại";
+      quality = "Tiên Phẩm";
       color = "cam";
       minPercent = 15;
       maxPercent = 20;
@@ -170,7 +170,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
           trangBi: false,
           dongChiSoJson: dongChiSoJson
         });
-        const rarityText = isRed ? 'Thần Cấp 🔴' : 'Thần Thoại 🟠';
+        const rarityText = isRed ? 'Truyền Thuyết 🔴' : 'Tiên Phẩm 🟠';
         giftName = ` & nhận **${gift.ten}** (${rarityText})`;
       }
 
@@ -186,14 +186,24 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
     const tuSi = await TuSi.findOne({ where: { idNguoiDung: entry.id } });
     if (!tuSi) continue;
 
-    // Tính toán Linh thạch & Exp nhận được theo lượng sát thương đóng góp
-    const ratio = entry.dmg / boss.maxHp;
+    // Tất cả người chơi có sát thương đều nhận phần thưởng nền như nhau
     const baseStones = boss.level * 2000;
     const baseExp = boss.level * 500;
 
-    // Linh lực & Linh thạch nhận được tối thiểu là 10% base
-    const gainedStones = Math.max(50, Math.floor(baseStones * ratio) + Math.floor(Math.random() * 200));
-    const gainedExp = Math.max(10, Math.floor(baseExp * ratio) + Math.floor(Math.random() * 50));
+    let gainedStones = (baseStones + Math.floor(Math.random() * 200)) * 2;
+    let gainedExp = (baseExp + Math.floor(Math.random() * 50)) * 2;
+
+    // Riêng Top 1-2-3 sẽ được nhận thêm Linh thạch & Tu vi
+    if (index === 0) { // Top 1
+      gainedStones += boss.level * 3000 * 2;
+      gainedExp += boss.level * 800 * 2;
+    } else if (index === 1) { // Top 2
+      gainedStones += boss.level * 2000 * 2;
+      gainedExp += boss.level * 500 * 2;
+    } else if (index === 2) { // Top 3
+      gainedStones += boss.level * 1000 * 2;
+      gainedExp += boss.level * 300 * 2;
+    }
 
     tuSi.linhThach = Math.min(2_000_000_000, tuSi.linhThach + gainedStones);
     tuSi.linhLuc += gainedExp;
@@ -201,32 +211,35 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
     let giftMsg = '';
     // Top 1 được chắc chắn nhận 1 trang bị ngẫu nhiên của Cảnh Giới hiện tại của họ
     // Các vị trí khác có tỉ lệ (Top 2: 50%, Top 3: 30%, khác: 5%)
-    let dropChance = 0.05;
+    let dropChance = 0.20;
     if (index === 0) dropChance = 1.0;
     else if (index === 1) dropChance = 0.50;
     else if (index === 2) dropChance = 0.30;
 
-    if (Math.random() <= dropChance) {
-      const gift = await getGiftItemForPlayer(tuSi.capDo);
-      if (gift) {
-        const isRed = Math.random() <= 0.10;
-        const normLoai = gift.loai ? gift.loai.normalize('NFC') : '';
-        const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);
-        let dongChiSoJson = null;
-        if (isEquipable) {
-          const stats = rollBossDropStats(gift, isRed);
-          dongChiSoJson = JSON.stringify(stats);
-        }
+    // Tăng gấp đôi lượng trang bị nhận được (chạy 2 lần roll độc lập để nhận gấp đôi lượng đồ)
+    for (let dropIdx = 0; dropIdx < 2; dropIdx++) {
+      if (Math.random() <= dropChance) {
+        const gift = await getGiftItemForPlayer(tuSi.capDo);
+        if (gift) {
+          const isRed = Math.random() <= 0.10;
+          const normLoai = gift.loai ? gift.loai.normalize('NFC') : '';
+          const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);
+          let dongChiSoJson = null;
+          if (isEquipable) {
+            const stats = rollBossDropStats(gift, isRed);
+            dongChiSoJson = JSON.stringify(stats);
+          }
 
-        await Inventory.create({
-          idNguoiDung: tuSi.idNguoiDung,
-          itemId: gift.id,
-          soLuong: 1,
-          trangBi: false,
-          dongChiSoJson: dongChiSoJson
-        });
-        const rarityText = isRed ? 'Thần Cấp 🔴' : 'Thần Thoại 🟠';
-        giftMsg = ` 🎁 Nhận được: **${gift.ten}** (${rarityText})`;
+          await Inventory.create({
+            idNguoiDung: tuSi.idNguoiDung,
+            itemId: gift.id,
+            soLuong: 1,
+            trangBi: false,
+            dongChiSoJson: dongChiSoJson
+          });
+          const rarityText = isRed ? 'Truyền Thuyết 🔴' : 'Thần Thoại 🟠';
+          giftMsg += ` 🎁 Nhận được: **${gift.ten}** (${rarityText})`;
+        }
       }
     }
 
@@ -304,6 +317,7 @@ function buildBossButtons(boss) {
 class BoDieuKhienBoss extends BoDieuKhienGoc {
   constructor() {
     super();
+    this.lastSpawnKey = '';
   }
 
   // Khởi động vòng lặp kiểm tra tự động sinh Boss
@@ -346,31 +360,43 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           }
         }
 
-        // 2. Tự động sinh Boss ngẫu nhiên cho các Server hoạt động
-        const localHour = parseInt(new Date().toLocaleTimeString('en-US', {
+        // 2. Tự động sinh Boss cố định theo khung giờ cho các Server hoạt động
+        const localTimeStr = now.toLocaleTimeString('en-US', {
           timeZone: 'Asia/Ho_Chi_Minh',
           hour12: false,
-          hour: '2-digit'
-        }), 10);
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        const [hStr, mStr] = localTimeStr.split(':');
+        const localHour = parseInt(hStr, 10);
+        const localMinute = parseInt(mStr, 10);
 
-        if (localHour >= 8 && localHour < 24) {
+        const allowedHours = [6, 12, 22];
+        const localDateStr = now.toLocaleDateString('en-US', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        const todayStr = localDateStr.replace(/\//g, '-');
+        const spawnKey = `${todayStr}-${localHour}`;
+
+        if (allowedHours.includes(localHour) && localMinute === 0 && this.lastSpawnKey !== spawnKey) {
+          this.lastSpawnKey = spawnKey;
           const guilds = client.guilds.cache;
           for (const [guildId, guild] of guilds) {
             // Kiểm tra xem Guild này đã có Boss đang active chưa
             const hasActive = await WorldBoss.findOne({ where: { idGuild: guildId, active: true } });
             if (hasActive) continue;
 
-            // Xác định tỉ lệ xuất hiện Boss (Mỗi phút có 5% tỉ lệ xuất hiện Boss)
-            if (Math.random() <= 0.05) {
-              await this.trieuHoiWorldBossTuDong(client, guildId, guild);
-            }
+            await this.trieuHoiWorldBossTuDong(client, guildId, guild);
           }
         }
 
       } catch (err) {
         console.error('[Boss System] Lỗi tiến trình tự động sinh boss:', err);
       }
-    }, 60000);
+    }, 30000);
   }
 
   // Hàm triệu hồi Boss tự động cho Guild
@@ -405,8 +431,8 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       const tpl = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
 
       const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 10 * 100;
-      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10;
-      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10;
+      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100;
+      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100;
       const vatPhong = bossLevel * 100 + 50;
       const phapPhong = bossLevel * 100 + 50;
       const giap = bossLevel * 10 + 20;
@@ -758,7 +784,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         }
 
         // Thần thú active skills (20% cơ hội mỗi hiệp)
-        if (activePet && Math.random() <= 0.20) {
+        if (activePet && Math.random() <= 0.10) {
           const template = config.PET_TEMPLATES[activePet.type];
           if (template && template.group === 'than_thu') {
             const totalEvolves = config.getPetTotalEvolves(activePet);
@@ -947,7 +973,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       if (pbLogs.length > 0) {
         logs.push(pbLogs.join('\n'));
       }
-      
+
       // Giới hạn hiển thị 10 hiệp cuối cùng nếu battleLogs quá dài để tránh vượt quá giới hạn ký tự Discord
       const displayLogs = battleLogs.length > 10 ? battleLogs.slice(-10) : battleLogs;
       if (battleLogs.length > 10) {
