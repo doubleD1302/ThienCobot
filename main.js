@@ -334,6 +334,7 @@ async function start() {
       // Thực hiện migration cho các sủng vật đã tiến hóa từ trước
       try {
         const { Pet } = await import('./models/Pet.js');
+        const petRarityOrder = ['NORMAL', 'RARE', 'LEGENDARY', 'MYTHIC', 'ANCIENT', 'SUPREME'];
         const allPets = await Pet.findAll();
         for (const pet of allPets) {
           let count = 0;
@@ -348,12 +349,15 @@ async function start() {
             let totalEvolves = count;
             let currentRarity = pet.rarity || 'NORMAL';
 
+            if (!petRarityOrder.includes(currentRarity)) {
+              currentRarity = 'NORMAL';
+            }
+
             while (totalEvolves >= 10) {
               totalEvolves -= 10;
-              if (currentRarity === 'NORMAL') {
-                currentRarity = 'ANCIENT';
-              } else if (currentRarity === 'ANCIENT') {
-                currentRarity = 'SUPREME';
+              const currentIndex = petRarityOrder.indexOf(currentRarity);
+              if (currentIndex >= 0 && currentIndex < petRarityOrder.length - 1) {
+                currentRarity = petRarityOrder[currentIndex + 1];
               }
             }
 

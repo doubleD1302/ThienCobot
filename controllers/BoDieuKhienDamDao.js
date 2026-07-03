@@ -3,12 +3,62 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder
+  EmbedBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
 } from 'discord.js';
 
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed, layMauCanhGioi } from '../views/BoTaoEmbed.js';
-import * as config from '../config.js';
+
+const MAX_GAME_BET = 1000000;
+const ROOM_IDLE_TIME = 300000;
+
+const GAME_META = {
+  TAI_XIU: {
+    title: '🎲 Linh Khí Tài Xỉu',
+    color: 0x9b59b6,
+    label: 'Linh Khí Tài Xỉu'
+  },
+  KIEM_GIAP_PHAP: {
+    title: '🗡️ Quyết Đấu: Kiếm - Giáp - Pháp',
+    color: 0xe67e22,
+    label: 'Kiếm - Giáp - Pháp'
+  },
+  BAU_CUA: {
+    title: '🦀 Bầu Cua Tôm Cá',
+    color: 0x1abc9c,
+    label: 'Bầu Cua Tôm Cá'
+  }
+};
+
+const TAI_XIU_CHOICES = {
+  tx_tai: { id: 'tx_tai', name: '🔴 Tài', short: 'Tài', label: '🔴 Tài (11-18)' },
+  tx_xiu: { id: 'tx_xiu', name: '🔵 Xỉu', short: 'Xỉu', label: '🔵 Xỉu (3-10)' }
+};
+
+const KIEM_GIAP_CHOICES = {
+  kgp_kiem: { id: 'kgp_kiem', name: '🗡️ Kiếm', short: 'Kiếm', label: '🗡️ Kiếm' },
+  kgp_giap: { id: 'kgp_giap', name: '🛡️ Giáp', short: 'Giáp', label: '🛡️ Giáp' },
+  kgp_phap: { id: 'kgp_phap', name: '📜 Pháp Bùa', short: 'Pháp Bùa', label: '📜 Pháp Bùa' }
+};
+
+const BAU_CUA_CHOICES = {
+  bc_bau: { id: 'bc_bau', name: '🪵 Bầu', short: 'Bầu', label: '🪵 Bầu' },
+  bc_cua: { id: 'bc_cua', name: '🦀 Cua', short: 'Cua', label: '🦀 Cua' },
+  bc_tom: { id: 'bc_tom', name: '🦐 Tôm', short: 'Tôm', label: '🦐 Tôm' },
+  bc_ca:  { id: 'bc_ca',  name: '🐟 Cá',  short: 'Cá',  label: '🐟 Cá' },
+  bc_ga:  { id: 'bc_ga',  name: '🐓 Gà',  short: 'Gà',  label: '🐓 Gà' },
+  bc_nai: { id: 'bc_nai', name: '🦌 Nai', short: 'Nai', label: '🦌 Nai' }
+};
+
+const getChoiceMeta = (game, choiceId) => {
+  if (game === 'TAI_XIU') return TAI_XIU_CHOICES[choiceId] || null;
+  if (game === 'KIEM_GIAP_PHAP') return KIEM_GIAP_CHOICES[choiceId] || null;
+  if (game === 'BAU_CUA') return BAU_CUA_CHOICES[choiceId] || null;
+  return null;
+};
 
 class BoDieuKhienDamDao extends BoDieuKhienGoc {
   constructor() {
@@ -24,7 +74,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           .setDescription('Số lượng VND cược (Tối đa 1.000.000)')
           .setRequired(true)
           .setMinValue(100)
-          .setMaxValue(1000000)
+          .setMaxValue(MAX_GAME_BET)
       ),
 
     execute: async (interaction) => {
@@ -39,9 +89,9 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
       }
 
       // Khống chế mức cược tối đa 1,000,000
-      if (bet > 1000000) {
+      if (bet > MAX_GAME_BET) {
         return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi(`Mức cược tối đa là 1.000.000 VND / Linh Thạch!`)]
+          embeds: [BoTaoEmbed.loi(`Mức cược tối đa là ${MAX_GAME_BET.toLocaleString()} VND / Linh Thạch!`)]
         });
       }
 
@@ -64,6 +114,235 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         const value = VALUES[Math.floor(Math.random() * VALUES.length)];
         const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
         return `${value}${suit}`;
+      };
+
+      let selectedGame = null;
+      let selectedChoiceId = null;
+      const roomState = {
+        active: false,
+        game: null,
+        choiceId: null,
+        hostId: interaction.user.id,
+        hostName: interaction.user.username,
+        hostBet: bet,
+        players: new Map()
+      };
+
+      const getCurrentChoiceMeta = () => getChoiceMeta(selectedGame, selectedChoiceId);
+
+      const buildChoiceRows = (game) => {
+        if (game === 'TAI_XIU') {
+          return [
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('tx_tai').setLabel('🔴 Tài (11-18)').setStyle(selectedChoiceId === 'tx_tai' ? ButtonStyle.Success : ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId('tx_xiu').setLabel('🔵 Xỉu (3-10)').setStyle(selectedChoiceId === 'tx_xiu' ? ButtonStyle.Success : ButtonStyle.Secondary)
+            )
+          ];
+        }
+
+        if (game === 'KIEM_GIAP_PHAP') {
+          return [
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('kgp_kiem').setLabel('🗡️ Kiếm').setStyle(selectedChoiceId === 'kgp_kiem' ? ButtonStyle.Success : ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId('kgp_giap').setLabel('🛡️ Giáp').setStyle(selectedChoiceId === 'kgp_giap' ? ButtonStyle.Success : ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId('kgp_phap').setLabel('📜 Pháp Bùa').setStyle(selectedChoiceId === 'kgp_phap' ? ButtonStyle.Success : ButtonStyle.Secondary)
+            )
+          ];
+        }
+
+        if (game === 'BAU_CUA') {
+          return [
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('bc_bau').setLabel('🪵 Bầu').setStyle(selectedChoiceId === 'bc_bau' ? ButtonStyle.Success : ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId('bc_cua').setLabel('🦀 Cua').setStyle(selectedChoiceId === 'bc_cua' ? ButtonStyle.Success : ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId('bc_tom').setLabel('🦐 Tôm').setStyle(selectedChoiceId === 'bc_tom' ? ButtonStyle.Success : ButtonStyle.Secondary)
+            ),
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('bc_ca').setLabel('🐟 Cá').setStyle(selectedChoiceId === 'bc_ca' ? ButtonStyle.Success : ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId('bc_ga').setLabel('🐓 Gà').setStyle(selectedChoiceId === 'bc_ga' ? ButtonStyle.Success : ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId('bc_nai').setLabel('🦌 Nai').setStyle(selectedChoiceId === 'bc_nai' ? ButtonStyle.Success : ButtonStyle.Secondary)
+            )
+          ];
+        }
+
+        return [];
+      };
+
+      const buildActionRows = (game, forRoom = false) => {
+        const canAct = Boolean(selectedChoiceId || forRoom);
+        return [
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(forRoom ? 'room_start' : 'game_play_now').setLabel(forRoom ? '🚀 Bắt Đầu' : '🎮 Chơi Ngay').setStyle(ButtonStyle.Success).setDisabled(!canAct),
+            new ButtonBuilder().setCustomId(forRoom ? 'room_join' : 'game_create_room').setLabel(forRoom ? '🤝 Tham Gia' : '🛎️ Lập Sòng').setStyle(ButtonStyle.Primary).setDisabled(!canAct),
+            new ButtonBuilder().setCustomId(forRoom ? 'room_cancel' : 'game_cancel').setLabel('❌ Hủy').setStyle(ButtonStyle.Danger)
+          )
+        ];
+      };
+
+      const buildGameEmbed = (game) => {
+        const meta = GAME_META[game];
+        const choiceMeta = getChoiceMeta(game, selectedChoiceId);
+        const choiceText = choiceMeta ? `**${choiceMeta.name}**` : '*Chưa chọn*';
+        const roomLine = roomState.active
+          ? `\n🛎️ **Sòng đang mở**: ${roomState.players.size} người tham gia.`
+          : '';
+
+        return new EmbedBuilder()
+          .setTitle(meta.title)
+          .setColor(meta.color)
+          .setDescription(
+            `Đạo hữu **${tuSi.ten}** đang xem sảnh **${meta.label}**.\n` +
+            `💵 **VND cược**: \\`${bet.toLocaleString()}\\` VND\n` +
+            `💵 **VND hiện có**: \\`${tuSi.vnd.toLocaleString()}\\` VND\n\n` +
+            `• **Cửa đã chọn**: ${choiceText}${roomLine}\n\n` +
+            `Hãy chọn cửa rồi bấm **Chơi Ngay** hoặc **Lập Sòng**.`
+          )
+          .setTimestamp();
+      };
+
+      const buildRoomEmbed = () => {
+        const meta = GAME_META[roomState.game];
+        const choiceMeta = getChoiceMeta(roomState.game, roomState.choiceId);
+        const playerLines = Array.from(roomState.players.values()).map((player, index) => `**${index + 1}.** <@${player.userId}> · \\`${player.bet.toLocaleString()}\\` VND`).join('\n') || '_Chưa có ai tham gia._';
+
+        return new EmbedBuilder()
+          .setTitle(`🏮 Sòng ${meta.label} Đã Lập`)
+          .setColor(meta.color)
+          .setDescription(
+            `• **Chủ sòng**: <@${roomState.hostId}>\n` +
+            `• **Cửa của sòng**: **${choiceMeta?.name || 'Chưa xác định'}**\n` +
+            `• **Cược gốc của chủ sòng**: \\`${roomState.hostBet.toLocaleString()}\\` VND\n` +
+            `• **Tổng người chơi**: **${roomState.players.size}**\n\n` +
+            `**Danh sách người chơi:**\n${playerLines}\n\n` +
+            `Bấm **🤝 Tham Gia** để vào sòng và nhập số tiền cược của ngươi.`
+          )
+          .setTimestamp();
+      };
+
+      const buildRoomComponents = () => [
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('room_join').setLabel('🤝 Tham Gia').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('room_start').setLabel('🚀 Bắt Đầu').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('room_cancel').setLabel('❌ Hủy Sòng').setStyle(ButtonStyle.Danger)
+        )
+      ];
+
+      const getGameOutcome = (game) => {
+        if (game === 'TAI_XIU') {
+          const d1 = Math.floor(Math.random() * 6) + 1;
+          const d2 = Math.floor(Math.random() * 6) + 1;
+          const d3 = Math.floor(Math.random() * 6) + 1;
+          const sum = d1 + d2 + d3;
+          const result = sum >= 11 ? 'tx_tai' : 'tx_xiu';
+          return { d1, d2, d3, sum, result };
+        }
+
+        if (game === 'KIEM_GIAP_PHAP') {
+          const choices = Object.keys(KIEM_GIAP_CHOICES);
+          const botChoiceId = choices[Math.floor(Math.random() * choices.length)];
+          return { botChoiceId };
+        }
+
+        if (game === 'BAU_CUA') {
+          const allChoices = Object.values(BAU_CUA_CHOICES);
+          const roll1 = allChoices[Math.floor(Math.random() * allChoices.length)];
+          const roll2 = allChoices[Math.floor(Math.random() * allChoices.length)];
+          const roll3 = allChoices[Math.floor(Math.random() * allChoices.length)];
+          return { roll1, roll2, roll3 };
+        }
+
+        return {};
+      };
+
+      const resolvePlayerOutcome = (game, choiceId, wager, outcome) => {
+        if (game === 'TAI_XIU') {
+          const isWin = choiceId === outcome.result;
+          return {
+            delta: isWin ? wager : -wager,
+            title: isWin ? '🎉 Thiên Vận Phù Hộ (Thắng!)' : '💀 Thiên Đạo Vô Tình (Thua!)',
+            color: isWin ? 0x2ecc71 : 0xe74c3c,
+            detail: isWin
+              ? `🚀 Đại cát đại lợi! Nhận thêm \\`+${wager.toLocaleString()}\\` VND.`
+              : `💔 Cơ duyên cạn kiệt! Tổn hao \\`-${wager.toLocaleString()}\\` VND.`,
+            isWin
+          };
+        }
+
+        if (game === 'KIEM_GIAP_PHAP') {
+          const choices = {
+            kgp_kiem: { name: '🗡️ Kiếm', beats: 'kgp_phap' },
+            kgp_giap: { name: '🛡️ Giáp', beats: 'kgp_kiem' },
+            kgp_phap: { name: '📜 Pháp Bùa', beats: 'kgp_giap' }
+          };
+          const playerChoice = choices[choiceId];
+          const botChoice = choices[outcome.botChoiceId];
+          let delta = 0;
+          let title = '⚖️ Lưỡng Bại Câu Thương';
+          let color = 0xf1c40f;
+          let detail = `Cả hai cùng ra **${playerChoice.name}**, cược được hoàn trả.`;
+          let result = 'TIE';
+
+          if (choiceId === outcome.botChoiceId) {
+            result = 'TIE';
+          } else if (playerChoice.beats === outcome.botChoiceId) {
+            result = 'WIN';
+            delta = wager;
+            title = '⚔️ Thắng Trận Đàm Đạo';
+            color = 0x2ecc71;
+            detail = `🚀 Đạo hữu dùng **${playerChoice.name}** khắc chế **${botChoice.name}**, thắng nhận \\`+${wager.toLocaleString()}\\` VND.`;
+          } else {
+            result = 'LOSE';
+            delta = -wager;
+            title = '💀 Bại Trận Đàm Đạo';
+            color = 0xe74c3c;
+            detail = `💔 **${botChoice.name}** khắc chế **${playerChoice.name}**, cống nạp \\`-${wager.toLocaleString()}\\` VND.`;
+          }
+
+          return { delta, title, color, detail, result, playerChoice: playerChoice.name, botChoice: botChoice.name };
+        }
+
+        if (game === 'BAU_CUA') {
+          const rolls = [outcome.roll1, outcome.roll2, outcome.roll3];
+          const count = rolls.filter(r => r.id === choiceId).length;
+          const isWin = count > 0;
+          return {
+            delta: isWin ? wager * count : -wager,
+            title: isWin ? '🌟 Linh Thú Linh Ứng (Đại Thắng!)' : '⛈️ Linh Vận Trầm Luân (Thua)',
+            color: isWin ? 0x2ecc71 : 0xe74c3c,
+            detail: isWin
+              ? `🚀 **${getChoiceMeta(game, choiceId)?.short || choiceId}** xuất hiện **${count}** lần, thắng nhận \\`+${(wager * count).toLocaleString()}\\` VND.`
+              : `💔 Không có **${getChoiceMeta(game, choiceId)?.short || choiceId}** nào xuất hiện! Tổn hao \\`-${wager.toLocaleString()}\\` VND.`,
+            count,
+            rolls,
+            isWin
+          };
+        }
+
+        return { delta: 0, title: 'Không xác định', color: 0x7f8c8d, detail: 'Không có kết quả.' };
+      };
+
+      const buildRoomResultEmbed = (game, outcome, results) => {
+        const meta = GAME_META[game];
+        const detailLines = results.map(r => `• <@${r.userId}>: ${r.delta >= 0 ? '+' : ''}${r.delta.toLocaleString()} VND (còn \\`${r.newBalance.toLocaleString()}\\`)`).join('\n');
+        let outcomeText = '';
+
+        if (game === 'TAI_XIU') {
+          outcomeText = `🎲 Xúc xắc: \\`[ ${outcome.d1} ] · [ ${outcome.d2} ] · [ ${outcome.d3} ]\\`\n• Tổng điểm: **${outcome.sum}** → **${outcome.result === 'tx_tai' ? 'Tài' : 'Xỉu'}**`;
+        } else if (game === 'KIEM_GIAP_PHAP') {
+          outcomeText = `⚔️ Thiên Đạo ra chiêu: **${getChoiceMeta(game, outcome.botChoiceId)?.name || outcome.botChoiceId}**`;
+        } else if (game === 'BAU_CUA') {
+          const rollText = outcome.rolls.map(r => `${r.emoji} ${r.short}`).join(' · ');
+          outcomeText = `🎲 Kết quả gieo: [ ${rollText} ]`;
+        }
+
+        return new EmbedBuilder()
+          .setTitle(`🏮 ${meta.label} Kết Quả Sòng`)
+          .setColor(results.some(r => r.delta > 0) ? 0x2ecc71 : 0xe74c3c)
+          .setDescription(
+            `${outcomeText}\n\n` +
+            `**Diễn biến:**\n${results.length > 0 ? detailLines : '_Không có người chơi hợp lệ._'}`
+          )
+          .setTimestamp();
       };
 
       // ── Helper: Tạo giao diện lựa chọn game ─────────────────────────────────
@@ -117,16 +396,139 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
       });
 
       const collector = msg.createMessageComponentCollector({
-        filter: i => i.user.id === interaction.user.id,
-        idle:   60000 // Tự đóng sau 1 phút không có phản hồi
+        filter: i => i.message.id === msg.id,
+        idle:   ROOM_IDLE_TIME
       });
 
       collector.on('collect', async i => {
+        if (roomState.active && i.customId === 'room_join') {
+          const modal = new ModalBuilder()
+            .setCustomId('modal_room_bet')
+            .setTitle('Nhập Số Tiền Cược');
+
+          const betInput = new TextInputBuilder()
+            .setCustomId('input_room_bet')
+            .setLabel('Số tiền cược muốn tham gia')
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('Ví dụ: 5000')
+            .setRequired(true);
+
+          modal.addComponents(new ActionRowBuilder().addComponents(betInput));
+          await i.showModal(modal);
+
+          try {
+            const submission = await i.awaitModalSubmit({
+              filter: sub => sub.customId === 'modal_room_bet' && sub.user.id === i.user.id,
+              time: 60000
+            });
+
+            await submission.deferReply({ ephemeral: true });
+
+            const rawBet = submission.fields.getTextInputValue('input_room_bet').trim();
+            const roomBet = Number.parseInt(rawBet, 10);
+
+            if (!Number.isFinite(roomBet) || roomBet < 100) {
+              await submission.editReply({ embeds: [BoTaoEmbed.loi('Mức cược tối thiểu là 100 VND!')] });
+              return;
+            }
+
+            if (roomBet > MAX_GAME_BET) {
+              await submission.editReply({ embeds: [BoTaoEmbed.loi(`Mức cược tối đa là ${MAX_GAME_BET.toLocaleString()} VND!`)] });
+              return;
+            }
+
+            const playerTuSi = await this.layTuSi(submission.user.id);
+            if (!playerTuSi) {
+              await submission.editReply({ embeds: [BoTaoEmbed.loi('Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.')] });
+              return;
+            }
+
+            if (playerTuSi.vnd < roomBet) {
+              await submission.editReply({ embeds: [BoTaoEmbed.loi(`VND bất túc! Ngươi chỉ có \\`${playerTuSi.vnd.toLocaleString()}\\` VND, không đủ cược \\`${roomBet.toLocaleString()}\\` VND.`)] });
+              return;
+            }
+
+            roomState.players.set(submission.user.id, {
+              userId: submission.user.id,
+              userName: submission.user.username,
+              bet: roomBet
+            });
+
+            await interaction.editReply({ embeds: [buildRoomEmbed()], components: buildRoomComponents() });
+            await submission.editReply({ embeds: [BoTaoEmbed.thanhCong('🤝 Đã Tham Gia Sòng', `Ngươi đã tham gia sòng với mức cược \\`${roomBet.toLocaleString()}\\` VND.`)] });
+          } catch (_) {}
+
+          return;
+        }
+
         await i.deferUpdate();
 
-        // Kiểm tra số dư VND liên tục
+        if (!roomState.active && i.user.id !== interaction.user.id) {
+          await i.followUp({
+            ephemeral: true,
+            content: 'Chỉ chủ sòng mới có thể chọn cửa hoặc lập sòng ở màn hình này.'
+          });
+          return;
+        }
+
+        if (roomState.active) {
+          if (i.customId === 'room_start') {
+            if (i.user.id !== roomState.hostId) {
+              await i.editReply({ embeds: [BoTaoEmbed.loi('Chỉ chủ sòng mới có thể bấm bắt đầu!')], components: buildRoomComponents() });
+              return;
+            }
+
+            const outcome = getGameOutcome(roomState.game);
+            const results = [];
+
+            for (const player of roomState.players.values()) {
+              const playerTuSi = await this.layTuSi(player.userId);
+              if (!playerTuSi) continue;
+
+              const playerOutcome = resolvePlayerOutcome(roomState.game, roomState.choiceId, player.bet, outcome);
+              playerTuSi.vnd = Math.max(0, playerTuSi.vnd + playerOutcome.delta);
+              await playerTuSi.save();
+
+              results.push({
+                userId: player.userId,
+                delta: playerOutcome.delta,
+                newBalance: playerTuSi.vnd
+              });
+            }
+
+            const resultEmbed = buildRoomResultEmbed(roomState.game, outcome, results);
+            roomState.active = false;
+            roomState.game = null;
+            roomState.choiceId = null;
+            roomState.players.clear();
+            selectedGame = null;
+            selectedChoiceId = null;
+
+            await i.editReply({ embeds: [resultEmbed], components: [] });
+            collector.stop('finished');
+            return;
+          }
+
+          if (i.customId === 'room_cancel') {
+            if (i.user.id !== roomState.hostId) {
+              await i.editReply({ embeds: [BoTaoEmbed.loi('Chỉ chủ sòng mới có thể hủy sòng!')], components: buildRoomComponents() });
+              return;
+            }
+
+            roomState.active = false;
+            roomState.game = null;
+            roomState.choiceId = null;
+            roomState.players.clear();
+            selectedGame = null;
+            selectedChoiceId = null;
+            collector.stop('cancelled');
+            return;
+          }
+        }
+
+        // Kiểm tra số dư VND liên tục cho người mở sòng khi chưa vào phòng
         await tuSi.reload();
-        if (tuSi.vnd < bet) {
+        if (!roomState.active && tuSi.vnd < bet) {
           collector.stop('insufficient_funds');
           return;
         }
@@ -156,46 +558,24 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         if (step === 'CHOOSE_GAME') {
           if (i.customId === 'game_taixiu') {
             step = 'TAI_XIU';
-            const embed = new EmbedBuilder()
-              .setTitle('🎲 Linh Khí Tài Xỉu')
-              .setColor(0x9b59b6)
-              .setDescription(
-                `Hệ thống sẽ gieo **3 viên Linh Xúc Xắc** (mỗi viên từ 1 đến 6).\n` +
-                `• **Xỉu**: Tổng số điểm từ 3 đến 10.\n` +
-                `• **Tài**: Tổng số điểm từ 11 đến 18.\n` +
-                `• Tỷ lệ thắng: **1 ăn 1**.\n\n` +
-                `Đạo hữu hãy đặt cửa thắng của mình:`
-              );
+            selectedGame = 'TAI_XIU';
+            selectedChoiceId = null;
 
-            const row = new ActionRowBuilder().addComponents(
-              new ButtonBuilder().setCustomId('tx_tai').setLabel('🔴 Tài (11-18)').setStyle(ButtonStyle.Success),
-              new ButtonBuilder().setCustomId('tx_xiu').setLabel('🔵 Xỉu (3-10)').setStyle(ButtonStyle.Primary)
-            );
-
-            await i.editReply({ embeds: [embed], components: [row] });
+            await i.editReply({
+              embeds: [buildGameEmbed('TAI_XIU')],
+              components: [...buildChoiceRows('TAI_XIU'), ...buildActionRows('TAI_XIU')]
+            });
           }
 
           else if (i.customId === 'game_kiemgiap') {
             step = 'KIEM_GIAP_PHAP';
-            const embed = new EmbedBuilder()
-              .setTitle('🗡️ Quyết Đấu: Kiếm - Giáp - Pháp')
-              .setColor(0xe67e22)
-              .setDescription(
-                `Quy luật ngũ hành khắc chế:\n` +
-                `• 🗡️ **Kiếm** chém rách 📜 **Pháp Bùa**.\n` +
-                `• 🛡️ **Giáp** cản phá 🗡️ **Kiếm**.\n` +
-                `• 📜 **Pháp Bùa** khắc chế 🛡️ **Giáp**.\n` +
-                `• Tỷ lệ: Thắng nhận 1:1, Hòa hoàn trả cược.\n\n` +
-                `Chọn thế võ thần thông của đạo hữu:`
-              );
+            selectedGame = 'KIEM_GIAP_PHAP';
+            selectedChoiceId = null;
 
-            const row = new ActionRowBuilder().addComponents(
-              new ButtonBuilder().setCustomId('kgp_kiem').setLabel('🗡️ Kiếm').setStyle(ButtonStyle.Primary),
-              new ButtonBuilder().setCustomId('kgp_giap').setLabel('🛡️ Giáp').setStyle(ButtonStyle.Success),
-              new ButtonBuilder().setCustomId('kgp_phap').setLabel('📜 Pháp Bùa').setStyle(ButtonStyle.Warning)
-            );
-
-            await i.editReply({ embeds: [embed], components: [row] });
+            await i.editReply({
+              embeds: [buildGameEmbed('KIEM_GIAP_PHAP')],
+              components: [...buildChoiceRows('KIEM_GIAP_PHAP'), ...buildActionRows('KIEM_GIAP_PHAP')]
+            });
           }
 
           else if (i.customId === 'game_blackjack') {
@@ -227,31 +607,13 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
           else if (i.customId === 'game_baucua') {
             step = 'BAU_CUA';
-            const embed = new EmbedBuilder()
-              .setTitle('🦀 Bầu Cua Tôm Cá')
-              .setColor(0x1abc9c)
-              .setDescription(
-                `Đạo hữu hãy dự đoán linh thú nào sẽ xuất hiện trong 3 mặt Linh Xúc Xắc.\n` +
-                `• **Tỷ lệ nhận thưởng**:\n` +
-                `   - Xuất hiện 1 xúc xắc: **1 ăn 1**.\n` +
-                `   - Xuất hiện 2 xúc xắc: **1 ăn 2**.\n` +
-                `   - Xuất hiện 3 xúc xắc: **1 ăn 3**.\n\n` +
-                `Chọn linh thú để đặt cược:`
-              );
+            selectedGame = 'BAU_CUA';
+            selectedChoiceId = null;
 
-            const row1 = new ActionRowBuilder().addComponents(
-              new ButtonBuilder().setCustomId('bc_bau').setLabel('🪵 Bầu').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId('bc_cua').setLabel('🦀 Cua').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId('bc_tom').setLabel('🦐 Tôm').setStyle(ButtonStyle.Secondary)
-            );
-
-            const row2 = new ActionRowBuilder().addComponents(
-              new ButtonBuilder().setCustomId('bc_ca').setLabel('🐟 Cá').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId('bc_ga').setLabel('🐓 Gà').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId('bc_nai').setLabel('🦌 Nai').setStyle(ButtonStyle.Secondary)
-            );
-
-            await i.editReply({ embeds: [embed], components: [row1, row2] });
+            await i.editReply({
+              embeds: [buildGameEmbed('BAU_CUA')],
+              components: [...buildChoiceRows('BAU_CUA'), ...buildActionRows('BAU_CUA')]
+            });
           }
 
           else if (i.customId === 'game_cancel') {
@@ -263,103 +625,123 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         // 2. CHƠI TÀI XỈU
         // ══════════════════════════════════════════════════════════════
         else if (step === 'TAI_XIU') {
-          const choice = i.customId === 'tx_tai' ? 'Tài' : 'Xỉu';
-          const d1 = Math.floor(Math.random() * 6) + 1;
-          const d2 = Math.floor(Math.random() * 6) + 1;
-          const d3 = Math.floor(Math.random() * 6) + 1;
-          const sum = d1 + d2 + d3;
-          const result = sum >= 11 ? 'Tài' : 'Xỉu';
-          const isWin = choice === result;
-
-          if (isWin) {
-            tuSi.vnd += bet;
-          } else {
-            tuSi.vnd -= bet;
+          if (i.customId === 'tx_tai' || i.customId === 'tx_xiu') {
+            selectedChoiceId = i.customId;
+            await i.editReply({
+              embeds: [buildGameEmbed('TAI_XIU')],
+              components: [...buildChoiceRows('TAI_XIU'), ...buildActionRows('TAI_XIU')]
+            });
+            return;
           }
-          await tuSi.save();
 
-          const resultEmbed = new EmbedBuilder()
-            .setTitle(isWin ? '🎉 Thiên Vận Phù Hộ (Thắng!)' : '💀 Thiên Đạo Vô Tình (Thua!)')
-            .setColor(isWin ? 0x2ecc71 : 0xe74c3c)
-            .setDescription(
-              `Đạo hữu đặt cửa: **${choice}**\n\n` +
-              `🎲 Kết quả gieo xúc xắc:\n` +
-              `• Xúc xắc: \`[ ${d1} ] · [ ${d2} ] · [ ${d3} ]\`\n` +
-              `• Tổng điểm: \`${sum}\` ➔ **${result}**\n\n` +
-              (isWin
-                ? `🚀 Đại cát đại lợi! Đạo hữu thắng cuộc nhận thêm \`+${bet.toLocaleString()}\` VND.`
-                : `💔 Cơ duyên cạn kiệt! Đạo hữu thất bại tổn hao \`-${bet.toLocaleString()}\` VND.`) +
-              `\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
-            )
-            .setTimestamp();
+          if (i.customId === 'game_create_room') {
+            if (!selectedChoiceId) {
+              await i.editReply({ embeds: [BoTaoEmbed.loi('Hãy chọn cửa trước khi lập sòng!')], components: [...buildChoiceRows('TAI_XIU'), ...buildActionRows('TAI_XIU')] });
+              return;
+            }
 
-          await i.editReply({ embeds: [resultEmbed], components: [] });
-          collector.stop('finished');
+            roomState.active = true;
+            roomState.game = 'TAI_XIU';
+            roomState.choiceId = selectedChoiceId;
+            roomState.players.clear();
+            roomState.players.set(interaction.user.id, { userId: interaction.user.id, userName: interaction.user.username, bet });
+            await i.editReply({ embeds: [buildRoomEmbed()], components: buildRoomComponents() });
+            return;
+          }
+
+          if (i.customId === 'game_play_now') {
+            if (!selectedChoiceId) {
+              await i.editReply({ embeds: [BoTaoEmbed.loi('Hãy chọn cửa trước khi chơi!')], components: [...buildChoiceRows('TAI_XIU'), ...buildActionRows('TAI_XIU')] });
+              return;
+            }
+
+            const outcome = getGameOutcome('TAI_XIU');
+            const choiceMeta = getChoiceMeta('TAI_XIU', selectedChoiceId);
+            const playerOutcome = resolvePlayerOutcome('TAI_XIU', selectedChoiceId, bet, outcome);
+            tuSi.vnd = Math.max(0, tuSi.vnd + playerOutcome.delta);
+            await tuSi.save();
+
+            const resultEmbed = new EmbedBuilder()
+              .setTitle(playerOutcome.title)
+              .setColor(playerOutcome.color)
+              .setDescription(
+                `Đạo hữu đặt cửa: **${choiceMeta?.name || selectedChoiceId}**\n\n` +
+                `🎲 Kết quả gieo xúc xắc:\n` +
+                `• Xúc xắc: \`[ ${outcome.d1} ] · [ ${outcome.d2} ] · [ ${outcome.d3} ]\`\n` +
+                `• Tổng điểm: \`${outcome.sum}\` ➔ **${outcome.result === 'tx_tai' ? 'Tài' : 'Xỉu'}**\n\n` +
+                `${playerOutcome.detail}\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
+              )
+              .setTimestamp();
+
+            await i.editReply({ embeds: [resultEmbed], components: [] });
+            collector.stop('finished');
+            return;
+          }
+
+          if (i.customId === 'game_cancel') {
+            collector.stop('cancelled');
+            return;
+          }
         }
 
         // ══════════════════════════════════════════════════════════════
         // 3. CHƠI KIẾM - GIÁP - PHÁP
         // ══════════════════════════════════════════════════════════════
         else if (step === 'KIEM_GIAP_PHAP') {
-          const choices = {
-            'kgp_kiem': { name: '🗡️ Kiếm', beats: '📜 Pháp Bùa' },
-            'kgp_giap': { name: '🛡️ Giáp', beats: '🗡️ Kiếm' },
-            'kgp_phap': { name: '📜 Pháp Bùa', beats: '🛡️ Giáp' }
-          };
-
-          const playerChoice = choices[i.customId];
-          const botOptions = Object.keys(choices);
-          const botChoiceId = botOptions[Math.floor(Math.random() * botOptions.length)];
-          const botChoice = choices[botChoiceId];
-
-          let outcome = 'TIE';
-          if (playerChoice.name === botChoice.name) {
-            outcome = 'TIE';
-          } else if (playerChoice.beats === botChoice.name) {
-            outcome = 'WIN';
-          } else {
-            outcome = 'LOSE';
+          if (i.customId === 'kgp_kiem' || i.customId === 'kgp_giap' || i.customId === 'kgp_phap') {
+            selectedChoiceId = i.customId;
+            await i.editReply({
+              embeds: [buildGameEmbed('KIEM_GIAP_PHAP')],
+              components: [...buildChoiceRows('KIEM_GIAP_PHAP'), ...buildActionRows('KIEM_GIAP_PHAP')]
+            });
+            return;
           }
 
-          if (outcome === 'WIN') {
-            tuSi.vnd += bet;
+          if (i.customId === 'game_create_room') {
+            if (!selectedChoiceId) {
+              await i.editReply({ embeds: [BoTaoEmbed.loi('Hãy chọn cửa trước khi lập sòng!')], components: [...buildChoiceRows('KIEM_GIAP_PHAP'), ...buildActionRows('KIEM_GIAP_PHAP')] });
+              return;
+            }
+
+            roomState.active = true;
+            roomState.game = 'KIEM_GIAP_PHAP';
+            roomState.choiceId = selectedChoiceId;
+            roomState.players.clear();
+            roomState.players.set(interaction.user.id, { userId: interaction.user.id, userName: interaction.user.username, bet });
+            await i.editReply({ embeds: [buildRoomEmbed()], components: buildRoomComponents() });
+            return;
+          }
+
+          if (i.customId === 'game_play_now') {
+            if (!selectedChoiceId) {
+              await i.editReply({ embeds: [BoTaoEmbed.loi('Hãy chọn cửa trước khi chơi!')], components: [...buildChoiceRows('KIEM_GIAP_PHAP'), ...buildActionRows('KIEM_GIAP_PHAP')] });
+              return;
+            }
+
+            const outcome = getGameOutcome('KIEM_GIAP_PHAP');
+            const playerOutcome = resolvePlayerOutcome('KIEM_GIAP_PHAP', selectedChoiceId, bet, outcome);
+            tuSi.vnd = Math.max(0, tuSi.vnd + playerOutcome.delta);
             await tuSi.save();
-          } else if (outcome === 'LOSE') {
-            tuSi.vnd -= bet;
-            await tuSi.save();
+
+            const resultEmbed = new EmbedBuilder()
+              .setTitle(playerOutcome.title)
+              .setColor(playerOutcome.color)
+              .setDescription(
+                `• **Đạo hữu ra chiêu**: **${playerOutcome.playerChoice}**\n` +
+                `• **Thiên Đạo ra chiêu**: **${playerOutcome.botChoice}**\n\n` +
+                `${playerOutcome.detail}\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
+              )
+              .setTimestamp();
+
+            await i.editReply({ embeds: [resultEmbed], components: [] });
+            collector.stop('finished');
+            return;
           }
 
-          let outcomeTitle = '';
-          let outcomeColor = 0;
-          let outcomeDesc = '';
-
-          if (outcome === 'WIN') {
-            outcomeTitle = '⚔️ Thắng Trận Đàm Đạo';
-            outcomeColor = 0x2ecc71;
-            outcomeDesc = `🚀 Đạo hữu dùng **${playerChoice.name}** khắc chế hoàn hảo **${botChoice.name}** của phân thân, thắng nhận \`+${bet.toLocaleString()}\` VND.`;
-          } else if (outcome === 'LOSE') {
-            outcomeTitle = '💀 Bại Trận Đàm Đạo';
-            outcomeColor = 0xe74c3c;
-            outcomeDesc = `💔 Phân thân xuất chiêu **${botChoice.name}** khắc chế **${playerChoice.name}** của đạo hữu, cống nạp \`-${bet.toLocaleString()}\` VND.`;
-          } else {
-            outcomeTitle = '⚖️ Lưỡng Bại Câu Thương';
-            outcomeColor = 0xf1c40f;
-            outcomeDesc = `Cả hai cùng ra **${playerChoice.name}**, khí kình đối xung bất phân thắng bại! Cược \`${bet.toLocaleString()}\` VND được hoàn trả vẹn nguyên.`;
+          if (i.customId === 'game_cancel') {
+            collector.stop('cancelled');
+            return;
           }
-
-          const resultEmbed = new EmbedBuilder()
-            .setTitle(outcomeTitle)
-            .setColor(outcomeColor)
-            .setDescription(
-              `• **Đạo hữu ra chiêu**: **${playerChoice.name}**\n` +
-              `• **Thiên Đạo ra chiêu**: **${botChoice.name}**\n\n` +
-              outcomeDesc +
-              `\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
-            )
-            .setTimestamp();
-
-          await i.editReply({ embeds: [resultEmbed], components: [] });
-          collector.stop('finished');
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -477,54 +859,62 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         // 5. CHƠI BẦU CUA TÔM CÁ
         // ══════════════════════════════════════════════════════════════
         else if (step === 'BAU_CUA') {
-          const animalsMap = {
-            'bc_bau': { name: 'Bầu 🪵', emoji: '🪵' },
-            'bc_cua': { name: 'Cua 🦀', emoji: '🦀' },
-            'bc_tom': { name: 'Tôm 🦐', emoji: '🦐' },
-            'bc_ca':  { name: 'Cá 🐟',  emoji: '🐟' },
-            'bc_ga':  { name: 'Gà 🐓',  emoji: '🐓' },
-            'bc_nai': { name: 'Nai 🦌',  emoji: '🦌' }
-          };
-
-          const playerChoice = animalsMap[i.customId];
-          if (!playerChoice) return;
-
-          const animalsList = Object.values(animalsMap);
-
-          // Gieo 3 viên xúc xắc
-          const roll1 = animalsList[Math.floor(Math.random() * animalsList.length)];
-          const roll2 = animalsList[Math.floor(Math.random() * animalsList.length)];
-          const roll3 = animalsList[Math.floor(Math.random() * animalsList.length)];
-
-          const rolls = [roll1, roll2, roll3];
-          const count = rolls.filter(r => r.name === playerChoice.name).length;
-          const isWin = count > 0;
-
-          const MAX_STONES = 2_000_000_000;
-          if (isWin) {
-            const reward = bet * count;
-            tuSi.vnd = Math.min(MAX_STONES, tuSi.vnd + reward);
-            await tuSi.save();
-          } else {
-            tuSi.vnd = Math.max(0, tuSi.vnd - bet);
-            await tuSi.save();
+          if (i.customId in BAU_CUA_CHOICES) {
+            selectedChoiceId = i.customId;
+            await i.editReply({
+              embeds: [buildGameEmbed('BAU_CUA')],
+              components: [...buildChoiceRows('BAU_CUA'), ...buildActionRows('BAU_CUA')]
+            });
+            return;
           }
 
-          const resultEmbed = new EmbedBuilder()
-            .setTitle(isWin ? '🌟 Linh Thú Linh Ứng (Đại Thắng!)' : '⛈️ Linh Vận Trầm Luân (Thua)')
-            .setColor(isWin ? 0x2ecc71 : 0xe74c3c)
-            .setDescription(
-              `• **Đạo hữu đặt cược**: **${playerChoice.name}**\n` +
-              `• **Kết quả gieo xúc xắc**: [ **${roll1.emoji} ${roll1.name.split(' ')[0]}** ] · [ **${roll2.emoji} ${roll2.name.split(' ')[0]}** ] · [ **${roll3.emoji} ${roll3.name.split(' ')[0]}** ]\n\n` +
-              (isWin
-                ? `🚀 Tuyệt vời! **${playerChoice.name.split(' ')[0]}** xuất hiện **${count}** lần, đạo hữu thắng nhận \`+${(bet * count).toLocaleString()}\` VND (tỉ lệ 1 ăn ${count}).`
-                : `💔 Không có **${playerChoice.name.split(' ')[0]}** nào xuất hiện! Đạo hữu tổn hao \`-${bet.toLocaleString()}\` VND.`) +
-              `\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
-            )
-            .setTimestamp();
+          if (i.customId === 'game_create_room') {
+            if (!selectedChoiceId) {
+              await i.editReply({ embeds: [BoTaoEmbed.loi('Hãy chọn linh thú trước khi lập sòng!')], components: [...buildChoiceRows('BAU_CUA'), ...buildActionRows('BAU_CUA')] });
+              return;
+            }
 
-          await i.editReply({ embeds: [resultEmbed], components: [] });
-          collector.stop('finished');
+            roomState.active = true;
+            roomState.game = 'BAU_CUA';
+            roomState.choiceId = selectedChoiceId;
+            roomState.players.clear();
+            roomState.players.set(interaction.user.id, { userId: interaction.user.id, userName: interaction.user.username, bet });
+            await i.editReply({ embeds: [buildRoomEmbed()], components: buildRoomComponents() });
+            return;
+          }
+
+          if (i.customId === 'game_play_now') {
+            if (!selectedChoiceId) {
+              await i.editReply({ embeds: [BoTaoEmbed.loi('Hãy chọn linh thú trước khi chơi!')], components: [...buildChoiceRows('BAU_CUA'), ...buildActionRows('BAU_CUA')] });
+              return;
+            }
+
+            const outcome = getGameOutcome('BAU_CUA');
+            const playerOutcome = resolvePlayerOutcome('BAU_CUA', selectedChoiceId, bet, outcome);
+            tuSi.vnd = Math.max(0, tuSi.vnd + playerOutcome.delta);
+            await tuSi.save();
+
+            const playerChoice = getChoiceMeta('BAU_CUA', selectedChoiceId);
+            const rollText = playerOutcome.rolls.map(r => `${r.emoji} ${r.short}`).join(' · ');
+            const resultEmbed = new EmbedBuilder()
+              .setTitle(playerOutcome.title)
+              .setColor(playerOutcome.color)
+              .setDescription(
+                `• **Đạo hữu đặt cược**: **${playerChoice?.name || selectedChoiceId}**\n` +
+                `• **Kết quả gieo xúc xắc**: [ ${rollText} ]\n\n` +
+                `${playerOutcome.detail}\n\n🪙 **Số dư hiện tại**: \`${tuSi.vnd.toLocaleString()}\` VND.`
+              )
+              .setTimestamp();
+
+            await i.editReply({ embeds: [resultEmbed], components: [] });
+            collector.stop('finished');
+            return;
+          }
+
+          if (i.customId === 'game_cancel') {
+            collector.stop('cancelled');
+            return;
+          }
         }
       });
 

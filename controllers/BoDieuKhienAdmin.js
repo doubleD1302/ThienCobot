@@ -35,6 +35,8 @@ const EMOJI_MAP = {
   tuvi: '☯️'
 };
 
+const COMMANDS_PER_PAGE = 25;
+
 // ── Helper: embed danh sách kênh đang bị giới hạn ────────────────────────────
 async function buildListEmbed(guild) {
   const records = await ChannelRestriction.findAll();
@@ -82,6 +84,7 @@ class BoDieuKhienAdmin {
       let pendingChannelId   = null;
       let pendingChannelName = null;
       let pendingCmds        = []; // danh sách lệnh đã được chọn trong bước hiện tại
+      let commandPage        = 0;
 
       // ── Tab row ─────────────────────────────────────────────────────────────
       const buildTabRow = () =>
@@ -100,7 +103,7 @@ class BoDieuKhienAdmin {
         );
 
       // ── Embed bước 2 ADD: danh sách lệnh đang pending ──────────────────────
-      const buildAddEmbed = () => {
+      const buildAddEmbed = (descriptionSuffix = '') => {
         const selected = pendingCmds.length > 0
           ? pendingCmds.map(c => `• 🟢 \`/${c}\``).join('\n')
           : '*Chưa có lệnh nào được phép (Kênh sẽ bị khóa tất cả lệnh)*';
@@ -113,8 +116,16 @@ class BoDieuKhienAdmin {
             { name: '🔢 Lệnh được phép',       value: `**${pendingCmds.length}** lệnh`,   inline: true },
             { name: '📋 Danh sách hiện tại',    value: selected,  inline: false },
           )
-          .setDescription('Nhấn vào các nút lệnh bên dưới để **Bật (Xanh)** hoặc **Tắt (Xám)**. Bấm **💾 Lưu** sau khi hoàn thành.')
+            .setDescription(`Nhấn vào các nút lệnh bên dưới để **Bật (Xanh)** hoặc **Tắt (Xám)**. Bấm **💾 Lưu** sau khi hoàn thành.${descriptionSuffix}`)
           .setTimestamp();
+      };
+
+      const getCommandPages = () => {
+        const pages = [];
+        for (let index = 0; index < tatCaLenh.length; index += COMMANDS_PER_PAGE) {
+          pages.push(tatCaLenh.slice(index, index + COMMANDS_PER_PAGE));
+        }
+        return pages.length > 0 ? pages : [[]];
       };
 
       // ── Tổng hợp payload theo mode ───────────────────────────────────────────
@@ -150,6 +161,13 @@ class BoDieuKhienAdmin {
 
         // ── ADD — Bước 2: chọn lệnh bằng Select Menu đa chọn (Hợp lệ, dưới 5 ActionRows) ──
         if (mode === 'ADD' && pendingChannelId) {
+          const commandPages = getCommandPages();
+          const totalPages = commandPages.length;
+          commandPage = Math.max(0, Math.min(commandPage, totalPages - 1));
+          const availableCommands = commandPages[commandPage] || [];
+          const pageStart = tatCaLenh.length === 0 ? 0 : (commandPage * COMMANDS_PER_PAGE) + 1;
+          const pageEnd = Math.min(tatCaLenh.length, (commandPage + 1) * COMMANDS_PER_PAGE);
+          const addEmbed = buildAddEmbed(`\n\n📄 Trang **${commandPage + 1}/${totalPages}** · Hiển thị lệnh **${pageStart}-${pageEnd}** trên tổng **${tatCaLenh.length}** lệnh.`);
           const rows = [
             tabRow,
             new ActionRowBuilder().addComponents(
@@ -157,13 +175,30 @@ class BoDieuKhienAdmin {
                 .setCustomId('adm_cmds_select')
                 .setPlaceholder('🔽 Chọn các lệnh được phép hoạt động...')
                 .setMinValues(0)
-                .setMaxValues(tatCaLenh.length)
-                .addOptions(tatCaLenh.map(cmd => ({
+                .setMaxValues(Math.min(COMMANDS_PER_PAGE, availableCommands.length))
+                .addOptions(availableCommands.map(cmd => ({
                   label: `/${cmd.name}`,
                   value: cmd.name,
                   emoji: cmd.emoji,
                   default: pendingCmds.includes(cmd.name)
                 })))
+            ),
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('adm_cmd_prev')
+                .setLabel('◀ Trang trước')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(commandPage === 0),
+              new ButtonBuilder()
+                .setCustomId('adm_cmd_page')
+                .setLabel(`Trang ${commandPage + 1}/${totalPages}`)
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(true),
+              new ButtonBuilder()
+                .setCustomId('adm_cmd_next')
+                .setLabel('Trang sau ▶')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(commandPage >= totalPages - 1)
             ),
             new ActionRowBuilder().addComponents(
               new ButtonBuilder()
@@ -177,7 +212,7 @@ class BoDieuKhienAdmin {
             )
           ];
           return {
-            embeds: [buildAddEmbed()],
+            embeds: [addEmbed],
             components: rows
           };
         }
@@ -230,11 +265,19 @@ class BoDieuKhienAdmin {
         // ── Đóng ────────────────────────────────────────────────────────────────
         if (i.customId === 'adm_close') { collector.stop('closed'); return; }
 
+        // ── Phân trang danh sách lệnh ─────────────────────────────────────────
+        if (i.customId === 'adm_cmd_prev') {
+          commandPage = Math.max(0, commandPage - 1);
+        }
+        if (i.customId === 'adm_cmd_next') {
+          commandPage = commandPage + 1;
+        }
+
         // ── Chuyển Tab ──────────────────────────────────────────────────────────
-        if (i.customId === 'adm_tab_list')      { mode = 'LIST';   pendingChannelId = null; pendingCmds = []; }
-        if (i.customId === 'adm_tab_add')       { mode = 'ADD';    pendingChannelId = null; pendingCmds = []; }
-        if (i.customId === 'adm_tab_delete')    { mode = 'DELETE'; pendingChannelId = null; pendingCmds = []; }
-        if (i.customId === 'adm_reset_channel') { pendingChannelId = null; pendingCmds = []; }
+        if (i.customId === 'adm_tab_list')      { mode = 'LIST';   pendingChannelId = null; pendingCmds = []; commandPage = 0; }
+        if (i.customId === 'adm_tab_add')       { mode = 'ADD';    pendingChannelId = null; pendingCmds = []; commandPage = 0; }
+        if (i.customId === 'adm_tab_delete')    { mode = 'DELETE'; pendingChannelId = null; pendingCmds = []; commandPage = 0; }
+        if (i.customId === 'adm_reset_channel') { pendingChannelId = null; pendingCmds = []; commandPage = 0; }
 
         // ── Chọn Kênh (Bước 1) ──────────────────────────────────────────────────
         if (i.customId === 'adm_channel_select') {
@@ -243,11 +286,18 @@ class BoDieuKhienAdmin {
           pendingChannelName = ch?.name || pendingChannelId;
           const existing     = await ChannelRestriction.findByPk(pendingChannelId);
           pendingCmds        = existing ? [...existing.allowedCommands] : [];
+          commandPage        = 0;
         }
 
         // ── Chọn Lệnh (Bước 2) ──────────────────────────────────────────────────
         if (i.customId === 'adm_cmds_select') {
-          pendingCmds = i.values || [];
+          const currentPageCommands = getCommandPages()[commandPage] || [];
+          const currentPageNames = currentPageCommands.map(cmd => cmd.name);
+          const currentSelections = new Set(i.values || []);
+
+          pendingCmds = pendingCmds.filter(cmd => !currentPageNames.includes(cmd));
+          pendingCmds.push(...currentPageNames.filter(cmd => currentSelections.has(cmd)));
+          pendingCmds = [...new Set(pendingCmds)];
         }
 
         // ── Lưu ─────────────────────────────────────────────────────────────────

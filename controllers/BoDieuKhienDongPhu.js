@@ -23,16 +23,73 @@ const MAX_GARDEN_PLOTS = 26;
 const WATERING_COST_BASE = 10000; // Lần tưới có phí đầu tiên tốn 10k, x10 mỗi lần sau
 const PILLS_DAILY_LIMIT = 5;
 
+const PET_RARITY_ORDER = ['NORMAL', 'RARE', 'LEGENDARY', 'MYTHIC', 'ANCIENT', 'SUPREME'];
+const PET_RARITY_LABELS = {
+  NORMAL: 'Linh Thú Thường 🐾',
+  RARE: 'Linh Thú Hiếm ✨',
+  LEGENDARY: 'Linh Thú Huyền Thoại 🔥',
+  MYTHIC: 'Thần Thú Truyền Thuyết 🌟',
+  ANCIENT: 'Thần Thú Thượng Cổ 🌙',
+  SUPREME: 'Chí Tôn Thần Thú 👑'
+};
+
+const getPetTotalEvolves = (pet) => {
+  const rarityOffset = {
+    NORMAL: 0,
+    RARE: 10,
+    LEGENDARY: 20,
+    MYTHIC: 30,
+    ANCIENT: 40,
+    SUPREME: 50
+  };
+
+  return (rarityOffset[pet?.rarity] || 0) + (pet?.tienHoa || 0);
+};
+
+const getPetRarityText = (rarity) => PET_RARITY_LABELS[rarity] || PET_RARITY_LABELS.NORMAL;
+
+const getPetRarityFromTotalEvolves = (totalEvolves) => {
+  if (totalEvolves >= 50) return 'SUPREME';
+  if (totalEvolves >= 40) return 'ANCIENT';
+  if (totalEvolves >= 30) return 'MYTHIC';
+  if (totalEvolves >= 20) return 'LEGENDARY';
+  if (totalEvolves >= 10) return 'RARE';
+  return 'NORMAL';
+};
+
+const getPetEvolutionCost = (pet) => {
+  const totalEvolves = getPetTotalEvolves(pet);
+  const rarityBaseCost = totalEvolves >= 30 ? 10000 : 1000;
+  const evolveInTier = totalEvolves % 10;
+  return Math.floor(rarityBaseCost * Math.pow(1.5, evolveInTier));
+};
+
 // Định nghĩa chủng loài sủng vật
 const PET_TEMPLATES = {
   // Linh Thú Thường
   'ma_lang': { name: 'U Minh Ma Lang 🐺', rarity: 'NORMAL', desc: 'Hộ thể: +10% Sát thương Vật lý nền' },
   'loi_diep': { name: 'Thất Thải Lôi Điệp 🦋', rarity: 'NORMAL', desc: 'Hộ thể: +5% Bạo kích & +10% Tu tốc nền' },
   'than_vien': { name: 'Thiết Tý Thần Viên 🦍', rarity: 'NORMAL', desc: 'Hộ thể: +15% HP tối đa & +10% Hộ giáp nền' },
+  // Linh Thú Hiếm
+  'linh_ho': { name: 'Bạch Ngân Linh Hổ 🐯', rarity: 'RARE', desc: 'Hộ thể: +18% Vật Công & +10% Tốc độ di chuyển' },
+  'huyen_diep': { name: 'Huyền Vân Mộng Điệp 🦋', rarity: 'RARE', desc: 'Hộ thể: +12% Né tránh & +15% Bạo kích' },
+  'ngoc_vien': { name: 'Ngọc Tý Linh Viên 🦧', rarity: 'RARE', desc: 'Hộ thể: +18% HP tối đa & +12% Hộ giáp nền' },
+  // Linh Thú Huyền Thoại
+  'than_lang': { name: 'Thái Hư Thần Lang 🐺', rarity: 'LEGENDARY', desc: 'Hộ thể: +22% Vật Công & +15% Bạo kích' },
+  'quang_diep': { name: 'Quang Ảnh Thiên Điệp 🦋', rarity: 'LEGENDARY', desc: 'Hộ thể: +18% Tu tốc & +18% Né tránh' },
+  'linh_vien': { name: 'Thiên Mệnh Linh Viên 🦍', rarity: 'LEGENDARY', desc: 'Hộ thể: +22% HP tối đa & +18% Hộ giáp nền' },
+  // Thần Thú Truyền Thuyết
+  'toi_long': { name: 'Hỗn Thiên Tổ Long 🐉', rarity: 'MYTHIC', desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +28% Pháp Công & +20% Vật Công' },
+  'phuong_hoang': { name: 'Cửu Thiên Phượng Hoàng 🐦', rarity: 'MYTHIC', desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +28% HP & +22% Né tránh' },
+  'ky_lan': { name: 'Bạch Ngọc Kỳ Lân 🦄', rarity: 'MYTHIC', desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +28% Hộ giáp & +28% Công' },
   // Thần Thú Thượng Cổ
   'to_long': { name: 'Thượng Cổ Tổ Long 🐉', rarity: 'ANCIENT', desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +25% Pháp Công & +15% Vật Công' },
-  'phuong_hoang': { name: 'Cửu Thiên Phượng Hoàng 🐦', rarity: 'ANCIENT', desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +25% HP & +20% Né tránh' },
-  'ky_lan': { name: 'Bạch Ngọc Kỳ Lân 🦄', rarity: 'ANCIENT', desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% Hộ giáp & +25% Công' }
+  'huyet_phuong': { name: 'Huyết Hoàng Phượng 🐦', rarity: 'ANCIENT', desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +25% HP & +20% Né tránh' },
+  'thien_ky_lan': { name: 'Thiên Ngọc Kỳ Lân 🦄', rarity: 'ANCIENT', desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% Hộ giáp & +25% Công' },
+  // Chí Tôn
+  'chi_ton_long': { name: 'Chí Tôn Hỗn Nguyên Long 🐉', rarity: 'SUPREME', desc: 'Chủ động: Chư thiên long uy. Hộ thể: +35% Pháp Công & +25% Vật Công' },
+  'chi_ton_phuong': { name: 'Chí Tôn Cửu Diễm Hoàng 🐦', rarity: 'SUPREME', desc: 'Chủ động: Niết Bàn tái sinh. Hộ thể: +35% HP & +30% Né tránh' },
+  'chi_ton_lan': { name: 'Chí Tôn Thái Ngọc Lân 🦄', rarity: 'SUPREME', desc: 'Chủ động: Vạn Linh Hộ Thể. Hộ thể: +35% Hộ giáp & +35% Công' }
 };
 
 // Phẩm chất màu sắc
@@ -267,7 +324,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           const myPets = await Pet.findAll({ where: { userId: tuSi.idNguoiDung } });
           const desc = myPets.map((p, idx) => {
             const activeTag = p.isActive ? ' 🟢 **[Xuất Chiến]**' : '';
-            const rarityTag = p.rarity === 'SUPREME' ? ' 👑 [Chí Tôn]' : (p.rarity === 'ANCIENT' ? ' 🌟 [Thượng Cổ]' : '');
+            const rarityTag = ` · ${getPetRarityText(p.rarity)}`;
             return `**${idx + 1}.** **${p.name}**${rarityTag}${activeTag}\n` +
                    `   *Loài:* ${PET_TEMPLATES[p.type]?.name ?? p.type} · *Cấp:* \`${p.level}\` · *Tư chất:* \`${p.tuChat} / 250\`\n` +
                    `   *Hiệu ứng:* ${PET_TEMPLATES[p.type]?.desc ?? ''}`;
@@ -287,9 +344,9 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           const pet = await Pet.findByPk(selectedPetId);
           if (pet) {
             const activeTag = pet.isActive ? ' 🟢 [Đang Xuất Chiến]' : ' 💤 [Đang Nghỉ Ngơi]';
-            const rarityTag = pet.rarity === 'SUPREME' ? ' 👑 Chí Tôn Thần Thú' : (pet.rarity === 'ANCIENT' ? ' 🌟 Thần Thú Thượng Cổ' : ' 🐾 Linh Thú Thường');
+            const rarityTag = ` ${getPetRarityText(pet.rarity)}`;
             const nextLvlExp = pet.level * 100;
-            const totalEvolves = (pet.rarity === 'SUPREME' ? 20 : (pet.rarity === 'ANCIENT' ? 10 : 0)) + pet.tienHoa;
+            const totalEvolves = getPetTotalEvolves(pet);
             const evoTxt = totalEvolves > 0 ? ` (+${totalEvolves * 10}% Hộ Thể & +${totalEvolves * 5}% Kỹ Năng)` : '';
 
             const embed = new EmbedBuilder()
@@ -672,8 +729,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           );
 
           if (pet && pet.level >= 10) {
-            const currentTotalEvolves = (pet.rarity === 'SUPREME' ? 20 : (pet.rarity === 'ANCIENT' ? 10 : 0)) + (pet.tienHoa || 0);
-            const cost = Math.floor(1000 * Math.pow(1.5, currentTotalEvolves));
+            const cost = getPetEvolutionCost(pet);
             actionRow2.addComponents(
               new ButtonBuilder()
                 .setCustomId('pet_action_evolve')
@@ -1003,8 +1059,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 );
               }
             } else if (i.customId === 'pet_action_evolve') {
-              const currentTotalEvolves = (pet.rarity === 'SUPREME' ? 20 : (pet.rarity === 'ANCIENT' ? 10 : 0)) + (pet.tienHoa || 0);
-              const cost = Math.floor(1000 * Math.pow(1.5, currentTotalEvolves));
+              const cost = getPetEvolutionCost(pet);
               if (tuSi.linhThach >= cost && pet.level >= 10) {
                 tuSi.linhThach -= cost;
                 await tuSi.save();
@@ -1013,14 +1068,11 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 pet.tuChat = Math.min(250, pet.tuChat + 50);
 
                 let isUpgraded = false;
-                let oldRarity = pet.rarity;
                 if (pet.tienHoa >= 10) {
                   pet.tienHoa = 0;
-                  if (pet.rarity === 'NORMAL') {
-                    pet.rarity = 'ANCIENT';
-                    isUpgraded = true;
-                  } else if (pet.rarity === 'ANCIENT') {
-                    pet.rarity = 'SUPREME';
+                  const currentRarityIndex = PET_RARITY_ORDER.indexOf(pet.rarity);
+                  if (currentRarityIndex >= 0 && currentRarityIndex < PET_RARITY_ORDER.length - 1) {
+                    pet.rarity = PET_RARITY_ORDER[currentRarityIndex + 1];
                     isUpgraded = true;
                   }
                 }
@@ -1033,7 +1085,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 }
                 await pet.save();
 
-                const rarityText = pet.rarity === 'SUPREME' ? 'Chí Tôn Thần Thú 👑' : (pet.rarity === 'ANCIENT' ? 'Thần Thú Thượng Cổ 🌟' : 'Linh Thú Thường 🐾');
+                const rarityText = getPetRarityText(pet.rarity);
                 let upgradeMsg = '';
                 if (isUpgraded) {
                   upgradeMsg = `\n🎉 **Bộc phát tiềm năng!** Sủng vật đã đột phá phẩm cấp lên **${rarityText}** và thiết lập lại cấp tiến hóa về \`+0\`!`;
