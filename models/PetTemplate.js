@@ -14,7 +14,7 @@ PetTemplate.init({
     allowNull: false
   },
   emoji: {
-    type: DataTypes.STRING(20),
+    type: DataTypes.STRING(100),
     allowNull: false
   },
   group: {
