@@ -11,6 +11,7 @@ import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed, layMauCanhGioi } from '../views/BoTaoEmbed.js';
 import { Inventory } from '../models/Inventory.js';
 import { Item } from '../models/Item.js';
+import * as config from '../config.js';
 
 // Loại item nào có thể trang bị / sử dụng
 const EQUIP_TYPES  = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'];
@@ -32,7 +33,7 @@ function decodeToolbarValue(val) {
 }
 
 // ── Tải lại toàn bộ inventory ─────────────────────────────────────────────────
-async function reloadItemsList(idNguoiDung) {
+async function reloadItemsList(idNguoiDung, capDo = 1) {
   const freshInvList = await Inventory.findAll({ where: { idNguoiDung } });
   const result = [];
   for (const inv of freshInvList) {
@@ -47,6 +48,24 @@ async function reloadItemsList(idNguoiDung) {
       khoa:          inv.khoa
     });
   }
+
+  // Sắp xếp: Ưu tiên đồ thuộc cảnh giới hiện tại, sau đó đến đồ mới nhận (invId giảm dần)
+  const realmInfo = config.layThongTinCanhGioi(capDo);
+  const realmObj = config.CANH_GIOI_LIST.find(r => r.name === realmInfo.realmName) || config.CANH_GIOI_LIST[0];
+  const minLvl = realmObj.min_level;
+  const maxLvl = realmObj.max_level;
+
+  result.sort((a, b) => {
+    const aIsCurrent = a.item.yeuCauCanhGioi >= minLvl && a.item.yeuCauCanhGioi <= maxLvl;
+    const bIsCurrent = b.item.yeuCauCanhGioi >= minLvl && b.item.yeuCauCanhGioi <= maxLvl;
+
+    if (aIsCurrent && !bIsCurrent) return -1;
+    if (!aIsCurrent && bIsCurrent) return 1;
+
+    // Ưu tiên đồ mới nhận (invId giảm dần)
+    return b.invId - a.invId;
+  });
+
   return result;
 }
 
@@ -86,7 +105,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       const color = layMauCanhGioi(tuSi.canhGioi);
 
       // ── Trạng thái UI ─────────────────────────────────────────────────────
-      let itemsList   = await reloadItemsList(tuSi.idNguoiDung);
+      let itemsList   = await reloadItemsList(tuSi.idNguoiDung, tuSi.capDo);
       let sheets      = BoTaoEmbed.baloSheets(tuSi, itemsList);
       let sheetIdx    = 0;
       let pageIdx     = 0;
@@ -382,7 +401,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
               return {
                 label:       `${obj.item.ten} [#${obj.invId}]`.slice(0, 100),
                 value:       encodedVal,
-                emoji:       isEquip ? '🛡️' : '💊',
+                emoji:       obj.item.emoji || (isEquip ? '🛡️' : '💊'),
                 description: `${obj.item.loai} | Mã: #${obj.invId} · Số lượng: ${obj.soLuong}`.slice(0, 100),
                 default:     encodedVal === curVal
               };
@@ -438,7 +457,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
       // ── Helper: refresh inventory sau mỗi hành động ─────────────────────
       const refreshInventory = async () => {
-        itemsList = await reloadItemsList(tuSi.idNguoiDung);
+        itemsList = await reloadItemsList(tuSi.idNguoiDung, tuSi.capDo);
         sheets    = BoTaoEmbed.baloSheets(tuSi, itemsList);
         sheetIdx  = Math.min(sheetIdx, sheets.length - 1);
         pageIdx   = 0;

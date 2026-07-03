@@ -77,7 +77,7 @@ function buildShopEmbed(tuSi, entries, pageIdx, totalPages, tabLabel) {
     const { shop, item } = e;
     const idx      = pageIdx * ITEMS_PER_PAGE + i + 1;
     const doHiemEm = DO_HIEM_EMOJI[item.doHiem] || '⚪';
-    const loaiEm   = LOAI_EMOJI[item.loai] || '📦';
+    const loaiEm   = item.emoji || LOAI_EMOJI[item.loai] || '📦';
     const giaText  = `🪙 \`${shop.giaBan.toLocaleString()}\` Linh Thạch`;
     const tonText  = shop.soLuongTon === -1 ? '' : ` · Còn \`${shop.soLuongTon}\``;
     const reqText  = shop.yeuCauCapDo > 1
@@ -122,7 +122,7 @@ function buildItemDetailEmbed(tuSi, shopEntry) {
   const { shop, item } = shopEntry;
   const color     = layMauCanhGioi(tuSi.canhGioi);
   const doHiemEm  = DO_HIEM_EMOJI[item.doHiem] || '⚪';
-  const loaiEm    = LOAI_EMOJI[item.loai] || '📦';
+  const loaiEm    = item.emoji || LOAI_EMOJI[item.loai] || '📦';
 
   let statsText = '_Không có chỉ số_';
   try {
@@ -170,7 +170,7 @@ function buildSellEmbed(tuSi, entries, pageIdx, totalPages) {
   const lines = entries.map((e, i) => {
     const idx      = pageIdx * SELL_ITEMS_PER_PAGE + i + 1;
     const doHiemEm = DO_HIEM_EMOJI[e.item.doHiem] || '⚪';
-    const loaiEm   = LOAI_EMOJI[e.item.loai] || '📦';
+    const loaiEm   = e.item.emoji || LOAI_EMOJI[e.item.loai] || '📦';
     const donGia   = Math.floor(e.item.giaCoSo * 0.3);
     const tongGia  = donGia * e.soLuong;
 
@@ -199,7 +199,7 @@ function buildSellItemDetailEmbed(tuSi, invEntry) {
   const { item, soLuong, invId } = invEntry;
   const color     = layMauCanhGioi(tuSi.canhGioi);
   const doHiemEm  = DO_HIEM_EMOJI[item.doHiem] || '⚪';
-  const loaiEm    = LOAI_EMOJI[item.loai] || '📦';
+  const loaiEm    = item.emoji || LOAI_EMOJI[item.loai] || '📦';
   const donGia    = Math.floor(item.giaCoSo * 0.3);
 
   let statsText = '_Không có chỉ số_';

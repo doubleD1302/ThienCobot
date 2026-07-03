@@ -313,10 +313,14 @@ async function autoDiBiCanh(tuSi) {
           monsterHp = Math.max(0, monsterHp - dmg);
           toLongBuffActive = true;
         } else if (template.species === 'ky_lan') {
+          const dmg = Math.floor(stats.max_hp * 0.22 * evoMult);
+          monsterHp = Math.max(0, monsterHp - dmg);
           const shieldAmt = Math.floor(stats.max_hp * 0.20 * evoMult);
           playerShield = (playerShield || 0) + shieldAmt;
           kyLanBuffActive = true;
         } else if (template.species === 'huyen_vu') {
+          const dmg = Math.floor(stats.max_hp * 0.20 * evoMult);
+          monsterHp = Math.max(0, monsterHp - dmg);
           const shieldAmt = Math.floor(stats.max_hp * 0.25 * evoMult);
           playerShield = (playerShield || 0) + shieldAmt;
           huyenVuBuffActive = true;
@@ -447,13 +451,25 @@ async function autoDiBiCanh(tuSi) {
               break;
             }
           } else if (template.species === 'ky_lan') {
+            const petDmg = Math.floor(stats.max_hp * 0.22 * evoMult);
+            monsterHp = Math.max(0, monsterHp - petDmg);
             const petShield = Math.floor(stats.max_hp * 0.20 * evoMult);
             playerShield += petShield;
             kyLanBuffActive = true;
+            if (monsterHp <= 0) {
+              isWin = true;
+              break;
+            }
           } else if (template.species === 'huyen_vu') {
+            const petDmg = Math.floor(stats.max_hp * 0.20 * evoMult);
+            monsterHp = Math.max(0, monsterHp - petDmg);
             const petShield = Math.floor(stats.max_hp * 0.25 * evoMult);
             playerShield += petShield;
             huyenVuBuffActive = true;
+            if (monsterHp <= 0) {
+              isWin = true;
+              break;
+            }
           } else if (template.species === 'bach_ho') {
             const petDmg = Math.floor(stats.max_hp * 0.18 * evoMult);
             monsterHp = Math.max(0, monsterHp - petDmg);

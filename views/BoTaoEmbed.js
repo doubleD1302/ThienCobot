@@ -359,7 +359,12 @@ export class BoTaoEmbed {
       }
 
       // Sử dụng mã ID duy nhất của dòng vật phẩm trong balo để phân biệt các trang bị trùng tên
-      const formattedLine = `• **${item.ten}**${pillQualityText}${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
+      let tenHienThi = item.ten;
+      if (item.emoji) {
+        const tenSach = item.ten.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '').trim();
+        tenHienThi = `${item.emoji} ${tenSach}`;
+      }
+      const formattedLine = `• **${tenHienThi}**${pillQualityText}${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
 
       if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
       else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);
@@ -369,21 +374,15 @@ export class BoTaoEmbed {
     return { trangBi, coBaoPhapBao, danDuoc, linhThao };
   }
 
-  // Helper: tạo nội dung description an toàn cho 1 sheet, chia trang nếu cần
-  static _buildSheetPages(lines, emptyMsg, limit = 3800) {
+  // Helper: tạo nội dung description an toàn cho 1 sheet, mỗi trang chỉ 10 dòng
+  static _buildSheetPages(lines, emptyMsg) {
     if (lines.length === 0) return [emptyMsg];
     const pages = [];
-    let current = '';
-    for (const line of lines) {
-      const add = (current ? '\n' : '') + line;
-      if ((current + add).length > limit) {
-        pages.push(current);
-        current = line;
-      } else {
-        current += add;
-      }
+    const pageSize = 10;
+    for (let i = 0; i < lines.length; i += pageSize) {
+      const chunk = lines.slice(i, i + pageSize);
+      pages.push(chunk.join('\n'));
     }
-    if (current) pages.push(current);
     return pages;
   }
 

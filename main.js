@@ -354,6 +354,16 @@ async function start() {
         console.log(`Đã dọn dẹp ${deletedCount} bản ghi nhân vật lỗi (ID tự tăng) từ cơ sở dữ liệu.`);
       }
 
+      const itemsDesc = await queryInterface.describeTable('items');
+      if (!itemsDesc.emoji) {
+        console.log('Phát hiện thiếu cột emoji trong bảng items. Tiến hành thêm vào...');
+        await queryInterface.addColumn('items', 'emoji', {
+          type: DataTypes.STRING(100),
+          allowNull: true,
+          defaultValue: null
+        });
+      }
+
       const petsDesc = await queryInterface.describeTable('pets');
       if (!petsDesc.tien_hoa) {
         console.log('Phát hiện thiếu cột tien_hoa. Tiến hành thêm vào bảng pets...');
@@ -474,7 +484,8 @@ async function start() {
           giaCoSo: item.giaCoSo,
           chiSoJson: item.chiSoJson,
           yeuCauCanhGioi: item.yeuCauCanhGioi || 1,
-          moTa: item.moTa
+          moTa: item.moTa,
+          emoji: item.emoji || null
         });
       }
       console.log(`Đã đồng bộ thành công ${config.ITEMS.length} vật phẩm mẫu vào CSDL.`);

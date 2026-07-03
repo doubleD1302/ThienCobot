@@ -406,3 +406,21 @@ REPLACE INTO adventure_events (id, ten, mo_ta, loai, hieu_ung_json) VALUES
 
 -- 3.6 Chèn các Gift Code mẫu
 
+-- ==========================================================
+-- GIAI ĐOẠN 3: CẬP NHẬT CỘT EMOJI CHO ITEMS & GIFT CODE BOSS
+-- ==========================================================
+
+-- 1. DÀNH CHO MYSQL / TiDB
+-- Thêm cột emoji vào bảng items nếu chưa có
+ALTER TABLE items ADD COLUMN IF NOT EXISTS emoji VARCHAR(100) NULL DEFAULT NULL;
+
+-- Chèn hoặc thay thế Gift Code BOSS
+REPLACE INTO gift_codes (code, linh_thach, linh_luc, vnd, items_json, created_at) VALUES
+('BOSS', 0, 0, 0, '[]', CURRENT_TIMESTAMP);
+
+
+-- 2. DÀNH CHO SQLITE
+-- Chèn hoặc thay thế Gift Code BOSS vào SQLite
+INSERT OR REPLACE INTO gift_codes (code, linh_thach, linh_luc, vnd, items_json, created_at) VALUES
+('BOSS', 0, 0, 0, '[]', CURRENT_TIMESTAMP);
+

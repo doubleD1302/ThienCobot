@@ -658,23 +658,29 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           const maxPlayerAtk = Math.max(stats.vat_cong, stats.phap_cong);
 
           if (template.species === 'to_long') {
-            const dmg = Math.floor(2 * maxPlayerAtk * evoMult);
+            const dmg = Math.floor(stats.max_hp * 0.15 * evoMult);
             monsterHp = Math.max(0, monsterHp - dmg);
             totalDmgDealt += dmg;
             toLongBuffActive = true;
             battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Long Thần Chi Nộ 🐉**, oanh tạc gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Đồng thời tăng **10% công kích** cho tu sĩ đến hết trận!`);
           } else if (template.species === 'ky_lan') {
+            const dmg = Math.floor(stats.max_hp * 0.22 * evoMult);
+            monsterHp = Math.max(0, monsterHp - dmg);
+            totalDmgDealt += dmg;
             const shieldAmt = Math.floor(stats.max_hp * 0.20 * evoMult);
             playerShield = (playerShield || 0) + shieldAmt;
             kyLanBuffActive = true;
-            battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Kỳ Lân Hộ Thể 🦄**, tạo lớp lá chắn \`${shieldAmt.toLocaleString()}\` HP hộ thể. Đồng thời tăng **15% né tránh** & **10% hút máu** cho tu sĩ đến hết trận!`);
+            battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Kỳ Lân Hộ Thể 🦄**, oanh kích gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`) và tạo lớp lá chắn \`${shieldAmt.toLocaleString()}\` HP hộ thể. Đồng thời tăng **15% né tránh** & **10% hút máu** cho tu sĩ đến hết trận!`);
           } else if (template.species === 'huyen_vu') {
+            const dmg = Math.floor(stats.max_hp * 0.20 * evoMult);
+            monsterHp = Math.max(0, monsterHp - dmg);
+            totalDmgDealt += dmg;
             const shieldAmt = Math.floor(stats.max_hp * 0.25 * evoMult);
             playerShield = (playerShield || 0) + shieldAmt;
             huyenVuBuffActive = true;
-            battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Huyền Vũ Bảo Vệ 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh. Đồng thời tăng hiệu ứng **giảm 15% sát thương gánh chịu** cho tu sĩ đến hết trận!`);
+            battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Huyền Vũ Bảo Vệ 🐢**, giáng xuống Huyền Thạch gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`) và tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh. Đồng thời tăng hiệu ứng **giảm 15% sát thương gánh chịu** cho tu sĩ đến hết trận!`);
           } else if (template.species === 'bach_ho') {
-            const dmg = Math.floor(2 * maxPlayerAtk * evoMult);
+            const dmg = Math.floor(stats.max_hp * 0.18 * evoMult);
             monsterHp = Math.max(0, monsterHp - dmg);
             totalDmgDealt += dmg;
             bachHoBuffActive = true;
@@ -792,7 +798,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             const maxPlayerAtk = Math.max(stats.vat_cong, stats.phap_cong);
 
             if (template.species === 'to_long') {
-              const petDmg = Math.floor(2 * maxPlayerAtk * evoMult);
+              const petDmg = Math.floor(stats.max_hp * 0.15 * evoMult);
               monsterHp = Math.max(0, monsterHp - petDmg);
               totalDmgDealt += petDmg;
               let buffMsg = '';
@@ -805,6 +811,9 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                 break;
               }
             } else if (template.species === 'ky_lan') {
+              const petDmg = Math.floor(stats.max_hp * 0.22 * evoMult);
+              monsterHp = Math.max(0, monsterHp - petDmg);
+              totalDmgDealt += petDmg;
               const petShield = Math.floor(stats.max_hp * 0.20 * evoMult);
               playerShield += petShield;
               let buffMsg = '';
@@ -812,8 +821,14 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                 kyLanBuffActive = true;
                 buffMsg = ` Đồng thời tăng **15% né tránh** & **10% hút máu** cho tu sĩ đến hết trận!`;
               }
-              battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Kỳ Lân Hộ Thể 🦄**, ngưng tụ lá chắn \`${petShield.toLocaleString()}\` HP bảo vệ.${buffMsg}`);
+              battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Kỳ Lân Hộ Thể 🦄**, oanh kích gây \`${petDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`) và ngưng tụ lá chắn \`${petShield.toLocaleString()}\` HP bảo vệ.${buffMsg}`);
+              if (monsterHp <= 0) {
+                break;
+              }
             } else if (template.species === 'huyen_vu') {
+              const petDmg = Math.floor(stats.max_hp * 0.20 * evoMult);
+              monsterHp = Math.max(0, monsterHp - petDmg);
+              totalDmgDealt += petDmg;
               const petShield = Math.floor(stats.max_hp * 0.25 * evoMult);
               playerShield += petShield;
               let buffMsg = '';
@@ -821,9 +836,12 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                 huyenVuBuffActive = true;
                 buffMsg = ` Đồng thời tăng hiệu ứng **giảm 15% sát thương gánh chịu** cho tu sĩ đến hết trận!`;
               }
-              battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Huyền Vũ Bảo Vệ 🐢**, tạo lá chắn dày \`${petShield.toLocaleString()}\` HP hộ vệ.${buffMsg}`);
+              battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Huyền Vũ Bảo Vệ 🐢**, giáng xuống Huyền Thạch gây \`${petDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`) và tạo lá chắn dày \`${petShield.toLocaleString()}\` HP hộ vệ.${buffMsg}`);
+              if (monsterHp <= 0) {
+                break;
+              }
             } else if (template.species === 'bach_ho') {
-              const petDmg = Math.floor(2 * maxPlayerAtk * evoMult);
+              const petDmg = Math.floor(stats.max_hp * 0.18 * evoMult);
               monsterHp = Math.max(0, monsterHp - petDmg);
               totalDmgDealt += petDmg;
               let buffMsg = '';
@@ -839,8 +857,8 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           }
         }
 
-        // Cự Thú phản công tu sĩ
-        let bossDmg = Math.max(1, boss.vatCong - stats.vat_phong);
+        // Cự Thú phản công tu sĩ (Giảm 1/2 sát thương của Boss)
+        let bossDmg = Math.max(1, Math.floor((boss.vatCong - stats.vat_phong) / 2));
         let roundNe = stats.ne;
         if (kyLanBuffActive) {
           roundNe = Math.min(0.90, roundNe + 0.15);

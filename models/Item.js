@@ -73,6 +73,11 @@ Item.init({
     type: DataTypes.TEXT,
     allowNull: true,
     field: 'active_skill_json'
+  },
+  emoji: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    defaultValue: null
   }
 }, {
   sequelize,

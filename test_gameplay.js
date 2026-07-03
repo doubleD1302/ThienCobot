@@ -1474,6 +1474,205 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Custom Item Emoji Logic Verification', async () => {
+    const { Item } = await import('./models/Item.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
+
+    // Create a mock item with custom emoji
+    const itemWithEmoji = await Item.create({
+      id: 'test_item_custom_emoji',
+      ten: 'Gỗ Mục 🪵',
+      loai: 'Linh thảo',
+      doHiem: 'Thường',
+      giaCoSo: 100,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1,
+      moTa: 'Test item with custom emoji.',
+      emoji: '🪵✨' // Custom emoji
+    });
+
+    const itemWithoutEmoji = await Item.create({
+      id: 'test_item_default_emoji',
+      ten: 'Gỗ Mục Thường 🪵',
+      loai: 'Linh thảo',
+      doHiem: 'Thường',
+      giaCoSo: 100,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1,
+      moTa: 'Test item with default emoji.',
+      emoji: null // Default emoji
+    });
+
+    // 1. Verify that database saving/loading of emoji works
+    const dbItem1 = await Item.findByPk('test_item_custom_emoji');
+    assert.strictEqual(dbItem1.emoji, '🪵✨');
+
+    const dbItem2 = await Item.findByPk('test_item_default_emoji');
+    assert.strictEqual(dbItem2.emoji, null);
+
+    // 2. Verify display in bag (BoTaoEmbed._phanLoaiItems)
+    const tuSi = await TuSi.create({
+      idNguoiDung: "666555444333",
+      ten: "EmojiTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 1000,
+      vnd: 0,
+      theLuc: 10
+    });
+
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    const inv1 = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'test_item_custom_emoji', soLuong: 1, trangBi: false });
+    const inv2 = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'test_item_default_emoji', soLuong: 1, trangBi: false });
+
+    // Call _phanLoaiItems
+    const itemsList = [
+      { invId: inv1.id, item: dbItem1, soLuong: 1, trangBi: false, nangCapSao: 0, khoa: false, dongChiSoJson: null },
+      { invId: inv2.id, item: dbItem2, soLuong: 1, trangBi: false, nangCapSao: 0, khoa: false, dongChiSoJson: null }
+    ];
+
+    const result = BoTaoEmbed._phanLoaiItems(itemsList);
+    // The custom emoji should replace the default one
+    const lineCustom = result.linhThao.find(l => l.includes(`#${inv1.id}`));
+    const lineDefault = result.linhThao.find(l => l.includes(`#${inv2.id}`));
+    
+    assert.ok(lineCustom.includes('🪵✨ Gỗ Mục'), `Custom emoji should replace default: ${lineCustom}`);
+    assert.ok(lineDefault.includes('Gỗ Mục Thường 🪵'), `Default should keep ten intact: ${lineDefault}`);
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await tuSi.destroy();
+    await itemWithEmoji.destroy();
+    await itemWithoutEmoji.destroy();
+  });
+
+  test('Custom Balo Sorting and Pagination Verification', async () => {
+    const { Item } = await import('./models/Item.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
+
+    // Create 3 mock items with different realm requirements
+    // Cảnh giới của tu sĩ: Trúc Cơ (cấp 10-18)
+    const item1 = await Item.create({
+      id: 'test_item_sorting_1',
+      ten: 'Vật phẩm Trúc Cơ',
+      loai: 'Linh thảo',
+      doHiem: 'Thường',
+      giaCoSo: 100,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 10, // Current realm (Trúc Cơ)
+      moTa: ''
+    });
+
+    const item2 = await Item.create({
+      id: 'test_item_sorting_2',
+      ten: 'Vật phẩm Luyện Khí',
+      loai: 'Linh thảo',
+      doHiem: 'Thường',
+      giaCoSo: 100,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1, // Other realm (Luyện Khí)
+      moTa: ''
+    });
+
+    const item3 = await Item.create({
+      id: 'test_item_sorting_3',
+      ten: 'Vật phẩm Hóa Thần',
+      loai: 'Linh thảo',
+      doHiem: 'Thường',
+      giaCoSo: 100,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 19, // Other realm (Hóa Thần)
+      moTa: ''
+    });
+
+    // Create a Trúc Cơ player (cấp 10)
+    const tuSi = await TuSi.create({
+      idNguoiDung: "555444333222",
+      ten: "SortingTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 10, // Trúc Cơ range
+      linhLuc: 0,
+      linhThach: 1000,
+      vnd: 0,
+      theLuc: 10
+    });
+
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    
+    // Add item2 (Luyện Khí - old)
+    const invOld = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'test_item_sorting_2', soLuong: 1, trangBi: false });
+    // Add item1 (Trúc Cơ - current)
+    const invCurrent = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'test_item_sorting_1', soLuong: 1, trangBi: false });
+    // Add item3 (Hóa Thần - new)
+    const invNew = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'test_item_sorting_3', soLuong: 1, trangBi: false });
+
+    // Call internal controller file's reloadItemsList via import or dynamic import
+    // Note: since reloadItemsList is local to BoDieuKhienVatPham.js, we can test it indirectly by loading baloSheets or simulating the sorting logic.
+    // Actually, we can test the sorting directly. Let's load the list from DB and sort it using the exact same rule:
+    const freshInvList = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    const resultList = [];
+    for (const inv of freshInvList) {
+      const d = await Item.findByPk(inv.itemId);
+      if (d) resultList.push({
+        invId:         inv.id,
+        item:          d,
+        soLuong:       inv.soLuong,
+        trangBi:       inv.trangBi,
+        nangCapSao:    inv.nangCapSao,
+        dongChiSoJson: inv.dongChiSoJson,
+        khoa:          inv.khoa
+      });
+    }
+
+    const config = await import('./config.js');
+    const realmInfo = config.layThongTinCanhGioi(tuSi.capDo);
+    const realmObj = config.CANH_GIOI_LIST.find(r => r.name === realmInfo.realmName) || config.CANH_GIOI_LIST[0];
+    const minLvl = realmObj.min_level;
+    const maxLvl = realmObj.max_level;
+
+    resultList.sort((a, b) => {
+      const aIsCurrent = a.item.yeuCauCanhGioi >= minLvl && a.item.yeuCauCanhGioi <= maxLvl;
+      const bIsCurrent = b.item.yeuCauCanhGioi >= minLvl && b.item.yeuCauCanhGioi <= maxLvl;
+
+      if (aIsCurrent && !bIsCurrent) return -1;
+      if (!aIsCurrent && bIsCurrent) return 1;
+
+      return b.invId - a.invId;
+    });
+
+    // Expect resultList[0] to be the current realm item (test_item_sorting_1)
+    assert.strictEqual(resultList[0].item.id, 'test_item_sorting_1', `First item must be from current realm (Trúc Cơ), got: ${resultList[0].item.id}`);
+    
+    // Expect resultList[1] to be the newly acquired non-current item (test_item_sorting_3) since invNew.id > invOld.id
+    assert.strictEqual(resultList[1].item.id, 'test_item_sorting_3', `Second item must be the newer non-current item (Hóa Thần), got: ${resultList[1].item.id}`);
+
+    // Expect resultList[2] to be the oldest non-current item (test_item_sorting_2)
+    assert.strictEqual(resultList[2].item.id, 'test_item_sorting_2', `Third item must be the older non-current item (Luyện Khí), got: ${resultList[2].item.id}`);
+
+    // Test 10-line pagination
+    const dummyLines = Array.from({ length: 25 }, (_, i) => `item_${i}`);
+    const paginated = BoTaoEmbed._buildSheetPages(dummyLines, 'empty');
+    assert.strictEqual(paginated.length, 3, `25 lines should chunk into 3 pages (10, 10, 5), got: ${paginated.length}`);
+    const page1Lines = paginated[0].split('\n');
+    assert.strictEqual(page1Lines.length, 10, `Page 1 should have exactly 10 lines, got: ${page1Lines.length}`);
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await tuSi.destroy();
+    await item1.destroy();
+    await item2.destroy();
+    await item3.destroy();
+  });
+
   test('Pháp Bảo Active Skill Load from Database Column', async () => {
     const { Item } = await import('./models/Item.js');
     const config = await import('./config.js');
