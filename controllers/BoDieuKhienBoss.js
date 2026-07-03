@@ -34,13 +34,13 @@ function layRealmNameTuCapDo(capDo) {
 
 // Helper: Sinh dòng linh khí (chỉ số ẩn) chất lượng cao cho Boss drops (90% Cam Thần Thoại 15-20%, 10% Đỏ Thần Cấp 30-50%)
 function rollBossDropStats(item, isRed) {
-  const loai = item.loai;
+  const loai = item.loai ? item.loai.normalize('NFC') : '';
   const POOLS = {
-    "Vũ khí": ["vat_cong", "phap_cong", "crit_rate", "crit_dmg", "xuyen_giap"],
-    "Giáp": ["vat_phong", "phap_phong", "max_mp", "max_hp"],
-    "Ngọc Bội": ["max_hp", "max_mp", "ne", "lifesteal"],
-    "Cổ Bảo Chủ Động": ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal"],
-    "Pháp Bảo": [
+    ["Vũ khí".normalize('NFC')]: ["vat_cong", "phap_cong", "crit_rate", "crit_dmg", "xuyen_giap"],
+    ["Giáp".normalize('NFC')]: ["vat_phong", "phap_phong", "max_mp", "max_hp"],
+    ["Ngọc Bội".normalize('NFC')]: ["max_hp", "max_mp", "ne", "lifesteal"],
+    ["Cổ Bảo Chủ Động".normalize('NFC')]: ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal"],
+    ["Pháp Bảo".normalize('NFC')]: [
       "vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal",
       "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb"
     ]
@@ -155,7 +155,8 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
       let giftName = '';
       if (gift) {
         const isRed = Math.random() <= 0.10;
-        const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(gift.loai);
+        const normLoai = gift.loai ? gift.loai.normalize('NFC') : '';
+        const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);
         let dongChiSoJson = null;
         if (isEquipable) {
           const stats = rollBossDropStats(gift, isRed);
@@ -209,7 +210,8 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
       const gift = await getGiftItemForPlayer(tuSi.capDo);
       if (gift) {
         const isRed = Math.random() <= 0.10;
-        const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(gift.loai);
+        const normLoai = gift.loai ? gift.loai.normalize('NFC') : '';
+        const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);
         let dongChiSoJson = null;
         if (isEquipable) {
           const stats = rollBossDropStats(gift, isRed);
