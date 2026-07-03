@@ -248,6 +248,22 @@ async function start() {
   try {
     console.log('Khởi tạo cơ sở dữ liệu...');
     await sequelize.authenticate();
+    // Khắc phục lỗi schema cũ cho pet_templates trước khi sync
+    try {
+      const queryInterface = sequelize.getQueryInterface();
+      const tableNames = await queryInterface.showAllTables();
+      const hasPetTemplates = tableNames.some(t => t.toLowerCase() === 'pet_templates');
+      if (hasPetTemplates) {
+        const petTemplatesDesc = await queryInterface.describeTable('pet_templates');
+        if (!petTemplatesDesc.id) {
+          console.log('Phát hiện bảng pet_templates bị lỗi schema (thiếu cột id). Tiến hành drop table để tái thiết lập...');
+          await queryInterface.dropTable('pet_templates');
+        }
+      }
+    } catch (e) {
+      console.warn('[DB Init] Lỗi kiểm tra pet_templates:', e.message);
+    }
+
     // Đồng bộ thay đổi (alter) cho tất cả các bảng để bổ sung các bảng/cột mới tự động
     await sequelize.sync({ alter: true });
 
