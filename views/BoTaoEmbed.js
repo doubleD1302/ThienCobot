@@ -642,5 +642,121 @@ export class BoTaoEmbed {
 
     return embed;
   }
-}
 
+  /**
+   * Tạo embed đầy đủ cho 1 phiên đấu giá.
+   * @param {object} listing - AuctionListing instance
+   * @param {string} sellerName - Tên người bán
+   * @param {string|null} bidderName - Tên người đang dẫn đầu (null nếu chưa có)
+   */
+  static dauGiaPhien(listing, sellerName, bidderName = null) {
+    const DO_HIEM_COLOR = {
+      'Thường':      0x95a5a6,
+      'Hiếm':        0x2ecc71,
+      'Cực hiếm':    0x3498db,
+      'Huyền thoại': 0x9b59b6,
+      'Thần cấp':    0xf1c40f
+    };
+
+    let snapshot = {};
+    try { snapshot = JSON.parse(listing.itemSnapshot); } catch (e) {}
+
+    const starText = listing.nangCapSao > 0 ? ` (+${listing.nangCapSao}⭐)` : '';
+    const color = DO_HIEM_COLOR[snapshot.doHiem] || 0xe67e22;
+    const timeLeft = Math.max(0, Math.ceil((new Date(listing.endsAt).getTime() - Date.now()) / 60000));
+    const endsAtTs = Math.floor(new Date(listing.endsAt).getTime() / 1000);
+
+    const embed = new EmbedBuilder()
+      .setTitle(`🔨 Đấu Giá #${listing.id}: ${snapshot.ten || listing.itemId}${starText}`)
+      .setColor(color)
+      .setDescription(
+        `> ${snapshot.moTa || '*Không có mô tả.*'}\n\n` +
+        `⏳ **Kết thúc**: <t:${endsAtTs}:R> (còn ~\`${timeLeft} phút\`)\n` +
+        `🧧 **Người bán**: **${sellerName}**`
+      )
+      .setTimestamp()
+      .setFooter({ text: `Phiên #${listing.id} • Hoa hồng 5% khi thành công • Thiên Đạo Tu Tiên RPG` });
+
+    // ── Thông tin cơ bản ────────────────────────────────────────────────
+    const basicInfo = [
+      `• **Phân loại**: \`${snapshot.loai || 'N/A'}\``,
+      `• **Độ hiếm**: \`${snapshot.doHiem || 'N/A'}\``
+    ];
+    if (snapshot.yeuCauCanhGioi && snapshot.yeuCauCanhGioi > 1) {
+      try {
+        const cgReq = config.layThongTinCanhGioi(snapshot.yeuCauCanhGioi);
+        basicInfo.push(`• **Cảnh giới yêu cầu**: \`${cgReq.realmName} - ${cgReq.stageName}\``);
+      } catch (e) {}
+    }
+    embed.addFields({ name: 'ℹ️ Thông Tin Cơ Bản', value: basicInfo.join('\n'), inline: true });
+
+    // ── Chỉ số cơ bản ────────────────────────────────────────────────────
+    let baseStatsTxt = '';
+    if (snapshot.chiSoJson) {
+      try {
+        const stats = JSON.parse(snapshot.chiSoJson);
+        const parts = [];
+        if (stats.vat_cong)   parts.push(`• Vật Công: \`+${stats.vat_cong}\``);
+        if (stats.phap_cong)  parts.push(`• Pháp Công: \`+${stats.phap_cong}\``);
+        if (stats.vat_phong)  parts.push(`• Vật Phòng: \`+${stats.vat_phong}\``);
+        if (stats.phap_phong) parts.push(`• Pháp Phòng: \`+${stats.phap_phong}\``);
+        if (stats.hp)         parts.push(`• Khí huyết (HP): \`+${stats.hp}\``);
+        if (stats.mp)         parts.push(`• Pháp lực (MP): \`+${stats.mp}\``);
+        if (stats.hp_hoi)     parts.push(`• Hồi HP: \`+${stats.hp_hoi}\``);
+        if (stats.mp_hoi)     parts.push(`• Hồi MP: \`+${stats.mp_hoi}\``);
+        if (stats.exp_bonus)  parts.push(`• Linh lực nhận thêm: \`+${stats.exp_bonus}\``);
+        baseStatsTxt = parts.join('\n');
+      } catch (e) {}
+    }
+    embed.addFields({ name: '📊 Chỉ Số Cơ Bản', value: baseStatsTxt || '• *Không có chỉ số cố định.*', inline: true });
+
+    // ── Dòng chỉ số phụ (linh khí ngẫu nhiên) ───────────────────────────
+    if (listing.dongChiSoJson) {
+      try {
+        const lines = JSON.parse(listing.dongChiSoJson);
+        if (Array.isArray(lines) && lines.length > 0) {
+          const colorEmojis = { do: '🔴', cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
+          const linesTxt = lines.map(line => {
+            const emoji = colorEmojis[line.mau] || '⚪';
+            const sign = line.phanTram >= 0 ? '+' : '';
+            return `${emoji} **${line.ten}**: \`${sign}${line.phanTram}%\``;
+          }).join('\n');
+          embed.addFields({ name: '🔮 Dòng Chỉ Số Linh Khí (Ngẫu Nhiên)', value: linesTxt, inline: false });
+        }
+      } catch (e) {}
+    }
+
+    // ── Kỹ năng active (Pháp Bảo / Cổ Bảo) ────────────────────────────
+    if (snapshot.activeSkillJson) {
+      try {
+        const sk = JSON.parse(snapshot.activeSkillJson);
+        if (sk && sk.ten) {
+          const skLines = [
+            `• **Tên kỹ năng**: ${sk.ten}`,
+            sk.triGia    ? `• **Hiệu lực**: \`${sk.triGia}%\`` : '',
+            sk.duration  ? `• **Thời gian**: \`${sk.duration} hiệp\`` : '',
+            sk.moTa      ? `• **Mô tả**: _${sk.moTa}_` : ''
+          ].filter(Boolean).join('\n');
+          embed.addFields({ name: '⚡ Kỹ Năng Chủ Động', value: skLines, inline: false });
+        }
+      } catch (e) {}
+    }
+
+    // ── Thông tin đặt giá ────────────────────────────────────────────────
+    const minNextBid = Math.ceil(Number(listing.currentPrice) * 1.05);
+    const bidStatus = listing.currentBidderId
+      ? `🟢 **${bidderName || 'Ẩn danh'}** đang dẫn đầu với \`${Number(listing.currentPrice).toLocaleString()}\` 🪙`
+      : `⚪ *Chưa có ai đặt giá*`;
+
+    embed.addFields({
+      name: '💰 Thông Tin Đấu Giá',
+      value: `• **Giá khởi điểm**: \`${Number(listing.startPrice).toLocaleString()}\` 🪙\n` +
+             `• **Giá hiện tại**: \`${Number(listing.currentPrice).toLocaleString()}\` 🪙\n` +
+             `• **Trạng thái**: ${bidStatus}\n` +
+             `• **Giá tối thiểu kế tiếp**: \`${minNextBid.toLocaleString()}\` 🪙 (+5%)`,
+      inline: false
+    });
+
+    return embed;
+  }
+}

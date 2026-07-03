@@ -21,6 +21,7 @@ import { danhSachLenhGacha } from './controllers/BoDieuKhienGacha.js';
 import { danhSachLenhAuto, khoiDongAutoSchedule } from './controllers/BoDieuKhienAuto.js';
 import { danhSachLenhDongGop } from './controllers/BoDieuKhienDongGop.js';
 import { danhSachLenhDmg } from './controllers/BoDieuKhienDmg.js';
+import { danhSachLenhDauGia, khoiDongAuctionSchedule, handleAuctionInteraction } from './controllers/BoDieuKhienDauGia.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/DongGopEmoji.js';
@@ -40,6 +41,7 @@ import { ChannelRestriction } from './models/ChannelRestriction.js';
 import './models/WorldBoss.js';
 import './models/GiftCode.js';
 import './models/PlayerGiftCode.js';
+import './models/AuctionListing.js';
 // Bắt các lỗi promise không được catch toàn cục, tránh crash bot
 process.on('unhandledRejection', error => {
   if (error && error.code === 10062) {
@@ -81,7 +83,8 @@ const tatCaLenh = [
   ...danhSachLenhGacha,
   ...danhSachLenhAuto,
   ...danhSachLenhDongGop,
-  ...danhSachLenhDmg
+  ...danhSachLenhDmg,
+  ...danhSachLenhDauGia
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
@@ -123,6 +126,8 @@ client.once('ready', async () => {
   khoiDongBxhAutoSchedule(client);
   // Khởi động tiến trình tự động tu luyện bát hoang
   khoiDongAutoSchedule(client);
+  // Khởi động tiến trình kiểm tra phiên đấu giá hết hạn
+  khoiDongAuctionSchedule(client);
 });
 
 // Lắng nghe khi bot được thêm vào máy chủ mới để khởi tạo Đạo Niên
@@ -174,6 +179,19 @@ client.on('interactionCreate', async interaction => {
       await handleLixiGrab(interaction);
     } catch (err) {
       console.error('Lỗi khi xử lý tương tác nút Lì Xì:', err);
+    }
+    return;
+  }
+
+  // Xử lý các nút bấm tương tác Đấu Giá (và modal submit đấu giá)
+  if (
+    (interaction.isButton() && interaction.customId.startsWith('auction_')) ||
+    (interaction.isModalSubmit() && interaction.customId.startsWith('auction_bid_modal_'))
+  ) {
+    try {
+      await handleAuctionInteraction(interaction);
+    } catch (err) {
+      console.error('Lỗi khi xử lý tương tác Đấu Giá:', err);
     }
     return;
   }

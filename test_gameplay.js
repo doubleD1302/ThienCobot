@@ -330,8 +330,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const expectedAtkWithItem = Math.floor((expectedBaseAtk + 15) * 1.2);
     
     assert.strictEqual(statsEquipped.vat_cong, expectedAtkWithItem);
-    assert.strictEqual(statsEquipped.vat_phong, statsRaw.vat_phong + 10);
-    assert.strictEqual(statsEquipped.max_hp, statsRaw.max_hp + 50);
+    assert.strictEqual(statsEquipped.vat_phong, statsRaw.vat_phong + 20);  // x2 from equipment
+    assert.strictEqual(statsEquipped.max_hp, statsRaw.max_hp + 500);        // x10 from equipment
 
     await tuSi.destroy();
   });
@@ -1137,8 +1137,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Verify layChiSoDayDu includes the bonus HP/MP
     const stats = await tuSi.layChiSoDayDu();
-    assert.strictEqual(stats.max_hp, 320); // 120 base + 200 bonus = 320
-    assert.strictEqual(stats.max_mp, 250); // 150 base + 100 bonus = 250
+    assert.strictEqual(stats.max_hp, 2120); // 120 base + 200 * 10 bonus = 2120
+    assert.strictEqual(stats.max_mp, 250);  // 150 base + 100 bonus = 250 (mp unchanged)
 
     // Test item recovery
     const hpPotion = await Item.create({
@@ -1162,8 +1162,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(useRes.ok, true);
 
     await tuSi.reload();
-    // HP should recover to max_hp (320) since 10 + 500 = 510, capped at 320
-    assert.strictEqual(tuSi.hp, 320);
+    // HP should recover: 10 + 500 = 510, below new max_hp of 2120 so not capped
+    assert.strictEqual(tuSi.hp, 510);
 
     // Test rest recovery (/nghi)
     tuSi.hp = 1;
@@ -1181,8 +1181,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     };
     await boDieuKhienTuLuyen.lenhNghiNgoi.execute(mockInteraction);
     await tuSi.reload();
-    // HP and MP should go to full bonus maximums (320 and 250)
-    assert.strictEqual(tuSi.hp, 320);
+    // HP and MP should go to full bonus maximums (2120 and 250 with new x10 hp multiplier)
+    assert.strictEqual(tuSi.hp, 2120);
     assert.strictEqual(tuSi.mp, 250);
 
     // Clean up

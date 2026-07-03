@@ -93,12 +93,12 @@ class TuSi extends Model {
       }
       
       const starMult = 1.0 + (eq.nangCapSao || 0) * 0.10;
-      if (staticStats.hp) maxHp += staticStats.hp * starMult;
+      if (staticStats.hp) maxHp += staticStats.hp * starMult * 10;
       if (staticStats.mp) maxMp += staticStats.mp * starMult;
       if (staticStats.vat_cong) vatCong += staticStats.vat_cong * starMult;
       if (staticStats.phap_cong) phapCong += staticStats.phap_cong * starMult;
-      if (staticStats.vat_phong) vatPhong += staticStats.vat_phong * starMult;
-      if (staticStats.phap_phong) phapPhong += staticStats.phap_phong * starMult;
+      if (staticStats.vat_phong) vatPhong += staticStats.vat_phong * starMult * 2;
+      if (staticStats.phap_phong) phapPhong += staticStats.phap_phong * starMult * 2;
       if (staticStats.giap) giap += staticStats.giap * starMult;
       if (staticStats.xuyen_giap) xuyenGiap += staticStats.xuyen_giap * starMult;
       if (staticStats.crit_rate) critRate += staticStats.crit_rate * starMult;
@@ -122,13 +122,13 @@ class TuSi extends Model {
             phapCong += basePhapCongVal * multVal;
             break;
           case 'vat_phong':
-            vatPhong += baseVatPhongVal * multVal;
+            vatPhong += baseVatPhongVal * multVal * 2;
             break;
           case 'phap_phong':
-            phapPhong += basePhapPhongVal * multVal;
+            phapPhong += basePhapPhongVal * multVal * 2;
             break;
           case 'max_hp':
-            maxHp += baseHpVal * multVal;
+            maxHp += baseHpVal * multVal * 10;
             break;
           case 'max_mp':
             maxMp += baseMpVal * multVal;
