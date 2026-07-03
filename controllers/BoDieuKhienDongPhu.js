@@ -1553,7 +1553,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
 
     let rollThanThuRate = 0; // Tỷ lệ nở ra Thần Thú
 
-    if (eggId === 'trung_linh_thu_than') {
+    if (eggId === 'trung_linh_thu_than' || eggId === 'trung_than_thu') {
       rollThanThuRate = 50;
     } else if (eggId === 'trung_linh_thu_tien') {
       rollThanThuRate = 3;
@@ -1561,8 +1561,6 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       rollThanThuRate = 1;
     } else if (eggId === 'trung_linh_thu_pham' || eggId === 'trung_linh_thu') {
       rollThanThuRate = 0;
-    } else if (eggId === 'trung_than_thu') {
-      rollThanThuRate = 100;
     }
 
     const roll = Math.random() * 100;
