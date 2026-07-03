@@ -30,7 +30,7 @@ async function timKenhChoDen(guild) {
   return channels.find(ch => {
     if (!ch || !ch.isTextBased() || !ch.name) return false;
     const name = ch.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return name.includes('choден') || name.includes('choden') || ch.name.includes('chợ-đen') || ch.name.includes('cho-den');
+    return name.includes('choден') || name.includes('choden') || ch.name.includes('🎩┃ᴄʜợ-đᴇɴ') || ch.name.includes('cho-den');
   }) || null;
 }
 
@@ -92,7 +92,7 @@ async function buildListEmbed(client) {
   const lines = [];
   for (const l of listings) {
     let snapshot = {};
-    try { snapshot = JSON.parse(l.itemSnapshot); } catch (e) {}
+    try { snapshot = JSON.parse(l.itemSnapshot); } catch (e) { }
     const starText = l.nangCapSao > 0 ? ` (+${l.nangCapSao}⭐)` : '';
     const timeLeft = Math.max(0, Math.ceil((new Date(l.endsAt).getTime() - Date.now()) / 60000));
     const bidInfo = l.currentBidderId ? `\`${Number(l.currentPrice).toLocaleString()}\` 🪙` : '*(Chưa có giá)*';
@@ -209,14 +209,14 @@ class BoDieuKhienDauGia extends BoDieuKhienGoc {
 
     // Tạo snapshot đầy đủ
     const itemSnapshot = JSON.stringify({
-      id:              item.id,
-      ten:             item.ten,
-      loai:            item.loai,
-      doHiem:          item.doHiem,
-      giaCoSo:         item.giaCoSo,
-      chiSoJson:       item.chiSoJson,
-      moTa:            item.moTa,
-      yeuCauCanhGioi:  item.yeuCauCanhGioi,
+      id: item.id,
+      ten: item.ten,
+      loai: item.loai,
+      doHiem: item.doHiem,
+      giaCoSo: item.giaCoSo,
+      chiSoJson: item.chiSoJson,
+      moTa: item.moTa,
+      yeuCauCanhGioi: item.yeuCauCanhGioi,
       activeSkillJson: item.activeSkillJson
     });
 
@@ -231,16 +231,16 @@ class BoDieuKhienDauGia extends BoDieuKhienGoc {
     // Tạo phiên đấu giá
     const endsAt = new Date(Date.now() + AUCTION_DURATION_MS);
     const listing = await AuctionListing.create({
-      sellerId:      tuSi.idNguoiDung,
-      inventoryId:   invId,
-      itemId:        item.id,
+      sellerId: tuSi.idNguoiDung,
+      inventoryId: invId,
+      itemId: item.id,
       itemSnapshot,
-      nangCapSao:    invRecord.nangCapSao || 0,
+      nangCapSao: invRecord.nangCapSao || 0,
       dongChiSoJson: invRecord.dongChiSoJson || null,
       startPrice,
-      currentPrice:  startPrice,
+      currentPrice: startPrice,
       currentBidderId: null,
-      status:        'active',
+      status: 'active',
       endsAt
     });
 
@@ -262,7 +262,7 @@ class BoDieuKhienDauGia extends BoDieuKhienGoc {
         // Lưu message ID để sau này edit
         listing.messageId = sentMsg.id;
         listing.channelId = channel.id;
-        listing.guildId   = guild.id;
+        listing.guildId = guild.id;
         await listing.save();
         break;
       } catch (err) {
@@ -316,7 +316,7 @@ class BoDieuKhienDauGia extends BoDieuKhienGoc {
     await _xoaHoacEditMessage(interaction.client, listing, null, null, true);
 
     let snap = {};
-    try { snap = JSON.parse(listing.itemSnapshot); } catch (e) {}
+    try { snap = JSON.parse(listing.itemSnapshot); } catch (e) { }
 
     await interaction.editReply({
       embeds: [BoTaoEmbed.thanhCong(
@@ -491,7 +491,7 @@ async function _xoaHoacEditMessage(client, listing, sellerName, bidderName, isCa
     if (!msg) return;
 
     let snap = {};
-    try { snap = JSON.parse(listing.itemSnapshot); } catch (e) {}
+    try { snap = JSON.parse(listing.itemSnapshot); } catch (e) { }
     const starText = listing.nangCapSao > 0 ? ` (+${listing.nangCapSao}⭐)` : '';
 
     let resultEmbed;
@@ -534,13 +534,13 @@ async function _xoaHoacEditMessage(client, listing, sellerName, bidderName, isCa
 async function _traVatPhamChoNguoiDung(userId, listing) {
   // Dùng Inventory.create trực tiếp để giữ nguyên chỉ số phụ và sao nâng cấp
   await Inventory.create({
-    idNguoiDung:   userId,
-    itemId:        listing.itemId,
-    soLuong:       1,
-    trangBi:       false,
-    nangCapSao:    listing.nangCapSao || 0,
+    idNguoiDung: userId,
+    itemId: listing.itemId,
+    soLuong: 1,
+    trangBi: false,
+    nangCapSao: listing.nangCapSao || 0,
     dongChiSoJson: listing.dongChiSoJson || null,
-    khoa:          false
+    khoa: false
   });
 }
 
