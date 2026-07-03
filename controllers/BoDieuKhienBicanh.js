@@ -56,8 +56,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           const reward = dg.thuong;
           const status = tuSi.capDo >= dg.capDoYeuCau ? '🟢 Khả dụng' : '🔒 Khóa';
           return `• **${dg.ten}** (${status} · Cấp yêu cầu: \`${dg.capDoYeuCau}\`)\n` +
-                 `  *Quái gác cổng*: **${monster.ten}** (HP: \`${monster.hp}\`)\n` +
-                 `  *Chiến lợi phẩm*: Exp (\`${reward.expMin}-${reward.expMax}\`), Linh thạch (\`${reward.stonesMin}-${reward.stonesMax}\`)\n`;
+            `  *Quái gác cổng*: **${monster.ten}** (HP: \`${monster.hp}\`)\n` +
+            `  *Chiến lợi phẩm*: Exp (\`${reward.expMin}-${reward.expMax}\`), Linh thạch (\`${reward.stonesMin}-${reward.stonesMax}\`)\n`;
         }).join('\n')
       );
 
@@ -80,13 +80,13 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
       );
 
       const msg = await interaction.editReply({
-        embeds:     [embedList],
+        embeds: [embedList],
         components: [row]
       });
 
       const collector = msg.createMessageComponentCollector({
         filter: i => i.user.id === interaction.user.id,
-        time:   60_000
+        time: 60_000
       });
 
       collector.on('collect', async i => {
@@ -109,7 +109,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         await tuSi.reload();
         if (tuSi.theLuc < 1) {
           await i.editReply({
-            embeds:     [BoTaoEmbed.loi(`Thể lực bất túc! Đạo hữu hôm nay đã cạn kiệt thể lực (Hiện có: \`0/${tuSi.theLucMax}\`).`)],
+            embeds: [BoTaoEmbed.loi(`Thể lực bất túc! Đạo hữu hôm nay đã cạn kiệt thể lực (Hiện có: \`0/${tuSi.theLucMax}\`).`)],
             components: []
           });
           collector.stop('no_stamina');
@@ -122,7 +122,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           const hetHanTime = new Date(activeCooldown.hetHan).getTime();
           const secondsLeft = Math.max(0, Math.floor((hetHanTime - Date.now()) / 1000));
           await i.editReply({
-            embeds:     [BoTaoEmbed.loi(`Lực kiệt khí hư! Đạo hữu cần tĩnh dưỡng thêm \`${secondsLeft} giây\` trước khi tiếp tục khiêu chiến bí cảnh.`)],
+            embeds: [BoTaoEmbed.loi(`Lực kiệt khí hư! Đạo hữu cần tĩnh dưỡng thêm \`${secondsLeft} giây\` trước khi tiếp tục khiêu chiến bí cảnh.`)],
             components: []
           });
           collector.stop('cooldown');
@@ -152,7 +152,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         // Yêu cầu HP tối thiểu
         if (tuSi.hp <= Math.floor(stats.max_hp * 0.10)) {
           return await i.editReply({
-            embeds:     [BoTaoEmbed.loi("Trạng thái kiệt quệ! Khí huyết của đạo hữu dưới 10%, không đủ sức khiêu chiến yêu thú. Hãy dùng `/nghi` hoặc đan dược trước.")],
+            embeds: [BoTaoEmbed.loi("Trạng thái kiệt quệ! Khí huyết của đạo hữu dưới 10%, không đủ sức khiêu chiến yêu thú. Hãy dùng `/nghi` hoặc đan dược trước.")],
             components: []
           });
         }
@@ -532,14 +532,14 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
               `🎁 **Cơ Duyên Xảo Hợp**: Đạo hữu **${tuSi.ten}** khám phá **${dungeon.ten}** may mắn phát hiện đại cơ duyên, nhặt được bảo vật **${droppedItem.ten}** (\`${droppedItem.doHiem}\`)!`,
               'Drop'
             );
-          } catch (err) {}
+          } catch (err) { }
         }
 
         // Đặt thời gian chờ khiêu chiến mới
         const expiresAt = new Date(Date.now() + 30 * 1000);
         await this.datThoiGianCho(tuSi.idNguoiDung, 'dungeon', expiresAt);
 
-         const embedResult = BoTaoEmbed.tranDauBiCanh(
+        const embedResult = BoTaoEmbed.tranDauBiCanh(
           tuSi,
           dungeon,
           battleLogs,
@@ -556,7 +556,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         );
 
         await i.editReply({
-          embeds:     [embedResult],
+          embeds: [embedResult],
           components: []
         });
       });
@@ -565,7 +565,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         try {
           if (reason === 'cancelled') {
             await interaction.editReply({
-              embeds:     [BoTaoEmbed.thongTin('🗻 Bí Cảnh Hoang Cổ', 'Đạo hữu đã rút lui an toàn khỏi cửa bí cảnh.')],
+              embeds: [BoTaoEmbed.thongTin('🗻 Bí Cảnh Hoang Cổ', 'Đạo hữu đã rút lui an toàn khỏi cửa bí cảnh.')],
               components: []
             });
           } else if (reason === 'time') {
@@ -573,7 +573,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
               components: []
             });
           }
-        } catch (_) {}
+        } catch (_) { }
       });
     }
   };
