@@ -248,6 +248,12 @@ async function autoDiBiCanh(tuSi) {
     let isWin = false;
     let round = 1;
     let phoenixTriggered = false;
+    let phoenixRegenRounds = 0;
+
+    let toLongBuffActive = false;
+    let bachHoBuffActive = false;
+    let kyLanBuffActive = false;
+    let huyenVuBuffActive = false;
 
     const isPhysical = tuSi.huongTu === 'The Tu';
     const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
@@ -305,15 +311,19 @@ async function autoDiBiCanh(tuSi) {
         if (template.species === 'to_long') {
           const dmg = Math.floor(stats.max_hp * 0.15 * evoMult);
           monsterHp = Math.max(0, monsterHp - dmg);
+          toLongBuffActive = true;
         } else if (template.species === 'ky_lan') {
           const shieldAmt = Math.floor(stats.max_hp * 0.20 * evoMult);
           playerShield = (playerShield || 0) + shieldAmt;
+          kyLanBuffActive = true;
         } else if (template.species === 'huyen_vu') {
           const shieldAmt = Math.floor(stats.max_hp * 0.25 * evoMult);
           playerShield = (playerShield || 0) + shieldAmt;
+          huyenVuBuffActive = true;
         } else if (template.species === 'bach_ho') {
           const dmg = Math.floor(stats.max_hp * 0.18 * evoMult);
           monsterHp = Math.max(0, monsterHp - dmg);
+          bachHoBuffActive = true;
         }
 
         if (monsterHp <= 0) {
@@ -335,17 +345,33 @@ async function autoDiBiCanh(tuSi) {
     }
 
     while (monsterHp > 0 && playerHp > 0 && round <= 15) {
+      if (phoenixRegenRounds > 0) {
+        const regenAmt = Math.floor(stats.max_hp * 0.05);
+        playerHp = Math.min(stats.max_hp, playerHp + regenAmt);
+        phoenixRegenRounds--;
+      }
+
       let roundAtkMult = 1.0;
       for (const buff of activeBuffs) {
         if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
           roundAtkMult += buff.triGia / 100;
         }
       }
+      if (toLongBuffActive) {
+        roundAtkMult += 0.10;
+      }
       const currentRoundPlayerAtk = Math.floor(playerAtk * roundAtkMult);
+
+      let roundCritRate = stats.crit_rate;
+      let roundCritDmg = stats.crit_dmg;
+      if (bachHoBuffActive) {
+        roundCritRate = Math.min(1.0, roundCritRate + 0.15);
+        roundCritDmg += 0.30;
+      }
 
       const readySkill = skillsList.find(s => s.nextRoundAvailable <= round);
       let pDmg = 0;
-      let isCrit = Math.random() <= stats.crit_rate;
+      let isCrit = Math.random() <= roundCritRate;
 
       if (readySkill) {
         const skill = readySkill.detail;
@@ -353,21 +379,25 @@ async function autoDiBiCanh(tuSi) {
         const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
         let rawDmg = currentRoundPlayerAtk * skillMult;
 
-        if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
+        if (isCrit) rawDmg = rawDmg * roundCritDmg;
         pDmg = Math.max(1, Math.floor(rawDmg) - monsterDef);
 
         const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
         readySkill.nextRoundAvailable = round + cooldownRounds;
       } else {
         let rawDmg = currentRoundPlayerAtk;
-        if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
+        if (isCrit) rawDmg = rawDmg * roundCritDmg;
         pDmg = Math.max(1, Math.floor(rawDmg) - monsterDef);
       }
 
       monsterHp = Math.max(0, monsterHp - pDmg);
 
-      if (stats.lifesteal > 0 && monsterHp > 0) {
-        const healed = Math.floor(pDmg * stats.lifesteal);
+      let roundLifesteal = stats.lifesteal;
+      if (kyLanBuffActive) {
+        roundLifesteal += 0.10;
+      }
+      if (roundLifesteal > 0 && monsterHp > 0) {
+        const healed = Math.floor(pDmg * roundLifesteal);
         if (healed > 0) {
           playerHp = Math.min(stats.max_hp, playerHp + healed);
         }
@@ -411,6 +441,7 @@ async function autoDiBiCanh(tuSi) {
           if (template.species === 'to_long') {
             const petDmg = Math.floor(stats.max_hp * 0.15 * evoMult);
             monsterHp = Math.max(0, monsterHp - petDmg);
+            toLongBuffActive = true;
             if (monsterHp <= 0) {
               isWin = true;
               break;
@@ -418,12 +449,15 @@ async function autoDiBiCanh(tuSi) {
           } else if (template.species === 'ky_lan') {
             const petShield = Math.floor(stats.max_hp * 0.20 * evoMult);
             playerShield += petShield;
+            kyLanBuffActive = true;
           } else if (template.species === 'huyen_vu') {
             const petShield = Math.floor(stats.max_hp * 0.25 * evoMult);
             playerShield += petShield;
+            huyenVuBuffActive = true;
           } else if (template.species === 'bach_ho') {
             const petDmg = Math.floor(stats.max_hp * 0.18 * evoMult);
             monsterHp = Math.max(0, monsterHp - petDmg);
+            bachHoBuffActive = true;
             if (monsterHp <= 0) {
               isWin = true;
               break;
@@ -436,9 +470,17 @@ async function autoDiBiCanh(tuSi) {
       const pDef = monster.vatCong > monster.phapCong ? stats.vat_phong : stats.phap_phong;
       let mDmg = Math.max(1, mAtk - pDef);
 
-      if (Math.random() <= stats.ne) {
+      let roundNe = stats.ne;
+      if (kyLanBuffActive) {
+        roundNe = Math.min(0.90, roundNe + 0.15);
+      }
+
+      if (Math.random() <= roundNe) {
         // dodged
       } else {
+        if (huyenVuBuffActive) {
+          mDmg = Math.floor(mDmg * 0.85);
+        }
         if (playerShield > 0) {
           if (playerShield >= mDmg) {
             playerShield -= mDmg;
@@ -461,6 +503,7 @@ async function autoDiBiCanh(tuSi) {
           const totalEvolves = config.getPetTotalEvolves(activePet);
           const evoMult = Math.pow(1.1, totalEvolves);
           playerHp = Math.floor(stats.max_hp * 0.30 * evoMult);
+          phoenixRegenRounds = 3;
         } else {
           isWin = false;
           break;
