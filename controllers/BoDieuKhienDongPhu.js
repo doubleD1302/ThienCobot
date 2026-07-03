@@ -121,7 +121,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             embeds.push(mainEmbed);
           } else {
             const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
-            const petText = activePet ? `${PET_TEMPLATES[activePet.type]?.name} (Cấp ${activePet.level})` : '*Chưa xuất chiến*';
+            const petText = activePet ? `${config.PET_TEMPLATES[activePet.type]?.name} (Cấp ${activePet.level})` : '*Chưa xuất chiến*';
             const cost = ABODE_UPGRADE_BASE_COST * Math.pow(10, abode.level);
 
             const mainEmbed = new EmbedBuilder()
