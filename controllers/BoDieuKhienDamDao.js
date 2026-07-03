@@ -192,8 +192,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           .setColor(meta.color)
           .setDescription(
             `Đạo hữu **${tuSi.ten}** đang xem sảnh **${meta.label}**.\n` +
-            `💵 **VND cược**: \\`${bet.toLocaleString()}\\` VND\n` +
-            `💵 **VND hiện có**: \\`${tuSi.vnd.toLocaleString()}\\` VND\n\n` +
+            `💵 **VND cược**: \`${bet.toLocaleString()}\` VND\n` +
+            `💵 **VND hiện có**: \`${tuSi.vnd.toLocaleString()}\` VND\n\n` +
             `• **Cửa đã chọn**: ${choiceText}${roomLine}\n\n` +
             `Hãy chọn cửa rồi bấm **Chơi Ngay** hoặc **Lập Sòng**.`
           )
@@ -203,7 +203,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
       const buildRoomEmbed = () => {
         const meta = GAME_META[roomState.game];
         const choiceMeta = getChoiceMeta(roomState.game, roomState.choiceId);
-        const playerLines = Array.from(roomState.players.values()).map((player, index) => `**${index + 1}.** <@${player.userId}> · \\`${player.bet.toLocaleString()}\\` VND`).join('\n') || '_Chưa có ai tham gia._';
+        const playerLines = Array.from(roomState.players.values()).map((player, index) => `**${index + 1}.** <@${player.userId}> · \`${player.bet.toLocaleString()}\` VND`).join('\n') || '_Chưa có ai tham gia._';
 
         return new EmbedBuilder()
           .setTitle(`🏮 Sòng ${meta.label} Đã Lập`)
@@ -211,7 +211,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           .setDescription(
             `• **Chủ sòng**: <@${roomState.hostId}>\n` +
             `• **Cửa của sòng**: **${choiceMeta?.name || 'Chưa xác định'}**\n` +
-            `• **Cược gốc của chủ sòng**: \\`${roomState.hostBet.toLocaleString()}\\` VND\n` +
+            `• **Cược gốc của chủ sòng**: \`${roomState.hostBet.toLocaleString()}\` VND\n` +
             `• **Tổng người chơi**: **${roomState.players.size}**\n\n` +
             `**Danh sách người chơi:**\n${playerLines}\n\n` +
             `Bấm **🤝 Tham Gia** để vào sòng và nhập số tiền cược của ngươi.`
@@ -262,8 +262,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             title: isWin ? '🎉 Thiên Vận Phù Hộ (Thắng!)' : '💀 Thiên Đạo Vô Tình (Thua!)',
             color: isWin ? 0x2ecc71 : 0xe74c3c,
             detail: isWin
-              ? `🚀 Đại cát đại lợi! Nhận thêm \\`+${wager.toLocaleString()}\\` VND.`
-              : `💔 Cơ duyên cạn kiệt! Tổn hao \\`-${wager.toLocaleString()}\\` VND.`,
+              ? `🚀 Đại cát đại lợi! Nhận thêm \`+${wager.toLocaleString()}\` VND.`
+              : `💔 Cơ duyên cạn kiệt! Tổn hao \`-${wager.toLocaleString()}\` VND.`,
             isWin
           };
         }
@@ -289,13 +289,13 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             delta = wager;
             title = '⚔️ Thắng Trận Đàm Đạo';
             color = 0x2ecc71;
-            detail = `🚀 Đạo hữu dùng **${playerChoice.name}** khắc chế **${botChoice.name}**, thắng nhận \\`+${wager.toLocaleString()}\\` VND.`;
+            detail = `🚀 Đạo hữu dùng **${playerChoice.name}** khắc chế **${botChoice.name}**, thắng nhận \`+${wager.toLocaleString()}\` VND.`;
           } else {
             result = 'LOSE';
             delta = -wager;
             title = '💀 Bại Trận Đàm Đạo';
             color = 0xe74c3c;
-            detail = `💔 **${botChoice.name}** khắc chế **${playerChoice.name}**, cống nạp \\`-${wager.toLocaleString()}\\` VND.`;
+            detail = `💔 **${botChoice.name}** khắc chế **${playerChoice.name}**, cống nạp \`-${wager.toLocaleString()}\` VND.`;
           }
 
           return { delta, title, color, detail, result, playerChoice: playerChoice.name, botChoice: botChoice.name };
@@ -310,8 +310,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             title: isWin ? '🌟 Linh Thú Linh Ứng (Đại Thắng!)' : '⛈️ Linh Vận Trầm Luân (Thua)',
             color: isWin ? 0x2ecc71 : 0xe74c3c,
             detail: isWin
-              ? `🚀 **${getChoiceMeta(game, choiceId)?.short || choiceId}** xuất hiện **${count}** lần, thắng nhận \\`+${(wager * count).toLocaleString()}\\` VND.`
-              : `💔 Không có **${getChoiceMeta(game, choiceId)?.short || choiceId}** nào xuất hiện! Tổn hao \\`-${wager.toLocaleString()}\\` VND.`,
+              ? `🚀 **${getChoiceMeta(game, choiceId)?.short || choiceId}** xuất hiện **${count}** lần, thắng nhận \`+${(wager * count).toLocaleString()}\` VND.`
+              : `💔 Không có **${getChoiceMeta(game, choiceId)?.short || choiceId}** nào xuất hiện! Tổn hao \`-${wager.toLocaleString()}\` VND.`,
             count,
             rolls,
             isWin
@@ -319,15 +319,15 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         }
 
         return { delta: 0, title: 'Không xác định', color: 0x7f8c8d, detail: 'Không có kết quả.' };
-      };
+      
 
       const buildRoomResultEmbed = (game, outcome, results) => {
         const meta = GAME_META[game];
-        const detailLines = results.map(r => `• <@${r.userId}>: ${r.delta >= 0 ? '+' : ''}${r.delta.toLocaleString()} VND (còn \\`${r.newBalance.toLocaleString()}\\`)`).join('\n');
+        const detailLines = results.map(r => `• <@${r.userId}>: ${r.delta >= 0 ? '+' : ''}${r.delta.toLocaleString()} VND (còn \`${r.newBalance.toLocaleString()}\`)`).join('\n');
         let outcomeText = '';
 
         if (game === 'TAI_XIU') {
-          outcomeText = `🎲 Xúc xắc: \\`[ ${outcome.d1} ] · [ ${outcome.d2} ] · [ ${outcome.d3} ]\\`\n• Tổng điểm: **${outcome.sum}** → **${outcome.result === 'tx_tai' ? 'Tài' : 'Xỉu'}**`;
+          outcomeText = `🎲 Xúc xắc: \`[ ${outcome.d1} ] · [ ${outcome.d2} ] · [ ${outcome.d3} ]\`\n• Tổng điểm: **${outcome.sum}** → **${outcome.result === 'tx_tai' ? 'Tài' : 'Xỉu'}**`;
         } else if (game === 'KIEM_GIAP_PHAP') {
           outcomeText = `⚔️ Thiên Đạo ra chiêu: **${getChoiceMeta(game, outcome.botChoiceId)?.name || outcome.botChoiceId}**`;
         } else if (game === 'BAU_CUA') {
@@ -444,7 +444,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             }
 
             if (playerTuSi.vnd < roomBet) {
-              await submission.editReply({ embeds: [BoTaoEmbed.loi(`VND bất túc! Ngươi chỉ có \\`${playerTuSi.vnd.toLocaleString()}\\` VND, không đủ cược \\`${roomBet.toLocaleString()}\\` VND.`)] });
+              await submission.editReply({ embeds: [BoTaoEmbed.loi(`VND bất túc! Ngươi chỉ có \`${playerTuSi.vnd.toLocaleString()}\` VND, không đủ cược \`${roomBet.toLocaleString()}\` VND.`)] });
               return;
             }
 
@@ -455,7 +455,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             });
 
             await interaction.editReply({ embeds: [buildRoomEmbed()], components: buildRoomComponents() });
-            await submission.editReply({ embeds: [BoTaoEmbed.thanhCong('🤝 Đã Tham Gia Sòng', `Ngươi đã tham gia sòng với mức cược \\`${roomBet.toLocaleString()}\\` VND.`)] });
+            await submission.editReply({ embeds: [BoTaoEmbed.thanhCong('🤝 Đã Tham Gia Sòng', `Ngươi đã tham gia sòng với mức cược \`${roomBet.toLocaleString()}\` VND.`)] });
           } catch (_) {}
 
           return;
@@ -952,7 +952,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         } catch (_) {}
       });
     }
-  };
+  }
+};
 }
 
 const controller = new BoDieuKhienDamDao();
