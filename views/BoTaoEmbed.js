@@ -115,7 +115,7 @@ export class BoTaoEmbed {
 
     embed.addFields({
       name: "🩺 Khí Huyết & Thần Thức",
-      value: `${hpDisplay}\n${mpDisplay}\n• **Thể lực**: \`${tuSi.theLuc || 0} / ${tuSi.theLucMax || 200}\` 🔋\n• **Linh thạch tích trữ**: \`${tuSi.linhThach.toLocaleString()}\` 🪙\n• **Số dư VND**: \`${(tuSi.vnd || 0).toLocaleString()}\` 💵`,
+      value: `${hpDisplay}\n${mpDisplay}\n• **Thể lực**: \`${tuSi.theLuc || 0} / ${tuSi.theLucMax || 200}\` 🔋\n• **Linh thạch tích trữ**: \`${tuSi.linhThach.toLocaleString()}\` <:linh_thach:1522644605479419964>\n• **Số dư VND**: \`${(tuSi.vnd || 0).toLocaleString()}\` 💵`,
       inline: false
     });
 
@@ -296,7 +296,7 @@ export class BoTaoEmbed {
         `Đạo hữu **${tuSi.ten}** đã từ trong tĩnh tọa tỉnh lại, linh khí xung quanh dần tiêu tán.\n` +
         `Nhờ kiên trì thiền định, đạo hữu nhận được:\n` +
         `• **Linh lực tích lũy**: \`+${exp}\` ✨\n` +
-        `• **Linh thạch bổ sung**: \`+${stones}\` 🪙`
+        `• **Linh thạch bổ sung**: \`+${stones}\` <:linh_thach:1522644605479419964>`
       )
       .setColor(0x2ecc71)
       .setTimestamp()
@@ -392,7 +392,7 @@ export class BoTaoEmbed {
    */
   static baloSheets(tuSi, itemsList = []) {
     const { trangBi, coBaoPhapBao, danDuoc, linhThao } = BoTaoEmbed._phanLoaiItems(itemsList);
-    const baseDesc = `> 💎 **Linh thạch**: \`${tuSi.linhThach}\`  |  📦 **Tổng vật phẩm**: \`${itemsList.length}\``;
+    const baseDesc = `> <:linh_thach:1522644605479419964> **Linh thạch**: \`${tuSi.linhThach}\`  |  📦 **Tổng vật phẩm**: \`${itemsList.length}\``;
     const color = layMauCanhGioi(tuSi.canhGioi);
 
     const buildPages = (lines, emptyMsg, sheetName, emoji) => {
@@ -400,7 +400,7 @@ export class BoTaoEmbed {
       return pageContents.map((content, i) => {
         const totalPages = pageContents.length;
         return new EmbedBuilder()
-          .setTitle(`🎒 Túi Trữ Vật: ${tuSi.ten}`)
+          .setTitle(`<:tui_do:1522610154615476244> Túi Trữ Vật: ${tuSi.ten}`)
           .setColor(color)
           .setDescription(
             `${baseDesc}\n\n` +
@@ -543,7 +543,7 @@ export class BoTaoEmbed {
     });
 
     if (isWin) {
-      let rewardText = `• **Linh lực nhận được**: \`+${gainedExp}\` ✨\n• **Linh thạch nhận được**: \`+${gainedStones}\` 💎`;
+      let rewardText = `• **Linh lực nhận được**: \`+${gainedExp}\` ✨\n• **Linh thạch nhận được**: \`+${gainedStones}\` <:linh_thach:1522644605479419964>`;
       if (droppedItem) {
         rewardText += `\n• **Vật phẩm rớt ra**: **${droppedItem.ten}** 🎁`;
       }
