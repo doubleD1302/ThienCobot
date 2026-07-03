@@ -364,6 +364,21 @@ async function start() {
         });
       }
 
+      // Sửa lỗi độ dài cột emoji trong bảng pet_templates thành VARCHAR(100)
+      try {
+        const petTemplatesDesc = await queryInterface.describeTable('pet_templates');
+        if (petTemplatesDesc.emoji) {
+          console.log('Tiến hành sửa độ dài cột emoji trong bảng pet_templates...');
+          await queryInterface.changeColumn('pet_templates', 'emoji', {
+            type: DataTypes.STRING(100),
+            allowNull: false
+          });
+          console.log('Đảm bảo độ dài cột emoji trong bảng pet_templates là VARCHAR(100) thành công.');
+        }
+      } catch (e) {
+        console.warn('Lỗi kiểm tra/sửa cột emoji bảng pet_templates:', e.message);
+      }
+
       const petsDesc = await queryInterface.describeTable('pets');
       if (!petsDesc.tien_hoa) {
         console.log('Phát hiện thiếu cột tien_hoa. Tiến hành thêm vào bảng pets...');
