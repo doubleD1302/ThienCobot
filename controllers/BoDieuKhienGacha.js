@@ -149,6 +149,10 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
         let hitSupreme = false;
 
         for (let r = 0; r < rollCount; r++) {
+          if (Math.random() <= 0.01) {
+            rolledResults.push({ type: 'item', itemId: 'trung_linh_thu_than', ten: 'Trứng Linh Thú (Thần) 🥚', doHiem: 'Thần cấp' });
+            continue;
+          }
           const category = rollFromWeights(GACHA_POOL_WEIGHTS);
           if (category === 'supreme') {
             rolledResults.push({ type: 'supreme', itemId: 'binh_tinh_hai', ten: 'Bình Tinh Hải 🏺' });

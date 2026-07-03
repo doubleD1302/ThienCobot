@@ -177,26 +177,54 @@ class TuSi extends Model {
 
     // 4. Cộng sủng vật (Pet) nếu có xuất chiến
     if (activePet) {
-      const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
-      const totalEvolves = (activePet.rarity === 'SUPREME' ? 20 : (activePet.rarity === 'ANCIENT' ? 10 : 0)) + (activePet.tienHoa || 0);
-      const evoMult = 1.0 + totalEvolves * 0.10;
-      if (activePet.type === 'ma_lang') {
-        vatCong += baseVatCongVal * 0.10 * scale * evoMult;
-      } else if (activePet.type === 'loi_diep') {
-        critRate += 0.05 * scale * evoMult;
-      } else if (activePet.type === 'than_vien') {
-        maxHp += baseHpVal * 0.15 * scale * evoMult;
-        giap += baseStats.giap * 0.10 * scale * evoMult;
-      } else if (activePet.type === 'to_long') {
-        phapCong += basePhapCongVal * 0.25 * scale * evoMult;
-        vatCong += baseVatCongVal * 0.15 * scale * evoMult;
-      } else if (activePet.type === 'phuong_hoang') {
-        maxHp += baseHpVal * 0.25 * scale * evoMult;
-        ne += 0.20 * scale * evoMult;
-      } else if (activePet.type === 'ky_lan') {
-        giap += baseStats.giap * 0.25 * scale * evoMult;
-        vatCong += baseVatCongVal * 0.25 * scale * evoMult;
-        phapCong += basePhapCongVal * 0.25 * scale * evoMult;
+      const template = config.PET_TEMPLATES[activePet.type];
+      if (template) {
+        const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
+        const totalEvolves = config.getPetTotalEvolves(activePet);
+        const evoMult = Math.pow(1.1, totalEvolves);
+        const isThan = template.group === 'than_thu';
+        const groupMult = isThan ? 1.5 : 1.0;
+
+        if (template.species === 'ma_lang') {
+          vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
+        } else if (template.species === 'loi_diep') {
+          if (activePet.type === 'loi_diep_2') {
+            critRate += 0.05 * scale * evoMult * groupMult;
+          }
+          // tu_toc được tính ở layHeSoTuLuyen
+        } else if (template.species === 'than_vien') {
+          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
+          const giapPct = activePet.type === 'than_vien_1' ? 0.08 : (activePet.type === 'than_vien_2' ? 0.10 : 0.12);
+          giap += baseStats.giap * giapPct * scale * evoMult * groupMult;
+        } else if (template.species === 'linh_ho') {
+          vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
+        } else if (template.species === 'linh_ho_fox') {
+          ne += template.statValue * scale * evoMult * groupMult;
+          if (activePet.type === 'linh_ho_fox_2') {
+            critRate += 0.05 * scale * evoMult * groupMult;
+          } else if (activePet.type === 'linh_ho_fox_3') {
+            critRate += 0.08 * scale * evoMult * groupMult;
+          }
+        } else if (template.species === 'to_long') {
+          phapCong += basePhapCongVal * template.statValue * scale * evoMult * groupMult;
+          vatCong += baseVatCongVal * 0.15 * scale * evoMult * groupMult;
+        } else if (template.species === 'phuong_hoang') {
+          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
+          const nePct = activePet.type === 'phuong_hoang_1' ? 0.20 : 0.22;
+          ne += nePct * scale * evoMult * groupMult;
+        } else if (template.species === 'ky_lan') {
+          giap += baseStats.giap * template.statValue * scale * evoMult * groupMult;
+          vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
+          phapCong += basePhapCongVal * template.statValue * scale * evoMult * groupMult;
+        } else if (template.species === 'huyen_vu') {
+          giap += baseStats.giap * template.statValue * scale * evoMult * groupMult;
+          const hpPct = activePet.type === 'huyen_vu_1' ? 0.20 : 0.25;
+          maxHp += baseHpVal * hpPct * scale * evoMult * groupMult;
+        } else if (template.species === 'bach_ho') {
+          vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
+          const xuyenPct = activePet.type === 'bach_ho_1' ? 0.12 : 0.15;
+          xuyenGiap += baseStats.xuyen_giap * xuyenPct * scale * evoMult * groupMult;
+        }
       }
     }
 
@@ -257,11 +285,15 @@ class TuSi extends Model {
     }
 
     // Tốc độ tu luyện cộng thêm từ sủng vật Lôi Điệp (nếu có và xuất chiến)
-    if (activePet && activePet.type === 'loi_diep') {
-      const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
-      const totalEvolves = (activePet.rarity === 'SUPREME' ? 20 : (activePet.rarity === 'ANCIENT' ? 10 : 0)) + (activePet.tienHoa || 0);
-      const evoMult = 1.0 + totalEvolves * 0.10;
-      mult *= (1.0 + 0.10 * scale * evoMult);
+    if (activePet) {
+      const template = config.PET_TEMPLATES[activePet.type];
+      if (template && template.species === 'loi_diep') {
+        const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
+        const totalEvolves = config.getPetTotalEvolves(activePet);
+        const evoMult = Math.pow(1.1, totalEvolves);
+        const groupMult = template.group === 'than_thu' ? 1.5 : 1.0;
+        mult *= (1.0 + template.statValue * scale * evoMult * groupMult);
+      }
     }
 
     return mult;

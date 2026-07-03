@@ -331,6 +331,19 @@ export const ITEMS = [
   // Vật phẩm bổ trợ ấp trứng
   { id: 'trung_linh_thu', ten: 'Trứng Linh Thú 🥚', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Ấp nở tại Động Phủ để nhận được linh thú trung thành.' },
   { id: 'trung_than_thu', ten: 'Trứng Thần Thú Thượng Cổ 🌟', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng thần thú thượng cổ cực kỳ quý hiếm.' },
+  { id: 'trung_linh_thu_pham', ten: 'Trứng Linh Thú (Phàm) 🥚', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Phàm. Ấp nở chắc chắn nhận được Linh Thú.' },
+  { id: 'trung_linh_thu_linh', ten: 'Trứng Linh Thú (Linh) 🥚', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 20000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Linh. Ấp nở có 1% tỷ lệ nở ra Thần Thú.' },
+  { id: 'trung_linh_thu_tien', ten: 'Trứng Linh Thú (Tiên) 🥚', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 100000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Tiên. Ấp nở có 3% tỷ lệ nở ra Thần Thú. Có bán ở shop.' },
+  { id: 'trung_linh_thu_than', ten: 'Trứng Linh Thú (Thần) 🥚', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 500000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Thần. Ấp nở có 50% tỷ lệ nở ra Thần Thú.' },
+
+  // Linh sủng đan & Vạn yêu quả
+  { id: 'hoa_than_linh_sung_dan', ten: 'Hóa Thần Linh Sủng Đan 🔴', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 19, moTa: 'Đan dược nghịch thiên cải mệnh, giúp Linh Thú đạt trạng thái MAX tiến hóa ngẫu nhiên thành Thần Thú.' },
+  { id: 'van_yeu_qua_phe', ten: 'Vạn Yêu Quả (Phế) ⚪', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Quả exp phế phẩm của sủng vật, cho ăn gia tăng 500 EXP.' },
+  { id: 'van_yeu_qua_ha', ten: 'Vạn Yêu Quả (Hạ) 🟢', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 400, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Quả exp hạ phẩm của sủng vật, cho ăn gia tăng 1000 EXP.' },
+  { id: 'van_yeu_qua_trung', ten: 'Vạn Yêu Quả (Trung) 🔵', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 800, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Quả exp trung phẩm của sủng vật, cho ăn gia tăng 2000 EXP.' },
+  { id: 'van_yeu_qua_thuong', ten: 'Vạn Yêu Quả (Thượng) 🟣', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 1600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Quả exp thượng phẩm của sủng vật, cho ăn gia tăng 4000 EXP.' },
+  { id: 'van_yeu_qua_tien', ten: 'Vạn Yêu Quả (Tiên) 🟠', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 3200, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Quả exp tiên phẩm của sủng vật, cho ăn gia tăng 8000 EXP.' },
+  { id: 'van_yeu_qua_than', ten: 'Vạn Yêu Quả (Thần) 🔴', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 6400, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Quả exp thần phẩm của sủng vật, cho ăn gia tăng 16000 EXP.' },
 
   // Gacha & Chí Bảo
   { id: 'co_duyen_lenh', ten: 'Cơ Duyên Lệnh 🎫', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tấm thẻ ẩn chứa cơ duyên thiên địa, dùng để quay Hồ Tạo Hóa.' },
@@ -766,3 +779,121 @@ export function layVatPhamDotPhaTheoCapDo(level) {
   }
   return null;
 }
+
+export const PET_QUALITY_LABELS = {
+  LT_1: 'Huyết Mạch Hoang Dã 🐾',
+  LT_2: 'Huyết Mạch Linh Thuần ✨',
+  LT_3: 'Huyết Mạch Vương Giả 👑',
+  LT_4: 'Huyết Mạch Hoàng Kim 🌟',
+  TT_1: 'Huyết Mạch Thái Cổ 🦖',
+  TT_2: 'Huyết Mạch Hỗn Độn 🌀',
+  TT_3: 'Huyết Mạch Hồng Hoang 🌋',
+  TT_4: 'Huyết Mạch Khởi Nguyên 🌌'
+};
+
+export const getPetQualityIndex = (rarity) => {
+  if (!rarity) return 0;
+  if (rarity.endsWith('_1')) return 0;
+  if (rarity.endsWith('_2')) return 1;
+  if (rarity.endsWith('_3')) return 2;
+  if (rarity.endsWith('_4')) return 3;
+  return 0;
+};
+
+export const getPetTotalEvolves = (pet) => {
+  if (!pet) return 0;
+  const q = getPetQualityIndex(pet.rarity);
+  const p = pet.tienHoa || 0;
+  const extra = pet.extraEvo || 0;
+  return q * 11 + p + extra;
+};
+
+export const getPetLevelCap = (pet) => {
+  if (!pet) return 1;
+  if (pet.isMax) return 440;
+  const q = getPetQualityIndex(pet.rarity);
+  const p = pet.tienHoa || 0;
+  if (p < 10) {
+    return q * 110 + (p + 1) * 10;
+  } else {
+    return q * 110 + 110;
+  }
+};
+
+export const getPetEvolutionCost = (pet) => {
+  if (!pet) return 0;
+  const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
+  const baseCost = isThan ? 10000 : 1000;
+  const totalEvolves = getPetTotalEvolves(pet);
+  return Math.floor(baseCost * Math.pow(1.25, totalEvolves));
+};
+
+export const getFormattedPetName = (baseName, rarity, tienHoa, isMax) => {
+  const cleanName = baseName.replace(/(\s\+\d+|\[MAX\]|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
+  if (isMax) {
+    return `${cleanName} [MAX]`;
+  }
+  if (tienHoa > 0) {
+    return `${cleanName} +${tienHoa}`;
+  }
+  return cleanName;
+};
+
+// Khai báo bộ nhớ cache cho PET_TEMPLATES để tránh gọi CSDL quá nhiều lần
+export let PET_TEMPLATES = {};
+
+export const loadPetTemplatesIntoCache = (templates) => {
+  PET_TEMPLATES = {};
+  for (const t of templates) {
+    PET_TEMPLATES[t.id] = {
+      id: t.id,
+      name: `${t.name} ${t.emoji}`,
+      emoji: t.emoji,
+      group: t.group,
+      species: t.species,
+      statType: t.statType,
+      statValue: t.statValue,
+      desc: t.desc
+    };
+  }
+};
+
+export const PET_TEMPLATES_SEED = [
+  // 15 Linh Thú (5 species)
+  { id: 'ma_lang_1', name: 'Thiết Huyết Lang', emoji: '🐺', group: 'linh_thu', species: 'ma_lang', statType: 'vat_cong', statValue: 0.08, desc: 'Hộ thể: +8% Sát thương Vật lý nền' },
+  { id: 'ma_lang_2', name: 'U Minh Ma Lang', emoji: '🐺', group: 'linh_thu', species: 'ma_lang', statType: 'vat_cong', statValue: 0.10, desc: 'Hộ thể: +10% Sát thương Vật lý nền' },
+  { id: 'ma_lang_3', name: 'Huyết Nguyệt Lang', emoji: '🐺', group: 'linh_thu', species: 'ma_lang', statType: 'vat_cong', statValue: 0.12, desc: 'Hộ thể: +12% Sát thương Vật lý nền' },
+
+  { id: 'loi_diep_1', name: 'Thanh Vân Điệp', emoji: '🦋', group: 'linh_thu', species: 'loi_diep', statType: 'tu_toc', statValue: 0.08, desc: 'Hộ thể: +8% Tu tốc nền' },
+  { id: 'loi_diep_2', name: 'Thất Thải Lôi Điệp', emoji: '🦋', group: 'linh_thu', species: 'loi_diep', statType: 'tu_toc', statValue: 0.10, desc: 'Hộ thể: +5% Bạo kích & +10% Tu tốc nền' },
+  { id: 'loi_diep_3', name: 'Mộng Ảo Điệp', emoji: '🦋', group: 'linh_thu', species: 'loi_diep', statType: 'tu_toc', statValue: 0.12, desc: 'Hộ thể: +12% Tu tốc nền' },
+
+  { id: 'than_vien_1', name: 'Thiết Tý Viên', emoji: '🦍', group: 'linh_thu', species: 'than_vien', statType: 'max_hp', statValue: 0.10, desc: 'Hộ thể: +10% HP tối đa & +8% Hộ giáp nền' },
+  { id: 'than_vien_2', name: 'Thiết Tý Thần Viên', emoji: '🦍', group: 'linh_thu', species: 'than_vien', statType: 'max_hp', statValue: 0.15, desc: 'Hộ thể: +15% HP tối đa & +10% Hộ giáp nền' },
+  { id: 'than_vien_3', name: 'Kim Cương Viên', emoji: '🦍', group: 'linh_thu', species: 'than_vien', statType: 'max_hp', statValue: 0.18, desc: 'Hộ thể: +18% HP tối đa & +12% Hộ giáp nền' },
+
+  { id: 'linh_ho_1', name: 'Song Đầu Hổ', emoji: '🐯', group: 'linh_thu', species: 'linh_ho', statType: 'vat_cong', statValue: 0.08, desc: 'Hộ thể: +8% Vật Công & +5% Tốc độ di chuyển' },
+  { id: 'linh_ho_2', name: 'Bạch Ngân Linh Hổ', emoji: '🐯', group: 'linh_thu', species: 'linh_ho', statType: 'vat_cong', statValue: 0.12, desc: 'Hộ thể: +12% Vật Công & +8% Tốc độ di chuyển' },
+  { id: 'linh_ho_3', name: 'U Ảnh Hổ', emoji: '🐯', group: 'linh_thu', species: 'linh_ho', statType: 'vat_cong', statValue: 0.15, desc: 'Hộ thể: +15% Vật Công & +10% Tốc độ di chuyển' },
+
+  { id: 'linh_ho_fox_1', name: 'Tam Vĩ Yêu Hồ', emoji: '🦊', group: 'linh_thu', species: 'linh_ho_fox', statType: 'ne', statValue: 0.08, desc: 'Hộ thể: +8% Né tránh' },
+  { id: 'linh_ho_fox_2', name: 'Lục Vĩ Linh Hồ', emoji: '🦊', group: 'linh_thu', species: 'linh_ho_fox', statType: 'ne', statValue: 0.12, desc: 'Hộ thể: +12% Né tránh & +5% Bạo kích' },
+  { id: 'linh_ho_fox_3', name: 'Cửu Vĩ Linh Hồ', emoji: '🦊', group: 'linh_thu', species: 'linh_ho_fox', statType: 'ne', statValue: 0.15, desc: 'Hộ thể: +15% Né tránh & +8% Bạo kích' },
+
+  // 10 Thần Thú (5 species)
+  { id: 'to_long_1', name: 'Hỗn Thiên Tổ Long', emoji: '🐉', group: 'than_thu', species: 'to_long', statType: 'phap_cong', statValue: 0.22, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +22% Pháp Công & +15% Vật Công' },
+  { id: 'to_long_2', name: 'Thượng Cổ Tổ Long', emoji: '🐉', group: 'than_thu', species: 'to_long', statType: 'phap_cong', statValue: 0.25, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +25% Pháp Công & +15% Vật Công' },
+
+  { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '🐦', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +25% HP & +20% Né tránh' },
+  { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '🐦', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +28% HP & +22% Né tránh' },
+
+  { id: 'ky_lan_1', name: 'Bạch Ngọc Kỳ Lân', emoji: '🦄', group: 'than_thu', species: 'ky_lan', statType: 'giap', statValue: 0.25, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% Hộ giáp & +25% Công' },
+  { id: 'ky_lan_2', name: 'Thiên Ngọc Kỳ Lân', emoji: '🦄', group: 'than_thu', species: 'ky_lan', statType: 'giap', statValue: 0.28, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +28% Hộ giáp & +28% Công' },
+
+  { id: 'huyen_vu_1', name: 'Thần Thú Huyền Vũ', emoji: '🐢', group: 'than_thu', species: 'huyen_vu', statType: 'giap', statValue: 0.25, desc: 'Chủ động: Huyền Vũ Bảo Vệ. Hộ thể: +25% Giáp & +20% HP' },
+  { id: 'huyen_vu_2', name: 'Thượng Cổ Hợp Quy', emoji: '🐢', group: 'than_thu', species: 'huyen_vu', statType: 'giap', statValue: 0.30, desc: 'Chủ động: Huyền Vũ Bảo Vệ. Hộ thể: +30% Giáp & +25% HP' },
+
+  { id: 'bach_ho_1', name: 'Thần Thú Bạch Hổ', emoji: '🐅', group: 'than_thu', species: 'bach_ho', statType: 'vat_cong', statValue: 0.22, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +22% Vật Công & +12% Xuyên giáp' },
+  { id: 'bach_ho_2', name: 'Thái Cổ Kim Hổ', emoji: '🐅', group: 'than_thu', species: 'bach_ho', statType: 'vat_cong', statValue: 0.25, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +25% Vật Công & +15% Xuyên giáp' }
+];
+

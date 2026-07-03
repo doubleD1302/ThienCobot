@@ -23,74 +23,7 @@ const MAX_GARDEN_PLOTS = 26;
 const WATERING_COST_BASE = 10000; // Lần tưới có phí đầu tiên tốn 10k, x10 mỗi lần sau
 const PILLS_DAILY_LIMIT = 5;
 
-const PET_RARITY_ORDER = ['NORMAL', 'RARE', 'LEGENDARY', 'MYTHIC', 'ANCIENT', 'SUPREME'];
-const PET_RARITY_LABELS = {
-  NORMAL: 'Linh Thú Thường 🐾',
-  RARE: 'Linh Thú Hiếm ✨',
-  LEGENDARY: 'Linh Thú Huyền Thoại 🔥',
-  MYTHIC: 'Thần Thú Truyền Thuyết 🌟',
-  ANCIENT: 'Thần Thú Thượng Cổ 🌙',
-  SUPREME: 'Chí Tôn Thần Thú 👑'
-};
-
-const getPetTotalEvolves = (pet) => {
-  const rarityOffset = {
-    NORMAL: 0,
-    RARE: 10,
-    LEGENDARY: 20,
-    MYTHIC: 30,
-    ANCIENT: 40,
-    SUPREME: 50
-  };
-
-  return (rarityOffset[pet?.rarity] || 0) + (pet?.tienHoa || 0);
-};
-
-const getPetRarityText = (rarity) => PET_RARITY_LABELS[rarity] || PET_RARITY_LABELS.NORMAL;
-
-const getPetRarityFromTotalEvolves = (totalEvolves) => {
-  if (totalEvolves >= 50) return 'SUPREME';
-  if (totalEvolves >= 40) return 'ANCIENT';
-  if (totalEvolves >= 30) return 'MYTHIC';
-  if (totalEvolves >= 20) return 'LEGENDARY';
-  if (totalEvolves >= 10) return 'RARE';
-  return 'NORMAL';
-};
-
-const getPetEvolutionCost = (pet) => {
-  const totalEvolves = getPetTotalEvolves(pet);
-  const rarityBaseCost = totalEvolves >= 30 ? 10000 : 1000;
-  const evolveInTier = totalEvolves % 10;
-  return Math.floor(rarityBaseCost * Math.pow(1.5, evolveInTier));
-};
-
-// Định nghĩa chủng loài sủng vật
-const PET_TEMPLATES = {
-  // Linh Thú Thường
-  'ma_lang': { name: 'U Minh Ma Lang 🐺', rarity: 'NORMAL', desc: 'Hộ thể: +10% Sát thương Vật lý nền' },
-  'loi_diep': { name: 'Thất Thải Lôi Điệp 🦋', rarity: 'NORMAL', desc: 'Hộ thể: +5% Bạo kích & +10% Tu tốc nền' },
-  'than_vien': { name: 'Thiết Tý Thần Viên 🦍', rarity: 'NORMAL', desc: 'Hộ thể: +15% HP tối đa & +10% Hộ giáp nền' },
-  // Linh Thú Hiếm
-  'linh_ho': { name: 'Bạch Ngân Linh Hổ 🐯', rarity: 'RARE', desc: 'Hộ thể: +18% Vật Công & +10% Tốc độ di chuyển' },
-  'huyen_diep': { name: 'Huyền Vân Mộng Điệp 🦋', rarity: 'RARE', desc: 'Hộ thể: +12% Né tránh & +15% Bạo kích' },
-  'ngoc_vien': { name: 'Ngọc Tý Linh Viên 🦧', rarity: 'RARE', desc: 'Hộ thể: +18% HP tối đa & +12% Hộ giáp nền' },
-  // Linh Thú Huyền Thoại
-  'than_lang': { name: 'Thái Hư Thần Lang 🐺', rarity: 'LEGENDARY', desc: 'Hộ thể: +22% Vật Công & +15% Bạo kích' },
-  'quang_diep': { name: 'Quang Ảnh Thiên Điệp 🦋', rarity: 'LEGENDARY', desc: 'Hộ thể: +18% Tu tốc & +18% Né tránh' },
-  'linh_vien': { name: 'Thiên Mệnh Linh Viên 🦍', rarity: 'LEGENDARY', desc: 'Hộ thể: +22% HP tối đa & +18% Hộ giáp nền' },
-  // Thần Thú Truyền Thuyết
-  'toi_long': { name: 'Hỗn Thiên Tổ Long 🐉', rarity: 'MYTHIC', desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +28% Pháp Công & +20% Vật Công' },
-  'phuong_hoang': { name: 'Cửu Thiên Phượng Hoàng 🐦', rarity: 'MYTHIC', desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +28% HP & +22% Né tránh' },
-  'ky_lan': { name: 'Bạch Ngọc Kỳ Lân 🦄', rarity: 'MYTHIC', desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +28% Hộ giáp & +28% Công' },
-  // Thần Thú Thượng Cổ
-  'to_long': { name: 'Thượng Cổ Tổ Long 🐉', rarity: 'ANCIENT', desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +25% Pháp Công & +15% Vật Công' },
-  'huyet_phuong': { name: 'Huyết Hoàng Phượng 🐦', rarity: 'ANCIENT', desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +25% HP & +20% Né tránh' },
-  'thien_ky_lan': { name: 'Thiên Ngọc Kỳ Lân 🦄', rarity: 'ANCIENT', desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% Hộ giáp & +25% Công' },
-  // Chí Tôn
-  'chi_ton_long': { name: 'Chí Tôn Hỗn Nguyên Long 🐉', rarity: 'SUPREME', desc: 'Chủ động: Chư thiên long uy. Hộ thể: +35% Pháp Công & +25% Vật Công' },
-  'chi_ton_phuong': { name: 'Chí Tôn Cửu Diễm Hoàng 🐦', rarity: 'SUPREME', desc: 'Chủ động: Niết Bàn tái sinh. Hộ thể: +35% HP & +30% Né tránh' },
-  'chi_ton_lan': { name: 'Chí Tôn Thái Ngọc Lân 🦄', rarity: 'SUPREME', desc: 'Chủ động: Vạn Linh Hộ Thể. Hộ thể: +35% Hộ giáp & +35% Công' }
-};
+const getPetRarityText = (rarity) => config.PET_QUALITY_LABELS[rarity] || rarity;
 
 // Phẩm chất màu sắc
 const QUALITY_EMOJIS = {
@@ -325,10 +258,13 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           const desc = myPets.map((p, idx) => {
             const activeTag = p.isActive ? ' 🟢 **[Xuất Chiến]**' : '';
             const rarityTag = ` · ${getPetRarityText(p.rarity)}`;
+            const template = config.PET_TEMPLATES[p.type];
+            const speciesName = template ? template.name : p.type;
+            const effectDesc = template ? template.desc : '';
             return `**${idx + 1}.** **${p.name}**${rarityTag}${activeTag}\n` +
-                   `   *Loài:* ${PET_TEMPLATES[p.type]?.name ?? p.type} · *Cấp:* \`${p.level}\` · *Tư chất:* \`${p.tuChat} / 250\`\n` +
-                   `   *Hiệu ứng:* ${PET_TEMPLATES[p.type]?.desc ?? ''}`;
-          }).join('\n\n') || '_Đạo hữu chưa nuôi dưỡng sủng vật nào. Hãy đập đá để tìm kiếm trứng linh thú!_';
+                   `   *Loài:* ${speciesName} · *Cấp:* \`${p.level}\` · *Tư chất:* \`${p.tuChat} / 250\`\n` +
+                   `   *Hiệu ứng:* ${effectDesc}`;
+          }).join('\n\n') || '_Đạo hữu chưa nuôi dưỡng sủng vật nào. Hãy khám phá bí cảnh để tìm kiếm trứng linh thú!_';
 
           const embed = new EmbedBuilder()
             .setTitle(`🐅 Thú Xá Sủng Vật: ${tuSi.ten}`)
@@ -343,22 +279,57 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         else if (menu === 'PET_DETAIL') {
           const pet = await Pet.findByPk(selectedPetId);
           if (pet) {
+            const template = config.PET_TEMPLATES[pet.type];
             const activeTag = pet.isActive ? ' 🟢 [Đang Xuất Chiến]' : ' 💤 [Đang Nghỉ Ngơi]';
             const rarityTag = ` ${getPetRarityText(pet.rarity)}`;
             const nextLvlExp = pet.level * 100;
-            const totalEvolves = getPetTotalEvolves(pet);
-            const evoTxt = totalEvolves > 0 ? ` (+${totalEvolves * 10}% Hộ Thể & +${totalEvolves * 5}% Kỹ Năng)` : '';
+            const totalEvolves = config.getPetTotalEvolves(pet);
+
+            const hoTheMult = Math.pow(1.1, totalEvolves);
+            const hoTheBonusPct = ((hoTheMult - 1) * 100).toFixed(1);
+            let evoTxt = ` (+${hoTheBonusPct}% Hộ Thể)`;
+
+            const isThan = template && template.group === 'than_thu';
+            if (isThan) {
+              const skillMult = Math.pow(1.1, totalEvolves);
+              const skillBonusPct = ((skillMult - 1) * 100).toFixed(1);
+              evoTxt = ` (+${hoTheBonusPct}% Hộ Thể & +${skillBonusPct}% Kỹ Năng)`;
+            }
+
+            const speciesName = template ? template.name : pet.type;
+            let skillText = '';
+            if (isThan) {
+              let skillName = 'Chưa rõ';
+              let skillDesc = 'Chưa rõ';
+              if (template.species === 'to_long') {
+                skillName = 'Long Thần Chi Nộ 🐉';
+                skillDesc = `Phát động Long Thần Chi Nộ gây sát thương bằng 15% HP tối đa của bản thân (x${hoTheMult.toFixed(2)} từ tiến hóa).`;
+              } else if (template.species === 'phuong_hoang') {
+                skillName = 'Niết Bàn Trùng Sinh 🐦';
+                skillDesc = `Hồi sinh lập tức khi HP về 0, khôi phục 30% HP tối đa (x${hoTheMult.toFixed(2)} từ tiến hóa).`;
+              } else if (template.species === 'ky_lan') {
+                skillName = 'Kỳ Lân Hộ Thể 🦄';
+                skillDesc = `Tạo lá chắn bằng 20% HP tối đa (x${hoTheMult.toFixed(2)} từ tiến hóa).`;
+              } else if (template.species === 'huyen_vu') {
+                skillName = 'Huyền Vũ Bảo Vệ 🐢';
+                skillDesc = `Tạo lá chắn bằng 25% HP tối đa (x${hoTheMult.toFixed(2)} từ tiến hóa).`;
+              } else if (template.species === 'bach_ho') {
+                skillName = 'Bạch Hổ Sát Chiêu 🐅';
+                skillDesc = `Phát động Bạch Hổ Sát Chiêu gây sát thương bằng 18% HP tối đa (x${hoTheMult.toFixed(2)} từ tiến hóa).`;
+              }
+              skillText = `\n• **Kỹ năng Thần Thú**: **${skillName}**\n  *Mô tả*: ${skillDesc}`;
+            }
 
             const embed = new EmbedBuilder()
               .setTitle(`🐯 Sủng Vật: ${pet.name}`)
               .setColor(0xe67e22)
               .setDescription(
-                `• **Chủng loại**: ${PET_TEMPLATES[pet.type]?.name ?? pet.type}\n` +
+                `• **Chủng loại**: ${speciesName}\n` +
                 `• **Phẩm cấp**: ${rarityTag}\n` +
                 `• **Trạng thái**: **${activeTag}**\n` +
                 `• **Cấp độ**: \`Cấp ${pet.level}\` (EXP: \`${pet.exp} / ${nextLvlExp}\`)\n` +
                 `• **Tư chất**: \`${pet.tuChat} / 250\` *(Tư chất càng cao chỉ số cộng cho tu sĩ càng lớn)*\n` +
-                `• **Hiệu ứng hộ thể**: ${PET_TEMPLATES[pet.type]?.desc ?? ''}${evoTxt}`
+                `• **Hiệu ứng hộ thể**: ${template ? template.desc : ''}${evoTxt}${skillText}`
               );
             embeds.push(embed);
           }
@@ -670,7 +641,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           }
 
           // Trứng ấp sủng vật
-          const eggs = sellableList.filter(e => e.item.id === 'trung_linh_thu' || e.item.id === 'trung_than_thu');
+          const eggs = sellableList.filter(e => e.item.id.startsWith('trung_linh_thu') || e.item.id === 'trung_than_thu');
           if (eggs.length > 0) {
             rows.push(
               new ActionRowBuilder().addComponents(
@@ -700,7 +671,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         // ══════════════════════════════════════════════════════════════
         else if (menu === 'PET_DETAIL') {
           const pet = myPets.find(p => String(p.id) === String(selectedPetId));
-          const hasFood = sellableList.some(e => e.item.loai === 'Linh thảo' && e.item.id.includes('_'));
+          const foods = sellableList.filter(e => (e.item.loai === 'Linh thảo' && e.item.id.includes('_')) || e.item.id.startsWith('van_yeu_qua_'));
 
           const actionRow1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -708,19 +679,43 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               .setLabel(pet?.isActive ? '💤 Cho Nghỉ Ngơi' : '⚔️ Cho Xuất Chiến')
               .setStyle(pet?.isActive ? ButtonStyle.Secondary : ButtonStyle.Success),
             new ButtonBuilder()
+              .setCustomId('pet_action_reset')
+              .setLabel('🔄 Trùng Sinh (Reset)')
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
               .setCustomId('pet_action_renounce')
               .setLabel('💥 Phóng Sinh (Thả)')
               .setStyle(ButtonStyle.Danger)
           );
           rows.push(actionRow1);
 
-          // Nút cho ăn và tăng tư chất
-          const actionRow2 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId('pet_action_feed')
-              .setLabel('🍼 Cho Ăn (Tăng EXP)')
-              .setStyle(ButtonStyle.Primary)
-              .setDisabled(!hasFood),
+          // Hàng 2: Menu chọn đồ ăn
+          if (foods.length > 0) {
+            rows.push(
+              new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                  .setCustomId('pet_action_feed_menu')
+                  .setPlaceholder('🍼 Chọn thức ăn để tăng EXP cho sủng vật...')
+                  .addOptions(foods.map(f => ({
+                    label: `${f.item.ten} (Có: ${f.soLuong})`,
+                    value: f.item.id
+                  })))
+              )
+            );
+          } else {
+            rows.push(
+              new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                  .setCustomId('pet_action_feed_menu_disabled')
+                  .setPlaceholder('⚠️ Bạn không có thức ăn (Linh thảo/Vạn yêu quả) nào')
+                  .setDisabled(true)
+                  .addOptions([{ label: '(Trống)', value: '__empty__' }])
+              )
+            );
+          }
+
+          // Hàng 3: Nút tăng tư chất, tiến hóa
+          const actionRow3 = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId('pet_action_enhance')
               .setLabel('✨ Tăng Tư Chất (Tốn 500 🪙)')
@@ -728,17 +723,36 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               .setDisabled(tuSi.linhThach < 500 || (pet?.tuChat ?? 200) >= 250)
           );
 
-          if (pet && pet.level >= 10) {
-            const cost = getPetEvolutionCost(pet);
-            actionRow2.addComponents(
-              new ButtonBuilder()
-                .setCustomId('pet_action_evolve')
-                .setLabel(`🧬 Tiến Hóa (Tốn ${cost.toLocaleString()} 🪙)`)
-                .setStyle(ButtonStyle.Success)
-                .setDisabled(tuSi.linhThach < cost)
-            );
+          if (pet) {
+            const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
+            const q = config.getPetQualityIndex(pet.rarity);
+            const p = pet.tienHoa;
+            const nextLvl = (q * 110) + (p + 1) * 10;
+
+            if (!pet.isMax) {
+              const cost = config.getPetEvolutionCost(pet);
+              const label = p < 10 ? `🧬 Tiến Hóa +${p+1} (Cấp ${nextLvl})` : `🧬 Đột Phá Huyết Mạch (Cấp ${nextLvl})`;
+              actionRow3.addComponents(
+                new ButtonBuilder()
+                  .setCustomId('pet_action_evolve')
+                  .setLabel(`${label} [Tốn ${cost.toLocaleString()} 🪙]`)
+                  .setStyle(ButtonStyle.Success)
+                  .setDisabled(pet.level < nextLvl || tuSi.linhThach < cost)
+              );
+            }
+
+            if (pet.isMax && !isThan) {
+              const hasPill = sellableList.some(e => e.item.id === 'hoa_than_linh_sung_dan');
+              actionRow3.addComponents(
+                new ButtonBuilder()
+                  .setCustomId('pet_action_god_evolve')
+                  .setLabel('🧬 Hóa Thần Thú (Cần Hóa Thần Đan)')
+                  .setStyle(ButtonStyle.Success)
+                  .setDisabled(!hasPill)
+              );
+            }
           }
-          rows.push(actionRow2);
+          rows.push(actionRow3);
 
           rows.push(
             new ActionRowBuilder().addComponents(
@@ -986,8 +1000,54 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             menuStack.push('PET_DETAIL');
           } else if (i.customId === 'pet_egg_hatch') {
             const eggId = i.values[0];
-            const result = await this._processHatchEgg(tuSi, eggId);
-            actionResultEmbed(result);
+            const hasVideo = eggId === 'trung_linh_thu_tien' || eggId === 'trung_linh_thu_than' || eggId === 'trung_than_thu';
+
+            if (hasVideo) {
+              const { AttachmentBuilder } = await import('discord.js');
+              const videoPath = eggId === 'trung_linh_thu_tien'
+                ? 'f:/Thien_co/public/video/pet/dap_trung.mp4'
+                : 'f:/Thien_co/public/video/pet/dap_trung_than.mp4';
+              const eggNameText = eggId === 'trung_linh_thu_tien' ? 'Trứng Linh Thú (Tiên)' : 'Trứng Linh Thú (Thần)';
+
+              // Tạm thời disable các components và gửi video kèm thông báo chờ
+              const tempEmbed = new EmbedBuilder()
+                .setTitle('🥚 Tiến Trình Ấp Trứng')
+                .setDescription(`Đang tiến hành ấp **${eggNameText}**, đạo hữu hãy kiên nhẫn chờ trong giây lát...`)
+                .setColor(0xf39c12)
+                .setTimestamp();
+
+              await i.editReply({
+                embeds: [tempEmbed],
+                files: [new AttachmentBuilder(videoPath)],
+                components: await buildComponents(myInventory, myPets, true) // Disable all components during animation
+              });
+
+              // Chờ 4 giây (để chạy video ấp trứng)
+              await new Promise(resolve => setTimeout(resolve, 4000));
+
+              // Tiến hành ấp trứng
+              const result = await this._processHatchEgg(tuSi, eggId);
+
+              // Cập nhật lại kho đồ & sủng vật sau khi ấp trứng thành công
+              myInventory = await loadPlayerInventory(tuSi.idNguoiDung);
+              myPets = await Pet.findAll({ where: { userId: tuSi.idNguoiDung } });
+
+              // Thiết lập actionMessage
+              actionMessage = result.ok
+                ? BoTaoEmbed.thanhCong('🐣 Ấp Trứng Thành Công', result.msg)
+                : BoTaoEmbed.loi(result.msg);
+
+              // Update reply gốc (xóa files cũ)
+              await i.editReply({
+                embeds: await buildEmbeds(),
+                files: [], // Xóa file video cũ để tránh lag
+                components: await buildComponents(myInventory, myPets)
+              });
+              return;
+            } else {
+              const result = await this._processHatchEgg(tuSi, eggId);
+              actionResultEmbed(result);
+            }
           }
         }
 
@@ -996,13 +1056,13 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           const pet = await Pet.findByPk(selectedPetId);
 
           if (pet) {
+            const template = config.PET_TEMPLATES[pet.type];
             if (i.customId === 'pet_action_active') {
               if (pet.isActive) {
                 pet.isActive = false;
                 await pet.save();
                 actionMessage = BoTaoEmbed.thanhCong('💤 Sủng vật thu hồi', `Đã cho **${pet.name}** về nghỉ ngơi.`);
               } else {
-                // Tắt các pet khác
                 await Pet.update({ isActive: false }, { where: { userId: tuSi.idNguoiDung } });
                 pet.isActive = true;
                 await pet.save();
@@ -1012,44 +1072,64 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               await pet.destroy();
               actionMessage = BoTaoEmbed.thanhCong('💥 Thả sủng vật', `Đạo hữu đã phóng sinh sủng vật thành công.`);
               menuStack.pop();
-            } else if (i.customId === 'pet_action_feed') {
-              // Chọn thức ăn: tìm linh thảo cao nhất
-              const food = myInventory.find(e => e.item.loai === 'Linh thảo' && e.item.id.includes('_'));
-              if (food) {
-                const expMap = { luc: 20, lam: 60, tim: 200, vang: 600, do: 2000 };
-                const colorCode = food.item.id.split('_').pop();
-                const expGained = expMap[colorCode] || 20;
+            } else if (i.customId === 'pet_action_feed_menu') {
+              const foodId = i.values[0];
+              const expMap = {
+                van_yeu_qua_phe: 500,
+                van_yeu_qua_ha: 1000,
+                van_yeu_qua_trung: 2000,
+                van_yeu_qua_thuong: 4000,
+                van_yeu_qua_tien: 8000,
+                van_yeu_qua_than: 16000
+              };
 
-                // Trừ đồ ăn
-                const inv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: food.item.id } });
-                if (inv) {
+              let expGained = 0;
+              let foodDetail = null;
+              if (foodId.startsWith('van_yeu_qua_')) {
+                expGained = expMap[foodId] || 500;
+                foodDetail = config.ITEMS.find(item => item.id === foodId);
+              } else {
+                const legacyExpMap = { luc: 20, lam: 60, tim: 200, vang: 600, do: 2000 };
+                const colorCode = foodId.split('_').pop();
+                expGained = legacyExpMap[colorCode] || 20;
+                foodDetail = config.ITEMS.find(item => item.id === foodId);
+              }
+
+              if (foodDetail) {
+                const inv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: foodId } });
+                if (inv && inv.soLuong > 0) {
                   inv.soLuong -= 1;
                   if (inv.soLuong <= 0) await inv.destroy();
                   else await inv.save();
-                }
 
-                // Cộng exp
-                pet.exp += expGained;
-                let lvlUp = false;
-                while (pet.exp >= pet.level * 100) {
-                  pet.exp -= pet.level * 100;
-                  pet.level += 1;
-                  lvlUp = true;
-                }
-                await pet.save();
+                  pet.exp += expGained;
+                  let lvlUp = false;
+                  const levelCap = config.getPetLevelCap(pet);
 
-                actionMessage = BoTaoEmbed.thanhCong(
-                  '🍼 Cho Ăn Thành Công',
-                  `Cho **${pet.name}** ăn **${food.item.ten}** nhận \`+${expGained} EXP\`.` +
-                  (lvlUp ? `\n🎉 **Sủng vật thăng lên Cấp ${pet.level}!**` : '')
-                );
+                  while (pet.level < levelCap && pet.exp >= pet.level * 100) {
+                    pet.exp -= pet.level * 100;
+                    pet.level += 1;
+                    lvlUp = true;
+                  }
+                  await pet.save();
+
+                  const foodName = foodDetail.ten;
+                  actionMessage = BoTaoEmbed.thanhCong(
+                    '🍼 Cho Ăn Thành Công',
+                    `Cho **${pet.name}** ăn **${foodName}** nhận \`+${expGained} EXP\`.` +
+                    (lvlUp ? `\n🎉 **Sủng vật thăng lên Cấp ${pet.level}!**` : '') +
+                    (pet.level === levelCap && pet.exp >= pet.level * 100 ? `\n⚠️ **Sủng vật đạt giới hạn cấp độ ${levelCap}. Hãy tiến hóa để mở khóa giới hạn.**` : '')
+                  );
+                } else {
+                  actionMessage = BoTaoEmbed.thatBai('Cho Ăn Thất Bại', 'Số lượng thức ăn trong hành lý không đủ.');
+                }
               }
             } else if (i.customId === 'pet_action_enhance') {
               if (tuSi.linhThach >= 500 && pet.tuChat < 250) {
                 tuSi.linhThach -= 500;
                 await tuSi.save();
 
-                const randEnhance = Math.floor(Math.random() * 5) + 1; // +1 đến +5
+                const randEnhance = Math.floor(Math.random() * 5) + 1;
                 pet.tuChat = Math.min(250, pet.tuChat + randEnhance);
                 await pet.save();
 
@@ -1059,42 +1139,167 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 );
               }
             } else if (i.customId === 'pet_action_evolve') {
-              const cost = getPetEvolutionCost(pet);
-              if (tuSi.linhThach >= cost && pet.level >= 10) {
-                tuSi.linhThach -= cost;
-                await tuSi.save();
+              const q = config.getPetQualityIndex(pet.rarity);
+              const p = pet.tienHoa;
+              const nextLvl = (q * 110) + (p + 1) * 10;
 
-                pet.tienHoa = (pet.tienHoa || 0) + 1;
-                pet.tuChat = Math.min(250, pet.tuChat + 50);
-
-                let isUpgraded = false;
-                if (pet.tienHoa >= 10) {
-                  pet.tienHoa = 0;
-                  const currentRarityIndex = PET_RARITY_ORDER.indexOf(pet.rarity);
-                  if (currentRarityIndex >= 0 && currentRarityIndex < PET_RARITY_ORDER.length - 1) {
-                    pet.rarity = PET_RARITY_ORDER[currentRarityIndex + 1];
-                    isUpgraded = true;
-                  }
-                }
-
-                let cleanName = pet.name.replace(/(\s\+\d+|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
-                if (pet.tienHoa > 0) {
-                  pet.name = `${cleanName} +${pet.tienHoa}`;
+              if (pet.level < nextLvl) {
+                actionMessage = BoTaoEmbed.thatBai('🧬 Tiến Hóa Thất Bại', `Cần sủng vật đạt tối thiểu cấp ${nextLvl} để tiến hóa.`);
+              } else {
+                const cost = config.getPetEvolutionCost(pet);
+                if (tuSi.linhThach < cost) {
+                  actionMessage = BoTaoEmbed.thatBai('🧬 Tiến Hóa Thất Bại', `Không đủ linh thạch (Cần ${cost.toLocaleString()}).`);
                 } else {
-                  pet.name = cleanName;
-                }
-                await pet.save();
+                  tuSi.linhThach -= cost;
+                  await tuSi.save();
 
-                const rarityText = getPetRarityText(pet.rarity);
-                let upgradeMsg = '';
-                if (isUpgraded) {
-                  upgradeMsg = `\n🎉 **Bộc phát tiềm năng!** Sủng vật đã đột phá phẩm cấp lên **${rarityText}** và thiết lập lại cấp tiến hóa về \`+0\`!`;
-                }
+                  let isBreakthrough = false;
+                  let upgradeMsg = '';
 
-                actionMessage = BoTaoEmbed.thanhCong(
-                  '🧬 Sủng Vật Tiến Hóa',
-                  `**${pet.name}** đã hoàn tất đột phá tiến hóa! Tư chất tăng mạnh thêm \`+50\` điểm.${upgradeMsg}`
-                );
+                  if (pet.tienHoa < 10) {
+                    pet.tienHoa += 1;
+                    pet.tuChat = Math.min(250, pet.tuChat + 5);
+
+                    if (pet.tienHoa === 10) {
+                      if (pet.rarity.endsWith('_4')) {
+                        pet.isMax = true;
+                        pet.extraEvo = 1;
+                        pet.tuChat = Math.min(250, pet.tuChat + 15);
+                        upgradeMsg = `\n🎉 **Huyết mạch đạt trạng thái cực hạn [MAX]!**`;
+                      }
+                    }
+                  } else {
+                    const rarityPrefix = pet.rarity.slice(0, 3);
+                    const curQualityIndex = config.getPetQualityIndex(pet.rarity);
+                    if (curQualityIndex < 3) {
+                      const nextQualityIndex = curQualityIndex + 2;
+                      pet.rarity = `${rarityPrefix}${nextQualityIndex}`;
+                      pet.tienHoa = 0;
+                      pet.tuChat = Math.min(250, pet.tuChat + 15);
+                      isBreakthrough = true;
+                    }
+                  }
+
+                  let lvlUpAfterEvo = false;
+                  const newLevelCap = config.getPetLevelCap(pet);
+                  while (pet.level < newLevelCap && pet.exp >= pet.level * 100) {
+                    pet.exp -= pet.level * 100;
+                    pet.level += 1;
+                    lvlUpAfterEvo = true;
+                  }
+
+                  const cleanName = pet.name.replace(/(\s\+\d+|\[MAX\]|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
+                  pet.name = config.getFormattedPetName(cleanName, pet.rarity, pet.tienHoa, pet.isMax);
+                  await pet.save();
+
+                  const rarityText = getPetRarityText(pet.rarity);
+                  if (isBreakthrough) {
+                    upgradeMsg = `\n🎉 **Bộc phát tiềm năng!** Sủng vật đã đột phá huyết mạch lên **${rarityText}** và thiết lập lại cấp tiến hóa về \`+0\`!`;
+                  }
+
+                  actionMessage = BoTaoEmbed.thanhCong(
+                    '🧬 Sủng Vật Tiến Hóa',
+                    `**${pet.name}** đã hoàn tất đột phá tiến hóa! Tư chất tăng mạnh.${upgradeMsg}` +
+                    (lvlUpAfterEvo ? `\n🎉 Lượng exp tích lũy giúp sủng vật thăng lên **Cấp ${pet.level}!**` : '')
+                  );
+                }
+              }
+            } else if (i.customId === 'pet_action_reset') {
+              let refundedStones = 0;
+              const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
+              const baseCost = isThan ? 10000 : 1000;
+              const totalEvolves = config.getPetTotalEvolves(pet);
+
+              for (let step = 0; step < totalEvolves; step++) {
+                refundedStones += Math.floor(baseCost * Math.pow(1.25, step));
+              }
+
+              let totalExp = 50 * pet.level * (pet.level - 1) + pet.exp;
+              let expLeft = totalExp;
+              const refundFruits = {
+                van_yeu_qua_than: 0,
+                van_yeu_qua_tien: 0,
+                van_yeu_qua_thuong: 0,
+                van_yeu_qua_trung: 0,
+                van_yeu_qua_ha: 0,
+                van_yeu_qua_phe: 0
+              };
+
+              refundFruits.van_yeu_qua_than = Math.floor(expLeft / 16000);
+              expLeft %= 16000;
+
+              refundFruits.van_yeu_qua_tien = Math.floor(expLeft / 8000);
+              expLeft %= 8000;
+
+              refundFruits.van_yeu_qua_thuong = Math.floor(expLeft / 4000);
+              expLeft %= 4000;
+
+              refundFruits.van_yeu_qua_trung = Math.floor(expLeft / 2000);
+              expLeft %= 2000;
+
+              refundFruits.van_yeu_qua_ha = Math.floor(expLeft / 1000);
+              expLeft %= 1000;
+
+              refundFruits.van_yeu_qua_phe = Math.ceil(expLeft / 500);
+
+              tuSi.linhThach += refundedStones;
+              await tuSi.save();
+
+              let refundListMsg = '';
+              for (const [fruitId, count] of Object.entries(refundFruits)) {
+                if (count > 0) {
+                  await Inventory.addVatPham(tuSi.idNguoiDung, fruitId, count);
+                  const fDetail = config.ITEMS.find(item => item.id === fruitId);
+                  refundListMsg += `\n• **${fDetail?.ten || fruitId}** x${count}`;
+                }
+              }
+
+              pet.level = 1;
+              pet.exp = 0;
+              pet.tienHoa = 0;
+              pet.extraEvo = 0;
+              pet.isMax = false;
+              pet.rarity = isThan ? 'TT_1' : 'LT_1';
+              const cleanName = pet.name.replace(/(\s\+\d+|\[MAX\]|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
+              pet.name = config.getFormattedPetName(cleanName, pet.rarity, 0, false);
+              await pet.save();
+
+              actionMessage = BoTaoEmbed.thanhCong(
+                '🔄 Trùng Sinh Sủng Vật',
+                `Đã trùng sinh sủng vật thành công về Cấp 1.\n` +
+                `**Hoàn trả**: \`+${refundedStones.toLocaleString()} Linh thạch\` 🪙${refundListMsg}`
+              );
+            } else if (i.customId === 'pet_action_god_evolve') {
+              const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
+              if (!pet.isMax || isThan) {
+                actionMessage = BoTaoEmbed.thatBai('🧬 Hóa Thần Thất Bại', 'Chỉ sủng vật Linh Thú đạt cấp độ MAX mới có thể Hóa Thần.');
+              } else {
+                const pillInv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'hoa_than_linh_sung_dan' } });
+                if (!pillInv || pillInv.soLuong <= 0) {
+                  actionMessage = BoTaoEmbed.thatBai('🧬 Hóa Thần Thất Bại', 'Đạo hữu không có Hóa Thần Linh Sủng Đan.');
+                } else {
+                  pillInv.soLuong -= 1;
+                  if (pillInv.soLuong <= 0) await pillInv.destroy();
+                  else await pillInv.save();
+
+                  const thanTemplates = config.PET_TEMPLATES_SEED.filter(t => t.group === 'than_thu');
+                  const randomThan = thanTemplates[Math.floor(Math.random() * thanTemplates.length)];
+
+                  const oldName = pet.name;
+                  pet.type = randomThan.id;
+                  pet.rarity = 'TT_4';
+                  pet.tienHoa = 10;
+                  pet.extraEvo = 1;
+                  pet.isMax = true;
+                  pet.name = config.getFormattedPetName(randomThan.name, 'TT_4', 10, true);
+                  await pet.save();
+
+                  actionMessage = BoTaoEmbed.thanhCong(
+                    '🌌 Nghịch Thiên Hóa Thần',
+                    `Chúc mừng! Linh thú **${oldName}** đã hóa thân thành công, lột xác thành **Thần Thú: ${pet.name}**! ` +
+                    `Bảo lưu toàn bộ \`44\` lần tiến hóa cộng dồn trước đó.`
+                  );
+                }
               }
             }
           }
@@ -1346,51 +1551,51 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     if (inv.soLuong <= 0) await inv.destroy();
     else await inv.save();
 
-    let targetType = 'ma_lang';
-    let rarity = 'NORMAL';
-    let defaultName = 'Ma Lang 🐺';
+    let rollThanThuRate = 0; // Tỷ lệ nở ra Thần Thú
+
+    if (eggId === 'trung_linh_thu_than') {
+      rollThanThuRate = 50;
+    } else if (eggId === 'trung_linh_thu_tien') {
+      rollThanThuRate = 3;
+    } else if (eggId === 'trung_linh_thu_linh') {
+      rollThanThuRate = 1;
+    } else if (eggId === 'trung_linh_thu_pham' || eggId === 'trung_linh_thu') {
+      rollThanThuRate = 0;
+    } else if (eggId === 'trung_than_thu') {
+      rollThanThuRate = 100;
+    }
 
     const roll = Math.random() * 100;
+    const isThan = roll < rollThanThuRate;
 
-    if (eggId === 'trung_linh_thu') {
-      if (roll <= 33) {
-        targetType = 'ma_lang';
-        defaultName = 'U Minh Ma Lang 🐺';
-      } else if (roll <= 66) {
-        targetType = 'loi_diep';
-        defaultName = 'Lôi Điệp 🦋';
-      } else {
-        targetType = 'than_vien';
-        defaultName = 'Thần Viên 🦍';
-      }
+    let selectedTemplate = null;
+    if (isThan) {
+      const templates = config.PET_TEMPLATES_SEED.filter(t => t.group === 'than_thu');
+      selectedTemplate = templates[Math.floor(Math.random() * templates.length)];
     } else {
-      rarity = 'ANCIENT';
-      if (roll <= 33) {
-        targetType = 'to_long';
-        defaultName = 'Tổ Long 🐉';
-      } else if (roll <= 66) {
-        targetType = 'phuong_hoang';
-        defaultName = 'Hỏa Phượng 🐦';
-      } else {
-        targetType = 'ky_lan';
-        defaultName = 'Kỳ Lân 🦄';
-      }
+      const templates = config.PET_TEMPLATES_SEED.filter(t => t.group === 'linh_thu');
+      selectedTemplate = templates[Math.floor(Math.random() * templates.length)];
     }
+
+    const rarity = isThan ? 'TT_1' : 'LT_1';
+    const cleanName = selectedTemplate.name;
+    const formattedName = config.getFormattedPetName(cleanName, rarity, 0, false);
 
     const pet = await Pet.create({
       userId:  tuSi.idNguoiDung,
-      name:    defaultName,
-      type:    targetType,
+      name:    formattedName,
+      type:    selectedTemplate.id,
       rarity:  rarity,
       level:   1,
       exp:     0,
-      tuChat:  100 + Math.floor(Math.random() * 30), // Tư chất khởi điểm từ 100-130
+      tuChat:  100 + Math.floor(Math.random() * 30),
       isActive: false
     });
 
+    const displaySpecies = config.PET_TEMPLATES[pet.type]?.name || pet.type;
     return {
       ok:  true,
-      msg: `Ấp Trứng Thành Công! Quả trứng vỡ ra, một chú **${PET_TEMPLATES[targetType]?.name}** nhỏ bé đáng yêu chui ra chào đạo hữu!`
+      msg: `Ấp Trứng Thành Công! Quả trứng vỡ ra, một chú **${displaySpecies}** nhỏ bé đáng yêu chui ra chào đạo hữu!`
     };
   }
 

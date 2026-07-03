@@ -52,6 +52,18 @@ Pet.init({
     defaultValue: 0,
     field:        'tien_hoa'
   },
+  extraEvo: {
+    type:         DataTypes.INTEGER,
+    allowNull:    false,
+    defaultValue: 0,
+    field:        'extra_evo'
+  },
+  isMax: {
+    type:         DataTypes.BOOLEAN,
+    allowNull:    false,
+    defaultValue: false,
+    field:        'is_max'
+  },
   isActive: {
     type:         DataTypes.BOOLEAN,
     allowNull:    false,

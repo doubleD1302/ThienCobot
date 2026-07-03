@@ -445,6 +445,73 @@ async function start() {
       }
       console.log(`Đã đồng bộ thành công ${config.ITEMS.length} vật phẩm mẫu vào CSDL.`);
 
+      // Khởi tạo và đồng bộ dữ liệu mẫu cho bảng pet_templates
+      const { PetTemplate } = await import('./models/PetTemplate.js');
+      for (const t of config.PET_TEMPLATES_SEED) {
+        await PetTemplate.upsert({
+          id: t.id,
+          name: t.name,
+          emoji: t.emoji,
+          group: t.group,
+          species: t.species,
+          statType: t.statType,
+          statValue: t.statValue,
+          desc: t.desc
+        });
+      }
+      console.log(`Đã đồng bộ thành công ${config.PET_TEMPLATES_SEED.length} mẫu sủng vật vào CSDL.`);
+
+      // Load pet templates cache
+      const allTemplates = await PetTemplate.findAll();
+      config.loadPetTemplatesIntoCache(allTemplates);
+
+      // Thực hiện migration cho các sủng vật cũ sang hệ thống mới
+      const { Pet } = await import('./models/Pet.js');
+      const petsToMigrate = await Pet.findAll();
+      let migratedCount = 0;
+      for (const p of petsToMigrate) {
+        if (!p.rarity.startsWith('LT_') && !p.rarity.startsWith('TT_')) {
+          const oldType = p.type;
+          let newType = oldType;
+          let nextRarity = 'LT_1';
+
+          // Bản đồ chuyển đổi chủng loại cũ sang mới
+          const isLinh = ['ma_lang', 'loi_diep', 'than_vien'].includes(oldType);
+          if (isLinh) {
+            if (oldType === 'ma_lang') newType = 'ma_lang_2';
+            else if (oldType === 'loi_diep') newType = 'loi_diep_2';
+            else if (oldType === 'than_vien') newType = 'than_vien_2';
+
+            if (p.rarity === 'NORMAL') nextRarity = 'LT_1';
+            else if (p.rarity === 'RARE') nextRarity = 'LT_2';
+            else if (p.rarity === 'LEGENDARY') nextRarity = 'LT_3';
+            else nextRarity = 'LT_4';
+          } else {
+            // Thần Thú
+            if (oldType === 'to_long') newType = 'to_long_2';
+            else if (oldType === 'phuong_hoang') newType = 'phuong_hoang_1';
+            else if (oldType === 'ky_lan') newType = 'ky_lan_1';
+
+            if (p.rarity === 'NORMAL' || p.rarity === 'RARE' || p.rarity === 'LEGENDARY' || p.rarity === 'MYTHIC') nextRarity = 'TT_1';
+            else if (p.rarity === 'ANCIENT') nextRarity = 'TT_2';
+            else if (p.rarity === 'SUPREME') nextRarity = 'TT_3';
+            else nextRarity = 'TT_4';
+          }
+
+          p.type = newType;
+          p.rarity = nextRarity;
+          p.extraEvo = 0;
+          p.isMax = false;
+          const cleanName = p.name.replace(/(\s\+\d+|\[MAX\]|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
+          p.name = config.getFormattedPetName(cleanName, nextRarity, p.tienHoa || 0, false);
+          await p.save();
+          migratedCount++;
+        }
+      }
+      if (migratedCount > 0) {
+        console.log(`Đã di trú thành công ${migratedCount} sủng vật cũ sang hệ thống mới.`);
+      }
+
       // Đồng bộ ShopItem cho các hạt giống và đan dược đột phá mới
       const { ShopItem } = await import('./models/ShopItem.js');
       const breakthroughShopItems = [
@@ -463,7 +530,9 @@ async function start() {
         { itemId: 'hat_giong_hop_the_lien', giaBan: 200, yeuCauCapDo: 25 },
         { itemId: 'dan_dot_pha_7', giaBan: 2000, yeuCauCapDo: 25 },
         { itemId: 'hat_giong_dai_thua_qua', giaBan: 200, yeuCauCapDo: 28 },
-        { itemId: 'dan_dot_pha_8', giaBan: 2000, yeuCauCapDo: 28 }
+        { itemId: 'dan_dot_pha_8', giaBan: 2000, yeuCauCapDo: 28 },
+        { itemId: 'hoa_than_linh_sung_dan', giaBan: 1000000, yeuCauCapDo: 1 },
+        { itemId: 'trung_linh_thu_tien', giaBan: 100000, yeuCauCapDo: 1 }
       ];
       for (const entry of breakthroughShopItems) {
         await ShopItem.findOrCreate({

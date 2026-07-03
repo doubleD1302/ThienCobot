@@ -204,6 +204,37 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           isWin = true;
         }
 
+        // Kích hoạt kỹ năng chủ động của Thần Thú khi vào trận chiến
+        if (activePet && monsterHp > 0) {
+          const template = config.PET_TEMPLATES[activePet.type];
+          if (template && template.group === 'than_thu') {
+            const totalEvolves = config.getPetTotalEvolves(activePet);
+            const evoMult = Math.pow(1.1, totalEvolves);
+
+            if (template.species === 'to_long') {
+              const dmg = Math.floor(stats.max_hp * 0.15 * evoMult);
+              monsterHp = Math.max(0, monsterHp - dmg);
+              battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Long Thần Chi Nộ 🐉**, oanh tạc gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${monster.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+            } else if (template.species === 'ky_lan') {
+              const shieldAmt = Math.floor(stats.max_hp * 0.20 * evoMult);
+              playerShield = (playerShield || 0) + shieldAmt;
+              battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Kỳ Lân Hộ Thể 🦄**, tạo lớp lá chắn \`${shieldAmt.toLocaleString()}\` HP hộ thể.`);
+            } else if (template.species === 'huyen_vu') {
+              const shieldAmt = Math.floor(stats.max_hp * 0.25 * evoMult);
+              playerShield = (playerShield || 0) + shieldAmt;
+              battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Huyền Vũ Bảo Vệ 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh.`);
+            } else if (template.species === 'bach_ho') {
+              const dmg = Math.floor(stats.max_hp * 0.18 * evoMult);
+              monsterHp = Math.max(0, monsterHp - dmg);
+              battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${monster.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+            }
+
+            if (monsterHp <= 0) {
+              isWin = true;
+            }
+          }
+        }
+
         // Tải kỹ năng đã học để dùng trong Bí Cảnh
         const { PlayerSkill } = await import('../models/PlayerSkill.js');
         const { Skill } = await import('../models/Skill.js');
@@ -303,21 +334,37 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           if (isWin) break;
 
           // Sủng Vật Thần Thú chủ động (20%)
-          if (activePet && (activePet.rarity === 'ANCIENT' || activePet.rarity === 'SUPREME') && Math.random() <= 0.20) {
-            const totalEvolves = (activePet.rarity === 'SUPREME' ? 20 : (activePet.rarity === 'ANCIENT' ? 10 : 0)) + (activePet.tienHoa || 0);
-            const petEvoSkillMult = 1.0 + totalEvolves * 0.05;
-            if (activePet.type === 'to_long') {
-              const petDmg = Math.floor(stats.max_hp * 0.15 * petEvoSkillMult);
-              monsterHp = Math.max(0, monsterHp - petDmg);
-              battleLogs.push(`🐉 **Thần Thú [Tổ Long]** phẫn nộ thét gào, phun trào Long Thần Chi Nộ oanh kích \`${petDmg.toLocaleString()}\` sát thương oanh tạc oanh kích lên yêu thú! (HP: \`${monsterHp.toLocaleString()}\`).`);
-              if (monsterHp <= 0) {
-                isWin = true;
-                break;
+          if (activePet && Math.random() <= 0.20) {
+            const template = config.PET_TEMPLATES[activePet.type];
+            if (template && template.group === 'than_thu') {
+              const totalEvolves = config.getPetTotalEvolves(activePet);
+              const evoMult = Math.pow(1.1, totalEvolves);
+
+              if (template.species === 'to_long') {
+                const petDmg = Math.floor(stats.max_hp * 0.15 * evoMult);
+                monsterHp = Math.max(0, monsterHp - petDmg);
+                battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Long Thần Chi Nộ 🐉**, phun trào Long lực gây \`${petDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+                if (monsterHp <= 0) {
+                  isWin = true;
+                  break;
+                }
+              } else if (template.species === 'ky_lan') {
+                const petShield = Math.floor(stats.max_hp * 0.20 * evoMult);
+                playerShield += petShield;
+                battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Kỳ Lân Hộ Thể 🦄**, ngưng tụ lá chắn \`${petShield.toLocaleString()}\` HP bảo vệ.`);
+              } else if (template.species === 'huyen_vu') {
+                const petShield = Math.floor(stats.max_hp * 0.25 * evoMult);
+                playerShield += petShield;
+                battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Huyền Vũ Bảo Vệ 🐢**, tạo lá chắn dày \`${petShield.toLocaleString()}\` HP hộ vệ.`);
+              } else if (template.species === 'bach_ho') {
+                const petDmg = Math.floor(stats.max_hp * 0.18 * evoMult);
+                monsterHp = Math.max(0, monsterHp - petDmg);
+                battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích chém thẳng gây \`${petDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+                if (monsterHp <= 0) {
+                  isWin = true;
+                  break;
+                }
               }
-            } else if (activePet.type === 'ky_lan') {
-              const petShield = Math.floor(stats.max_hp * 0.20 * petEvoSkillMult);
-              playerShield += petShield;
-              battleLogs.push(`🦄 **Thần Thú [Kỳ Lân]** thi triển Kỳ Lân Hộ Thể, ngưng tụ lá chắn thần thánh bảo vệ tu sĩ hấp thụ \`${petShield.toLocaleString()}\` sát thương.`);
             }
           }
 
@@ -348,12 +395,13 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           }
 
           if (playerHp <= 0) {
-            if (activePet && activePet.type === 'phuong_hoang' && !phoenixTriggered) {
+            const template = activePet ? config.PET_TEMPLATES[activePet.type] : null;
+            if (template && template.species === 'phuong_hoang' && !phoenixTriggered) {
               phoenixTriggered = true;
-              const totalEvolves = (activePet.rarity === 'SUPREME' ? 20 : (activePet.rarity === 'ANCIENT' ? 10 : 0)) + (activePet.tienHoa || 0);
-              const petEvoSkillMult = 1.0 + totalEvolves * 0.05;
-              playerHp = Math.floor(stats.max_hp * 0.30 * petEvoSkillMult);
-              battleLogs.push(`🐦 **Thần Thú [Phượng Hoàng]** kích hoạt Niết Bàn Trùng Sinh, hy sinh thọ nguyên hồi sinh đạo hữu từ cõi chết với \`${playerHp.toLocaleString()}\` HP!`);
+              const totalEvolves = config.getPetTotalEvolves(activePet);
+              const evoMult = Math.pow(1.1, totalEvolves);
+              playerHp = Math.floor(stats.max_hp * 0.30 * evoMult);
+              battleLogs.push(`🐦 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Niết Bàn Trùng Sinh 🐦**, hồi sinh đạo hữu từ cõi chết với \`${playerHp.toLocaleString()}\` HP!`);
             } else {
               isWin = false;
               break;
@@ -374,6 +422,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let droppedSeed = null;
         let droppedCoDuyenLenh = false;
         let droppedBreakthrough = null;
+        let droppedVanYeuQua = null;
+        let droppedEgg = null;
 
         const thienDao = await tuSi.layHeSoThienDao();
 
@@ -430,6 +480,39 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             }
           }
 
+          // Rơi Vạn Yêu Quả (phẩm cấp giảm dần)
+          const vyqRoll = Math.random() * 100;
+          let targetVyqId = null;
+          if (vyqRoll <= 0.1) targetVyqId = 'van_yeu_qua_than';
+          else if (vyqRoll <= 0.6) targetVyqId = 'van_yeu_qua_tien';
+          else if (vyqRoll <= 1.6) targetVyqId = 'van_yeu_qua_thuong';
+          else if (vyqRoll <= 3.6) targetVyqId = 'van_yeu_qua_trung';
+          else if (vyqRoll <= 8.6) targetVyqId = 'van_yeu_qua_ha';
+          else if (vyqRoll <= 18.6) targetVyqId = 'van_yeu_qua_phe';
+
+          if (targetVyqId) {
+            const vyqDetail = await Item.findByPk(targetVyqId);
+            if (vyqDetail) {
+              droppedVanYeuQua = vyqDetail;
+              await Inventory.addVatPham(tuSi.idNguoiDung, targetVyqId, 1);
+            }
+          }
+
+          // Rơi Trứng Linh Thú (Phàm: 5%, Linh: 3%, Tiên: 1%)
+          const eggRollVal = Math.random() * 100;
+          let targetEggId = null;
+          if (eggRollVal <= 1.0) targetEggId = 'trung_linh_thu_tien';
+          else if (eggRollVal <= 4.0) targetEggId = 'trung_linh_thu_linh';
+          else if (eggRollVal <= 9.0) targetEggId = 'trung_linh_thu_pham';
+
+          if (targetEggId) {
+            const eggDetail = await Item.findByPk(targetEggId);
+            if (eggDetail) {
+              droppedEgg = eggDetail;
+              await Inventory.addVatPham(tuSi.idNguoiDung, targetEggId, 1);
+            }
+          }
+
           tuSi.linhLuc += gainedExp;
           tuSi.linhThach += gainedStones;
           tuSi.hp = playerHp;
@@ -467,7 +550,9 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           droppedSeed,
           thienDao,
           droppedCoDuyenLenh,
-          droppedBreakthrough
+          droppedBreakthrough,
+          droppedVanYeuQua,
+          droppedEgg
         );
 
         await i.editReply({

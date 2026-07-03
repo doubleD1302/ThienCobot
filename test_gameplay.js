@@ -18,6 +18,7 @@ const { AdventureEvent } = await import('./models/AdventureEvent.js');
 const { Dungeon } = await import('./models/Dungeon.js');
 const { Abode } = await import('./models/Abode.js');
 const { Pet } = await import('./models/Pet.js');
+const { PetTemplate } = await import('./models/PetTemplate.js');
 const { GardenPlot } = await import('./models/GardenPlot.js');
 const { ShopItem } = await import('./models/ShopItem.js');
 const { LichSuMua } = await import('./models/LichSuMua.js');
@@ -1929,42 +1930,39 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   test('Pet Evolution and Stat Boost Calculations', async () => {
     const { Pet } = await import('./models/Pet.js');
     const { TuSi } = await import('./models/TuSi.js');
+    const { PetTemplate } = await import('./models/PetTemplate.js');
+
+    // Seed pet templates for testing
+    for (const t of config.PET_TEMPLATES_SEED) {
+      await PetTemplate.upsert({
+        id: t.id,
+        name: t.name,
+        emoji: t.emoji,
+        group: t.group,
+        species: t.species,
+        statType: t.statType,
+        statValue: t.statValue,
+        desc: t.desc
+      });
+    }
+    const allTemplates = await PetTemplate.findAll();
+    config.loadPetTemplatesIntoCache(allTemplates);
 
     // 1. Test naming cleaning and suffix +X
-    const mockPet = {
-      name: 'Thần Viên',
-      tienHoa: 0
-    };
-
-    // Evolve once
-    mockPet.tienHoa += 1;
-    let cleanName = mockPet.name.replace(/(\s\+\d+|\[Tiến Hóa\]\s*)/g, '').trim();
-    mockPet.name = `${cleanName} +${mockPet.tienHoa}`;
-    assert.strictEqual(mockPet.name, 'Thần Viên +1');
-
-    // Evolve twice
-    mockPet.tienHoa += 1;
-    cleanName = mockPet.name.replace(/(\s\+\d+|\[Tiến Hóa\]\s*)/g, '').trim();
-    mockPet.name = `${cleanName} +${mockPet.tienHoa}`;
-    assert.strictEqual(mockPet.name, 'Thần Viên +2');
-
-    // Test old [Tiến Hóa] prefix cleaning
-    mockPet.name = '[Tiến Hóa] Thần Viên';
-    cleanName = mockPet.name.replace(/(\s\+\d+|\[Tiến Hóa\]\s*)/g, '').trim();
-    assert.strictEqual(cleanName, 'Thần Viên');
+    assert.strictEqual(config.getFormattedPetName('Thần Viên +1', 'LT_1', 1, false), 'Thần Viên +1');
+    assert.strictEqual(config.getFormattedPetName('Thần Viên', 'LT_1', 1, false), 'Thần Viên +1');
+    assert.strictEqual(config.getFormattedPetName('Thần Viên [MAX]', 'LT_4', 10, true), 'Thần Viên [MAX]');
+    assert.strictEqual(config.getFormattedPetName('Thần Viên', 'LT_4', 10, true), 'Thần Viên [MAX]');
 
     // 2. Test evolution cost calculations
-    // Cost at level +0 (tienHoa = 0)
-    let cost = Math.floor(1000 * Math.pow(1.5, 0));
-    assert.strictEqual(cost, 1000);
+    const mockPetLT = { type: 'ma_lang_1', rarity: 'LT_1', tienHoa: 0, extraEvo: 0 };
+    assert.strictEqual(config.getPetEvolutionCost(mockPetLT), 1000); // step 0
 
-    // Cost at level +1 (tienHoa = 1)
-    cost = Math.floor(1000 * Math.pow(1.5, 1));
-    assert.strictEqual(cost, 1500);
+    mockPetLT.tienHoa = 1;
+    assert.strictEqual(config.getPetEvolutionCost(mockPetLT), 1250); // step 1
 
-    // Cost at level +2 (tienHoa = 2)
-    cost = Math.floor(1000 * Math.pow(1.5, 2));
-    assert.strictEqual(cost, 2250);
+    mockPetLT.tienHoa = 2;
+    assert.strictEqual(config.getPetEvolutionCost(mockPetLT), 1562); // step 2
 
     // 3. Test guard protect bonus boost in TuSi.layChiSo
     const tuSi = await TuSi.create({
@@ -1981,19 +1979,19 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     const pet = await Pet.create({
       userId: tuSi.idNguoiDung,
-      name: "Thiết Tý Thần Viên",
-      type: "than_vien",
+      name: "U Minh Ma Lang",
+      type: "than_vien_2",
+      rarity: "LT_1",
       level: 1,
       tuChat: 100,
       isActive: true,
-      tienHoa: 1 // +1 Evolution (+10% protect stats)
+      tienHoa: 1
     });
 
     const stats = tuSi.layChiSo([], pet);
-    // Base hp for capDo 1 = 200.
-    // Tho Linh Can: +10% max HP -> 200 * 1.1 = 220 HP.
+    // Tho Linh Can: +10% max HP -> 220 HP.
     // Than Vien base protect: +15% HP, scale = (level 1 * tuChat 100)/100 = 1.0.
-    // evoMult = 1.0 + 1 * 0.10 = 1.10.
+    // evoMult = Math.pow(1.1, 1) = 1.10.
     // HP bonus: 200 * 0.15 * 1.0 * 1.10 = 33 HP.
     // Total HP should be 220 + 33 = 253.
     assert.strictEqual(stats.max_hp, 253);
@@ -2007,83 +2005,67 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const { Pet } = await import('./models/Pet.js');
     const { TuSi } = await import('./models/TuSi.js');
 
-    // 1. Mock migration for 11 evolves (e.g. "[Tiến Hóa]... [Tiến Hóa] (11 times) Thần Viên")
-    const legacyName = "[Tiến Hóa]".repeat(11) + " Thiết Tý Thần Viên";
-    const regex = /\[Tiến\s*[Hh]óa\]/g;
-    const matches = legacyName.match(regex);
-    assert.strictEqual(matches.length, 11);
-
-    // Run tier progression logic
-    let totalEvolves = matches.length;
-    let currentRarity = "NORMAL";
-
-    while (totalEvolves >= 10) {
-      totalEvolves -= 10;
-      if (currentRarity === 'NORMAL') {
-        currentRarity = 'ANCIENT';
-      } else if (currentRarity === 'ANCIENT') {
-        currentRarity = 'SUPREME';
-      }
-    }
-
-    assert.strictEqual(currentRarity, 'ANCIENT');
-    assert.strictEqual(totalEvolves, 1); // 11 - 10 = 1
-
-    let cleanName = legacyName.replace(/(\s\+\d+|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
-    assert.strictEqual(cleanName, 'Thiết Tý Thần Viên');
-
-    // Final formatted name
-    const finalName = `${cleanName} +${totalEvolves}`;
-    assert.strictEqual(finalName, 'Thiết Tý Thần Viên +1');
-
-    // 2. Test evolving up to 10 times in test DB
-    const tuSi = await TuSi.create({
-      idNguoiDung: "9999999999999992",
-      ten: "EvolveTestUser",
-      gioiTinh: "Nam",
-      huongTu: "The Tu",
-      linhCan: "Thổ Linh Căn",
-      capDo: 1,
-      linhLuc: 0,
-      linhThach: 100000000
-    });
-    tuSi.linhCanList = ["Tho"];
-
-    const pet = await Pet.create({
-      userId: tuSi.idNguoiDung,
+    // 1. Mock migration for existing pet
+    const p = Pet.build({
+      userId: "temp_user_id",
       name: "Thiết Tý Thần Viên",
       type: "than_vien",
-      level: 10,
-      tuChat: 100,
-      isActive: true,
-      tienHoa: 9
+      rarity: "RARE",
+      tienHoa: 5
     });
 
-    // Run evolution simulation matching pet_action_evolve
-    const currentTotalEvolves = (pet.rarity === 'SUPREME' ? 20 : (pet.rarity === 'ANCIENT' ? 10 : 0)) + (pet.tienHoa || 0);
-    assert.strictEqual(currentTotalEvolves, 9);
+    // Run migration logic matching main.js
+    if (!p.rarity.startsWith('LT_') && !p.rarity.startsWith('TT_')) {
+      const oldType = p.type;
+      let newType = oldType;
+      let nextRarity = 'LT_1';
+      const isLinh = ['ma_lang', 'loi_diep', 'than_vien'].includes(oldType);
+      if (isLinh) {
+        if (oldType === 'ma_lang') newType = 'ma_lang_2';
+        else if (oldType === 'loi_diep') newType = 'loi_diep_2';
+        else if (oldType === 'than_vien') newType = 'than_vien_2';
 
-    // Evolve once
-    pet.tienHoa = (pet.tienHoa || 0) + 1;
-    assert.strictEqual(pet.tienHoa, 10);
+        if (p.rarity === 'NORMAL') nextRarity = 'LT_1';
+        else if (p.rarity === 'RARE') nextRarity = 'LT_2';
+        else if (p.rarity === 'LEGENDARY') nextRarity = 'LT_3';
+        else nextRarity = 'LT_4';
+      }
 
-    // Check tier reset
-    let isUpgraded = false;
-    if (pet.tienHoa >= 10) {
-      pet.tienHoa = 0;
-      if (pet.rarity === 'NORMAL') {
-        pet.rarity = 'ANCIENT';
-        isUpgraded = true;
+      p.type = newType;
+      p.rarity = nextRarity;
+      p.extraEvo = 0;
+      p.isMax = false;
+      const cleanName = p.name.replace(/(\s\+\d+|\[MAX\]|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
+      p.name = config.getFormattedPetName(cleanName, nextRarity, p.tienHoa, false);
+    }
+
+    assert.strictEqual(p.type, 'than_vien_2');
+    assert.strictEqual(p.rarity, 'LT_2');
+    assert.strictEqual(p.name, 'Thiết Tý Thần Viên +5');
+
+    // 2. Test evolving milestone
+    const pet = Pet.build({
+      userId: "temp_user_id2",
+      name: "Thiết Tý Thần Viên",
+      type: "than_vien_2",
+      rarity: "LT_1",
+      level: 110,
+      tienHoa: 10
+    });
+
+    // Simulated Breakthrough when clicking evolve at level 110 and tienHoa 10
+    if (pet.tienHoa === 10) {
+      const rarityPrefix = pet.rarity.slice(0, 3); // 'LT_'
+      const curQualityIndex = config.getPetQualityIndex(pet.rarity); // 0
+      if (curQualityIndex < 3) {
+        const nextQualityIndex = curQualityIndex + 2; // index 1 -> label 'LT_2'
+        pet.rarity = `${rarityPrefix}${nextQualityIndex}`;
+        pet.tienHoa = 0;
       }
     }
 
-    assert.strictEqual(isUpgraded, true);
-    assert.strictEqual(pet.rarity, 'ANCIENT');
+    assert.strictEqual(pet.rarity, 'LT_2');
     assert.strictEqual(pet.tienHoa, 0);
-
-    // Clean up
-    await pet.destroy();
-    await tuSi.destroy();
   });
 
 });
