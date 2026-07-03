@@ -88,7 +88,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         });
       }
 
-      // Khống chế mức cược tối đa 1,000,000
       if (bet > MAX_GAME_BET) {
         return await interaction.editReply({
           embeds: [BoTaoEmbed.loi(`Mức cược tối đa là ${MAX_GAME_BET.toLocaleString()} VND / Linh Thạch!`)]
@@ -102,9 +101,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
       }
 
       const color = layMauCanhGioi(tuSi.canhGioi);
-      let step = 'CHOOSE_GAME'; // CHOOSE_GAME, TAI_XIU, KIEM_GIAP_PHAP, BLACKJACK, BAU_CUA
+      let step = 'CHOOSE_GAME'; 
 
-      // State Blackjack
       let playerHand = [];
       let botHand = [];
 
@@ -319,7 +317,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         }
 
         return { delta: 0, title: 'Không xác định', color: 0x7f8c8d, detail: 'Không có kết quả.' };
-      
+      }; // <-- Đã fix lỗi thiếu đóng ngoặc tại đây
 
       const buildRoomResultEmbed = (game, outcome, results) => {
         const meta = GAME_META[game];
@@ -331,7 +329,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         } else if (game === 'KIEM_GIAP_PHAP') {
           outcomeText = `⚔️ Thiên Đạo ra chiêu: **${getChoiceMeta(game, outcome.botChoiceId)?.name || outcome.botChoiceId}**`;
         } else if (game === 'BAU_CUA') {
-          const rollText = outcome.rolls.map(r => `${r.emoji} ${r.short}`).join(' · ');
+          // Đã fix lỗi undefined rolls map & gộp lấy name
+          const rollText = [outcome.roll1, outcome.roll2, outcome.roll3].map(r => r.name).join(' · ');
           outcomeText = `🎲 Kết quả gieo: [ ${rollText} ]`;
         }
 
@@ -345,7 +344,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           .setTimestamp();
       };
 
-      // ── Helper: Tạo giao diện lựa chọn game ─────────────────────────────────
       const buildChooseEmbed = () => {
         return new EmbedBuilder()
           .setTitle('🌌 Thiên Cơ Đàm Đạo')
@@ -389,7 +387,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         );
       };
 
-      // Gửi tin nhắn chào mừng
       const msg = await interaction.editReply({
         embeds:     [buildChooseEmbed()],
         components: [buildChooseButtons(), buildChooseRow2()]
@@ -526,7 +523,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           }
         }
 
-        // Kiểm tra số dư VND liên tục cho người mở sòng khi chưa vào phòng
         await tuSi.reload();
         if (!roomState.active && tuSi.vnd < bet) {
           collector.stop('insufficient_funds');
@@ -552,9 +548,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           return sum;
         };
 
-        // ══════════════════════════════════════════════════════════════
-        // 1. GIAI ĐOẠN LỰA CHỌN TRÒ CHƠI
-        // ══════════════════════════════════════════════════════════════
         if (step === 'CHOOSE_GAME') {
           if (i.customId === 'game_taixiu') {
             step = 'TAI_XIU';
@@ -566,7 +559,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               components: [...buildChoiceRows('TAI_XIU'), ...buildActionRows('TAI_XIU')]
             });
           }
-
           else if (i.customId === 'game_kiemgiap') {
             step = 'KIEM_GIAP_PHAP';
             selectedGame = 'KIEM_GIAP_PHAP';
@@ -577,11 +569,9 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               components: [...buildChoiceRows('KIEM_GIAP_PHAP'), ...buildActionRows('KIEM_GIAP_PHAP')]
             });
           }
-
           else if (i.customId === 'game_blackjack') {
             step = 'BLACKJACK';
             
-            // Chia bài ban đầu
             playerHand = [drawCard(), drawCard()];
             botHand = [drawCard(), drawCard()];
 
@@ -604,7 +594,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
             await i.editReply({ embeds: [embed], components: [row] });
           }
-
           else if (i.customId === 'game_baucua') {
             step = 'BAU_CUA';
             selectedGame = 'BAU_CUA';
@@ -615,15 +604,11 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               components: [...buildChoiceRows('BAU_CUA'), ...buildActionRows('BAU_CUA')]
             });
           }
-
           else if (i.customId === 'game_cancel') {
             collector.stop('cancelled');
           }
         }
 
-        // ══════════════════════════════════════════════════════════════
-        // 2. CHƠI TÀI XỈU
-        // ══════════════════════════════════════════════════════════════
         else if (step === 'TAI_XIU') {
           if (i.customId === 'tx_tai' || i.customId === 'tx_xiu') {
             selectedChoiceId = i.customId;
@@ -684,9 +669,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           }
         }
 
-        // ══════════════════════════════════════════════════════════════
-        // 3. CHƠI KIẾM - GIÁP - PHÁP
-        // ══════════════════════════════════════════════════════════════
         else if (step === 'KIEM_GIAP_PHAP') {
           if (i.customId === 'kgp_kiem' || i.customId === 'kgp_giap' || i.customId === 'kgp_phap') {
             selectedChoiceId = i.customId;
@@ -744,16 +726,12 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           }
         }
 
-        // ══════════════════════════════════════════════════════════════
-        // 4. CHƠI NHỊ THẬP NHẤT LỰC (BLACKJACK)
-        // ══════════════════════════════════════════════════════════════
         else if (step === 'BLACKJACK') {
           if (i.customId === 'bj_hit') {
             playerHand.push(drawCard());
             const pSum = getSum(playerHand);
 
             if (pSum > 21) {
-              // Bị bùng bài (bust) - Thua ngay
               tuSi.vnd -= bet;
               await tuSi.save();
 
@@ -772,7 +750,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               await i.editReply({ embeds: [resultEmbed], components: [] });
               collector.stop('finished');
             } else {
-              // Vẫn có thể rút tiếp
               const embed = new EmbedBuilder()
                 .setTitle('🃏 Nhị Thập Nhất Lực (Blackjack 21)')
                 .setColor(0x3498db)
@@ -792,9 +769,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           }
 
           else if (i.customId === 'bj_stand') {
-            // Lượt Thiên Đạo rút bài
             let bSum = getSum(botHand);
-            while (bSum < 16) {
+            while (bSum < 17) { // <-- Đã fix nhà cái bắt buộc rút đến 17
               botHand.push(drawCard());
               bSum = getSum(botHand);
             }
@@ -804,7 +780,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             let isTie = false;
 
             if (bSum > 21) {
-              isWin = true; // Bot bùng bài
+              isWin = true; 
             } else if (pSum > bSum) {
               isWin = true;
             } else if (pSum === bSum) {
@@ -812,7 +788,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             }
 
             if (isTie) {
-              // Hòa
             } else if (isWin) {
               tuSi.vnd += bet;
               await tuSi.save();
@@ -855,9 +830,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           }
         }
 
-        // ══════════════════════════════════════════════════════════════
-        // 5. CHƠI BẦU CUA TÔM CÁ
-        // ══════════════════════════════════════════════════════════════
         else if (step === 'BAU_CUA') {
           if (i.customId in BAU_CUA_CHOICES) {
             selectedChoiceId = i.customId;
@@ -895,7 +867,8 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             await tuSi.save();
 
             const playerChoice = getChoiceMeta('BAU_CUA', selectedChoiceId);
-            const rollText = playerOutcome.rolls.map(r => `${r.emoji} ${r.short}`).join(' · ');
+            // Đã fix lỗi r.emoji
+            const rollText = playerOutcome.rolls.map(r => r.name).join(' · ');
             const resultEmbed = new EmbedBuilder()
               .setTitle(playerOutcome.title)
               .setColor(playerOutcome.color)
@@ -937,7 +910,6 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               components: []
             });
           } else if (reason !== 'finished') {
-            // Tự đóng do hết thời gian chờ hoặc không phản hồi (idle)
             await interaction.editReply({
               embeds: [
                 new EmbedBuilder()
@@ -951,10 +923,9 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           }
         } catch (_) {}
       });
-    }
-  }
-};
-}
+    } // <-- Đã fix lỗi thiếu đóng ngoặc tại đây
+  }; // <-- Đã fix lỗi thiếu đóng ngoặc tại đây
+} // <-- Đã fix lỗi thiếu đóng ngoặc tại đây
 
 const controller = new BoDieuKhienDamDao();
 export const danhSachLenhDamDao = [controller.lenhDamDao];
