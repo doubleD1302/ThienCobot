@@ -1005,8 +1005,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             if (hasVideo) {
               const { AttachmentBuilder } = await import('discord.js');
               const videoPath = eggId === 'trung_linh_thu_tien'
-                ? 'f:/Thien_co/public/video/pet/dap_trung.mp4'
-                : 'f:/Thien_co/public/video/pet/dap_trung_than.mp4';
+                ? './public/video/pet/dap_trung.mp4'
+                : './public/video/pet/dap_trung_than.mp4';
               const eggNameText = eggId === 'trung_linh_thu_tien' ? 'Trứng Linh Thú (Tiên)' : 'Trứng Linh Thú (Thần)';
 
               // Tạm thời disable các components và gửi video kèm thông báo chờ
