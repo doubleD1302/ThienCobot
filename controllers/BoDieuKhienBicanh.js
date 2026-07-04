@@ -517,9 +517,13 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
               const targetId = drop.replaceId && Math.random() < 0.5 ? drop.replaceId : drop.itemId;
               const itemDetail = await Item.findByPk(targetId);
               if (itemDetail) {
-                droppedItem = itemDetail;
-                await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
-                break;
+                if (itemDetail.doHiem === 'Huyền thoại' || itemDetail.doHiem === 'Thần cấp' || targetId === 'trung_than_thu') {
+                  // Chặn không rơi
+                } else {
+                  droppedItem = itemDetail;
+                  await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+                  break;
+                }
               }
             }
           }
@@ -539,8 +543,12 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             }
             const itemDetail = await Item.findByPk(targetId);
             if (itemDetail) {
-              droppedBreakthrough = itemDetail;
-              await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+              if (itemDetail.doHiem === 'Huyền thoại' || itemDetail.doHiem === 'Thần cấp' || targetId === 'trung_than_thu') {
+                // Chặn không rơi
+              } else {
+                droppedBreakthrough = itemDetail;
+                await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+              }
             }
           }
 
@@ -549,8 +557,12 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             const seedId = Math.random() < 0.5 ? 'hat_giong_linh_chi' : 'hat_giong_nhan_sam';
             const seedDetail = await Item.findByPk(seedId);
             if (seedDetail) {
-              droppedSeed = seedDetail;
-              await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);
+              if (seedDetail.doHiem === 'Huyền thoại' || seedDetail.doHiem === 'Thần cấp' || seedId === 'trung_than_thu') {
+                // Chặn không rơi
+              } else {
+                droppedSeed = seedDetail;
+                await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);
+              }
             }
           }
 
@@ -558,8 +570,12 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           if (Math.random() <= 0.03) {
             const cdDetail = await Item.findByPk('co_duyen_lenh');
             if (cdDetail) {
-              droppedCoDuyenLenh = true;
-              await Inventory.addVatPham(tuSi.idNguoiDung, 'co_duyen_lenh', 1);
+              if (cdDetail.doHiem === 'Huyền thoại' || cdDetail.doHiem === 'Thần cấp') {
+                // Chặn không rơi
+              } else {
+                droppedCoDuyenLenh = true;
+                await Inventory.addVatPham(tuSi.idNguoiDung, 'co_duyen_lenh', 1);
+              }
             }
           }
 
@@ -576,8 +592,19 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           if (targetVyqId) {
             const vyqDetail = await Item.findByPk(targetVyqId);
             if (vyqDetail) {
-              droppedVanYeuQua = vyqDetail;
-              await Inventory.addVatPham(tuSi.idNguoiDung, targetVyqId, 1);
+              if (vyqDetail.doHiem === 'Huyền thoại' || vyqDetail.doHiem === 'Thần cấp' || targetVyqId === 'trung_than_thu') {
+                // Thay thế van_yeu_qua_than bằng van_yeu_qua_tien
+                if (targetVyqId === 'van_yeu_qua_than') {
+                  const fallbackVyq = await Item.findByPk('van_yeu_qua_tien');
+                  if (fallbackVyq) {
+                    droppedVanYeuQua = fallbackVyq;
+                    await Inventory.addVatPham(tuSi.idNguoiDung, 'van_yeu_qua_tien', 1);
+                  }
+                }
+              } else {
+                droppedVanYeuQua = vyqDetail;
+                await Inventory.addVatPham(tuSi.idNguoiDung, targetVyqId, 1);
+              }
             }
           }
 
@@ -591,8 +618,12 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           if (targetEggId) {
             const eggDetail = await Item.findByPk(targetEggId);
             if (eggDetail) {
-              droppedEgg = eggDetail;
-              await Inventory.addVatPham(tuSi.idNguoiDung, targetEggId, 1);
+              if (eggDetail.doHiem === 'Huyền thoại' || eggDetail.doHiem === 'Thần cấp' || targetEggId === 'trung_than_thu') {
+                // Chặn không rơi
+              } else {
+                droppedEgg = eggDetail;
+                await Inventory.addVatPham(tuSi.idNguoiDung, targetEggId, 1);
+              }
             }
           }
 

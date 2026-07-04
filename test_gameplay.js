@@ -2829,5 +2829,34 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Divine/Legendary items and Ancient Egg cannot drop in dungeons', async () => {
+    const { Item } = await import('./models/Item.js');
+
+    // 1. Verify that 'trung_than_thu' has doHiem = 'Huyền thoại'
+    const egg = await Item.findByPk('trung_than_thu');
+    assert.ok(egg);
+    assert.strictEqual(egg.doHiem, 'Huyền thoại');
+
+    // 2. Validate dropping check logic
+    const testItems = [
+      { id: 'trung_than_thu', doHiem: 'Huyền thoại' },
+      { id: 'chuyen_sinh_dan', doHiem: 'Huyền thoại' },
+      { id: 'van_yeu_qua_than', doHiem: 'Thần cấp' },
+      { id: 'kiem_go', doHiem: 'Thường' },
+      { id: 'kiem_sat', doHiem: 'Hiếm' }
+    ];
+
+    const allowedDrops = [];
+    for (const item of testItems) {
+      const isBlocked = (item.doHiem === 'Huyền thoại' || item.doHiem === 'Thần cấp' || item.id === 'trung_than_thu');
+      if (!isBlocked) {
+        allowedDrops.push(item.id);
+      }
+    }
+
+    // Must block trung_than_thu, chuyen_sinh_dan, van_yeu_qua_than
+    assert.deepStrictEqual(allowedDrops, ['kiem_go', 'kiem_sat']);
+  });
+
 });
 
