@@ -141,7 +141,12 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         let typeStr = 'Hạt giống';
         if (randType >= 0.85) {
           targetId = btData.pillId;
-          typeStr = 'Đan dược';
+          if (targetId === 'dan_dot_pha_5') {
+            targetId = btData.herbId;
+            typeStr = 'Dược thảo';
+          } else {
+            typeStr = 'Đan dược';
+          }
         } else if (randType >= 0.50) {
           targetId = btData.herbId;
           typeStr = 'Dược thảo';

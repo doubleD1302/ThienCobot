@@ -146,7 +146,11 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           }
         }
         const { Pet } = await import('../models/Pet.js');
-        const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+        let activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+        if (activePet) {
+          const check = config.checkHuyetMachApChe(tuSi.capDo, activePet.rarity);
+          if (!check.allowed) activePet = null;
+        }
         const stats = tuSi.layChiSo(equippedItems, activePet);
 
         // Yêu cầu HP tối thiểu
@@ -525,6 +529,9 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             let targetId = btData.seedId;
             if (randType >= 0.85) {
               targetId = btData.pillId;
+              if (targetId === 'dan_dot_pha_5') {
+                targetId = btData.herbId;
+              }
             } else if (randType >= 0.50) {
               targetId = btData.herbId;
             }

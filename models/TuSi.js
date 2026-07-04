@@ -41,11 +41,25 @@ class TuSi extends Model {
         eq.item = detail;
       }
     }
-    const activePet = await Pet.findOne({ where: { userId: this.idNguoiDung, isActive: true } });
+    let activePet = await Pet.findOne({ where: { userId: this.idNguoiDung, isActive: true } });
+    if (activePet) {
+      const check = config.checkHuyetMachApChe(this.capDo, activePet.rarity);
+      if (!check.allowed) {
+        activePet.isActive = false;
+        await activePet.save();
+        activePet = null;
+      }
+    }
     return this.layChiSo(equippedInv, activePet);
   }
 
   layChiSo(equippedInvList = [], activePet = null) {
+    if (activePet) {
+      const check = config.checkHuyetMachApChe(this.capDo, activePet.rarity);
+      if (!check.allowed) {
+        activePet = null;
+      }
+    }
     const huongTu = this.huongTu || 'Phap Tu';
     const pathConfig = config.HUONG_DI[huongTu] || config.HUONG_DI['Phap Tu'];
     const baseStats = pathConfig.base_stats;
@@ -213,7 +227,7 @@ class TuSi extends Model {
           const nePct = activePet.type === 'phuong_hoang_1' ? 0.20 : 0.22;
           ne += nePct * scale * evoMult * groupMult;
         } else if (template.species === 'ky_lan') {
-          giap += baseStats.giap * template.statValue * scale * evoMult * groupMult;
+          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
           vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
           phapCong += basePhapCongVal * template.statValue * scale * evoMult * groupMult;
         } else if (template.species === 'huyen_vu') {
@@ -256,6 +270,12 @@ class TuSi extends Model {
   }
 
   layHeSoTuLuyen(activePet = null) {
+    if (activePet) {
+      const check = config.checkHuyetMachApChe(this.capDo, activePet.rarity);
+      if (!check.allowed) {
+        activePet = null;
+      }
+    }
     const elements = this.linhCanList;
     const count = elements.length;
 

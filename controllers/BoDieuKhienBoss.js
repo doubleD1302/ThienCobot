@@ -633,7 +633,11 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       }
 
       const { Pet } = await import('../models/Pet.js');
-      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      let activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      if (activePet) {
+        const check = config.checkHuyetMachApChe(tuSi.capDo, activePet.rarity);
+        if (!check.allowed) activePet = null;
+      }
 
       let monsterHp = boss.hp;
       let playerHp = tuSi.hp;

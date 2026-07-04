@@ -271,7 +271,11 @@ async function autoDiBiCanh(tuSi) {
       }
     }
     const { Pet } = await import('../models/Pet.js');
-    const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+    let activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+    if (activePet) {
+      const check = config.checkHuyetMachApChe(tuSi.capDo, activePet.rarity);
+      if (!check.allowed) activePet = null;
+    }
 
     const activeTreasures = equippedItems.filter(x => x.item.loai === 'Cổ Bảo Chủ Động');
     const dharmaTreasures = equippedItems.filter(x => x.item.loai === 'Pháp Bảo');
@@ -571,6 +575,9 @@ async function autoDiBiCanh(tuSi) {
         let targetId = btData.seedId;
         if (randType >= 0.85) {
           targetId = btData.pillId;
+          if (targetId === 'dan_dot_pha_5') {
+            targetId = btData.herbId;
+          }
         } else if (randType >= 0.50) {
           targetId = btData.herbId;
         }
@@ -740,6 +747,9 @@ async function autoDiLichLuyen(tuSi) {
       let targetId = btData.seedId;
       if (randType >= 0.85) {
         targetId = btData.pillId;
+        if (targetId === 'dan_dot_pha_5') {
+          targetId = btData.herbId;
+        }
       } else if (randType >= 0.50) {
         targetId = btData.herbId;
       }

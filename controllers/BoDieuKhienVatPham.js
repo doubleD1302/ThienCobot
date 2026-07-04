@@ -918,7 +918,11 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       const cg = await CanhGioi.findByPk(tuSi.capDo);
       const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
 
-      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      let activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      if (activePet) {
+        const check = config.checkHuyetMachApChe(tuSi.capDo, activePet.rarity);
+        if (!check.allowed) activePet = null;
+      }
       const multiplier = tuSi.layHeSoTuLuyen(activePet);
 
       const abode = await Abode.findByPk(tuSi.idNguoiDung);

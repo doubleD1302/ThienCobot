@@ -103,7 +103,11 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const { Pet } = await import('../models/Pet.js');
       const { Abode } = await import('../models/Abode.js');
 
-      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      let activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      if (activePet) {
+        const check = config.checkHuyetMachApChe(tuSi.capDo, activePet.rarity);
+        if (!check.allowed) activePet = null;
+      }
       const abode = await Abode.findByPk(tuSi.idNguoiDung);
       const lvDongPhu = abode ? abode.level : 0;
 

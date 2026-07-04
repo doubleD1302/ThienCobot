@@ -887,8 +887,8 @@ export const PET_TEMPLATES_SEED = [
   { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +25% HP & +20% Né tránh' },
   { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +28% HP & +22% Né tránh' },
 
-  { id: 'ky_lan_1', name: 'Bạch Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'giap', statValue: 0.25, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% Hộ giáp & +25% Công' },
-  { id: 'ky_lan_2', name: 'Thiên Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'giap', statValue: 0.28, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +28% Hộ giáp & +28% Công' },
+  { id: 'ky_lan_1', name: 'Bạch Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% HP & +25% Công' },
+  { id: 'ky_lan_2', name: 'Thiên Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +28% HP & +28% Công' },
 
   { id: 'huyen_vu_1', name: 'Thần Thú Huyền Vũ', emoji: '<:quy:1522635603718570135>', group: 'than_thu', species: 'huyen_vu', statType: 'giap', statValue: 0.25, desc: 'Chủ động: Huyền Vũ Bảo Vệ. Hộ thể: +25% Giáp & +20% HP' },
   { id: 'huyen_vu_2', name: 'Thượng Cổ Hợp Quy', emoji: '<:quy:1522635603718570135>', group: 'than_thu', species: 'huyen_vu', statType: 'giap', statValue: 0.30, desc: 'Chủ động: Huyền Vũ Bảo Vệ. Hộ thể: +30% Giáp & +25% HP' },
@@ -896,4 +896,30 @@ export const PET_TEMPLATES_SEED = [
   { id: 'bach_ho_1', name: 'Thần Thú Bạch Hổ', emoji: '<:ho:1522635613822517248>', group: 'than_thu', species: 'bach_ho', statType: 'vat_cong', statValue: 0.22, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +22% Vật Công & +12% Xuyên giáp' },
   { id: 'bach_ho_2', name: 'Thái Cổ Kim Hổ', emoji: '<:ho:1522635613822517248>', group: 'than_thu', species: 'bach_ho', statType: 'vat_cong', statValue: 0.25, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +25% Vật Công & +15% Xuyên giáp' }
 ];
+
+export function checkHuyetMachApChe(level, rarity) {
+  if (rarity === 'TT_2' && level < 19) {
+    return {
+      allowed: false,
+      requiredRealm: 'Hóa Thần',
+      msg: 'Đạo hữu dưới Hóa Thần Cảnh không thể sử dụng linh thú có Huyết Mạch Hỗn Độn.'
+    };
+  }
+  if (rarity === 'TT_3' && level < 22) {
+    return {
+      allowed: false,
+      requiredRealm: 'Phản Hư',
+      msg: 'Đạo hữu dưới Phản Hư Cảnh không thể sử dụng linh thú có Huyết Mạch Hồng Hoang.'
+    };
+  }
+  if (rarity === 'TT_4' && level < 25) {
+    return {
+      allowed: false,
+      requiredRealm: 'Hợp Thể',
+      msg: 'Đạo hữu dưới Hợp Thể Cảnh không thể sử dụng linh thú có Huyết Mạch Khởi Nguyên.'
+    };
+  }
+  return { allowed: true };
+}
+
 

@@ -35,7 +35,11 @@ export class BoDieuKhienGoc {
 
       const abode = await Abode.findByPk(tuSi.idNguoiDung);
       const lvDongPhu = abode ? abode.level : 0;
-      const activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      let activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
+      if (activePet) {
+        const check = config.checkHuyetMachApChe(tuSi.capDo, activePet.rarity);
+        if (!check.allowed) activePet = null;
+      }
 
       const cg = await CanhGioi.findByPk(tuSi.capDo);
       const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;

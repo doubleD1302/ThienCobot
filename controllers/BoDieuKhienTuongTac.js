@@ -117,8 +117,16 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           // Tải trang bị và pet
           const eqA = await loadEquippedItems(tuSiA.idNguoiDung);
           const eqB = await loadEquippedItems(tuSiB.idNguoiDung);
-          const petA = await Pet.findOne({ where: { userId: tuSiA.idNguoiDung, isActive: true } });
-          const petB = await Pet.findOne({ where: { userId: tuSiB.idNguoiDung, isActive: true } });
+          let petA = await Pet.findOne({ where: { userId: tuSiA.idNguoiDung, isActive: true } });
+          let petB = await Pet.findOne({ where: { userId: tuSiB.idNguoiDung, isActive: true } });
+          if (petA) {
+            const check = config.checkHuyetMachApChe(tuSiA.capDo, petA.rarity);
+            if (!check.allowed) petA = null;
+          }
+          if (petB) {
+            const check = config.checkHuyetMachApChe(tuSiB.capDo, petB.rarity);
+            if (!check.allowed) petB = null;
+          }
 
           const statsA = tuSiA.layChiSo(eqA.inv, petA);
           const statsB = tuSiB.layChiSo(eqB.inv, petB);

@@ -2462,4 +2462,65 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(pet.tienHoa, 0);
   });
 
+  test('Bloodline Suppression and Breakthrough Pill Drop Blocks', async () => {
+    const { Pet } = await import('./models/Pet.js');
+    const { TuSi } = await import('./models/TuSi.js');
+
+    // 1. Verify bloodline suppression logic in config.js
+    assert.deepStrictEqual(config.checkHuyetMachApChe(15, 'TT_1'), { allowed: true });
+    assert.strictEqual(config.checkHuyetMachApChe(15, 'TT_2').allowed, false);
+    assert.strictEqual(config.checkHuyetMachApChe(20, 'TT_2').allowed, true);
+    assert.strictEqual(config.checkHuyetMachApChe(20, 'TT_3').allowed, false);
+    assert.strictEqual(config.checkHuyetMachApChe(23, 'TT_3').allowed, true);
+    assert.strictEqual(config.checkHuyetMachApChe(23, 'TT_4').allowed, false);
+    assert.strictEqual(config.checkHuyetMachApChe(26, 'TT_4').allowed, true);
+
+    // 2. Verify TuSi.layChiSoDayDu automatically deactivates invalid pet
+    const tuSi = await TuSi.create({
+      idNguoiDung: "9999999999999992",
+      ten: "TestSuppressTuSi",
+      gioiTinh: "Nam",
+      huongTu: "The Tu",
+      linhCan: "Thổ Linh Căn",
+      capDo: 15, // Under Hóa Thần
+      linhLuc: 0,
+      linhThach: 10000
+    });
+    tuSi.linhCanList = ["Tho"];
+
+    const pet = await Pet.create({
+      userId: tuSi.idNguoiDung,
+      name: "Hỗn Thiên Tổ Long",
+      type: "to_long_1",
+      rarity: "TT_2", // Chaos Bloodline -> requires level >= 19
+      level: 1,
+      tuChat: 100,
+      isActive: true,
+      tienHoa: 1
+    });
+
+    // Run layChiSoDayDu which should deactivate the pet
+    const stats = await tuSi.layChiSoDayDu();
+    
+    // Check pet state in database
+    const updatedPet = await Pet.findByPk(pet.id);
+    assert.strictEqual(updatedPet.isActive, false);
+
+    // Clean up
+    await pet.destroy();
+    await tuSi.destroy();
+
+    // 3. Verify that Hóa Thần breakthrough pill (dan_dot_pha_5) drops are redirected to herbs (linh_thao_hoa_than)
+    const mockBtData = config.layVatPhamDotPhaTheoCapDo(19); // level 19 corresponds to Hóa Thần
+    assert.strictEqual(mockBtData.pillId, 'dan_dot_pha_5');
+    
+    // Simulate drop evaluation logic
+    let targetId = mockBtData.pillId;
+    if (targetId === 'dan_dot_pha_5') {
+      targetId = mockBtData.herbId;
+    }
+    assert.strictEqual(targetId, 'linh_thao_hoa_than');
+  });
+
 });
+

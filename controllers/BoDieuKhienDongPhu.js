@@ -1063,10 +1063,15 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 await pet.save();
                 actionMessage = BoTaoEmbed.thanhCong('💤 Sủng vật thu hồi', `Đã cho **${pet.name}** về nghỉ ngơi.`);
               } else {
-                await Pet.update({ isActive: false }, { where: { userId: tuSi.idNguoiDung } });
-                pet.isActive = true;
-                await pet.save();
-                actionMessage = BoTaoEmbed.thanhCong('⚔️ Sủng vật xuất chiến', `**${pet.name}** đã xuất chiến hộ mệnh đạo hữu.`);
+                const check = config.checkHuyetMachApChe(tuSi.capDo, pet.rarity);
+                if (!check.allowed) {
+                  actionMessage = BoTaoEmbed.thatBai('🚫 Áp Chế Huyết Mạch', check.msg);
+                } else {
+                  await Pet.update({ isActive: false }, { where: { userId: tuSi.idNguoiDung } });
+                  pet.isActive = true;
+                  await pet.save();
+                  actionMessage = BoTaoEmbed.thanhCong('⚔️ Sủng vật xuất chiến', `**${pet.name}** đã xuất chiến hộ mệnh đạo hữu.`);
+                }
               }
             } else if (i.customId === 'pet_action_renounce') {
               await pet.destroy();
