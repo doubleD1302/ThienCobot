@@ -598,9 +598,25 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         else if (menu === 'FORGE') {
           // Công thức rèn đúc
           const recipes = [
-            { label: '🗡️ Tiên Kiếm Tân Thủ (Cần Kiếm Gỗ + 200 Linh Thạch)', value: 'kiem_go::kiem_tien_tan_thu' },
-            { label: '🎋 Linh Trượng Tân Thủ (Cần Mộc Trượng + 200 Linh Thạch)', value: 'truong_go::truong_tien_tan_thu' },
-            { label: '🥋 Tiên Giáp Tân Thủ (Cần Đạo Bào Vải + 200 Linh Thạch)', value: 'ao_vai::giap_tien_tan_thu' }
+            { label: '🗡️ Tiên Kiếm Tân Thủ (Kiếm Gỗ + 5 Luyện Khí Thạch + 200 LT)', value: 'kiem_go::kiem_tien_tan_thu' },
+            { label: '🎋 Linh Trượng Tân Thủ (Mộc Trượng + 5 Luyện Khí Thạch + 200 LT)', value: 'truong_go::truong_tien_tan_thu' },
+            { label: '🥋 Tiên Giáp Tân Thủ (Đạo Bào Vải + 5 Luyện Khí Thạch + 200 LT)', value: 'ao_vai::giap_tien_tan_thu' },
+
+            { label: '⚔️ Thiết Kiếm (Trọng Thiết Thiết Kiếm + 5 Huyền Thiết Thạch + 200 LT)', value: 'kiem_sat_nang::kiem_sat' },
+            { label: '🎋 Trúc Trượng (Phàm Trúc Trượng + 5 Huyền Thiết Thạch + 200 LT)', value: 'truong_truc_thuong::truong_truc' },
+            { label: '🛡️ Thú Bì Giáp (Đạo Bào Vải Dày + 5 Huyền Thiết Thạch + 200 LT)', value: 'ao_vai_day::ao_da' },
+
+            { label: '⚔️ Kim Đan Chân Kiếm (Đan Hỏa Thiết Kiếm + 5 Kim Đan Linh Sa + 200 LT)', value: 'kiem_kim_dan_thuong::kiem_kim_dan' },
+            { label: '🎋 Đan Linh Pháp Trượng (Kim Đan Tiên Trượng + 5 Kim Đan Linh Sa + 200 LT)', value: 'truong_kim_dan_thuong::truong_kim_dan' },
+            { label: '🛡️ Kim Đan Pháp Y (Đan Vân Bào + 5 Kim Đan Linh Sa + 200 LT)', value: 'ao_kim_dan_thuong::ao_kim_dan' },
+
+            { label: '⚔️ Nguyên Anh Phá Thiên Kiếm (Sơn Hà Trọng Kiếm + 5 Nguyên Anh Hỏa Tinh + 200 LT)', value: 'kiem_nguyen_anh_thuong::kiem_nguyen_anh' },
+            { label: '⚡ Nguyên Thần Tiên Trượng (Dục Hỏa Linh Trượng + 5 Nguyên Anh Hỏa Tinh + 200 LT)', value: 'truong_nguyen_anh_thuong::truong_nguyen_anh' },
+            { label: '🛡️ Nguyên Anh Hộ Thể Giáp (Tiêu Dao Linh Bào + 5 Nguyên Anh Hỏa Tinh + 200 LT)', value: 'ao_nguyen_anh_thuong::ao_nguyen_anh' },
+
+            { label: '🗡️ Huyền Thiết Trọng Kiếm (Cổ Thiết Trọng Binh + 5 Thần Ma Chi Tinh + 200 LT)', value: 'kiem_sat_co_khi::kiem_huyen_thiet' },
+            { label: '🔮 Huyền Môn Ngọc Bội (Cổ Mộc Lôi Trượng + 5 Thần Ma Chi Tinh + 200 LT)', value: 'truong_go_co_loi::phap_bao_huyen_mon' },
+            { label: '🥋 Huyền Thiết Linh Giáp (Cổ Lân Thú Giáp + 5 Thần Ma Chi Tinh + 200 LT)', value: 'ao_da_co_lan::giap_huyen_thiet' }
           ];
 
           rows.push(
@@ -1524,12 +1540,57 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       return { ok: false, msg: `Thiếu phế khí trong túi! Đạo hữu cần 1 chiếc **${oldItem?.ten ?? oldId}** chưa mặc.` };
     }
 
+    // Bản đồ nguyên liệu cho từng dòng trang bị nâng cấp
+    const FORGE_MATERIALS = {
+      // Luyện Khí
+      'kiem_tien_tan_thu': { materialId: 'nguyen_lieu_luyen_khi', count: 5, matName: 'Luyện Khí Thạch 💎' },
+      'truong_tien_tan_thu': { materialId: 'nguyen_lieu_luyen_khi', count: 5, matName: 'Luyện Khí Thạch 💎' },
+      'giap_tien_tan_thu': { materialId: 'nguyen_lieu_luyen_khi', count: 5, matName: 'Luyện Khí Thạch 💎' },
+      
+      // Trúc Cơ
+      'kiem_sat': { materialId: 'nguyen_lieu_truc_co', count: 5, matName: 'Huyền Thiết Thạch 🪙' },
+      'truong_truc': { materialId: 'nguyen_lieu_truc_co', count: 5, matName: 'Huyền Thiết Thạch 🪙' },
+      'ao_da': { materialId: 'nguyen_lieu_truc_co', count: 5, matName: 'Huyền Thiết Thạch 🪙' },
+      
+      // Kim Đan
+      'kiem_kim_dan': { materialId: 'nguyen_lieu_kim_dan', count: 5, matName: 'Kim Đan Linh Sa 🪨' },
+      'truong_kim_dan': { materialId: 'nguyen_lieu_kim_dan', count: 5, matName: 'Kim Đan Linh Sa 🪨' },
+      'ao_kim_dan': { materialId: 'nguyen_lieu_kim_dan', count: 5, matName: 'Kim Đan Linh Sa 🪨' },
+      
+      // Nguyên Anh
+      'kiem_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
+      'truong_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
+      'ao_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
+      
+      // Hóa Thần
+      'kiem_huyen_thiet': { materialId: 'nguyen_lieu_hoa_than', count: 5, matName: 'Thần Ma Chi Tinh ✨' },
+      'phap_bao_huyen_mon': { materialId: 'nguyen_lieu_hoa_than', count: 5, matName: 'Thần Ma Chi Tinh ✨' },
+      'giap_huyen_thiet': { materialId: 'nguyen_lieu_hoa_than', count: 5, matName: 'Thần Ma Chi Tinh ✨' }
+    };
+
+    const reqMat = FORGE_MATERIALS[newId];
+    let invMat = null;
+    if (reqMat) {
+      invMat = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: reqMat.materialId } });
+      if (!invMat || invMat.soLuong < reqMat.count) {
+        return { ok: false, msg: `Thiếu nguyên liệu rèn! Đạo hữu cần có thêm **${reqMat.count}** chiếc **${reqMat.matName}**.` };
+      }
+    }
+
     if (tuSi.linhThach < 200) {
       return { ok: false, msg: 'Linh thạch bất túc! Cần 200 Linh thạch để đốt lò đúc khí.' };
     }
 
-    // Tiêu hao
+    // Tiêu hao phế khí
     await invOld.destroy();
+
+    // Tiêu hao nguyên liệu luyện khí
+    if (reqMat && invMat) {
+      invMat.soLuong -= reqMat.count;
+      if (invMat.soLuong <= 0) await invMat.destroy();
+      else await invMat.save();
+    }
+
     tuSi.linhThach -= 200;
     await tuSi.save();
 
@@ -1539,7 +1600,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
 
     return {
       ok:  true,
-      msg: `Luyện Khí Thành Công! Bạn đã luyện đúc thành công **${newItem?.ten ?? newId}** (Mã: #${record.id})!`
+      msg: `Luyện Khí Thành Công! Bạn đã tiêu hao nguyên liệu và luyện đúc thành công **${newItem?.ten ?? newId}** (Mã: #${record.id})!`
     };
   }
 

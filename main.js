@@ -592,7 +592,13 @@ async function start() {
         { itemId: 'hat_giong_dai_thua_qua', giaBan: 200, yeuCauCapDo: 28 },
         { itemId: 'dan_dot_pha_8', giaBan: 2000, yeuCauCapDo: 28 },
         { itemId: 'hoa_than_linh_sung_dan', giaBan: 1000000, yeuCauCapDo: 1 },
-        { itemId: 'trung_linh_thu_tien', giaBan: 100000, yeuCauCapDo: 1 }
+        { itemId: 'trung_linh_thu_tien', giaBan: 100000, yeuCauCapDo: 1 },
+        
+        { itemId: 'nguyen_lieu_luyen_khi', giaBan: 200, yeuCauCapDo: 1 },
+        { itemId: 'nguyen_lieu_truc_co', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'nguyen_lieu_kim_dan', giaBan: 1000, yeuCauCapDo: 13 },
+        { itemId: 'nguyen_lieu_nguyen_anh', giaBan: 1500, yeuCauCapDo: 16 },
+        { itemId: 'nguyen_lieu_hoa_than', giaBan: 2500, yeuCauCapDo: 19 }
       ];
       for (const entry of breakthroughShopItems) {
         await ShopItem.findOrCreate({
@@ -655,7 +661,7 @@ async function start() {
         await AdventureEvent.bulkCreate(seedAdventureEvents);
         console.log(`Đã tạo thành công ${seedAdventureEvents.length} sự kiện cơ duyên mẫu.`);
       }
-      // Khởi tạo và đồng bộ Gift Code BOSS
+      // Khởi tạo và đồng bộ Gift Code BOSS và ISEKAI
       const { GiftCode } = await import('./models/GiftCode.js');
       await GiftCode.upsert({
         code: 'BOSS',
@@ -664,7 +670,14 @@ async function start() {
         vnd: 0,
         itemsJson: '[]'
       });
-      console.log('Đã đồng bộ thành công Gift Code BOSS vào CSDL.');
+      await GiftCode.upsert({
+        code: 'ISEKAI',
+        linhThach: 0,
+        linhLuc: 0,
+        vnd: 0,
+        itemsJson: JSON.stringify([{ itemId: 'chuyen_sinh_dan', soLuong: 1 }])
+      });
+      console.log('Đã đồng bộ thành công Gift Code BOSS và ISEKAI vào CSDL.');
     } catch (err) {
       console.error('Không thể tự động sửa đổi schema hoặc dọn dẹp bản ghi rác/seeding:', err);
     }

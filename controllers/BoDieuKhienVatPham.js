@@ -909,6 +909,45 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       };
     }
 
+    // Xử lý Chuyển Sinh Đan
+    if (itemDetail.id === 'chuyen_sinh_dan') {
+      const id = tuSi.idNguoiDung;
+
+      const { Inventory } = await import('../models/Inventory.js');
+      const { PlayerSkill } = await import('../models/PlayerSkill.js');
+      const { Pet } = await import('../models/Pet.js');
+      const { GardenPlot } = await import('../models/GardenPlot.js');
+      const { PlayerGiftCode } = await import('../models/PlayerGiftCode.js');
+      const { ThoiGianCho } = await import('../models/ThoiGianCho.js');
+      const { Abode } = await import('../models/Abode.js');
+      const { LichSuMua } = await import('../models/LichSuMua.js');
+      const { DongGopEmoji } = await import('../models/DongGopEmoji.js');
+      const { AuctionListing } = await import('../models/AuctionListing.js');
+
+      await Inventory.destroy({ where: { idNguoiDung: id } });
+      await PlayerSkill.destroy({ where: { idNguoiDung: id } });
+      await Pet.destroy({ where: { userId: id } });
+      await GardenPlot.destroy({ where: { userId: id } });
+      await PlayerGiftCode.destroy({ where: { userId: id } });
+      await ThoiGianCho.destroy({ where: { idNguoiDung: id } });
+      await Abode.destroy({ where: { userId: id } });
+      await LichSuMua.destroy({ where: { idNguoiDung: id } });
+      await DongGopEmoji.destroy({ where: { idNguoiDung: id } });
+      await AuctionListing.destroy({ where: { sellerId: id } });
+      await AuctionListing.destroy({ where: { currentBidderId: id } });
+
+      await tuSi.destroy();
+
+      return {
+        ok: true,
+        msg: `🌀 **Nghịch Thiên Cải Mệnh - Luân Hồi Chuyển Sinh!** 🌀\n` +
+             `Đạo hữu **${tuSi.ten}** đã nuốt **${itemDetail.ten}**!\n` +
+             `Nhục thân hóa thành cát bụi, nguyên anh tan biến giữa thiên địa. Linh phách đạo hữu tiến vào luân hồi lục đạo, xóa sạch mọi trần duyên kiếp trước.\n` +
+             `Toàn bộ tu vi, vật phẩm, sủng vật, động phủ... đã hoàn toàn tiêu biến.\n` +
+             `Đạo hữu hãy dùng lệnh \`/start [tên]\` để bắt đầu một kiếp tu tiên mới!`
+      };
+    }
+
     // Xử lý Đan Thần Phẩm
     if (itemDetail.id === 'dan_than_pham') {
       const { CanhGioi } = await import('../models/CanhGioi.js');

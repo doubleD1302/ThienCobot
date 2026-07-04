@@ -27,6 +27,7 @@ const { WorldBoss } = await import('./models/WorldBoss.js');
 const { GiftCode } = await import('./models/GiftCode.js');
 const { PlayerGiftCode } = await import('./models/PlayerGiftCode.js');
 const { DongGopEmoji } = await import('./models/DongGopEmoji.js');
+const { AuctionListing } = await import('./models/AuctionListing.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -2529,6 +2530,251 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       targetId = mockBtData.herbId;
     }
     assert.strictEqual(targetId, 'linh_thao_hoa_than');
+  });
+
+  test('Chuyển Sinh Đan deletes all player-related records', async () => {
+    const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+    const { AuctionListing } = await import('./models/AuctionListing.js');
+    const { DongGopEmoji } = await import('./models/DongGopEmoji.js');
+    const { LichSuMua } = await import('./models/LichSuMua.js');
+    
+    // 1. Create a TuSi and related data
+    const userId = "999777888111";
+    const tuSi = await TuSi.create({
+      idNguoiDung: userId,
+      ten: "Chuyển Sinh Nhân",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      hp: 1200,
+      mp: 100
+    });
+
+    // Add inventory records
+    const csPillInv = await Inventory.create({ idNguoiDung: userId, itemId: 'chuyen_sinh_dan', soLuong: 1, trangBi: false });
+    const dummyWeapon = await Inventory.create({ idNguoiDung: userId, itemId: 'kiem_go', soLuong: 1, trangBi: true });
+
+    // Add skill record
+    await PlayerSkill.create({ idNguoiDung: userId, skillId: 'test_hoa_diem', capDo: 1, trangBi: true });
+
+    // Add pet
+    const pet = await Pet.create({ userId: userId, name: "Thần Thú Con", type: "to_long_1", rarity: "TT_1", level: 1, tuChat: 100, isActive: true });
+
+    // Add garden plot
+    await GardenPlot.create({ userId: userId, slotIndex: 0, status: 'EMPTY' });
+
+    // Add player gift code
+    await PlayerGiftCode.create({ userId: userId, code: 'TEST_CODE' });
+
+    // Add cooldown (ThoiGianCho)
+    await ThoiGianCho.create({ idNguoiDung: userId, hanhDong: 'dungeon', hetHan: new Date(Date.now() + 30000) });
+
+    // Add abode
+    await Abode.create({ userId: userId, level: 1 });
+
+    // Add buy history (LichSuMua)
+    await LichSuMua.create({ idNguoiDung: userId, itemId: 'dan_hp_1', soLuong: 1, giaDaTra: 50, giaLoai: 'linh_thach' });
+
+    // Add emoji contribution
+    await DongGopEmoji.create({ idNguoiDung: userId, tenEmoji: 'test_emoji', imageUrl: 'http://example.com/img.png', trangThai: 'PENDING' });
+
+    // Add auction listing
+    const auction = await AuctionListing.create({
+      sellerId: userId,
+      inventoryId: dummyWeapon.id,
+      itemId: 'kiem_go',
+      itemSnapshot: '{}',
+      startPrice: 100,
+      currentPrice: 100,
+      status: 'active',
+      endsAt: new Date(Date.now() + 3600 * 1000)
+    });
+
+    // 2. Perform the Reincarnation Pill usage
+    const useResult = await boDieuKhienVatPham._thucHienDungItem(tuSi, csPillInv, 'chuyen_sinh_dan');
+    assert.strictEqual(useResult.ok, true);
+    assert.ok(useResult.msg.includes("Luân Hồi Chuyển Sinh"));
+
+    // 3. Verify that all records for this player have been deleted
+    const countTuSi = await TuSi.count({ where: { idNguoiDung: userId } });
+    const countInv = await Inventory.count({ where: { idNguoiDung: userId } });
+    const countSkills = await PlayerSkill.count({ where: { idNguoiDung: userId } });
+    const countPets = await Pet.count({ where: { userId: userId } });
+    const countPlots = await GardenPlot.count({ where: { userId: userId } });
+    const countCodes = await PlayerGiftCode.count({ where: { userId: userId } });
+    const countCds = await ThoiGianCho.count({ where: { idNguoiDung: userId } });
+    const countAbode = await Abode.count({ where: { userId: userId } });
+    const countLsm = await LichSuMua.count({ where: { idNguoiDung: userId } });
+    const countEmojis = await DongGopEmoji.count({ where: { idNguoiDung: userId } });
+    const countAuctions = await AuctionListing.count({ where: { sellerId: userId } });
+
+    assert.strictEqual(countTuSi, 0);
+    assert.strictEqual(countInv, 0);
+    assert.strictEqual(countSkills, 0);
+    assert.strictEqual(countPets, 0);
+    assert.strictEqual(countPlots, 0);
+    assert.strictEqual(countCodes, 0);
+    assert.strictEqual(countCds, 0);
+    assert.strictEqual(countAbode, 0);
+    assert.strictEqual(countLsm, 0);
+    assert.strictEqual(countEmojis, 0);
+    assert.strictEqual(countAuctions, 0);
+  });
+
+  test('Gift Code ISEKAI grants 1 Chuyển Sinh Đan', async () => {
+    const { boDieuKhienTuSi } = await import('./controllers/BoDieuKhienTuSi.js');
+    const { GiftCode } = await import('./models/GiftCode.js');
+    const { PlayerGiftCode } = await import('./models/PlayerGiftCode.js');
+
+    // Create a mock player
+    const userId = "888777111222";
+    const tuSi = await TuSi.create({
+      idNguoiDung: userId,
+      ten: "Isekai Tester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      hp: 1200,
+      mp: 100
+    });
+
+    // Create ISEKAI giftcode in DB
+    await GiftCode.upsert({
+      code: 'ISEKAI',
+      linhThach: 0,
+      linhLuc: 0,
+      vnd: 0,
+      itemsJson: JSON.stringify([{ itemId: 'chuyen_sinh_dan', soLuong: 1 }])
+    });
+
+    // Execute use code directly
+    const redeemRes = await boDieuKhienTuSi._thucHienNhapCode(tuSi, 'isekai');
+    assert.strictEqual(redeemRes.ok, true);
+    assert.strictEqual(redeemRes.code, 'ISEKAI');
+
+    // Verify item in inventory
+    const inv = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'chuyen_sinh_dan' } });
+    assert.ok(inv);
+    assert.strictEqual(inv.soLuong, 1);
+
+    // Clean up
+    await inv.destroy();
+    await PlayerGiftCode.destroy({ where: { userId: userId } });
+    await tuSi.destroy();
+  });
+
+  test('Forge upgrade checks and consumes materials', async () => {
+    const { boDieuKhienDongPhu } = await import('./controllers/BoDieuKhienDongPhu.js');
+
+    const userId = "777888999000";
+    const tuSi = await TuSi.create({
+      idNguoiDung: userId,
+      ten: "Thợ Rèn Thử Nghiệm",
+      gioiTinh: "Nam",
+      huongTu: "The Tu",
+      linhCan: "Kim Linh Căn",
+      capDo: 10,
+      hp: 12000,
+      mp: 100,
+      linhThach: 1000
+    });
+
+    // 1. Forge without phế khí
+    const res1 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
+    assert.strictEqual(res1.ok, false);
+    assert.ok(res1.msg.includes("Thiếu phế khí"));
+
+    // Add phế khí to inventory
+    const oldInv = await Inventory.create({ idNguoiDung: userId, itemId: 'kiem_sat_nang', soLuong: 1, trangBi: false });
+
+    // 2. Forge without material
+    const res2 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
+    assert.strictEqual(res2.ok, false);
+    assert.ok(res2.msg.includes("Thiếu nguyên liệu rèn"));
+
+    // Add material to inventory (only 4)
+    const matInv = await Inventory.create({ idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co', soLuong: 4, trangBi: false });
+
+    // 3. Forge with insufficient materials
+    const res3 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
+    assert.strictEqual(res3.ok, false);
+    assert.ok(res3.msg.includes("Thiếu nguyên liệu rèn"));
+
+    // Add 1 more material (total 5)
+    matInv.soLuong = 5;
+    await matInv.save();
+
+    // 4. Forge successfully
+    const res4 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
+    assert.strictEqual(res4.ok, true);
+    assert.ok(res4.msg.includes("Luyện Khí Thành Công"));
+
+    // Check inventory and ling thach
+    const newInv = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'kiem_sat' } });
+    assert.ok(newInv);
+    assert.strictEqual(tuSi.linhThach, 800);
+
+    const checkedMat = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co' } });
+    assert.strictEqual(checkedMat, null);
+
+    // Clean up
+    await newInv.destroy();
+    await tuSi.destroy();
+  });
+
+  test('Tổ Long and Bạch Hổ passive stats verification', async () => {
+    const userId = "555555111222";
+    const tuSi = await TuSi.create({
+      idNguoiDung: userId,
+      ten: "Thú Sư Thử Nghiệm",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thổ Linh Căn",
+      capDo: 25,
+      hp: 10000,
+      mp: 1000
+    });
+
+    // 1. Equip Hỗn Thiên Tổ Long
+    const petLong = await Pet.create({
+      userId: userId,
+      name: "Tổ Long Thử Nghiệm",
+      type: "to_long_1",
+      rarity: "TT_1",
+      level: 1,
+      tuChat: 100,
+      isActive: true
+    });
+
+    const statsLong = await tuSi.layChiSoDayDu();
+    // baseHpVal is 120 + 15 * 24 = 480.
+    // to_long_1 adds 22% HP. basePhapCong is 100.
+    // Let's verify max_hp is boosted by pet.
+    assert.ok(statsLong.max_hp > 5500); // 10x HP + 22% pet bonus
+
+    // 2. Equip Thần Thú Bạch Hổ
+    petLong.isActive = false;
+    await petLong.save();
+
+    const petHo = await Pet.create({
+      userId: userId,
+      name: "Bạch Hổ Thử Nghiệm",
+      type: "bach_ho_1",
+      rarity: "TT_1",
+      level: 1,
+      tuChat: 100,
+      isActive: true
+    });
+
+    const statsHo = await tuSi.layChiSoDayDu();
+    assert.ok(statsHo.max_hp > 5500); // 10x HP + 22% pet bonus
+
+    // Clean up
+    await petLong.destroy();
+    await petHo.destroy();
+    await tuSi.destroy();
   });
 
 });

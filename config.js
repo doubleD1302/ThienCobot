@@ -252,6 +252,12 @@ export const ITEMS = [
   { id: 'giap_tien_tan_thu', ten: 'Tân Thủ Tiên Giáp 🥋', loai: 'Giáp', doHiem: 'Cực hiếm', giaCoSo: 1000, chiSoJson: '{"vat_phong":20,"phap_phong":20,"hp":200}', yeuCauCanhGioi: 1, moTa: 'Linh giáp phòng ngự hộ thể hoàn mỹ cho tân thủ Luyện Khí.', emoji: '<:ao:1522624070741524530>' },
 
   // Đan dược / Thảo dược
+  { id: 'nguyen_lieu_luyen_khi', ten: 'Luyện Khí Thạch 💎', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh thạch sơ cấp chứa ít linh khí dùng để rèn đúc trang bị Luyện Khí.', emoji: '💎' },
+  { id: 'nguyen_lieu_truc_co', ten: 'Huyền Thiết Thạch 🪙', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Quặng huyền thiết thô ráp, cứng cáp dẻo dai dùng để rèn đúc trang bị Trúc Cơ.', emoji: '🪙' },
+  { id: 'nguyen_lieu_kim_dan', ten: 'Kim Đan Linh Sa 🪨', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Linh sa huyền ảo hội tụ đan hỏa linh khí dùng để rèn đúc trang bị Kim Đan.', emoji: '🪨' },
+  { id: 'nguyen_lieu_nguyen_anh', ten: 'Nguyên Anh Hỏa Tinh ☄️', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 750, chiSoJson: '{}', yeuCauCanhGioi: 16, moTa: 'Hỏa linh thể ngưng kết chứa linh quang ấm áp dùng để rèn đúc trang bị Nguyên Anh.', emoji: '☄️' },
+  { id: 'nguyen_lieu_hoa_than', ten: 'Thần Ma Chi Tinh ✨', loai: 'Nguyên liệu', doHiem: 'Cực hiếm', giaCoSo: 1250, chiSoJson: '{}', yeuCauCanhGioi: 19, moTa: 'Tinh hạch rực rỡ mang sức mạnh chuyển đổi hỗn độn dùng để rèn đúc trang bị Hóa Thần.', emoji: '✨' },
+  { id: 'chuyen_sinh_dan', ten: 'Chuyển Sinh Đan 🌀', loai: 'Đan dược', doHiem: 'Huyền thoại', giaCoSo: 9999999, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược chí tôn thượng cổ. Khi sử dụng sẽ khởi động LUÂN HỒI CHUYỂN SINH, xóa bỏ hoàn toàn tất cả dữ liệu tu tiên từ trước tới nay của đạo hữu (Nhân vật, túi đồ, sủng vật, động phủ...) để bắt đầu một kiếp sống mới! Cần CỰC KỲ CÂN NHẮC trước khi dùng.', emoji: '🌀' },
   { id: 'dan_hp_1', ten: 'Bổ Huyết Đan (Sơ) 💊', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{"hp_hoi":100}', yeuCauCanhGioi: 1, moTa: 'Phục hồi 100 điểm khí huyết (HP) bị tổn thương.', emoji: '<:dan_hp:1522644612605411379>' },
   { id: 'dan_mp_1', ten: 'Hồi Thần Đan (Sơ) 💧', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{"mp_hoi":50}', yeuCauCanhGioi: 1, moTa: 'Khôi phục 50 điểm linh lực pháp hải (MP).', emoji: '<:thuoc:1522632141698105354>' },
   { id: 'linh_chi', ten: 'U Minh Linh Chi 🍄', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 30, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh thảo chứa ít linh khí mọc nơi ẩm ướt.', emoji: '<:linh_chi:1522610150853316778>' },
@@ -273,6 +279,32 @@ export const ITEMS = [
   { id: 'dan_hp_2', ten: 'Bổ Huyết Đan (Trung) 🧪', loai: 'Đan dược', doHiem: 'Hiếm', giaCoSo: 200, chiSoJson: '{"hp_hoi":500}', yeuCauCanhGioi: 10, moTa: 'Phục hồi 500 điểm khí huyết (HP) bị tổn thương.', emoji: '<:dan_hp:1522644612605411379>' },
   { id: 'dan_mp_2', ten: 'Hồi Thần Đan (Trung) 🌊', loai: 'Đan dược', doHiem: 'Hiếm', giaCoSo: 200, chiSoJson: '{"mp_hoi":200}', yeuCauCanhGioi: 10, moTa: 'Khôi phục 200 điểm linh lực pháp hải (MP).', emoji: '<:thuoc:1522632141698105354>' },
   { id: 'nhan_sam', ten: 'Tuyết Sơn Nhân Sâm 🥕', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 120, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Nhân sâm ngàn năm thu hoạch trên đỉnh núi tuyết hoang lạnh.', emoji: '<:thuoc:1522632141698105354>' },
+
+  // ==================== CẢNH GIỚI: KIM ĐAN (YÊU CẦU CẤP 13) ====================
+  // Vũ khí Thể Tu
+  { id: 'kiem_kim_dan_thuong', ten: 'Đan Hỏa Thiết Kiếm 🗡️', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{"vat_cong":40}', yeuCauCanhGioi: 13, moTa: 'Thanh kiếm đúc từ sắt thường tẩm đan hỏa lực.', emoji: '<:kiem:1522610147569041419>' },
+  { id: 'kiem_kim_dan', ten: 'Kim Đan Chân Kiếm 🗡️', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"vat_cong":55}', yeuCauCanhGioi: 13, moTa: 'Kiếm linh chứa đan khí cuồn cuộn.', emoji: '<:kiem:1522610147569041419>' },
+
+  // Vũ khí Pháp Tu
+  { id: 'truong_kim_dan_thuong', ten: 'Kim Đan Tiên Trượng 🎋', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{"phap_cong":40}', yeuCauCanhGioi: 13, moTa: 'Linh trượng làm từ trúc già ngấm dược khí.', emoji: '<:truong_phep:1522629314653458472>' },
+  { id: 'truong_kim_dan', ten: 'Đan Linh Pháp Trượng 🎋', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"phap_cong":55}', yeuCauCanhGioi: 13, moTa: 'Pháp trượng ngưng tụ đan vân pháp bảo.', emoji: '<:truong_phep:1522629314653458472>' },
+
+  // Giáp
+  { id: 'ao_kim_dan_thuong', ten: 'Đan Vân Bào 🥋', loai: 'Giáp', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{"vat_phong":20,"phap_phong":20,"hp":200}', yeuCauCanhGioi: 13, moTa: 'Y phục đơn giản tơ lụa thêu hoa văn đan vân.', emoji: '<:ao:1522624070741524530>' },
+  { id: 'ao_kim_dan', ten: 'Kim Đan Pháp Y 🥋', loai: 'Giáp', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"vat_phong":30,"phap_phong":30,"hp":300}', yeuCauCanhGioi: 13, moTa: 'Pháp y hộ thân hộ mệnh khí hải.', emoji: '<:ao:1522624070741524530>' },
+
+  // ==================== CẢNH GIỚI: NGUYÊN ANH (YÊU CẦU CẤP 16) ====================
+  // Vũ khí Thể Tu
+  { id: 'kiem_nguyen_anh_thuong', ten: 'Sơn Hà Trọng Kiếm 🗡️', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 1000, chiSoJson: '{"vat_cong":50}', yeuCauCanhGioi: 16, moTa: 'Thanh kiếm nặng đúc từ sắt thiên thạch sơn hà.', emoji: '<:kiem:1522610147569041419>' },
+  { id: 'kiem_nguyen_anh', ten: 'Nguyên Anh Phá Thiên Kiếm 🗡️', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1800, chiSoJson: '{"vat_cong":75}', yeuCauCanhGioi: 16, moTa: 'Chân kiếm phá thiên khai thiên tích địa.', emoji: '<:kiem:1522610147569041419>' },
+
+  // Vũ khí Pháp Tu
+  { id: 'truong_nguyen_anh_thuong', ten: 'Dục Hỏa Linh Trượng ⚡', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 1000, chiSoJson: '{"phap_cong":50}', yeuCauCanhGioi: 16, moTa: 'Gậy gỗ rực lửa chứa lôi hỏa.', emoji: '<:truong_phep:1522629314653458472>' },
+  { id: 'truong_nguyen_anh', ten: 'Nguyên Thần Tiên Trượng ⚡', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1800, chiSoJson: '{"phap_cong":75}', yeuCauCanhGioi: 16, moTa: 'Linh trượng tẩm nguyên thần linh quang.', emoji: '<:truong_phep:1522629314653458472>' },
+
+  // Giáp
+  { id: 'ao_nguyen_anh_thuong', ten: 'Tiêu Dao Linh Bào 🥋', loai: 'Giáp', doHiem: 'Thường', giaCoSo: 1000, chiSoJson: '{"vat_phong":28,"phap_phong":28,"hp":280}', yeuCauCanhGioi: 16, moTa: 'Bào y tơ lụa mỏng thanh nhã tự tại.', emoji: '<:ao:1522624070741524530>' },
+  { id: 'ao_nguyen_anh', ten: 'Nguyên Anh Hộ Thể Giáp 🥋', loai: 'Giáp', doHiem: 'Hiếm', giaCoSo: 1800, chiSoJson: '{"vat_phong":40,"phap_phong":40,"hp":400}', yeuCauCanhGioi: 16, moTa: 'Bảo giáp dệt từ tơ tằm vàng bảo vệ nguyên anh nguyên thần.', emoji: '<:ao:1522624070741524530>' },
 
   // ==================== CẢNH GIỚI: HÓA THẦN (YÊU CẦU CẤP 19) ====================
   // Vũ khí Thể Tu
@@ -881,8 +913,8 @@ export const PET_TEMPLATES_SEED = [
   { id: 'linh_ho_fox_3', name: 'Cửu Vĩ Linh Hồ', emoji: '🦊', group: 'linh_thu', species: 'linh_ho_fox', statType: 'ne', statValue: 0.15, desc: 'Hộ thể: +15% Né tránh & +8% Bạo kích' },
 
   // 10 Thần Thú (5 species)
-  { id: 'to_long_1', name: 'Hỗn Thiên Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'phap_cong', statValue: 0.22, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +22% Pháp Công & +15% Vật Công' },
-  { id: 'to_long_2', name: 'Thượng Cổ Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'phap_cong', statValue: 0.25, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +25% Pháp Công & +15% Vật Công' },
+  { id: 'to_long_1', name: 'Hỗn Thiên Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.22, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +22% HP & +15% Pháp Công' },
+  { id: 'to_long_2', name: 'Thượng Cổ Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +25% HP & +15% Pháp Công' },
 
   { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +25% HP & +20% Né tránh' },
   { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +28% HP & +22% Né tránh' },
@@ -893,8 +925,8 @@ export const PET_TEMPLATES_SEED = [
   { id: 'huyen_vu_1', name: 'Thần Thú Huyền Vũ', emoji: '<:quy:1522635603718570135>', group: 'than_thu', species: 'huyen_vu', statType: 'giap', statValue: 0.25, desc: 'Chủ động: Huyền Vũ Bảo Vệ. Hộ thể: +25% Giáp & +20% HP' },
   { id: 'huyen_vu_2', name: 'Thượng Cổ Hợp Quy', emoji: '<:quy:1522635603718570135>', group: 'than_thu', species: 'huyen_vu', statType: 'giap', statValue: 0.30, desc: 'Chủ động: Huyền Vũ Bảo Vệ. Hộ thể: +30% Giáp & +25% HP' },
 
-  { id: 'bach_ho_1', name: 'Thần Thú Bạch Hổ', emoji: '<:ho:1522635613822517248>', group: 'than_thu', species: 'bach_ho', statType: 'vat_cong', statValue: 0.22, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +22% Vật Công & +12% Xuyên giáp' },
-  { id: 'bach_ho_2', name: 'Thái Cổ Kim Hổ', emoji: '<:ho:1522635613822517248>', group: 'than_thu', species: 'bach_ho', statType: 'vat_cong', statValue: 0.25, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +25% Vật Công & +15% Xuyên giáp' }
+  { id: 'bach_ho_1', name: 'Thần Thú Bạch Hổ', emoji: '<:ho:1522635613822517248>', group: 'than_thu', species: 'bach_ho', statType: 'max_hp', statValue: 0.22, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +22% HP & +12% Vật Công' },
+  { id: 'bach_ho_2', name: 'Thái Cổ Kim Hổ', emoji: '<:ho:1522635613822517248>', group: 'than_thu', species: 'bach_ho', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +25% HP & +15% Vật Công' }
 ];
 
 export function checkHuyetMachApChe(level, rarity) {

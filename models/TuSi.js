@@ -220,8 +220,8 @@ class TuSi extends Model {
             critRate += 0.08 * scale * evoMult * groupMult;
           }
         } else if (template.species === 'to_long') {
-          phapCong += basePhapCongVal * template.statValue * scale * evoMult * groupMult;
-          vatCong += baseVatCongVal * 0.15 * scale * evoMult * groupMult;
+          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
+          phapCong += basePhapCongVal * 0.15 * scale * evoMult * groupMult;
         } else if (template.species === 'phuong_hoang') {
           maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
           const nePct = activePet.type === 'phuong_hoang_1' ? 0.20 : 0.22;
@@ -235,9 +235,9 @@ class TuSi extends Model {
           const hpPct = activePet.type === 'huyen_vu_1' ? 0.20 : 0.25;
           maxHp += baseHpVal * hpPct * scale * evoMult * groupMult;
         } else if (template.species === 'bach_ho') {
-          vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
-          const xuyenPct = activePet.type === 'bach_ho_1' ? 0.12 : 0.15;
-          xuyenGiap += baseStats.xuyen_giap * xuyenPct * scale * evoMult * groupMult;
+          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
+          const vatPct = activePet.type === 'bach_ho_1' ? 0.12 : 0.15;
+          vatCong += baseVatCongVal * vatPct * scale * evoMult * groupMult;
         }
       }
     }
