@@ -367,6 +367,7 @@ export const ITEMS = [
   { id: 'trung_linh_thu_linh', ten: 'Trứng Linh Thú (Linh) 🥚', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 20000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Linh. Ấp nở có 1% tỷ lệ nở ra Thần Thú.', emoji: '<:trung_linh:1522635608881762444>' },
   { id: 'trung_linh_thu_tien', ten: 'Trứng Linh Thú (Tiên) 🥚', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 100000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Tiên. Ấp nở có 3% tỷ lệ nở ra Thần Thú. Có bán ở shop.', emoji: '<:trung_tien:1522632128096108584>' },
   { id: 'trung_linh_thu_than', ten: 'Trứng Linh Thú (Thần) 🥚', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 500000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Thần. Ấp nở có 50% tỷ lệ nở ra Thần Thú.', emoji: '<:trung_than:1522635611133968566>' },
+  { id: 'trung_than', ten: 'Trứng Thần Thú 🌟', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 500000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng huyền bí ngưng tụ thần uy. Ấp nở có 50% nở ra Thần Thú, 50% nở ra Linh Thú.', emoji: '<:trung_than:1522635611133968566>' },
 
   // Linh sủng đan & Vạn yêu quả
   { id: 'hoa_than_linh_sung_dan', ten: 'Hóa Thần Linh Sủng Đan 🔴', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 19, moTa: 'Đan dược nghịch thiên cải mệnh, giúp Linh Thú đạt trạng thái MAX tiến hóa ngẫu nhiên thành Thần Thú.', emoji: '<:hoa_than_pet:1522610156720881804>' },
@@ -696,9 +697,9 @@ export function rollDynamicStats(item) {
 
 // Cấu hình Kỹ Năng Chủ Động của Pháp Bảo
 export const KYNANG_PHAPBAO_ACTIVE = {
-  phap_bao_ho_than: { ten: "Thủy Vân Trị Liệu", loai: "hoi_mau_pct", triGia: 15, duration: 0, moTa: "Hồi phục 15% HP tối đa khi vào trận chiến." },
-  phap_bao_cong_kich: { ten: "Liệt Diễm Tiễn", loai: "tan_cong", triGia: 250, duration: 0, moTa: "Gây 250 sát thương cố định khi vào trận chiến." },
-  phap_bao_hon_ton: { ten: "Hỗn Độn Thần Lực", loai: "tang_cong_pct", triGia: 20, duration: 3, moTa: "Tăng 20% Công kích trong 3 hiệp đầu trận." }
+  phap_bao_ho_than: { ten: "Phù Vân Hộ Thể 🛡️", loai: "khien", triGia: 120, duration: 0, moTa: "Ngưng tụ sương mù khiên hộ thể, chặn 120 sát thương kế tiếp." },
+  phap_bao_cong_kich: { ten: "Hỏa Long Chủy 🔱", loai: "tan_cong", triGia: 320, duration: 0, moTa: "Phóng thần lao lửa oanh tạc địch nhân, gây 320 sát thương pháp bảo." },
+  phap_bao_hon_ton: { ten: "Hỗn Độn Phá Thiên 🔔", loai: "hon_hop", triGia: 550, triGiaKhien: 250, duration: 0, moTa: "Chuông vàng gõ vang gây 550 sát thương pháp bảo và tạo khiên 250 phòng ngự." }
 };
 
 export function layKyNangPhapBaoActive(itemOrId) {

@@ -297,6 +297,11 @@ async function autoDiBiCanh(tuSi) {
             triGia: activeSkill.triGia,
             roundsLeft: activeSkill.duration
           });
+        } else if (activeSkill.loai === 'khien') {
+          playerShield = (playerShield || 0) + activeSkill.triGia;
+        } else if (activeSkill.loai === 'hon_hop') {
+          monsterHp = Math.max(0, monsterHp - activeSkill.triGia);
+          playerShield = (playerShield || 0) + activeSkill.triGiaKhien;
         }
       }
     }

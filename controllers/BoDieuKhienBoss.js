@@ -430,9 +430,9 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       // Chọn ngẫu nhiên một loài Boss
       const tpl = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
 
-      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 5 * 100;
-      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100;
-      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100;
+      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 5 * 100 * 3;
+      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2;
+      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2;
       const vatPhong = bossLevel * 100 + 50;
       const phapPhong = bossLevel * 100 + 50;
       const giap = bossLevel * 10 + 20;
@@ -708,6 +708,14 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           } else if (activeSkill.loai === 'tang_cong_pct') {
             playerAtkMult += activeSkill.triGia / 100;
             pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gia tăng \`+${activeSkill.triGia}%\` Công kích.`);
+          } else if (activeSkill.loai === 'khien') {
+            playerShield = (playerShield || 0) + activeSkill.triGia;
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Tạo khiên bảo vệ \`+${activeSkill.triGia}\` HP.`);
+          } else if (activeSkill.loai === 'hon_hop') {
+            monsterHp = Math.max(0, monsterHp - activeSkill.triGia);
+            totalDmgDealt += activeSkill.triGia;
+            playerShield = (playerShield || 0) + activeSkill.triGiaKhien;
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gây thêm \`+${activeSkill.triGia}\` sát thương và tạo khiên \`+${activeSkill.triGiaKhien}\` HP.`);
           }
         }
       }

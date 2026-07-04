@@ -163,6 +163,8 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           // Kích hoạt kỹ năng chủ động của Pháp Bảo khi vào chiến đấu
           const activeBuffsA = [];
           const activeBuffsB = [];
+          let shieldA = 0;
+          let shieldB = 0;
 
           // Phát động Pháp Bảo của A
           const dharmaA = eqA.inv.filter(x => x.item.loai === 'Pháp Bảo');
@@ -185,6 +187,13 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
                   roundsLeft: activeSkill.duration
                 });
                 battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, gia tăng \`+${activeSkill.triGia}%\` Công kích trong \`${activeSkill.duration}\` hiệp.`);
+              } else if (activeSkill.loai === 'khien') {
+                shieldA = (shieldA || 0) + activeSkill.triGia;
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, tạo khiên chắn \`+${activeSkill.triGia}\` HP (Khiên hiện tại: \`${shieldA}\`).`);
+              } else if (activeSkill.loai === 'hon_hop') {
+                hpB = Math.max(0, hpB - activeSkill.triGia);
+                shieldA = (shieldA || 0) + activeSkill.triGiaKhien;
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, gây \`${activeSkill.triGia}\` sát thương lên **${tuSiB.ten}** (HP còn: \`${hpB}\`) và tạo khiên chắn \`+${activeSkill.triGiaKhien}\` HP (Khiên hiện tại: \`${shieldA}\`).`);
               }
             }
           }
@@ -210,6 +219,13 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
                   roundsLeft: activeSkill.duration
                 });
                 battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, gia tăng \`+${activeSkill.triGia}%\` Công kích trong \`${activeSkill.duration}\` hiệp.`);
+              } else if (activeSkill.loai === 'khien') {
+                shieldB = (shieldB || 0) + activeSkill.triGia;
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, tạo khiên chắn \`+${activeSkill.triGia}\` HP (Khiên hiện tại: \`${shieldB}\`).`);
+              } else if (activeSkill.loai === 'hon_hop') {
+                hpA = Math.max(0, hpA - activeSkill.triGia);
+                shieldB = (shieldB || 0) + activeSkill.triGiaKhien;
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, gây \`${activeSkill.triGia}\` sát thương lên **${tuSiA.ten}** (HP còn: \`${hpA}\`) và tạo khiên chắn \`+${activeSkill.triGiaKhien}\` HP (Khiên hiện tại: \`${shieldB}\`).`);
               }
             }
           }
@@ -230,7 +246,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
           const atkB = tuSiB.huongTu === 'The Tu' ? statsB.vat_cong : statsB.phap_cong;
           const defA = tuSiB.huongTu === 'The Tu' ? statsA.vat_phong : statsA.phap_phong;
 
-          while (hpA > 0 && hpB > 0 && round <= 15) {
+          while (hpA > 0 && hpB > 0 && round <= 300) {
             // Lượt A đánh B
             let roundAtkAMult = 1.0;
             for (const buff of activeBuffsA) {
@@ -269,8 +285,21 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             if (Math.random() <= statsB.ne) {
               battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiA.ten}** ${castMsgA} nhưng **${tuSiB.ten}** ảo ảnh lướt nhẹ né tránh thành công!`);
             } else {
-              hpB = Math.max(0, hpB - dmgA);
-              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiA.ten}** ${castMsgA} gây \`${dmgA}\`${isCritA ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiB.ten}** (HP còn: \`${hpB}\`).`);
+              if (shieldB > 0) {
+                if (shieldB >= dmgA) {
+                  shieldB -= dmgA;
+                  battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiB.ten}** hấp thụ toàn bộ \`${dmgA}\` sát thương (Khiên còn: \`${shieldB}\`).`);
+                  dmgA = 0;
+                } else {
+                  dmgA -= shieldB;
+                  battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiB.ten}** hấp thụ \`${shieldB}\` sát thương rồi vỡ! Sát thương lọt qua: \`${dmgA}\`.`);
+                  shieldB = 0;
+                }
+              }
+              if (dmgA > 0) {
+                hpB = Math.max(0, hpB - dmgA);
+                battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiA.ten}** ${castMsgA} gây \`${dmgA}\`${isCritA ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiB.ten}** (HP còn: \`${hpB}\`).`);
+              }
             }
 
             if (hpB <= 0) {
@@ -316,8 +345,21 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             if (Math.random() <= statsA.ne) {
               battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiB.ten}** ${castMsgB} nhưng **${tuSiA.ten}** né tránh thành công!`);
             } else {
-              hpA = Math.max(0, hpA - dmgB);
-              battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiB.ten}** ${castMsgB} gây \`${dmgB}\`${isCritB ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiA.ten}** (HP còn: \`${hpA}\`).`);
+              if (shieldA > 0) {
+                if (shieldA >= dmgB) {
+                  shieldA -= dmgB;
+                  battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiA.ten}** hấp thụ toàn bộ \`${dmgB}\` sát thương (Khiên còn: \`${shieldA}\`).`);
+                  dmgB = 0;
+                } else {
+                  dmgB -= shieldA;
+                  battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiA.ten}** hấp thụ \`${shieldA}\` sát thương rồi vỡ! Sát thương lọt qua: \`${dmgB}\`.`);
+                  shieldA = 0;
+                }
+              }
+              if (dmgB > 0) {
+                hpA = Math.max(0, hpA - dmgB);
+                battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiB.ten}** ${castMsgB} gây \`${dmgB}\`${isCritB ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiA.ten}** (HP còn: \`${hpA}\`).`);
+              }
             }
 
             if (hpA <= 0) {
@@ -349,34 +391,76 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
 
           if (!winner) {
             winner = hpA >= hpB ? tuSiA : tuSiB;
-            battleLogs.push(`⏳ Bất phân thắng bại sau 15 hiệp! Xét lượng khí huyết còn lại để định đoạt.`);
+            battleLogs.push(`⏳ Bất phân thắng bại sau 300 hiệp! Xét lượng khí huyết còn lại để định đoạt.`);
           }
 
-          const displayLogs = battleLogs.length > 8 ? battleLogs.slice(-8) : battleLogs;
-          let logsText = '';
-          for (let i = displayLogs.length - 1; i >= 0; i--) {
-            const line = displayLogs[i];
-            const nextText = (logsText ? '\n' : '') + line;
-            if (logsText.length + nextText.length > 900) {
-              logsText = '...\n' + logsText;
-              break;
-            }
-            logsText = line + (logsText ? '\n' + logsText : '');
+          const totalPages = Math.ceil(battleLogs.length / 15);
+          let currentPageIdx = 0;
+
+          const renderPage = (pageIdx) => {
+            const start = pageIdx * 15;
+            const end = start + 15;
+            const pageLogs = battleLogs.slice(start, end).join('\n') || 'Trận đấu không có nhật ký ở trang này.';
+
+            const embed = new EmbedBuilder()
+              .setTitle(`⚔️ Kết Quả Tỷ Thí Giao Hữu (Trang ${pageIdx + 1}/${totalPages})`)
+              .setColor(0x3498db)
+              .setDescription(
+                `⚔️ Cuộc tỷ thí long trời lở đất giữa hai vị đạo hữu kết thúc!\n\n` +
+                `🏆 **Người chiến thắng**: **${winner.ten}**\n\n` +
+                `📝 **Nhật ký tỷ thí**:\n` +
+                pageLogs
+              )
+              .setTimestamp();
+
+            const row = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('btn_prev')
+                .setLabel('◀️ Trang Trước')
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(pageIdx === 0),
+              new ButtonBuilder()
+                .setCustomId('btn_next')
+                .setLabel('Trang Sau ▶️')
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(pageIdx === totalPages - 1)
+            );
+
+            return { embeds: [embed], components: totalPages > 1 ? [row] : [] };
+          };
+
+          const replyMsg = await i.editReply(renderPage(currentPageIdx));
+
+          if (totalPages > 1) {
+            const pageCollector = replyMsg.createMessageComponentCollector({
+              filter: btnInt => btnInt.user.id === interaction.user.id,
+              time: 180_000
+            });
+
+            pageCollector.on('collect', async btnInt => {
+              await btnInt.deferUpdate();
+              if (btnInt.customId === 'btn_prev') {
+                currentPageIdx = Math.max(0, currentPageIdx - 1);
+              } else if (btnInt.customId === 'btn_next') {
+                currentPageIdx = Math.min(totalPages - 1, currentPageIdx + 1);
+              }
+              await btnInt.editReply(renderPage(currentPageIdx));
+            });
+
+            pageCollector.on('end', async () => {
+              try {
+                const finalState = renderPage(currentPageIdx);
+                if (finalState.components.length > 0) {
+                  const disabledRow = new ActionRowBuilder().addComponents(
+                    finalState.components[0].components.map(btn => ButtonBuilder.from(btn).setDisabled(true))
+                  );
+                  await interaction.editReply({ components: [disabledRow] });
+                }
+              } catch (e) {
+                // Ignore errors
+              }
+            });
           }
-          if (!logsText) logsText = 'Trận đấu diễn ra quá nhanh...';
-
-          const resultEmbed = new EmbedBuilder()
-            .setTitle(`⚔️ Kết Quả Tỷ Thí Giao Hữu`)
-            .setColor(0x3498db)
-            .setDescription(
-              `⚔️ Cuộc tỷ thí long trời lở đất giữa hai vị đạo hữu kết thúc!\n\n` +
-              `🏆 **Người chiến thắng**: **${winner.ten}**\n\n` +
-              `📝 **Nhật ký tỷ thí**:\n` +
-              logsText
-            )
-            .setTimestamp();
-
-          await i.editReply({ embeds: [resultEmbed], components: [] });
         }
 
         // ══════════════════════════════════════════════════════════════

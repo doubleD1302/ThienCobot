@@ -206,6 +206,13 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                 roundsLeft: activeSkill.duration
               });
               battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, gia tăng \`+${activeSkill.triGia}%\` Công kích trong \`${activeSkill.duration}\` hiệp.`);
+            } else if (activeSkill.loai === 'khien') {
+              playerShield = (playerShield || 0) + activeSkill.triGia;
+              battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, tạo khiên chắn vững chắc \`+${activeSkill.triGia}\` HP (Khiên hiện tại: \`${playerShield}\`).`);
+            } else if (activeSkill.loai === 'hon_hop') {
+              monsterHp = Math.max(0, monsterHp - activeSkill.triGia);
+              playerShield = (playerShield || 0) + activeSkill.triGiaKhien;
+              battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, gây \`${activeSkill.triGia}\` sát thương lên **${monster.ten}** (HP còn: \`${monsterHp}\`) và tạo khiên chắn \`+${activeSkill.triGiaKhien}\` HP (Khiên hiện tại: \`${playerShield}\`).`);
             }
           }
         }

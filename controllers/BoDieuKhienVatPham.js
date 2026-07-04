@@ -415,7 +415,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         const decoded = decodeToolbarValue(curVal);
         if (!decoded) return null;
         const { invId, loai, itemId } = decoded;
-        const isEgg    = itemId === 'trung_linh_thu' || itemId === 'trung_than_thu';
+        const isEgg    = itemId && itemId.startsWith('trung_');
         const isEquip  = EQUIP_TYPES.includes(loai);
         const isUsable = loai === 'Đan dược' || loai === 'Chí bảo' || isEgg;
         const selectedItem = itemsList.find(o => o.invId === invId);
@@ -813,7 +813,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
     const itemDetail = await Item.findByPk(inv.itemId ?? itemId);
     if (!itemDetail) return { ok: false, msg: 'Không tìm thấy thông tin vật phẩm.' };
 
-    const isEgg = itemDetail.id === 'trung_linh_thu' || itemDetail.id === 'trung_than_thu';
+    const isEgg = itemDetail.id && itemDetail.id.startsWith('trung_');
 
     if (itemDetail.loai !== 'Đan dược' && itemDetail.loai !== 'Chí bảo' && !isEgg) {
       return { ok: false, msg: `Vật phẩm này không phải đan dược, chí bảo hay trứng linh thú có thể sử dụng.` };
@@ -827,52 +827,44 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
     // Xử lý ấp trứng linh thú
     if (isEgg) {
       const { Pet } = await import('../models/Pet.js');
-      const { PET_TEMPLATES } = await import('../config.js');
-
-      let targetType = 'ma_lang';
-      let rarity = 'NORMAL';
-      let defaultName = 'Ma Lang 🐺';
-      let tuChat = 100;
-
-      const roll = Math.random() * 100;
       const eggId = itemDetail.id;
 
-      if (eggId === 'trung_linh_thu') {
-        tuChat = 100 + Math.floor(Math.random() * 61); // Tư chất bất kỳ: 100 - 160
-        if (roll <= 33) {
-          targetType = 'ma_lang';
-          defaultName = 'U Minh Ma Lang 🐺';
-        } else if (roll <= 66) {
-          targetType = 'loi_diep';
-          defaultName = 'Lôi Điệp 🦋';
-        } else {
-          targetType = 'than_vien';
-          defaultName = 'Thần Viên 🦍';
-        }
-      } else {
-        rarity = 'ANCIENT';
-        tuChat = 150 + Math.floor(Math.random() * 71); // Tư chất bất kỳ: 150 - 220
-        if (roll <= 33) {
-          targetType = 'to_long';
-          defaultName = 'Tổ Long 🐉';
-        } else if (roll <= 66) {
-          targetType = 'phuong_hoang';
-          defaultName = 'Hỏa Phượng 🐦';
-        } else {
-          targetType = 'ky_lan';
-          defaultName = 'Kỳ Lân 🦄';
-        }
+      let rollThanThuRate = 0; // Tỷ lệ nở ra Thần Thú
+
+      if (eggId === 'trung_linh_thu_than' || eggId === 'trung_than_thu' || eggId === 'trung_than') {
+        rollThanThuRate = 50;
+      } else if (eggId === 'trung_linh_thu_tien') {
+        rollThanThuRate = 3;
+      } else if (eggId === 'trung_linh_thu_linh') {
+        rollThanThuRate = 1;
+      } else if (eggId === 'trung_linh_thu_pham' || eggId === 'trung_linh_thu') {
+        rollThanThuRate = 0;
       }
 
-      // Khởi tạo linh thú
+      const roll = Math.random() * 100;
+      const isThan = roll < rollThanThuRate;
+
+      let selectedTemplate = null;
+      if (isThan) {
+        const templates = config.PET_TEMPLATES_SEED.filter(t => t.group === 'than_thu');
+        selectedTemplate = templates[Math.floor(Math.random() * templates.length)];
+      } else {
+        const templates = config.PET_TEMPLATES_SEED.filter(t => t.group === 'linh_thu');
+        selectedTemplate = templates[Math.floor(Math.random() * templates.length)];
+      }
+
+      const rarity = isThan ? 'TT_1' : 'LT_1';
+      const cleanName = selectedTemplate.name;
+      const formattedName = config.getFormattedPetName(cleanName, rarity, 0, false);
+
       const pet = await Pet.create({
-        userId:  tuSi.idNguoiDung,
-        name:    defaultName,
-        type:    targetType,
-        rarity:  rarity,
-        level:   1,
-        exp:     0,
-        tuChat:  tuChat,
+        userId: tuSi.idNguoiDung,
+        name: formattedName,
+        type: selectedTemplate.id,
+        rarity: rarity,
+        level: 1,
+        exp: 0,
+        tuChat: 100 + Math.floor(Math.random() * 30),
         isActive: false
       });
 
@@ -881,11 +873,11 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       if (inv.soLuong <= 0) await inv.destroy();
       else await inv.save();
 
-      const petNameInTpl = PET_TEMPLATES[targetType]?.name || defaultName;
+      const displaySpecies = config.PET_TEMPLATES[pet.type]?.name || pet.type;
 
       return {
         ok:  true,
-        msg: `🐣 **Ấp Trứng Thành Công!**\nQuả trứng vỡ ra, một chú **${petNameInTpl}** nhỏ bé chui ra chào đạo hữu!\n\n` +
+        msg: `🐣 **Ấp Trứng Thành Công!**\nQuả trứng vỡ ra, một chú **${displaySpecies}** nhỏ bé chui ra chào đạo hữu!\n\n` +
              `• **Tên linh thú**: \`${pet.name}\`\n` +
              `• **Tư chất**: \`${pet.tuChat}\` *(chỉ số bất kỳ theo phẩm chất trứng)*\n` +
              `*Đạo hữu hãy gõ lệnh \`/dongphu\` (mục Linh Thú) để quản lý hoặc trang bị (cho xuất chiến) linh thú này.*`

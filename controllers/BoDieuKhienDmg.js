@@ -132,7 +132,7 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
       for (const eq of dharmaTreasures) {
         const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
         if (activeSkill) {
-          if (activeSkill.loai === 'tan_cong') {
+          if (activeSkill.loai === 'tan_cong' || activeSkill.loai === 'hon_hop') {
             pbExtraDmg += activeSkill.triGia;
             pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gây thêm \`+${activeSkill.triGia}\` sát thương.`);
           } else if (activeSkill.loai === 'tang_cong_pct') {
