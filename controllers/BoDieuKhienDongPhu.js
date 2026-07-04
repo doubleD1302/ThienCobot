@@ -80,6 +80,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     let menuStack = [...initialStack]; // Stack màn hình tuỳ chỉnh để back/quay lại
       let selectedSlotIndex = null; // Ô đất đang chọn
       let selectedPetId = null;     // Sủng vật đang chọn để thao tác
+      let foodPage = 0;             // Trang phân trang menu thức ăn sủng vật
       let actionMessage = null;     // Lưu thông báo kết quả hành động
 
       // Kiểm tra reset ngày tưới nước/ăn đan dược
@@ -705,19 +706,42 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           );
           rows.push(actionRow1);
 
-          // Hàng 2: Menu chọn đồ ăn
+          // Hàng 2: Menu chọn đồ ăn (phân trang 23 items/trang vì Discord giới hạn 25 options)
+          const FOOD_PAGE_SIZE = 23;
+          const totalFoodPages = foods.length > 0 ? Math.ceil(foods.length / FOOD_PAGE_SIZE) : 1;
+          // Đảm bảo foodPage không vượt quá số trang hiện tại
+          if (foodPage >= totalFoodPages) foodPage = Math.max(0, totalFoodPages - 1);
+          const foodsThisPage = foods.slice(foodPage * FOOD_PAGE_SIZE, (foodPage + 1) * FOOD_PAGE_SIZE);
+
           if (foods.length > 0) {
             rows.push(
               new ActionRowBuilder().addComponents(
                 new StringSelectMenuBuilder()
                   .setCustomId('pet_action_feed_menu')
-                  .setPlaceholder('🍼 Chọn thức ăn để tăng EXP cho sủng vật...')
-                  .addOptions(foods.map(f => ({
+                  .setPlaceholder(`🍼 Chọn thức ăn... (Trang ${foodPage + 1}/${totalFoodPages})`)
+                  .addOptions(foodsThisPage.map(f => ({
                     label: `${f.item.ten} (Có: ${f.soLuong})`,
                     value: f.item.id
                   })))
               )
             );
+            // Nút điều hướng trang thức ăn (chỉ hiện khi có > 1 trang)
+            if (totalFoodPages > 1) {
+              rows.push(
+                new ActionRowBuilder().addComponents(
+                  new ButtonBuilder()
+                    .setCustomId('pet_food_prev')
+                    .setLabel('◀ Trang Trước')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(foodPage === 0),
+                  new ButtonBuilder()
+                    .setCustomId('pet_food_next')
+                    .setLabel('Trang Sau ▶')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(foodPage >= totalFoodPages - 1)
+                )
+              );
+            }
           } else {
             rows.push(
               new ActionRowBuilder().addComponents(
@@ -847,6 +871,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           }
           selectedSlotIndex = null;
           selectedPetId = null;
+          foodPage = 0; // Reset trang thức ăn khi quay lại
         }
 
         // ── XỬ LÝ MAIN MENU ──────────────────────────────────────────────────
@@ -1013,6 +1038,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         else if (currentMenu === 'PETS') {
           if (i.customId === 'pet_select') {
             selectedPetId = parseInt(i.values[0], 10);
+            foodPage = 0; // Reset trang thức ăn khi chọn sủng vật mới
             menuStack.push('PET_DETAIL');
           } else if (i.customId === 'pet_egg_hatch') {
             const eggId = i.values[0];
@@ -1089,6 +1115,12 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                   actionMessage = BoTaoEmbed.thanhCong('⚔️ Sủng vật xuất chiến', `**${pet.name}** đã xuất chiến hộ mệnh đạo hữu.`);
                 }
               }
+            } else if (i.customId === 'pet_food_prev') {
+              foodPage = Math.max(0, foodPage - 1);
+            } else if (i.customId === 'pet_food_next') {
+              const allFoods = myInventory.filter(e => (e.item.loai === 'Linh thảo' && e.item.id.includes('_')) || e.item.id.startsWith('van_yeu_qua_'));
+              const maxPage = Math.ceil(allFoods.length / 23) - 1;
+              foodPage = Math.min(maxPage, foodPage + 1);
             } else if (i.customId === 'pet_action_renounce') {
               await pet.destroy();
               actionMessage = BoTaoEmbed.thanhCong('💥 Thả sủng vật', `Đạo hữu đã phóng sinh sủng vật thành công.`);

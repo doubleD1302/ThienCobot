@@ -653,7 +653,7 @@ export function rollDynamicStats(item) {
   for (const stat of selectedStats) {
     const rand = Math.random();
     let quality, color, minPercent, maxPercent;
-    
+
     if (rand < 0.05) {
       quality = "Thần Thoại";
       color = "cam";
@@ -913,14 +913,14 @@ export const PET_TEMPLATES_SEED = [
   { id: 'linh_ho_fox_3', name: 'Cửu Vĩ Linh Hồ', emoji: '🦊', group: 'linh_thu', species: 'linh_ho_fox', statType: 'ne', statValue: 0.15, desc: 'Hộ thể: +15% Né tránh & +8% Bạo kích' },
 
   // 10 Thần Thú (5 species)
-  { id: 'to_long_1', name: 'Hỗn Thiên Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.22, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +22% HP & +15% Pháp Công' },
-  { id: 'to_long_2', name: 'Thượng Cổ Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +25% HP & +15% Pháp Công' },
+  { id: 'to_long_1', name: 'Hỗn Thiên Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.20, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +20% HP & +20% Pháp Công' },
+  { id: 'to_long_2', name: 'Thượng Cổ Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +25% HP & +25% Pháp Công' },
 
   { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +25% HP & +20% Né tránh' },
   { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +28% HP & +22% Né tránh' },
 
-  { id: 'ky_lan_1', name: 'Bạch Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% HP & +25% Công' },
-  { id: 'ky_lan_2', name: 'Thiên Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +28% HP & +28% Công' },
+  { id: 'ky_lan_1', name: 'Bạch Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.20, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +20% HP & +20% Công' },
+  { id: 'ky_lan_2', name: 'Thiên Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% HP & +25% Công' },
 
   { id: 'huyen_vu_1', name: 'Thần Thú Huyền Vũ', emoji: '<:quy:1522635603718570135>', group: 'than_thu', species: 'huyen_vu', statType: 'giap', statValue: 0.25, desc: 'Chủ động: Huyền Vũ Bảo Vệ. Hộ thể: +25% Giáp & +20% HP' },
   { id: 'huyen_vu_2', name: 'Thượng Cổ Hợp Quy', emoji: '<:quy:1522635603718570135>', group: 'than_thu', species: 'huyen_vu', statType: 'giap', statValue: 0.30, desc: 'Chủ động: Huyền Vũ Bảo Vệ. Hộ thể: +30% Giáp & +25% HP' },
