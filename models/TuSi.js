@@ -249,6 +249,13 @@ class TuSi extends Model {
     const phatVatCong = this.phatVatCong || 0.0;
     const phatPhapCong = this.phatPhapCong || 0.0;
 
+    // Giới hạn né tránh và quy đổi né tránh dư thừa thành HP
+    if (ne > 0.30) {
+      const excessNe = ne - 0.30;
+      maxHp = maxHp * (1.0 + excessNe * 0.1);
+      ne = 0.30;
+    }
+
     maxHp = Math.floor(maxHp * (1.0 - phatHp) * 10);
     maxMp = Math.floor(maxMp * (1.0 - phatMp));
     vatCong = Math.floor(vatCong * (1.0 - phatVatCong));
