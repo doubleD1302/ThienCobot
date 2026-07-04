@@ -111,8 +111,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Kiểm tra chỉ số cơ bản
     const stats = tuSi.layChiSo();
-    // Thể Tu HP gốc = 200
-    assert.strictEqual(stats.max_hp, 200);
+    // Thể Tu HP gốc = 200 -> nhân 10 = 2000
+    assert.strictEqual(stats.max_hp, 2000);
     // Thể Tu MP gốc = 50
     assert.strictEqual(stats.max_mp, 50);
     // Lôi Linh Căn: bạo thương tăng thêm 30% -> 1.50 + 0.30 = 1.80
@@ -127,8 +127,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(tuSi.tang, 1);
 
     const statsLvl10 = tuSi.layChiSo();
-    // Thể Tu HP tăng trưởng = 30 / cấp. Cấp 10 = 200 + 30 * 9 = 470
-    assert.strictEqual(statsLvl10.max_hp, 470);
+    // Thể Tu HP tăng trưởng = 30 / cấp. Cấp 10 = (200 + 30 * 9) * 10 = 4700
+    assert.strictEqual(statsLvl10.max_hp, 4700);
     // Thể Tu MP tăng trưởng = 5 / cấp. Cấp 10 = 50 + 5 * 9 = 95
     assert.strictEqual(statsLvl10.max_mp, 95);
   });
@@ -331,7 +331,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     
     assert.strictEqual(statsEquipped.vat_cong, expectedAtkWithItem);
     assert.strictEqual(statsEquipped.vat_phong, statsRaw.vat_phong + 20);  // x2 from equipment
-    assert.strictEqual(statsEquipped.max_hp, statsRaw.max_hp + 500);        // x10 from equipment
+    assert.strictEqual(statsEquipped.max_hp, statsRaw.max_hp + 5000);        // x10 from equipment * 10 = 5000
 
     await tuSi.destroy();
   });
@@ -412,8 +412,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       capDo: 1,
       linhLuc: 100,
       linhThach: 100,
-      hp: 100,
-      mp: 100
+      hp: 2000,
+      mp: 1000
     });
     tuSi.linhCanList = ["Hoa"];
     await tuSi.save();
@@ -1137,7 +1137,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Verify layChiSoDayDu includes the bonus HP/MP
     const stats = await tuSi.layChiSoDayDu();
-    assert.strictEqual(stats.max_hp, 2120); // 120 base + 200 * 10 bonus = 2120
+    assert.strictEqual(stats.max_hp, 21200); // (120 base + 200 * 10 bonus) * 10 = 21200
     assert.strictEqual(stats.max_mp, 250);  // 150 base + 100 bonus = 250 (mp unchanged)
 
     // Test item recovery
@@ -1162,8 +1162,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(useRes.ok, true);
 
     await tuSi.reload();
-    // HP should recover: 10 + 500 = 510, below new max_hp of 2120 so not capped
-    assert.strictEqual(tuSi.hp, 510);
+    // HP should recover: 10 + 500 * 10 = 5010, below new max_hp of 21200 so not capped
+    assert.strictEqual(tuSi.hp, 5010);
 
     // Test rest recovery (/nghi)
     tuSi.hp = 1;
@@ -1181,8 +1181,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     };
     await boDieuKhienTuLuyen.lenhNghiNgoi.execute(mockInteraction);
     await tuSi.reload();
-    // HP and MP should go to full bonus maximums (2120 and 250 with new x10 hp multiplier)
-    assert.strictEqual(tuSi.hp, 2120);
+    // HP and MP should go to full bonus maximums (21200 and 250 with new x10 hp multiplier)
+    assert.strictEqual(tuSi.hp, 21200);
     assert.strictEqual(tuSi.mp, 250);
 
     // Clean up
@@ -1830,6 +1830,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       kichHoatAuto: false,
       theLuc: 10
     });
+    const stats = tuSi.layChiSo();
+    tuSi.hp = stats.max_hp;
+    tuSi.mp = stats.max_mp;
+    await tuSi.save();
 
     // Make sure we have a dungeon in DB for level 1
     const testDg = await Dungeon.create({
@@ -1877,6 +1881,11 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // - Deduct 5 minutes of auto time (leaving 245)
     // - Perform autoDiBiCanh (costs 1 stamina, gives exp and stones)
     // - Perform autoDiLichLuyen (costs 1 stamina, gives exp and stones)
+    const statsLatest = await tuSi.layChiSoDayDu();
+    tuSi.hp = statsLatest.max_hp;
+    tuSi.mp = statsLatest.max_mp;
+    await tuSi.save();
+
     await chayTienTrinhAuto();
 
     await tuSi.reload();
@@ -1905,7 +1914,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // --- 6. Test subsequent loop execution accumulates from 0 ---
     // Restore health so it can run another round
-    tuSi.hp = 100;
+    tuSi.hp = 1200;
     await tuSi.save();
 
     // Clear cooldowns so it can run immediately
@@ -2387,8 +2396,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Than Vien base protect: +15% HP, scale = (level 1 * tuChat 100)/100 = 1.0.
     // evoMult = Math.pow(1.1, 1) = 1.10.
     // HP bonus: 200 * 0.15 * 1.0 * 1.10 = 33 HP.
-    // Total HP should be 220 + 33 = 253.
-    assert.strictEqual(stats.max_hp, 253);
+    // Total HP should be (220 + 33) * 10 = 2530.
+    assert.strictEqual(stats.max_hp, 2530);
 
     // Clean up
     await pet.destroy();

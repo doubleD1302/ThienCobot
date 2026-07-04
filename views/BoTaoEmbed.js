@@ -615,7 +615,7 @@ export class BoTaoEmbed {
         if (stats.phap_phong) parts.push(`• Pháp Phòng: \`+${stats.phap_phong}\``);
         if (stats.hp) parts.push(`• Khí huyết (HP): \`+${stats.hp}\``);
         if (stats.mp) parts.push(`• Pháp lực (MP): \`+${stats.mp}\``);
-        if (stats.hp_hoi) parts.push(`• Hồi HP: \`+${stats.hp_hoi}\``);
+        if (stats.hp_hoi) parts.push(`• Hồi HP: \`+${stats.hp_hoi * 10}\``);
         if (stats.mp_hoi) parts.push(`• Hồi MP: \`+${stats.mp_hoi}\``);
         if (stats.exp_bonus) parts.push(`• Linh lực nhận thêm: \`+${stats.exp_bonus}\``);
         baseStatsTxt = parts.join('\n');
@@ -701,7 +701,7 @@ export class BoTaoEmbed {
         if (stats.phap_phong) parts.push(`• Pháp Phòng: \`+${stats.phap_phong}\``);
         if (stats.hp)         parts.push(`• Khí huyết (HP): \`+${stats.hp}\``);
         if (stats.mp)         parts.push(`• Pháp lực (MP): \`+${stats.mp}\``);
-        if (stats.hp_hoi)     parts.push(`• Hồi HP: \`+${stats.hp_hoi}\``);
+        if (stats.hp_hoi)     parts.push(`• Hồi HP: \`+${stats.hp_hoi * 10}\``);
         if (stats.mp_hoi)     parts.push(`• Hồi MP: \`+${stats.mp_hoi}\``);
         if (stats.exp_bonus)  parts.push(`• Linh lực nhận thêm: \`+${stats.exp_bonus}\``);
         baseStatsTxt = parts.join('\n');

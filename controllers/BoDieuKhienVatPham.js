@@ -951,7 +951,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
     if (effect.hp_hoi) {
       const prev = tuSi.hp;
-      tuSi.hp = Math.min(stats.max_hp, tuSi.hp + effect.hp_hoi);
+      tuSi.hp = Math.min(stats.max_hp, tuSi.hp + effect.hp_hoi * 10);
       recoveryMsg += `• **HP**: \`+${tuSi.hp - prev}\` (${tuSi.hp}/${stats.max_hp})\n`;
     }
     if (effect.mp_hoi) {

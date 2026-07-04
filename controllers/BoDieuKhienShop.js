@@ -93,7 +93,7 @@ function buildShopEmbed(tuSi, entries, pageIdx, totalPages, tabLabel) {
       if (stats.phap_phong)parts.push(`+${stats.phap_phong} Pháp Phòng`);
       if (stats.hp)        parts.push(`+${stats.hp} HP`);
       if (stats.mp)        parts.push(`+${stats.mp} MP`);
-      if (stats.hp_hoi)    parts.push(`Hồi ${stats.hp_hoi} HP`);
+      if (stats.hp_hoi)    parts.push(`Hồi ${stats.hp_hoi * 10} HP`);
       if (stats.mp_hoi)    parts.push(`Hồi ${stats.mp_hoi} MP`);
       if (parts.length > 0) statsText = `\n   *(${parts.join(', ')})*`;
     } catch (_) {}
@@ -134,7 +134,7 @@ function buildItemDetailEmbed(tuSi, shopEntry) {
     if (stats.phap_phong)parts.push(`• **Pháp Phòng**: \`+${stats.phap_phong}\``);
     if (stats.hp)        parts.push(`• **HP tối đa**: \`+${stats.hp}\``);
     if (stats.mp)        parts.push(`• **MP tối đa**: \`+${stats.mp}\``);
-    if (stats.hp_hoi)    parts.push(`• **Hồi HP**: \`+${stats.hp_hoi}\``);
+    if (stats.hp_hoi)    parts.push(`• **Hồi HP**: \`+${stats.hp_hoi * 10}\``);
     if (stats.mp_hoi)    parts.push(`• **Hồi MP**: \`+${stats.mp_hoi}\``);
     if (parts.length > 0) statsText = parts.join('\n');
   } catch (_) {}

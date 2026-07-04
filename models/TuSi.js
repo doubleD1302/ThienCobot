@@ -248,7 +248,7 @@ class TuSi extends Model {
     const phatVatCong = this.phatVatCong || 0.0;
     const phatPhapCong = this.phatPhapCong || 0.0;
 
-    maxHp = Math.floor(maxHp * (1.0 - phatHp));
+    maxHp = Math.floor(maxHp * (1.0 - phatHp) * 10);
     maxMp = Math.floor(maxMp * (1.0 - phatMp));
     vatCong = Math.floor(vatCong * (1.0 - phatVatCong));
     phapCong = Math.floor(phapCong * (1.0 - phatPhapCong));
