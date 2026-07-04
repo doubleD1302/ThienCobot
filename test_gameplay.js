@@ -2777,5 +2777,57 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Lôi Điệp stats calculation verification', async () => {
+    const userId = "444444111222";
+    const tuSi = await TuSi.create({
+      idNguoiDung: userId,
+      ten: "Điệp Sư Thử Nghiệm",
+      gioiTinh: "Nữ",
+      huongTu: "Phap Tu",
+      linhCan: "Lôi Linh Căn",
+      capDo: 10,
+      hp: 2000,
+      mp: 500
+    });
+
+    // Create level 100 Thất Thải Lôi Điệp
+    const petDiep = await Pet.create({
+      userId: userId,
+      name: "Lôi Điệp Thử Nghiệm",
+      type: "loi_diep_2",
+      rarity: "LT_1",
+      level: 100,
+      tuChat: 100,
+      isActive: true
+    });
+
+    tuSi.linhCanList = ["Loi"];
+    await tuSi.save();
+
+    const stats = await tuSi.layChiSoDayDu();
+    // Base crit rate is:
+    // pathConfig.base_stats.crit_rate + growth.crit_rate * lvlDiff = 0.08 + 0.003 * 9 = 0.107.
+    // Pet loi_diep_2 adds: 0.05 * scalePct * evoMult * groupMult = 0.05 * 1.99 = 0.0995.
+    // Expected crit rate should be around 0.107 + 0.0995 = 0.2065 (20.65%).
+    // Previously, with raw scale = 100, it would be 0.08 + 0.027 + 5.0 = 5.107 (510.7%).
+    assert.ok(stats.crit_rate < 0.25);
+    assert.ok(stats.crit_rate > 0.18);
+
+    // Verify tu_toc coefficient
+    // Base mult for Loi Linh Can (single element):
+    // PHAT_DA_LINH_CAN[1] = 1.0.
+    // Loi Linh Can bonus: * config.NGUON_LINH_CAN['Loi'].tu_toc (which is 2.0).
+    // Pet bonus: * (1.0 + template.statValue * scalePct * evoMult * groupMult) = (1.0 + 0.10 * 1.99) = 1.199.
+    // Expected total mult = 1.0 * 2.0 * 1.199 = 2.398.
+    // Previously, with raw scale = 100, total mult = 1.0 * 2.0 * 11.0 = 22.0.
+    const mult = await tuSi.layHeSoTuLuyen(petDiep);
+    assert.ok(mult < 2.5);
+    assert.ok(mult > 2.2);
+
+    // Clean up
+    await petDiep.destroy();
+    await tuSi.destroy();
+  });
+
 });
 
