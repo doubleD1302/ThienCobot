@@ -905,7 +905,8 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
     // Xử lý Dịch Dung Đan
     if (itemDetail.id === 'dich_dung_dan') {
-      const isNu = String(tuSi.gioiTinh).toLowerCase() === 'nữ';
+      const genderStr = String(tuSi.gioiTinh || 'Nam').normalize('NFC').toLowerCase().trim();
+      const isNu = genderStr === 'nữ' || genderStr === 'nu' || genderStr === 'female';
       const skins = isNu ? ['nu_1', 'nu_2', 'nu_3'] : ['nam_1', 'nam_2', 'nam_3'];
       const randomSkinId = skins[Math.floor(Math.random() * skins.length)];
 

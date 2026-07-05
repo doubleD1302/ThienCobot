@@ -197,7 +197,24 @@ class BoDieuKhienSkin extends BoDieuKhienGoc {
             return;
           }
 
-          // 3. Check VND balance
+          // 3. Check gender matching skin requirements
+          const playerGender = String(freshTuSi.gioiTinh || 'Nam').normalize('NFC').toLowerCase().trim();
+          const skinGender = String(skin.gioiTinh || 'Cả hai').normalize('NFC').toLowerCase().trim();
+
+          if (skinGender !== 'cả hai' && skinGender !== 'ca hai') {
+            const isPlayerNu = playerGender === 'nữ' || playerGender === 'nu' || playerGender === 'female';
+            const isSkinNu = skinGender === 'nữ' || skinGender === 'nu' || skinGender === 'female';
+
+            if (isPlayerNu !== isSkinNu) {
+              await i.followUp({
+                embeds: [BoTaoEmbed.loi(`Skin này chỉ dành cho nhân vật **${isSkinNu ? 'Nữ' : 'Nam'}**! Nhân vật của đạo hữu là **${isPlayerNu ? 'Nữ' : 'Nam'}** nên không thể mua.`)],
+                ephemeral: true
+              });
+              return;
+            }
+          }
+
+          // 4. Check VND balance
           if (freshTuSi.vnd < skin.giaVnd) {
             await i.followUp({
               embeds: [BoTaoEmbed.loi(`Số dư VND không đủ! Yêu cầu: \`${skin.giaVnd.toLocaleString()} VND\`, Hiện có: \`${(freshTuSi.vnd || 0).toLocaleString()} VND\`.`)],

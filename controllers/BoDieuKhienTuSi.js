@@ -276,11 +276,21 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
 
         const ownedSkinIds = ownedInv.map(inv => inv.itemId);
         // Find corresponding Skins in Skin database
-        const ownedSkins = await Skin.findAll({
+        const ownedSkinsAll = await Skin.findAll({
           where: {
             id: { [Op.in]: ownedSkinIds },
             loai: currentSheet
           }
+        });
+
+        const playerGender = String(tuSi.gioiTinh || 'Nam').normalize('NFC').toLowerCase().trim();
+        const isPlayerNu = playerGender === 'nữ' || playerGender === 'nu' || playerGender === 'female';
+
+        const ownedSkins = ownedSkinsAll.filter(sk => {
+          const skinGender = String(sk.gioiTinh || 'Cả hai').normalize('NFC').toLowerCase().trim();
+          if (skinGender === 'cả hai' || skinGender === 'ca hai') return true;
+          const isSkinNu = skinGender === 'nữ' || skinGender === 'nu' || skinGender === 'female';
+          return isPlayerNu === isSkinNu;
         });
 
         const currentBg = tuSi.equippedBackground ? (await Skin.findByPk(tuSi.equippedBackground))?.ten || tuSi.equippedBackground : 'Chưa trang bị';
