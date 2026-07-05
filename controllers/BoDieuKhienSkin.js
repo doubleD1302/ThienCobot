@@ -36,20 +36,19 @@ class BoDieuKhienSkin extends BoDieuKhienGoc {
       const color = layMauCanhGioi(tuSi.canhGioi);
 
       // Load all available skins
-      const now = new Date();
       const availableSkins = await Skin.findAll({
         where: {
           [Op.and]: [
             {
               [Op.or]: [
                 { ngayMoBan: null },
-                { ngayMoBan: { [Op.lte]: now } }
+                { ngayMoBan: { [Op.lte]: Skin.sequelize.literal('CURRENT_TIMESTAMP') } }
               ]
             },
             {
               [Op.or]: [
                 { ngayTatBan: null },
-                { ngayTatBan: { [Op.gte]: now } }
+                { ngayTatBan: { [Op.gte]: Skin.sequelize.literal('CURRENT_TIMESTAMP') } }
               ]
             }
           ]
