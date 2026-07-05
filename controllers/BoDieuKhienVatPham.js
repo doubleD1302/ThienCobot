@@ -370,15 +370,17 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         const activeSheet = sheets[sheetIdx];
         if (!activeSheet) return null;
 
-        let khaDung = [];
+                let khaDung = [];
         if (activeSheet.value === 'trangbi') {
           khaDung = itemsList.filter(o => ['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(o.item.loai) && !o.trangBi);
         } else if (activeSheet.value === 'cobao') {
           khaDung = itemsList.filter(o => ['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(o.item.loai) && !o.trangBi);
         } else if (activeSheet.value === 'danduo') {
           khaDung = itemsList.filter(o => o.item.loai === 'Đan dược' && o.soLuong > 0);
+        } else if (activeSheet.value === 'chibao') {
+          khaDung = itemsList.filter(o => o.item.loai === 'Chí bảo' && o.soLuong > 0);
         } else if (activeSheet.value === 'linhthao') {
-          khaDung = itemsList.filter(o => !['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo', 'Đan dược'].includes(o.item.loai) && o.soLuong > 0);
+          khaDung = itemsList.filter(o => !['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo', 'Đan dược', 'Chí bảo'].includes(o.item.loai) && o.soLuong > 0);
         }
 
         if (khaDung.length === 0) {
@@ -888,7 +890,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
     if (itemDetail.id === 'binh_tinh_hai') {
       const today = new Date().toISOString().split('T')[0];
       if (tuSi.lastUseBinhTinhHai === today) {
-        return { ok: false, msg: `Hôm nay đạo hữu đã trích xuất sinh cơ từ **Bình Tinh Hải 🏺** rồi, hãy đợi ngày mai!` };
+        return { ok: false, msg: `Hôm nay đạo hữu đã trích xuất sinh cơ từ **Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>** rồi, hãy đợi ngày mai!` };
       }
       
       await Inventory.addVatPham(tuSi.idNguoiDung, 'dan_than_pham', 2);
@@ -897,7 +899,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       
       return {
         ok: true,
-        msg: `Đạo hữu **${tuSi.ten}** đã sử dụng **Bình Tinh Hải 🏺** để trích xuất ra **2 viên Đan Thần Phẩm 🔴**! Bình Tinh Hải không bị tiêu hao.`
+        msg: `Đạo hữu **${tuSi.ten}** đã sử dụng **Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>** để trích xuất ra **2 viên Đan Thần Phẩm 🔴**! Bình Tinh Hải không bị tiêu hao.`
       };
     }
 
@@ -995,14 +997,16 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       recoveryMsg += `• **Linh Lực**: \`+${effect.exp_bonus}\`\n`;
     }
 
-    inv.soLuong -= 1;
-    if (inv.soLuong <= 0) await inv.destroy();
-    else await inv.save();
+        if (itemDetail.loai !== 'Chí bảo') {
+      inv.soLuong -= 1;
+      if (inv.soLuong <= 0) await inv.destroy();
+      else await inv.save();
+    }
     await tuSi.save();
 
     return {
       ok:  true,
-      msg: `Đạo hữu **${tuSi.ten}** đã dùng **${itemDetail.ten}**:\n${recoveryMsg || '• Không có hiệu ứng nào.'}`
+      msg: `Đạo hữu **${tuSi.ten}** đã dùng **${itemDetail.ten}** (vật phẩm không bị tiêu hao):\n${recoveryMsg || '• Không có hiệu ứng nào.'}`
     };
   }
 

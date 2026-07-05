@@ -2854,8 +2854,85 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       }
     }
 
-    // Must block trung_than_thu, chuyen_sinh_dan, van_yeu_qua_than
+        // Must block trung_than_thu, chuyen_sinh_dan, van_yeu_qua_than
     assert.deepStrictEqual(allowedDrops, ['kiem_go', 'kiem_sat']);
+  });
+
+  test('Supreme Treasure (Chí bảo) tab, separate filter and usage logic', async () => {
+    const { Inventory } = await import('./models/Inventory.js');
+    const { Item } = await import('./models/Item.js');
+    const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
+    const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+
+    const userId = "777777111222";
+    const tuSi = await TuSi.create({
+      idNguoiDung: userId,
+      ten: "Chí Bảo Tester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      hp: 100,
+      mp: 100
+    });
+
+    // 1. Create a custom Chí Bảo item with stats to verify recovery msg and non-consumption
+    const mockChibao = await Item.create({
+      id: 'custom_chibao_test',
+      ten: 'Hỗn Độn Châu 🔮',
+      loai: 'Chí bảo',
+      doHiem: 'Thần cấp',
+      giaCoSo: 500000,
+      chiSoJson: '{"hp_hoi": 10, "exp_bonus": 100}',
+      yeuCauCanhGioi: 1,
+      moTa: 'Chí bảo thử nghiệm.'
+    });
+
+    const invChibao = await Inventory.create({
+      idNguoiDung: userId,
+      itemId: 'custom_chibao_test',
+      soLuong: 1,
+      trangBi: false
+    });
+
+    // 2. Verify _phanLoaiItems categorizes it under chiBao sheet
+    const itemsList = [{
+      invId: invChibao.id,
+      item: mockChibao,
+      soLuong: 1,
+      trangBi: false,
+      nangCapSao: 0,
+      dongChiSoJson: '{}',
+      khoa: false
+    }];
+
+    const categorised = BoTaoEmbed._phanLoaiItems(itemsList);
+    assert.strictEqual(categorised.chiBao.length, 1);
+    assert.strictEqual(categorised.linhThao.length, 0); // Should be excluded from linhThao
+
+    // 3. Verify baloSheets contains 5 sheets
+    const sheets = BoTaoEmbed.baloSheets(tuSi, itemsList);
+    assert.strictEqual(sheets.length, 5);
+    const chibaoSheet = sheets.find(s => s.value === 'chibao');
+    assert.ok(chibaoSheet);
+    assert.strictEqual(chibaoSheet.description, '1 vật phẩm');
+
+    // 4. Test using the custom Chí Bảo (should heal, add exp, and NOT be consumed)
+    const result = await boDieuKhienVatPham._thucHienDungItem(tuSi, invChibao, 'custom_chibao_test');
+    assert.strictEqual(result.ok, true);
+    assert.ok(result.msg.includes('vật phẩm không bị tiêu hao'));
+    
+    // Reload player and inventory
+    await tuSi.reload();
+    await invChibao.reload();
+
+    assert.strictEqual(invChibao.soLuong, 1); // Should NOT be consumed!
+    assert.strictEqual(tuSi.linhLuc, 100);    // exp_bonus applied
+
+    // Clean up
+    await invChibao.destroy();
+    await mockChibao.destroy();
+    await tuSi.destroy();
   });
 
 });

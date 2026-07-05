@@ -54,7 +54,7 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
           .setTitle('🔮 Tạo Hóa Chi Hồ - Gacha 🔮')
           .setDescription(
             `Chào mừng đạo hữu đến với **Tạo Hóa Chi Hồ** chốn thượng giới!\n` +
-            `Nơi đây dung hợp cơ duyên thiên địa, có thể quay ra các đạo cụ quý hiếm, Linh Thạch, VND và đặc biệt là Chí Bảo Thượng Cổ **Bình Tinh Hải 🏺**.\n\n` +
+            `Nơi đây dung hợp cơ duyên thiên địa, có thể quay ra các đạo cụ quý hiếm, Linh Thạch, VND và đặc biệt là Chí Bảo Thượng Cổ **Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>**.\n\n` +
             `• **Vật phẩm tiêu hao**: **Cơ Duyên Lệnh 🎫** (1 Cơ Duyên Lệnh = 1 lượt quay)\n` +
             `• **Cơ Duyên Lệnh hiện có**: \`${coDuyenLenhCount.toLocaleString()}\` 🎫\n\n` +
             `Đạo hữu hãy chọn số lượt quay bên dưới:`
@@ -155,7 +155,7 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
           }
           const category = rollFromWeights(GACHA_POOL_WEIGHTS);
           if (category === 'supreme') {
-            rolledResults.push({ type: 'supreme', itemId: 'binh_tinh_hai', ten: 'Bình Tinh Hải 🏺' });
+            rolledResults.push({ type: 'supreme', itemId: 'binh_tinh_hai', ten: 'Bình Tinh Hải' });
             hitSupreme = true;
           } else if (category === 'stones') {
             const amount = rollStonesAmount();
@@ -220,7 +220,7 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
             .setColor(0xe74c3c)
             .setDescription(
               `🎉 **Chúc mừng đạo hữu ${tuSi.ten} đã xoay chuyển càn khôn, nhận được Chí Bảo Thượng Cổ:**\n\n` +
-              `**🏺 BÌNH TINH HẢI 🏺**\n` +
+              `**<:binh_tinh_hai:1523244204333994016> BÌNH TINH HẢI <:binh_tinh_hai:1523244204333994016>**\n` +
               `*(Mỗi ngày sử dụng để tạo hoá  2 viên Đan Thần Phẩm 🔴 cộng lượng lớn tu vi)*\n\n` +
               `**Danh sách quà nhận được**:\n` +
               rewardLines.join('\n')
@@ -232,7 +232,7 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
 
           // Broadcast to Thien Dao Luc with tag @everyone
           const announceMsg = `🌌 **Thiên Địa Dị Tượng - Chí Bảo Xuất Thế** 🌌\n\n` +
-            `Vào **Đạo Niên thứ ${daoNien}**, tại **Tạo Hóa Chi Hồ**, đạo hữu **${tuSi.ten}** vận khí ngút trời, dẫn động thiên địa dị tượng, thành công nhận được **Chí Bảo Thượng Cổ: Bình Tinh Hải 🏺**! \n` +
+            `Vào **Đạo Niên thứ ${daoNien}**, tại **Tạo Hóa Chi Hồ**, đạo hữu **${tuSi.ten}** vận khí ngút trời, dẫn động thiên địa dị tượng, thành công nhận được **Chí Bảo Thượng Cổ: Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>**! \n` +
             `Linh quang vạn trượng chấn động bát hoang, chư vị đạo hữu hãy mau đến chiêm bái!`;
           await ThienDaoLuc.ghiLuc(announceMsg, 'Supreme');
         } else {

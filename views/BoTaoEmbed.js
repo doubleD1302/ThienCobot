@@ -334,7 +334,7 @@ export class BoTaoEmbed {
 
   // Helper: phân loại và format từng dòng vật phẩm
   static _phanLoaiItems(itemsList) {
-    const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [];
+    const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [], chiBao = [];
 
     for (const itemObj of itemsList) {
       const { item, soLuong, trangBi: isEquipped, nangCapSao, invId, khoa, dongChiSoJson } = itemObj;
@@ -369,9 +369,10 @@ export class BoTaoEmbed {
       if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
       else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);
       else if (item.loai === 'Đan dược') danDuoc.push(formattedLine);
+      else if (item.loai === 'Chí bảo') chiBao.push(formattedLine);
       else linhThao.push(formattedLine);
     }
-    return { trangBi, coBaoPhapBao, danDuoc, linhThao };
+    return { trangBi, coBaoPhapBao, danDuoc, linhThao, chiBao };
   }
 
   // Helper: tạo nội dung description an toàn cho 1 sheet, mỗi trang chỉ 10 dòng
@@ -387,11 +388,11 @@ export class BoTaoEmbed {
   }
 
   /**
-   * Trả về mảng 4 sheet embeds (Trang Bị / Cổ Bảo / Đan Dược / Linh Thảo).
+   * Trả về mảng 5 sheet embeds (Trang Bị / Cổ Bảo / Đan Dược / Chí Bảo / Linh Thảo).
    * Mỗi phần tử là { value, label, emoji, description, pages: [EmbedBuilder] }.
    */
   static baloSheets(tuSi, itemsList = []) {
-    const { trangBi, coBaoPhapBao, danDuoc, linhThao } = BoTaoEmbed._phanLoaiItems(itemsList);
+    const { trangBi, coBaoPhapBao, danDuoc, linhThao, chiBao } = BoTaoEmbed._phanLoaiItems(itemsList);
     const baseDesc = `> <:linh_thach:1522644605479419964> **Linh thạch**: \`${tuSi.linhThach}\`  |  📦 **Tổng vật phẩm**: \`${itemsList.length}\``;
     const color = layMauCanhGioi(tuSi.canhGioi);
 
@@ -427,12 +428,19 @@ export class BoTaoEmbed {
         description: `${coBaoPhapBao.length} vật phẩm`,
         pages: buildPages(coBaoPhapBao, '• Chưa sở hữu Cổ Bảo hay Pháp Bảo nào.', 'Cổ Bảo & Pháp Bảo', '📿')
       },
-      {
+            {
         value: 'danduo',
         label: 'Đan Dược',
         emoji: '💊',
         description: `${danDuoc.length} vật phẩm`,
         pages: buildPages(danDuoc, '• Không có Đan Dược nào trong túi.', 'Linh Đan Diệu Dược', '💊')
+      },
+      {
+        value: 'chibao',
+        label: 'Chí Bảo',
+        emoji: '🏺',
+        description: `${chiBao.length} vật phẩm`,
+        pages: buildPages(chiBao, '• Không có Chí Bảo nào trong túi.', 'Chí Bảo Thượng Cổ', '🏺')
       },
       {
         value: 'linhthao',
