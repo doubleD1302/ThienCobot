@@ -432,7 +432,51 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         }
 
         if (i.customId === 'fashion_action_back') {
-          collector.stop('back_to_profile');
+          // Tải lại dữ liệu nhân vật mới nhất để dựng hồ sơ
+          const freshTuSi = await this.layTuSi(interaction.user.id);
+          let activePet = await Pet.findOne({ where: { userId: freshTuSi.idNguoiDung, isActive: true } });
+          if (activePet) {
+            const check = config.checkHuyetMachApChe(freshTuSi.capDo, activePet.rarity);
+            if (!check.allowed) activePet = null;
+          }
+          const equippedInv = await Inventory.findAll({
+            where: { idNguoiDung: freshTuSi.idNguoiDung, trangBi: true }
+          });
+          const equippedItems = [];
+          for (const eq of equippedInv) {
+            const detail = await Item.findByPk(eq.itemId);
+            if (detail) {
+              eq.item = detail;
+              equippedItems.push({ eq, detail });
+            }
+          }
+          const stats = freshTuSi.layChiSo(equippedInv, activePet);
+
+          let attachment = null;
+          let skinImageUrl = null;
+          if (freshTuSi.equippedSkin) {
+            try {
+              const buffer = await this.veNhanVatSkin(freshTuSi);
+              if (buffer) {
+                attachment = new AttachmentBuilder(buffer, { name: 'character_skin.png' });
+                skinImageUrl = 'attachment://character_skin.png';
+              }
+            } catch (err) {
+              console.error('Lỗi dựng ảnh skin:', err);
+            }
+          }
+
+          const embed = BoTaoEmbed.hoSo(freshTuSi, targetUser, stats, daoNien, tocDoTuLuyen, reqExp, equippedItems, skinImageUrl);
+          const components = [
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('nv_fashion_open')
+                .setLabel('👕 Thời Trang')
+                .setStyle(ButtonStyle.Primary)
+            )
+          ];
+          const payload = { embeds: [embed], components, files: attachment ? [attachment] : [] };
+          await i.editReply(payload);
           return;
         }
 
@@ -487,23 +531,11 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       });
 
       collector.on('end', async (_, reason) => {
-        if (reason === 'back_to_profile') {
-          // Restart command execution to render profile with new skins and new attachment
-          await interaction.followUp({
-            content: '🔄 Đang cập nhật lại hồ sơ tiên hữu...',
-            ephemeral: true
-          });
-
-          // Call command execute again to show profile with updated skin
-          await this.lenhHoSo.execute(interaction);
-        } else {
-          // Disable components
-          try {
-            if (reason !== 'closed') {
-              await interaction.editReply({ components: [] });
-            }
-          } catch (_) {}
-        }
+        try {
+          if (reason !== 'closed') {
+            await interaction.editReply({ components: [] });
+          }
+        } catch (_) {}
       });
     }
   };
