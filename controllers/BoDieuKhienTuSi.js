@@ -12,7 +12,7 @@ import fs from 'fs';
 import { Skin } from '../models/Skin.js';
 import { Op } from 'sequelize';
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
-import { BoTaoEmbed } from '../views/BoTaoEmbed.js';
+import { BoTaoEmbed, layMauCanhGioi } from '../views/BoTaoEmbed.js';
 import { GiaoDienTaoNhanVat } from '../views/GiaoDienTaoNhanVat.js';
 import * as config from '../config.js';
 
@@ -144,6 +144,8 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
           embeds: [BoTaoEmbed.loi(msg)]
         });
       }
+
+      const color = layMauCanhGioi(tuSi.canhGioi);
 
       // Nhận phần thưởng tu vi nếu đã tu luyện xong
       const { completed, exp, stones } = await this.kiemTraVaNhanTuVi(tuSi);
