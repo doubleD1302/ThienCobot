@@ -1,4 +1,15 @@
-import { SlashCommandBuilder } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  AttachmentBuilder
+} from 'discord.js';
+import { Jimp } from 'jimp';
+import fs from 'fs';
+import { Skin } from '../models/Skin.js';
+import { Op } from 'sequelize';
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed } from '../views/BoTaoEmbed.js';
 import { GiaoDienTaoNhanVat } from '../views/GiaoDienTaoNhanVat.js';
@@ -7,6 +18,55 @@ import * as config from '../config.js';
 class BoDieuKhienTuSi extends BoDieuKhienGoc {
   constructor() {
     super();
+  }
+
+  async veNhanVatSkin(tuSi) {
+    let canvas = null;
+
+    // 1. Draw background
+    if (tuSi.equippedBackground) {
+      const bgSkin = await Skin.findByPk(tuSi.equippedBackground);
+      if (bgSkin) {
+        const bgPath = `public/image/skin/background/${bgSkin.fileAnh}`;
+        if (fs.existsSync(bgPath)) {
+          canvas = await Jimp.read(bgPath);
+          canvas.resize({ w: 384, h: 576 });
+        }
+      }
+    }
+
+    if (!canvas) {
+      canvas = new Jimp({ width: 384, height: 576, color: 0x00000000 });
+    }
+
+    // 2. Draw aura
+    if (tuSi.equippedAura) {
+      const auraSkin = await Skin.findByPk(tuSi.equippedAura);
+      if (auraSkin) {
+        const auraPath = `public/image/skin/aura/${auraSkin.fileAnh}`;
+        if (fs.existsSync(auraPath)) {
+          const auraImg = await Jimp.read(auraPath);
+          auraImg.resize({ w: 292, h: 438 });
+          canvas.composite(auraImg, 46, 69);
+        }
+      }
+    }
+
+    // 3. Draw skin
+    if (tuSi.equippedSkin) {
+      const skinSkin = await Skin.findByPk(tuSi.equippedSkin);
+      if (skinSkin) {
+        const dir = String(skinSkin.gioiTinh).toLowerCase() === 'nữ' ? 'nu' : 'nam';
+        const skinPath = `public/image/skin/skin/${dir}/${skinSkin.fileAnh}`;
+        if (fs.existsSync(skinPath)) {
+          const skinImg = await Jimp.read(skinPath);
+          skinImg.resize({ w: 230, h: 304 });
+          canvas.composite(skinImg, 77, 203);
+        }
+      }
+    }
+
+    return await canvas.getBuffer('image/png');
   }
 
   // Lệnh /start: Tạo nhân vật mới, chọn giới tính, hướng đi và roll Linh Căn
@@ -152,13 +212,296 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const cg = await CanhGioi.findByPk(tuSi.capDo);
       const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
       const heSoTuLuyen = tuSi.layHeSoTuLuyen(activePet);
-      
       // Nhân thêm tốc độ từ Động phủ
       const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen * (1 + lvDongPhu));
       const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
 
-      const embed = BoTaoEmbed.hoSo(tuSi, targetUser, stats, daoNien, tocDoTuLuyen, reqExp, equippedItems);
-      await interaction.editReply({ embeds: [embed] });
+      // Check if equipped skin exists
+      let attachment = null;
+      let skinImageUrl = null;
+      if (tuSi.equippedSkin) {
+        try {
+          const buffer = await this.veNhanVatSkin(tuSi);
+          if (buffer) {
+            attachment = new AttachmentBuilder(buffer, { name: 'character_skin.png' });
+            skinImageUrl = 'attachment://character_skin.png';
+          }
+        } catch (err) {
+          console.error('Lỗi dựng ảnh skin:', err);
+        }
+      }
+
+      const embed = BoTaoEmbed.hoSo(tuSi, targetUser, stats, daoNien, tocDoTuLuyen, reqExp, equippedItems, skinImageUrl);
+
+      // Components (Buttons) for /nv
+      const components = [];
+      if (targetUser.id === interaction.user.id) {
+        components.push(
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('nv_fashion_open')
+              .setLabel('👕 Thời Trang')
+              .setStyle(ButtonStyle.Primary)
+          )
+        );
+      }
+
+      const payload = { embeds: [embed], components };
+      if (attachment) {
+        payload.files = [attachment];
+      }
+
+      const msg = await interaction.editReply(payload);
+
+      if (targetUser.id !== interaction.user.id) return; // Only allow self customization
+
+      const collector = msg.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time: 180_000
+      });
+
+      let currentSheet = 'skin'; // 'background' | 'aura' | 'skin'
+      let selectedCustomizerSkinId = null;
+
+      // Helper function to build fashion menu payload
+      const buildFashionPayload = async () => {
+        // Query player owned skins of the current category from inventory
+        const { Inventory } = await import('../models/Inventory.js');
+        const ownedInv = await Inventory.findAll({
+          where: { idNguoiDung: tuSi.idNguoiDung }
+        });
+
+        const ownedSkinIds = ownedInv.map(inv => inv.itemId);
+        // Find corresponding Skins in Skin database
+        const ownedSkins = await Skin.findAll({
+          where: {
+            id: { [Op.in]: ownedSkinIds },
+            loai: currentSheet
+          }
+        });
+
+        const currentBg = tuSi.equippedBackground ? (await Skin.findByPk(tuSi.equippedBackground))?.ten || tuSi.equippedBackground : 'Chưa trang bị';
+        const currentAura = tuSi.equippedAura ? (await Skin.findByPk(tuSi.equippedAura))?.ten || tuSi.equippedAura : 'Chưa trang bị';
+        const currentSkin = tuSi.equippedSkin ? (await Skin.findByPk(tuSi.equippedSkin))?.ten || tuSi.equippedSkin : 'Chưa trang bị';
+
+        const embedCustom = new EmbedBuilder()
+          .setTitle('👕 Tiên Các Thời Trang')
+          .setColor(color)
+          .setDescription(
+            `Trang hoàng ngoại hình của tu sĩ để hiển thị trên profile!\n\n` +
+            `• **Nền ảnh**: \`${currentBg}\`\n` +
+            `• **Vầng sáng**: \`${currentAura}\`\n` +
+            `• **Trang phục**: \`${currentSkin}\`\n\n` +
+            `Chọn tab bên dưới để thay đổi trang bị.`
+          )
+          .setTimestamp();
+
+        const rows = [];
+
+        // Tab buttons
+        const rowTabs = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('fashion_tab_bg')
+            .setLabel('🖼️ Nền Ảnh')
+            .setStyle(currentSheet === 'background' ? ButtonStyle.Success : ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId('fashion_tab_aura')
+            .setLabel('✨ Vầng Sáng')
+            .setStyle(currentSheet === 'aura' ? ButtonStyle.Success : ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId('fashion_tab_skin')
+            .setLabel('👕 Trang Phục')
+            .setStyle(currentSheet === 'skin' ? ButtonStyle.Success : ButtonStyle.Secondary)
+        );
+        rows.push(rowTabs);
+
+        // Select menu for owned skins in the active tab
+        if (ownedSkins.length > 0) {
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('fashion_item_select')
+            .setPlaceholder(`🔽 Chọn ${currentSheet === 'background' ? 'nền ảnh' : currentSheet === 'aura' ? 'vầng sáng' : 'trang phục'}...`);
+
+          selectMenu.addOptions(
+            ownedSkins.slice(0, 25).map(sk => ({
+              label: sk.ten.slice(0, 100),
+              value: sk.id,
+              description: sk.moTa ? sk.moTa.slice(0, 100) : undefined,
+              default: sk.id === selectedCustomizerSkinId
+            }))
+          );
+          rows.push(new ActionRowBuilder().addComponents(selectMenu));
+        } else {
+          embedCustom.addFields({
+            name: '⚠️ Trống Không',
+            value: `Đạo hữu chưa sở hữu bất kỳ ${currentSheet === 'background' ? 'nền ảnh' : currentSheet === 'aura' ? 'vầng sáng' : 'trang phục'} nào thuộc danh mục này.`
+          });
+        }
+
+        // Action buttons
+        const isEquipped = selectedCustomizerSkinId && (
+          tuSi.equippedBackground === selectedCustomizerSkinId ||
+          tuSi.equippedAura === selectedCustomizerSkinId ||
+          tuSi.equippedSkin === selectedCustomizerSkinId
+        );
+
+        const rowActions = new ActionRowBuilder();
+
+        if (selectedCustomizerSkinId) {
+          rowActions.addComponents(
+            new ButtonBuilder()
+              .setCustomId('fashion_action_equip')
+              .setLabel(isEquipped ? '🏷️ Đang Trang Bị' : '🔧 Trang Bị')
+              .setStyle(ButtonStyle.Success)
+              .setDisabled(isEquipped),
+            new ButtonBuilder()
+              .setCustomId('fashion_action_unequip')
+              .setLabel('🔓 Tháo')
+              .setStyle(ButtonStyle.Danger)
+              .setDisabled(currentSheet === 'skin') // Skin is mandatory: can only unequip bg and aura
+          );
+        }
+
+        rowActions.addComponents(
+          new ButtonBuilder()
+            .setCustomId('fashion_action_back')
+            .setLabel('↩️ Trở Về Hồ Sơ')
+            .setStyle(ButtonStyle.Secondary)
+        );
+
+        rows.push(rowActions);
+
+        // If a skin is selected, show details
+        let detailEmbed = null;
+        if (selectedCustomizerSkinId) {
+          const detail = ownedSkins.find(s => s.id === selectedCustomizerSkinId);
+          if (detail) {
+            detailEmbed = new EmbedBuilder()
+              .setTitle(`🔍 Xem Chi Tiết: ${detail.ten}`)
+              .setColor(color)
+              .setDescription(`*${detail.moTa || 'Không có mô tả.'}*`);
+          }
+        }
+
+        const embeds = [embedCustom];
+        if (detailEmbed) embeds.unshift(detailEmbed);
+
+        return {
+          embeds,
+          components: rows,
+          files: [] // Clear any attached file for hoSo image when customizing
+        };
+      };
+
+      collector.on('collect', async i => {
+        await i.deferUpdate();
+
+        if (i.customId === 'nv_fashion_open') {
+          selectedCustomizerSkinId = null;
+          await i.editReply(await buildFashionPayload());
+          return;
+        }
+
+        if (i.customId === 'fashion_tab_bg') {
+          currentSheet = 'background';
+          selectedCustomizerSkinId = null;
+          await i.editReply(await buildFashionPayload());
+          return;
+        }
+
+        if (i.customId === 'fashion_tab_aura') {
+          currentSheet = 'aura';
+          selectedCustomizerSkinId = null;
+          await i.editReply(await buildFashionPayload());
+          return;
+        }
+
+        if (i.customId === 'fashion_tab_skin') {
+          currentSheet = 'skin';
+          selectedCustomizerSkinId = null;
+          await i.editReply(await buildFashionPayload());
+          return;
+        }
+
+        if (i.customId === 'fashion_item_select') {
+          selectedCustomizerSkinId = i.values[0];
+          await i.editReply(await buildFashionPayload());
+          return;
+        }
+
+        if (i.customId === 'fashion_action_back') {
+          collector.stop('back_to_profile');
+          return;
+        }
+
+        if (i.customId === 'fashion_action_equip') {
+          if (!selectedCustomizerSkinId) return;
+
+          // Perform equip
+          if (currentSheet === 'background') {
+            tuSi.equippedBackground = selectedCustomizerSkinId;
+          } else if (currentSheet === 'aura') {
+            tuSi.equippedAura = selectedCustomizerSkinId;
+          } else if (currentSheet === 'skin') {
+            tuSi.equippedSkin = selectedCustomizerSkinId;
+          }
+          await tuSi.save();
+
+          await i.followUp({
+            embeds: [BoTaoEmbed.thanhCong('🔧 Trang Bị Thành Công', `Đã trang bị thành công món thời trang này cho nhân vật.`)],
+            ephemeral: true
+          });
+
+          await i.editReply(await buildFashionPayload());
+          return;
+        }
+
+        if (i.customId === 'fashion_action_unequip') {
+          if (!selectedCustomizerSkinId) return;
+
+          // Perform unequip
+          if (currentSheet === 'background') {
+            if (tuSi.equippedBackground === selectedCustomizerSkinId) {
+              tuSi.equippedBackground = null;
+            }
+          } else if (currentSheet === 'aura') {
+            if (tuSi.equippedAura === selectedCustomizerSkinId) {
+              tuSi.equippedAura = null;
+            }
+          } else if (currentSheet === 'skin') {
+            // Cannot unequip outfit (skin)
+            return;
+          }
+          await tuSi.save();
+
+          await i.followUp({
+            embeds: [BoTaoEmbed.thanhCong('🔓 Tháo Thành Công', `Đã tháo trang bị thời trang này khỏi nhân vật.`)],
+            ephemeral: true
+          });
+
+          selectedCustomizerSkinId = null;
+          await i.editReply(await buildFashionPayload());
+        }
+      });
+
+      collector.on('end', async (_, reason) => {
+        if (reason === 'back_to_profile') {
+          // Restart command execution to render profile with new skins and new attachment
+          await interaction.followUp({
+            content: '🔄 Đang cập nhật lại hồ sơ tiên hữu...',
+            ephemeral: true
+          });
+
+          // Call command execute again to show profile with updated skin
+          await this.lenhHoSo.execute(interaction);
+        } else {
+          // Disable components
+          try {
+            if (reason !== 'closed') {
+              await interaction.editReply({ components: [] });
+            }
+          } catch (_) {}
+        }
+      });
     }
   };
 

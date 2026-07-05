@@ -589,6 +589,24 @@ TuSi.init({
     allowNull: true,
     defaultValue: '{}',
     field: 'thong_ke_auto_json'
+  },
+  equippedBackground: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: null,
+    field: 'equipped_background'
+  },
+  equippedAura: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: null,
+    field: 'equipped_aura'
+  },
+  equippedSkin: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: null,
+    field: 'equipped_skin'
   }
 }, {
   sequelize,

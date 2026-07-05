@@ -381,7 +381,17 @@ export const ITEMS = [
   // Gacha & Chí Bảo
   { id: 'co_duyen_lenh', ten: 'Cơ Duyên Lệnh 🎫', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tấm thẻ ẩn chứa cơ duyên thiên địa, dùng để quay Hồ Tạo Hóa.' },
   { id: 'binh_tinh_hai', ten: 'Bình Tinh Hải', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Chí bảo thượng cổ, mỗi ngày có thể trích xuất sinh cơ để ngưng tụ 2 viên Đan Thần Phẩm.', emoji: '<:binh_tinh_hai:1523244204333994016>' },
-  { id: 'dan_than_pham', ten: 'Đan Thần Phẩm 🔴', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược thần cấp trích xuất từ Bình Tinh Hải, khi nuốt lập tức gia tăng tu vi tương đương 128 Đạo Niên tu luyện.' }
+  { id: 'dan_than_pham', ten: 'Đan Thần Phẩm 🔴', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược thần cấp trích xuất từ Bình Tinh Hải, khi nuốt lập tức gia tăng tu vi tương đương 128 Đạo Niên tu luyện.', emoji: '<:dan_than_pham:1522644612605411379>' },
+  { id: 'dich_dung_dan', ten: 'Dịch Dung Đan 🎭', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược thần bí dùng để nhận ngẫu nhiên trang phục và nền ảnh tân thủ.', emoji: '<:dich_dung_dan:1523300794701582397>' },
+  { id: 'nam_1', ten: 'Trang phục Tân Thủ Nam 1 👕', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nam.', emoji: '🎭' },
+  { id: 'nam_2', ten: 'Trang phục Tân Thủ Nam 2 👕', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nam.', emoji: '🎭' },
+  { id: 'nam_3', ten: 'Trang phục Tân Thủ Nam 3 👕', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nam.', emoji: '🎭' },
+  { id: 'nu_1', ten: 'Trang phục Tân Thủ Nữ 1 👗', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nữ.', emoji: '🎭' },
+  { id: 'nu_2', ten: 'Trang phục Tân Thủ Nữ 2 👗', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nữ.', emoji: '🎭' },
+  { id: 'nu_3', ten: 'Trang phục Tân Thủ Nữ 3 👗', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nữ.', emoji: '🎭' },
+  { id: 'backg01', ten: 'Nền Tân Thủ 1 🖼️', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nền ảnh tân thủ 1.', emoji: '🖼️' },
+  { id: 'backg02', ten: 'Nền Tân Thủ 2 🖼️', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nền ảnh tân thủ 2.', emoji: '🖼️' },
+  { id: 'backg03', ten: 'Nền Tân Thủ 3 🖼️', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nền ảnh tân thủ 3.', emoji: '🖼️' }
 ];
 
 // ==========================================

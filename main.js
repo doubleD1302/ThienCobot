@@ -22,6 +22,7 @@ import { danhSachLenhAuto, khoiDongAutoSchedule } from './controllers/BoDieuKhie
 import { danhSachLenhDongGop } from './controllers/BoDieuKhienDongGop.js';
 import { danhSachLenhDmg } from './controllers/BoDieuKhienDmg.js';
 import { danhSachLenhDauGia, khoiDongAuctionSchedule, handleAuctionInteraction } from './controllers/BoDieuKhienDauGia.js';
+import { danhSachLenhSkin } from './controllers/BoDieuKhienSkin.js';
 
 // Đăng ký các model mới để sequelize đồng bộ
 import './models/DongGopEmoji.js';
@@ -42,6 +43,7 @@ import './models/WorldBoss.js';
 import './models/GiftCode.js';
 import './models/PlayerGiftCode.js';
 import './models/AuctionListing.js';
+import './models/Skin.js';
 // Bắt các lỗi promise không được catch toàn cục, tránh crash bot
 process.on('unhandledRejection', error => {
   if (error && error.code === 10062) {
@@ -84,7 +86,8 @@ const tatCaLenh = [
   ...danhSachLenhAuto,
   ...danhSachLenhDongGop,
   ...danhSachLenhDmg,
-  ...danhSachLenhDauGia
+  ...danhSachLenhDauGia,
+  ...danhSachLenhSkin
 ];
 for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
@@ -325,6 +328,30 @@ async function start() {
           type: DataTypes.FLOAT,
           allowNull: false,
           defaultValue: 0.0
+        });
+      }
+      if (!playersDesc.equipped_background) {
+        console.log('Phát hiện thiếu cột equipped_background. Tiến hành thêm vào bảng players...');
+        await queryInterface.addColumn('players', 'equipped_background', {
+          type: DataTypes.STRING(50),
+          allowNull: true,
+          defaultValue: null
+        });
+      }
+      if (!playersDesc.equipped_aura) {
+        console.log('Phát hiện thiếu cột equipped_aura. Tiến hành thêm vào bảng players...');
+        await queryInterface.addColumn('players', 'equipped_aura', {
+          type: DataTypes.STRING(50),
+          allowNull: true,
+          defaultValue: null
+        });
+      }
+      if (!playersDesc.equipped_skin) {
+        console.log('Phát hiện thiếu cột equipped_skin. Tiến hành thêm vào bảng players...');
+        await queryInterface.addColumn('players', 'equipped_skin', {
+          type: DataTypes.STRING(50),
+          allowNull: true,
+          defaultValue: null
         });
       }
 
@@ -677,7 +704,32 @@ async function start() {
         vnd: 0,
         itemsJson: JSON.stringify([{ itemId: 'chuyen_sinh_dan', soLuong: 1 }])
       });
-      console.log('Đã đồng bộ thành công Gift Code BOSS và ISEKAI vào CSDL.');
+      await GiftCode.upsert({
+        code: 'SKIN',
+        linhThach: 0,
+        linhLuc: 0,
+        vnd: 0,
+        itemsJson: JSON.stringify([{ itemId: 'dich_dung_dan', soLuong: 1 }])
+      });
+      console.log('Đã đồng bộ thành công Gift Code BOSS, ISEKAI và SKIN vào CSDL.');
+
+      // Khởi tạo và đồng bộ dữ liệu cho bảng skins
+      const { Skin } = await import('./models/Skin.js');
+      const defaultSkins = [
+        { id: 'nam_1', ten: 'Trang phục Tân Thủ Nam 1', loai: 'skin', gioiTinh: 'Nam', fileAnh: 'nam_1.png', giaVnd: 0, moTa: 'Trang phục tân thủ dành cho Nam.' },
+        { id: 'nam_2', ten: 'Trang phục Tân Thủ Nam 2', loai: 'skin', gioiTinh: 'Nam', fileAnh: 'nam_2.png', giaVnd: 0, moTa: 'Trang phục tân thủ dành cho Nam.' },
+        { id: 'nam_3', ten: 'Trang phục Tân Thủ Nam 3', loai: 'skin', gioiTinh: 'Nam', fileAnh: 'nam_3.png', giaVnd: 0, moTa: 'Trang phục tân thủ dành cho Nam.' },
+        { id: 'nu_1', ten: 'Trang phục Tân Thủ Nữ 1', loai: 'skin', gioiTinh: 'Nữ', fileAnh: 'nu_1.png', giaVnd: 0, moTa: 'Trang phục tân thủ dành cho Nữ.' },
+        { id: 'nu_2', ten: 'Trang phục Tân Thủ Nữ 2', loai: 'skin', gioiTinh: 'Nữ', fileAnh: 'nu_2.png', giaVnd: 0, moTa: 'Trang phục tân thủ dành cho Nữ.' },
+        { id: 'nu_3', ten: 'Trang phục Tân Thủ Nữ 3', loai: 'skin', gioiTinh: 'Nữ', fileAnh: 'nu_3.png', giaVnd: 0, moTa: 'Trang phục tân thủ dành cho Nữ.' },
+        { id: 'backg01', ten: 'Nền Tân Thủ 1', loai: 'background', gioiTinh: 'Cả hai', fileAnh: 'backg01.png', giaVnd: 0, moTa: 'Nền ảnh tân thủ 1.' },
+        { id: 'backg02', ten: 'Nền Tân Thủ 2', loai: 'background', gioiTinh: 'Cả hai', fileAnh: 'backg02.png', giaVnd: 0, moTa: 'Nền ảnh tân thủ 2.' },
+        { id: 'backg03', ten: 'Nền Tân Thủ 3', loai: 'background', gioiTinh: 'Cả hai', fileAnh: 'backg03.png', giaVnd: 0, moTa: 'Nền ảnh tân thủ 3.' },
+      ];
+      for (const sk of defaultSkins) {
+        await Skin.upsert(sk);
+      }
+      console.log('Đã đồng bộ thành công các skin mẫu vào CSDL.');
     } catch (err) {
       console.error('Không thể tự động sửa đổi schema hoặc dọn dẹp bản ghi rác/seeding:', err);
     }

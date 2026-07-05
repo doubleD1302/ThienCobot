@@ -1272,22 +1272,22 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   test('Pháp Bảo Active Skills Config & Duration', () => {
     // 1. Verify active skills configuration mapping
     const pbHoThan = config.layKyNangPhapBaoActive('phap_bao_ho_than');
-    assert.strictEqual(pbHoThan.ten, 'Thủy Vân Trị Liệu');
-    assert.strictEqual(pbHoThan.loai, 'hoi_mau_pct');
-    assert.strictEqual(pbHoThan.triGia, 15);
+    assert.strictEqual(pbHoThan.ten, 'Phù Vân Hộ Thể 🛡️');
+    assert.strictEqual(pbHoThan.loai, 'khien');
+    assert.strictEqual(pbHoThan.triGia, 120);
     assert.strictEqual(pbHoThan.duration, 0); // Instant
 
     const pbCongKich = config.layKyNangPhapBaoActive('phap_bao_cong_kich');
-    assert.strictEqual(pbCongKich.ten, 'Liệt Diễm Tiễn');
+    assert.strictEqual(pbCongKich.ten, 'Hỏa Long Chủy 🔱');
     assert.strictEqual(pbCongKich.loai, 'tan_cong');
-    assert.strictEqual(pbCongKich.triGia, 250);
+    assert.strictEqual(pbCongKich.triGia, 320);
     assert.strictEqual(pbCongKich.duration, 0); // Instant
 
     const pbHonTon = config.layKyNangPhapBaoActive('phap_bao_hon_ton');
-    assert.strictEqual(pbHonTon.ten, 'Hỗn Độn Thần Lực');
-    assert.strictEqual(pbHonTon.loai, 'tang_cong_pct');
-    assert.strictEqual(pbHonTon.triGia, 20);
-    assert.strictEqual(pbHonTon.duration, 3); // 3 rounds duration
+    assert.strictEqual(pbHonTon.ten, 'Hỗn Độn Phá Thiên 🔔');
+    assert.strictEqual(pbHonTon.loai, 'hon_hop');
+    assert.strictEqual(pbHonTon.triGia, 550);
+    assert.strictEqual(pbHonTon.duration, 0);
 
     // 2. Mock duration decrement behavior
     const activeBuffs = [{
@@ -1295,7 +1295,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       pbTen: 'Hỗn Độn Chung 🔔',
       loai: 'tang_cong_pct',
       triGia: pbHonTon.triGia,
-      roundsLeft: pbHonTon.duration
+      roundsLeft: 3
     }];
 
     const logs = [];
@@ -1324,7 +1324,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     runRoundEndBuffDecrement(activeBuffs);
     assert.strictEqual(activeBuffs[0].roundsLeft, 0);
     assert.strictEqual(logs.length, 1);
-    assert.strictEqual(logs[0], 'expired_Hỗn Độn Thần Lực');
+    assert.strictEqual(logs[0], 'expired_Hỗn Độn Phá Thiên 🔔');
   });
 
   test('TANTHU Gift Code Redeems 6 Random Pháp Bảo', async () => {
@@ -2910,9 +2910,9 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(categorised.chiBao.length, 1);
     assert.strictEqual(categorised.linhThao.length, 0); // Should be excluded from linhThao
 
-    // 3. Verify baloSheets contains 5 sheets
+    // 3. Verify baloSheets contains 6 sheets
     const sheets = BoTaoEmbed.baloSheets(tuSi, itemsList);
-    assert.strictEqual(sheets.length, 5);
+    assert.strictEqual(sheets.length, 6);
     const chibaoSheet = sheets.find(s => s.value === 'chibao');
     assert.ok(chibaoSheet);
     assert.strictEqual(chibaoSheet.description, '1 vật phẩm');

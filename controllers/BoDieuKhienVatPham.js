@@ -903,6 +903,39 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       };
     }
 
+    // Xử lý Dịch Dung Đan
+    if (itemDetail.id === 'dich_dung_dan') {
+      const isNu = String(tuSi.gioiTinh).toLowerCase() === 'nữ';
+      const skins = isNu ? ['nu_1', 'nu_2', 'nu_3'] : ['nam_1', 'nam_2', 'nam_3'];
+      const randomSkinId = skins[Math.floor(Math.random() * skins.length)];
+
+      const bgs = ['backg01', 'backg02', 'backg03'];
+      const randomBgId = bgs[Math.floor(Math.random() * bgs.length)];
+
+      await Inventory.addVatPham(tuSi.idNguoiDung, randomSkinId, 1);
+      await Inventory.addVatPham(tuSi.idNguoiDung, randomBgId, 1);
+
+      // Tiêu hao đan dược
+      inv.soLuong -= 1;
+      if (inv.soLuong <= 0) await inv.destroy();
+      else await inv.save();
+
+      const skinItem = await Item.findByPk(randomSkinId);
+      const bgItem = await Item.findByPk(randomBgId);
+
+      const skinName = skinItem ? skinItem.ten : randomSkinId;
+      const bgName = bgItem ? bgItem.ten : randomBgId;
+
+      return {
+        ok: true,
+        msg: `🎭 **Sử Dụng Dịch Dung Đan Thành Công!**\n` +
+             `Đạo hữu **${tuSi.ten}** đã dùng **Dịch Dung Đan** và nhận được:\n` +
+             `• 👕 **Trang phục**: **${skinName}**\n` +
+             `• 🖼️ **Nền ảnh**: **${bgName}**\n\n` +
+             `*Hãy vào \`/nv\` và bấm nút **Thời Trang** để trang bị và custom skin!*`
+      };
+    }
+
     // Xử lý Chuyển Sinh Đan
     if (itemDetail.id === 'chuyen_sinh_dan') {
       const id = tuSi.idNguoiDung;

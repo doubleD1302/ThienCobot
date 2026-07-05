@@ -206,6 +206,9 @@ class BoDieuKhienDauGia extends BoDieuKhienGoc {
     if (!item) {
       return interaction.editReply({ embeds: [BoTaoEmbed.loi('Không tìm thấy thông tin vật phẩm này trong hệ thống.')] });
     }
+    if (item.loai === 'Skin') {
+      return interaction.editReply({ embeds: [BoTaoEmbed.loi('Không thể đấu giá skin hay trang phục thời trang!')] });
+    }
 
     // Tạo snapshot đầy đủ
     const itemSnapshot = JSON.stringify({

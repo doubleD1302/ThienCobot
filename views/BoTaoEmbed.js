@@ -55,7 +55,7 @@ export class BoTaoEmbed {
       .setFooter({ text: "Thiên Đạo Tu Tiên RPG" });
   }
 
-  static hoSo(tuSi, user, chiSo, daoNien = null, tocDoTuLuyen = 100, reqExp = null, equippedItems = []) {
+  static hoSo(tuSi, user, chiSo, daoNien = null, tocDoTuLuyen = 100, reqExp = null, equippedItems = [], skinImageUrl = null) {
     const color = layMauCanhGioi(tuSi.canhGioi);
     const isThienDao = String(tuSi.idNguoiDung) === '541474154130571264';
     const titleText = isThienDao ? `🌌 Thiên Đạo Vô Thượng: ${tuSi.ten} 🌌` : `📜 Tiên Phả Tu Sĩ: ${tuSi.ten}`;
@@ -63,8 +63,11 @@ export class BoTaoEmbed {
     const embed = new EmbedBuilder()
       .setTitle(titleText)
       .setColor(color)
-      .setTimestamp()
-      .setImage("https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600");
+      .setTimestamp();
+
+    if (skinImageUrl) {
+      embed.setImage(skinImageUrl);
+    }
 
     if (daoNien !== null) {
       embed.setDescription(`🌌 **Đạo Niên thứ ${daoNien} của Máy Chủ**`);
@@ -334,7 +337,7 @@ export class BoTaoEmbed {
 
   // Helper: phân loại và format từng dòng vật phẩm
   static _phanLoaiItems(itemsList) {
-    const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [], chiBao = [];
+    const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [], chiBao = [], skin = [];
 
     for (const itemObj of itemsList) {
       const { item, soLuong, trangBi: isEquipped, nangCapSao, invId, khoa, dongChiSoJson } = itemObj;
@@ -370,9 +373,10 @@ export class BoTaoEmbed {
       else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);
       else if (item.loai === 'Đan dược') danDuoc.push(formattedLine);
       else if (item.loai === 'Chí bảo') chiBao.push(formattedLine);
+      else if (item.loai === 'Skin') skin.push(formattedLine);
       else linhThao.push(formattedLine);
     }
-    return { trangBi, coBaoPhapBao, danDuoc, linhThao, chiBao };
+    return { trangBi, coBaoPhapBao, danDuoc, linhThao, chiBao, skin };
   }
 
   // Helper: tạo nội dung description an toàn cho 1 sheet, mỗi trang chỉ 10 dòng
@@ -392,7 +396,7 @@ export class BoTaoEmbed {
    * Mỗi phần tử là { value, label, emoji, description, pages: [EmbedBuilder] }.
    */
   static baloSheets(tuSi, itemsList = []) {
-    const { trangBi, coBaoPhapBao, danDuoc, linhThao, chiBao } = BoTaoEmbed._phanLoaiItems(itemsList);
+    const { trangBi, coBaoPhapBao, danDuoc, linhThao, chiBao, skin } = BoTaoEmbed._phanLoaiItems(itemsList);
     const baseDesc = `> <:linh_thach:1522644605479419964> **Linh thạch**: \`${tuSi.linhThach}\`  |  📦 **Tổng vật phẩm**: \`${itemsList.length}\``;
     const color = layMauCanhGioi(tuSi.canhGioi);
 
@@ -428,7 +432,7 @@ export class BoTaoEmbed {
         description: `${coBaoPhapBao.length} vật phẩm`,
         pages: buildPages(coBaoPhapBao, '• Chưa sở hữu Cổ Bảo hay Pháp Bảo nào.', 'Cổ Bảo & Pháp Bảo', '📿')
       },
-            {
+      {
         value: 'danduo',
         label: 'Đan Dược',
         emoji: '💊',
@@ -448,6 +452,13 @@ export class BoTaoEmbed {
         emoji: '🌱',
         description: `${linhThao.length} vật phẩm`,
         pages: buildPages(linhThao, '• Không có Linh Thảo hay Vật Liệu nào.', 'Linh Thảo & Vật Liệu', '🌱')
+      },
+      {
+        value: 'skin',
+        label: 'Skin & Thời Trang',
+        emoji: '👕',
+        description: `${skin.length} vật phẩm`,
+        pages: buildPages(skin, '• Không có Skin hay Trang Phục nào trong túi.', 'Thời Trang & Skin', '👕')
       }
     ];
   }
