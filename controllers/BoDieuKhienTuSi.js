@@ -4,7 +4,8 @@ import {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
-  AttachmentBuilder
+  AttachmentBuilder,
+  EmbedBuilder
 } from 'discord.js';
 import { Jimp } from 'jimp';
 import fs from 'fs';
