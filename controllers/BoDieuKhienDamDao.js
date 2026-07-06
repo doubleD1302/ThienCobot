@@ -1010,6 +1010,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             roomState.active = true;
             roomState.game = 'TAI_XIU';
             roomState.choiceId = selectedChoiceId;
+            roomState.hostBet = bet;
             roomState.players.clear();
             roomState.players.set(interaction.user.id, { userId: interaction.user.id, userName: interaction.user.username, bet, choiceId: selectedChoiceId });
             await i.editReply({ embeds: [buildRoomEmbed()], components: buildRoomComponents() });
@@ -1110,6 +1111,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             roomState.active = true;
             roomState.game = 'KIEM_GIAP_PHAP';
             roomState.choiceId = selectedChoiceId;
+            roomState.hostBet = bet;
             roomState.players.clear();
             roomState.players.set(interaction.user.id, { userId: interaction.user.id, userName: interaction.user.username, bet, choiceId: selectedChoiceId });
             await i.editReply({ embeds: [buildRoomEmbed()], components: buildRoomComponents() });
@@ -1267,6 +1269,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             roomState.active = true;
             roomState.game = 'BAU_CUA';
             roomState.choiceId = selectedChoiceId;
+            roomState.hostBet = bet;
             roomState.players.clear();
             roomState.players.set(interaction.user.id, { userId: interaction.user.id, userName: interaction.user.username, bet, choiceId: selectedChoiceId });
             await i.editReply({ embeds: [buildRoomEmbed()], components: buildRoomComponents() });
