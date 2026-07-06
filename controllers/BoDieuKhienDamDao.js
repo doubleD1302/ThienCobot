@@ -669,9 +669,9 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         const isChoiceButton = (i.customId in TAI_XIU_CHOICES) || 
                                (i.customId in KIEM_GIAP_CHOICES) || 
                                (i.customId in BAU_CUA_CHOICES);
-        const isGameSelector = ['game_taixiu', 'game_kiemgiap', 'game_blackjack', 'game_baucua'].includes(i.customId);
+        const isModalTrigger = isChoiceButton || (i.customId === 'game_blackjack');
 
-        if (!isChoiceButton && !isGameSelector) {
+        if (!isModalTrigger) {
           await i.deferUpdate();
         }
 
