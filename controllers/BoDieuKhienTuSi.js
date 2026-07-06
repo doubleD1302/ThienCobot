@@ -22,7 +22,24 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
   }
 
   async veNhanVatSkin(tuSi) {
-    let canvas = null;
+    const canvas = new Jimp({ width: 384, height: 576, color: 0x00000000 });
+
+    const scaleToFit = (img, maxWidth, maxHeight) => {
+      const originalWidth = img.bitmap.width;
+      const originalHeight = img.bitmap.height;
+      const widthRatio = maxWidth / originalWidth;
+      const heightRatio = maxHeight / originalHeight;
+      const scale = Math.min(widthRatio, heightRatio);
+
+      let w = originalWidth;
+      let h = originalHeight;
+      if (scale < 1 || originalWidth > maxWidth || originalHeight > maxHeight) {
+        w = Math.round(originalWidth * scale);
+        h = Math.round(originalHeight * scale);
+      }
+      img.resize({ w, h });
+      return { w, h };
+    };
 
     // 1. Draw background
     if (tuSi.equippedBackground) {
@@ -30,14 +47,13 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       if (bgSkin) {
         const bgPath = `public/image/skin/background/${bgSkin.fileAnh}`;
         if (fs.existsSync(bgPath)) {
-          canvas = await Jimp.read(bgPath);
-          canvas.resize({ w: 384, h: 576 });
+          const bgImg = await Jimp.read(bgPath);
+          const { w, h } = scaleToFit(bgImg, 384, 576);
+          const x = Math.round((384 - w) / 2);
+          const y = Math.round((576 - h) / 2);
+          canvas.composite(bgImg, x, y);
         }
       }
-    }
-
-    if (!canvas) {
-      canvas = new Jimp({ width: 384, height: 576, color: 0x00000000 });
     }
 
     // 2. Draw aura
@@ -47,8 +63,12 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         const auraPath = `public/image/skin/aura/${auraSkin.fileAnh}`;
         if (fs.existsSync(auraPath)) {
           const auraImg = await Jimp.read(auraPath);
-          auraImg.resize({ w: 292, h: 438 });
-          canvas.composite(auraImg, 46, 69);
+          const { w, h } = scaleToFit(auraImg, 292, 438);
+          const targetX = 46;
+          const targetY = 44; // Shifted up by 25px from 69
+          const x = Math.round(targetX + (292 - w) / 2);
+          const y = Math.round(targetY + (438 - h) / 2);
+          canvas.composite(auraImg, x, y);
         }
       }
     }
@@ -61,8 +81,12 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         const skinPath = `public/image/skin/skin/${dir}/${skinSkin.fileAnh}`;
         if (fs.existsSync(skinPath)) {
           const skinImg = await Jimp.read(skinPath);
-          skinImg.resize({ w: 230, h: 304 });
-          canvas.composite(skinImg, 77, 203);
+          const { w, h } = scaleToFit(skinImg, 230, 304);
+          const targetX = 77;
+          const targetY = 203;
+          const x = Math.round(targetX + (230 - w) / 2);
+          const y = Math.round(targetY + (304 - h)); // Bottom-aligned inside target bounding box
+          canvas.composite(skinImg, x, y);
         }
       }
     }
