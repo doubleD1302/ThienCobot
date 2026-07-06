@@ -725,6 +725,22 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 })))
             )
           );
+
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('pet_action_quick_feed')
+                .setPlaceholder('⚡ Ăn nhanh bằng bộ lọc...')
+                .addOptions([
+                  { label: 'Nuốt tất cả thức ăn', value: 'all', description: 'Ăn toàn bộ linh thảo và vạn yêu quả hiện có' },
+                  { label: 'Chỉ ăn Vạn Yêu Quả', value: 'van_yeu_qua', description: 'Chỉ ăn các loại quả tăng kinh nghiệm' },
+                  { label: 'Chỉ ăn Linh Thảo', value: 'linh_thao', description: 'Chỉ ăn các loại linh thảo' },
+                  { label: 'Chỉ ăn thức ăn Phẩm Thấp (<1000 EXP)', value: 'quality_low', description: 'Linh thảo Luc/Lam/Tim/Vang & Quả Phế' },
+                  { label: 'Chỉ ăn thức ăn Phẩm Cao (>=1000 EXP)', value: 'quality_high', description: 'Linh thảo Đỏ & Quả Hạ/Trung/Thuong/Tien/Than' }
+                ])
+            )
+          );
+
           // Nút điều hướng trang thức ăn (chỉ hiện khi có > 1 trang)
           if (totalFoodPages > 1) {
             rows.push(
@@ -754,8 +770,12 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           );
         }
 
-        // Hàng 3: Nút tăng tư chất, tiến hóa
+        // Hàng 3: Nút tăng tư chất, tiến hóa + Quay lại
         const actionRow3 = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('btn_back')
+            .setLabel('↩️ Quay Lại')
+            .setStyle(ButtonStyle.Secondary),
           new ButtonBuilder()
             .setCustomId('pet_action_enhance')
             .setLabel('✨ Tăng Tư Chất (Tốn 500 🪙)')
@@ -793,15 +813,6 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           }
         }
         rows.push(actionRow3);
-
-        rows.push(
-          new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId('btn_back')
-              .setLabel('↩️ Quay Lại')
-              .setStyle(ButtonStyle.Secondary)
-          )
-        );
       }
 
       // ══════════════════════════════════════════════════════════════
@@ -1128,6 +1139,120 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             await pet.destroy();
             actionMessage = BoTaoEmbed.thanhCong('💥 Thả sủng vật', `Đạo hữu đã phóng sinh sủng vật thành công.`);
             menuStack.pop();
+          } else if (i.customId === 'pet_action_quick_feed') {
+            const filterId = i.values[0];
+            const levelCap = config.getPetLevelCap(pet);
+
+            if (pet.level >= levelCap) {
+              actionMessage = BoTaoEmbed.loi(`Sủng vật đã đạt cấp độ giới hạn ${levelCap}. Hãy tiến hóa để mở khóa giới hạn.`);
+            } else {
+              const allFoods = myInventory.filter(e => {
+                const isLinhThao = e.item.loai === 'Linh thảo' && e.item.id.includes('_');
+                const isVanYeuQua = e.item.id.startsWith('van_yeu_qua_');
+                if (!isLinhThao && !isVanYeuQua) return false;
+
+                if (filterId === 'van_yeu_qua') return isVanYeuQua;
+                if (filterId === 'linh_thao') return isLinhThao;
+
+                const expMap = {
+                  van_yeu_qua_phe: 500,
+                  van_yeu_qua_ha: 1000,
+                  van_yeu_qua_trung: 2000,
+                  van_yeu_qua_thuong: 4000,
+                  van_yeu_qua_tien: 8000,
+                  van_yeu_qua_than: 16000
+                };
+                let exp = 0;
+                if (e.item.id.startsWith('van_yeu_qua_')) {
+                  exp = expMap[e.item.id] || 500;
+                } else {
+                  const legacyExpMap = { luc: 20, lam: 60, tim: 200, vang: 600, do: 2000 };
+                  const colorCode = e.item.id.split('_').pop();
+                  exp = legacyExpMap[colorCode] || 20;
+                }
+
+                if (filterId === 'quality_low') return exp < 1000;
+                if (filterId === 'quality_high') return exp >= 1000;
+
+                return true; // filter === 'all'
+              });
+
+              if (allFoods.length === 0) {
+                actionMessage = BoTaoEmbed.loi('Không tìm thấy thức ăn nào trong balo khớp với bộ lọc đã chọn.');
+              } else {
+                let totalExpGained = 0;
+                let startLevel = pet.level;
+                let consumedItems = [];
+
+                const getFoodExp = (foodId) => {
+                  const expMap = {
+                    van_yeu_qua_phe: 500,
+                    van_yeu_qua_ha: 1000,
+                    van_yeu_qua_trung: 2000,
+                    van_yeu_qua_thuong: 4000,
+                    van_yeu_qua_tien: 8000,
+                    van_yeu_qua_than: 16000
+                  };
+                  if (foodId.startsWith('van_yeu_qua_')) {
+                    return expMap[foodId] || 500;
+                  }
+                  const legacyExpMap = { luc: 20, lam: 60, tim: 200, vang: 600, do: 2000 };
+                  const colorCode = foodId.split('_').pop();
+                  return legacyExpMap[colorCode] || 20;
+                };
+
+                for (const food of allFoods) {
+                  if (pet.level >= levelCap) break;
+
+                  const expPerFood = getFoodExp(food.item.id);
+                  let countToConsume = 0;
+
+                  for (let k = 0; k < food.soLuong; k++) {
+                    if (pet.level >= levelCap) break;
+
+                    pet.exp += expPerFood;
+                    totalExpGained += expPerFood;
+                    countToConsume++;
+
+                    while (pet.level < levelCap && pet.exp >= pet.level * 100) {
+                      pet.exp -= pet.level * 100;
+                      pet.level += 1;
+                    }
+                  }
+
+                  if (countToConsume > 0) {
+                    consumedItems.push({ inventoryItem: food, count: countToConsume });
+                  }
+                }
+
+                if (totalExpGained === 0) {
+                  actionMessage = BoTaoEmbed.loi('Không có thức ăn nào được tiêu thụ (có thể do sủng vật đã đạt cấp giới hạn).');
+                } else {
+                  for (const { inventoryItem, count } of consumedItems) {
+                    const inv = await Inventory.findByPk(inventoryItem.invId);
+                    if (inv) {
+                      inv.soLuong -= count;
+                      if (inv.soLuong <= 0) {
+                        await inv.destroy();
+                      } else {
+                        await inv.save();
+                      }
+                    }
+                  }
+                  await pet.save();
+
+                  const lvlUpCount = pet.level - startLevel;
+                  actionMessage = BoTaoEmbed.thanhCong(
+                    '⚡ Ăn Nhanh Thành Công',
+                    `Cho **${pet.name}** ăn nhanh thành công:\n` +
+                    `• Tiêu thụ: ${consumedItems.map(c => `**${c.inventoryItem.item.ten}** x${c.count}`).join(', ')}\n` +
+                    `• Tổng EXP nhận được: \`+${totalExpGained.toLocaleString()} EXP\`\n` +
+                    (lvlUpCount > 0 ? `• **Thăng cấp**: Từ Cấp **${startLevel}** lên Cấp **${pet.level}**! 🎉\n` : '') +
+                    (pet.level === levelCap ? `• ⚠️ **Sủng vật đã chạm giới hạn Cấp ${levelCap}. Hãy tiến hóa.**` : '')
+                  );
+                }
+              }
+            }
           } else if (i.customId === 'pet_action_feed_menu') {
             const foodId = i.values[0];
             const expMap = {
