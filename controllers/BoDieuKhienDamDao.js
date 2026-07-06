@@ -132,6 +132,68 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         return `${value}${suit}`;
       };
 
+      const handleChoiceClick = async (clickedInteraction, game, choiceId) => {
+        const modal = new ModalBuilder()
+          .setCustomId('modal_bet_setup')
+          .setTitle('Nhập Tiền Cược');
+
+        const betInput = new TextInputBuilder()
+          .setCustomId('input_bet_amount')
+          .setLabel('Số tiền cược (VND)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Ví dụ: 5000')
+          .setValue(bet ? String(bet) : '')
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder().addComponents(betInput));
+
+        await clickedInteraction.showModal(modal);
+
+        try {
+          const submission = await clickedInteraction.awaitModalSubmit({
+            filter: sub => sub.customId === 'modal_bet_setup' && sub.user.id === clickedInteraction.user.id,
+            time: 60000
+          });
+
+          await submission.deferReply({ ephemeral: true });
+
+          const rawBet = submission.fields.getTextInputValue('input_bet_amount').trim();
+          const parsedBet = Number.parseInt(rawBet, 10);
+
+          if (!Number.isFinite(parsedBet) || parsedBet < 100) {
+            await submission.editReply({ embeds: [BoTaoEmbed.loi('Mức cược tối thiểu là 100 VND!')] });
+            return;
+          }
+
+          if (parsedBet > MAX_GAME_BET) {
+            await submission.editReply({ embeds: [BoTaoEmbed.loi(`Mức cược tối đa là ${MAX_GAME_BET.toLocaleString()} VND!`)] });
+            return;
+          }
+
+          const freshTuSi = await this.layTuSi(interaction.user.id);
+          if (freshTuSi.vnd < parsedBet) {
+            await submission.editReply({ embeds: [BoTaoEmbed.loi(`VND bất túc! Ngươi chỉ có \`${freshTuSi.vnd.toLocaleString()}\` VND, không đủ cược \`${parsedBet.toLocaleString()}\` VND.`)] });
+            return;
+          }
+
+          bet = parsedBet;
+          selectedChoiceId = choiceId;
+
+          await submission.editReply({ embeds: [BoTaoEmbed.thanhCong('Chọn Cửa Thành Công', `Đã đặt cửa **${getChoiceMeta(game, choiceId)?.name}** với mức cược \`${bet.toLocaleString()}\` VND.`)] });
+
+          await interaction.editReply({
+            embeds: [buildGameEmbed(game)],
+            components: [...buildChoiceRows(game), ...buildActionRows(game)]
+          });
+        } catch (err) {
+          if (err.message && err.message.includes('time')) {
+            // Quietly ignore modal timeout
+          } else {
+            console.error(`Error submitting ${game} bet modal:`, err);
+          }
+        }
+      };
+
       let selectedGame = null;
       let selectedChoiceId = null;
       const roomState = {
@@ -249,7 +311,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           .setColor(meta.color)
           .setDescription(
             `Đạo hữu **${tuSi.ten}** đang xem sảnh **${meta.label}**.\n` +
-            `💵 **VND cược**: \`${bet.toLocaleString()}\` VND\n` +
+            `💵 **VND cược**: \`${bet ? bet.toLocaleString() : 'Chưa nhập'}\` VND\n` +
             `💵 **VND hiện có**: \`${tuSi.vnd.toLocaleString()}\` VND\n\n` +
             `• **Cửa đã chọn**: ${choiceText}${roomLine}\n` +
             extraText +
@@ -604,7 +666,12 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           return;
         }
 
-        if (!['game_taixiu', 'game_kiemgiap', 'game_blackjack', 'game_baucua'].includes(i.customId)) {
+        const isChoiceButton = (i.customId in TAI_XIU_CHOICES) || 
+                               (i.customId in KIEM_GIAP_CHOICES) || 
+                               (i.customId in BAU_CUA_CHOICES);
+        const isGameSelector = ['game_taixiu', 'game_kiemgiap', 'game_blackjack', 'game_baucua'].includes(i.customId);
+
+        if (!isChoiceButton && !isGameSelector) {
           await i.deferUpdate();
         }
 
@@ -806,163 +873,89 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
           const gameType = i.customId;
 
-          const modal = new ModalBuilder()
-            .setCustomId('modal_initial_setup')
-            .setTitle('Nhập Tiền Cược & Lựa Chọn');
+          if (gameType === 'game_taixiu') {
+            selectedGame = 'TAI_XIU';
+            selectedChoiceId = null;
+            bet = null;
+            step = 'TAI_XIU';
 
-          const betInput = new TextInputBuilder()
-            .setCustomId('input_initial_bet')
-            .setLabel('Số tiền cược (VND)')
-            .setStyle(TextInputStyle.Short)
-            .setPlaceholder('Ví dụ: 5000')
-            .setRequired(true);
-
-          let choiceInput = null;
-          if (gameType !== 'game_blackjack') {
-            let choiceLabel = 'Lựa chọn của ngươi';
-            let choicePlaceholder = '';
-            if (gameType === 'game_taixiu') {
-              choiceLabel = 'Lựa chọn (Tài, Xỉu, Chẵn, Lẻ, hoặc Số 3-18)';
-              choicePlaceholder = 'Ví dụ: Tài, Chẵn, hoặc 10';
-            } else if (gameType === 'game_kiemgiap') {
-              choiceLabel = 'Chiêu thức (Kiếm, Giáp, hoặc Pháp)';
-              choicePlaceholder = 'Ví dụ: Kiếm, Giáp, hoặc Pháp';
-            } else if (gameType === 'game_baucua') {
-              choiceLabel = 'Linh thú (Bầu, Cua, Tôm, Cá, Gà, hoặc Nai)';
-              choicePlaceholder = 'Ví dụ: Bầu, Cua, Tôm...';
-            }
-
-            choiceInput = new TextInputBuilder()
-              .setCustomId('input_initial_choice')
-              .setLabel(choiceLabel)
-              .setStyle(TextInputStyle.Short)
-              .setPlaceholder(choicePlaceholder)
-              .setRequired(true);
-          }
-
-          if (choiceInput) {
-            modal.addComponents(
-              new ActionRowBuilder().addComponents(betInput),
-              new ActionRowBuilder().addComponents(choiceInput)
-            );
-          } else {
-            modal.addComponents(
-              new ActionRowBuilder().addComponents(betInput)
-            );
-          }
-
-          await i.showModal(modal);
-
-          try {
-            const submission = await i.awaitModalSubmit({
-              filter: sub => sub.customId === 'modal_initial_setup' && sub.user.id === i.user.id,
-              time: 60000
+            await i.editReply({
+              embeds: [buildGameEmbed('TAI_XIU')],
+              components: [...buildChoiceRows('TAI_XIU'), ...buildActionRows('TAI_XIU')]
             });
+            return;
+          }
 
-            await submission.deferReply({ ephemeral: true });
+          if (gameType === 'game_kiemgiap') {
+            selectedGame = 'KIEM_GIAP_PHAP';
+            selectedChoiceId = null;
+            bet = null;
+            step = 'KIEM_GIAP_PHAP';
 
-            const rawBet = submission.fields.getTextInputValue('input_initial_bet').trim();
-            const parsedBet = Number.parseInt(rawBet, 10);
+            await i.editReply({
+              embeds: [buildGameEmbed('KIEM_GIAP_PHAP')],
+              components: [...buildChoiceRows('KIEM_GIAP_PHAP'), ...buildActionRows('KIEM_GIAP_PHAP')]
+            });
+            return;
+          }
 
-            if (!Number.isFinite(parsedBet) || parsedBet < 100) {
-              await submission.editReply({ embeds: [BoTaoEmbed.loi('Mức cược tối thiểu là 100 VND!')] });
-              return;
-            }
+          if (gameType === 'game_baucua') {
+            selectedGame = 'BAU_CUA';
+            selectedChoiceId = null;
+            bet = null;
+            step = 'BAU_CUA';
 
-            if (parsedBet > MAX_GAME_BET) {
-              await submission.editReply({ embeds: [BoTaoEmbed.loi(`Mức cược tối đa là ${MAX_GAME_BET.toLocaleString()} VND!`)] });
-              return;
-            }
+            await i.editReply({
+              embeds: [buildGameEmbed('BAU_CUA')],
+              components: [...buildChoiceRows('BAU_CUA'), ...buildActionRows('BAU_CUA')]
+            });
+            return;
+          }
 
-            const freshTuSi = await this.layTuSi(interaction.user.id);
-            if (freshTuSi.vnd < parsedBet) {
-              await submission.editReply({ embeds: [BoTaoEmbed.loi(`VND bất túc! Ngươi chỉ có \`${freshTuSi.vnd.toLocaleString()}\` VND, không đủ cược \`${parsedBet.toLocaleString()}\` VND.`)] });
-              return;
-            }
+          if (gameType === 'game_blackjack') {
+            const modal = new ModalBuilder()
+              .setCustomId('modal_initial_setup')
+              .setTitle('Nhập Tiền Cược');
 
-            bet = parsedBet;
+            const betInput = new TextInputBuilder()
+              .setCustomId('input_initial_bet')
+              .setLabel('Số tiền cược (VND)')
+              .setStyle(TextInputStyle.Short)
+              .setPlaceholder('Ví dụ: 5000')
+              .setRequired(true);
 
-            let choiceId = null;
-            if (gameType === 'game_taixiu') {
-              const rawChoice = submission.fields.getTextInputValue('input_initial_choice').trim();
-              const text = rawChoice.toLowerCase().trim();
-              if (text === 'tài' || text === 'tai' || text === 't') choiceId = 'tx_tai';
-              else if (text === 'xỉu' || text === 'xiu' || text === 'x') choiceId = 'tx_xiu';
-              else if (text === 'chẵn' || text === 'chan' || text === 'c') choiceId = 'tx_chan';
-              else if (text === 'lẻ' || text === 'le' || text === 'l') choiceId = 'tx_le';
-              else {
-                const parsedNum = parseInt(text, 10);
-                if (Number.isInteger(parsedNum) && parsedNum >= 3 && parsedNum <= 18) {
-                  choiceId = `tx_${parsedNum}`;
-                }
-              }
+            modal.addComponents(new ActionRowBuilder().addComponents(betInput));
 
-              if (!choiceId) {
-                await submission.editReply({ embeds: [BoTaoEmbed.loi('Cửa đặt Tài Xỉu không hợp lệ! Vui lòng nhập: Tài, Xỉu, Chẵn, Lẻ hoặc một số từ 3 đến 18.')] });
+            await i.showModal(modal);
+
+            try {
+              const submission = await i.awaitModalSubmit({
+                filter: sub => sub.customId === 'modal_initial_setup' && sub.user.id === i.user.id,
+                time: 60000
+              });
+
+              await submission.deferReply({ ephemeral: true });
+
+              const rawBet = submission.fields.getTextInputValue('input_initial_bet').trim();
+              const parsedBet = Number.parseInt(rawBet, 10);
+
+              if (!Number.isFinite(parsedBet) || parsedBet < 100) {
+                await submission.editReply({ embeds: [BoTaoEmbed.loi('Mức cược tối thiểu là 100 VND!')] });
                 return;
               }
 
-              selectedGame = 'TAI_XIU';
-              selectedChoiceId = choiceId;
-              step = 'TAI_XIU';
-
-              await submission.editReply({ embeds: [BoTaoEmbed.thanhCong('Chọn Trò Chơi Thành Công', `Ngươi đã chọn **Tài Xỉu** cược \`${bet.toLocaleString()}\` VND và đặt cửa \`${getChoiceMeta('TAI_XIU', choiceId)?.name || choiceId}\`.`)] });
-
-              await interaction.editReply({
-                embeds: [buildGameEmbed('TAI_XIU')],
-                components: [...buildChoiceRows('TAI_XIU'), ...buildActionRows('TAI_XIU')]
-              });
-
-            } else if (gameType === 'game_kiemgiap') {
-              const rawChoice = submission.fields.getTextInputValue('input_initial_choice').trim();
-              const text = rawChoice.toLowerCase().trim();
-              if (text === 'kiếm' || text === 'kiem' || text === 'k') choiceId = 'kgp_kiem';
-              else if (text === 'giáp' || text === 'giap' || text === 'g') choiceId = 'kgp_giap';
-              else if (text === 'pháp' || text === 'phap' || text === 'p' || text.includes('bùa')) choiceId = 'kgp_phap';
-
-              if (!choiceId) {
-                await submission.editReply({ embeds: [BoTaoEmbed.loi('Cửa chọn Quyết Đấu không hợp lệ! Vui lòng nhập: Kiếm, Giáp hoặc Pháp.')] });
+              if (parsedBet > MAX_GAME_BET) {
+                await submission.editReply({ embeds: [BoTaoEmbed.loi(`Mức cược tối đa là ${MAX_GAME_BET.toLocaleString()} VND!`)] });
                 return;
               }
 
-              selectedGame = 'KIEM_GIAP_PHAP';
-              selectedChoiceId = choiceId;
-              step = 'KIEM_GIAP_PHAP';
-
-              await submission.editReply({ embeds: [BoTaoEmbed.thanhCong('Chọn Trò Chơi Thành Công', `Ngươi đã chọn **Quyết Đấu** cược \`${bet.toLocaleString()}\` VND và đặt cửa \`${getChoiceMeta('KIEM_GIAP_PHAP', choiceId)?.name || choiceId}\`.`)] });
-
-              await interaction.editReply({
-                embeds: [buildGameEmbed('KIEM_GIAP_PHAP')],
-                components: [...buildChoiceRows('KIEM_GIAP_PHAP'), ...buildActionRows('KIEM_GIAP_PHAP')]
-              });
-
-            } else if (gameType === 'game_baucua') {
-              const rawChoice = submission.fields.getTextInputValue('input_initial_choice').trim();
-              const text = rawChoice.toLowerCase().trim();
-              if (text === 'bầu' || text === 'bau' || text === 'b') choiceId = 'bc_bau';
-              else if (text === 'cua' || text === 'c') choiceId = 'bc_cua';
-              else if (text === 'tôm' || text === 'tom' || text === 't') choiceId = 'bc_tom';
-              else if (text === 'cá' || text === 'ca') choiceId = 'bc_ca';
-              else if (text === 'gà' || text === 'ga' || text === 'g') choiceId = 'bc_ga';
-              else if (text === 'nai' || text === 'n') choiceId = 'bc_nai';
-
-              if (!choiceId) {
-                await submission.editReply({ embeds: [BoTaoEmbed.loi('Cửa chọn Bầu Cua không hợp lệ! Vui lòng nhập: Bầu, Cua, Tôm, Cá, Gà hoặc Nai.')] });
+              const freshTuSi = await this.layTuSi(interaction.user.id);
+              if (freshTuSi.vnd < parsedBet) {
+                await submission.editReply({ embeds: [BoTaoEmbed.loi(`VND bất túc! Ngươi chỉ có \`${freshTuSi.vnd.toLocaleString()}\` VND, không đủ cược \`${parsedBet.toLocaleString()}\` VND.`)] });
                 return;
               }
 
-              selectedGame = 'BAU_CUA';
-              selectedChoiceId = choiceId;
-              step = 'BAU_CUA';
-
-              await submission.editReply({ embeds: [BoTaoEmbed.thanhCong('Chọn Trò Chơi Thành Công', `Ngươi đã chọn **Bầu Cua** cược \`${bet.toLocaleString()}\` VND và đặt cửa \`${getChoiceMeta('BAU_CUA', choiceId)?.name || choiceId}\`.`)] });
-
-              await interaction.editReply({
-                embeds: [buildGameEmbed('BAU_CUA')],
-                components: [...buildChoiceRows('BAU_CUA'), ...buildActionRows('BAU_CUA')]
-              });
-
-            } else if (gameType === 'game_blackjack') {
+              bet = parsedBet;
               selectedGame = 'BLACKJACK';
               step = 'BLACKJACK';
 
@@ -990,21 +983,21 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
               await submission.editReply({ embeds: [BoTaoEmbed.thanhCong('Chọn Trò Chơi Thành Công', `Ngươi đã chọn **Nhị Thập Nhất Lực** cược \`${bet.toLocaleString()}\` VND.`)] });
 
               await interaction.editReply({ embeds: [embed], components: [row] });
-            }
 
-          } catch (err) {
-            console.error('Error submitting initial setup modal:', err);
+            } catch (err) {
+              if (err.message && err.message.includes('time')) {
+                // Quietly ignore modal timeout
+              } else {
+                console.error('Error submitting Blackjack modal:', err);
+              }
+            }
+            return;
           }
-          return;
         }
 
         else if (step === 'TAI_XIU') {
           if (i.customId in TAI_XIU_CHOICES) {
-            selectedChoiceId = i.customId;
-            await i.editReply({
-              embeds: [buildGameEmbed('TAI_XIU')],
-              components: [...buildChoiceRows('TAI_XIU'), ...buildActionRows('TAI_XIU')]
-            });
+            await handleChoiceClick(i, 'TAI_XIU', i.customId);
             return;
           }
 
@@ -1104,11 +1097,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
         else if (step === 'KIEM_GIAP_PHAP') {
           if (i.customId === 'kgp_kiem' || i.customId === 'kgp_giap' || i.customId === 'kgp_phap') {
-            selectedChoiceId = i.customId;
-            await i.editReply({
-              embeds: [buildGameEmbed('KIEM_GIAP_PHAP')],
-              components: [...buildChoiceRows('KIEM_GIAP_PHAP'), ...buildActionRows('KIEM_GIAP_PHAP')]
-            });
+            await handleChoiceClick(i, 'KIEM_GIAP_PHAP', i.customId);
             return;
           }
 
@@ -1265,11 +1254,7 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
 
         else if (step === 'BAU_CUA') {
           if (i.customId in BAU_CUA_CHOICES) {
-            selectedChoiceId = i.customId;
-            await i.editReply({
-              embeds: [buildGameEmbed('BAU_CUA')],
-              components: [...buildChoiceRows('BAU_CUA'), ...buildActionRows('BAU_CUA')]
-            });
+            await handleChoiceClick(i, 'BAU_CUA', i.customId);
             return;
           }
 
