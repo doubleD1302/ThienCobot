@@ -192,9 +192,8 @@ class BoDieuKhienSkin extends BoDieuKhienGoc {
             freshTuSi.equippedSkin = skin.id;
           }
 
-          const { BoDieuKhienTuSi } = await import('./BoDieuKhienTuSi.js');
-          const ctrlTuSi = new BoDieuKhienTuSi();
-          const buffer = await ctrlTuSi.veNhanVatSkin(freshTuSi);
+          const { boDieuKhienTuSi } = await import('./BoDieuKhienTuSi.js');
+          const buffer = await boDieuKhienTuSi.veNhanVatSkin(freshTuSi);
 
           freshTuSi.equippedBackground = originalBg;
           freshTuSi.equippedAura = originalAura;

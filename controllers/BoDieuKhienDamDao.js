@@ -604,7 +604,9 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
           return;
         }
 
-        await i.deferUpdate();
+        if (!['game_taixiu', 'game_kiemgiap', 'game_blackjack', 'game_baucua'].includes(i.customId)) {
+          await i.deferUpdate();
+        }
 
         if (!roomState.active && i.user.id !== interaction.user.id) {
           await i.followUp({
