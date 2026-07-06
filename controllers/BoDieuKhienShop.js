@@ -273,7 +273,7 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         const sellable = [];
         for (const inv of invList) {
           const itemDetail = await Item.findByPk(inv.itemId);
-          if (itemDetail && itemDetail.giaCoSo > 0) {
+          if (itemDetail && itemDetail.loai !== 'Skin' && itemDetail.giaCoSo > 0) {
             if (inv.khoa) continue;
             if (itemDetail.loai === 'Chí bảo') continue;
 
@@ -864,8 +864,8 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
     }
 
     const itemDetail = await Item.findByPk(inv.itemId);
-    if (!itemDetail) {
-      return { ok: false, msg: `Thông tin vật phẩm tĩnh cho mã \`${inv.itemId}\` đã bị thất lạc.` };
+    if (!itemDetail || itemDetail.loai === 'Skin') {
+      return { ok: false, msg: `Không thể bán trang phục thời trang / skin tại Linh Bảo Các.` };
     }
 
     if (inv.khoa) {

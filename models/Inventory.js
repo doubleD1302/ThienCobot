@@ -16,15 +16,30 @@ class Inventory extends Model {
     const { Item } = await import('./Item.js');
     const { rollDynamicStats } = await import('../config.js');
     
-    let item = await Item.findByPk(itemId);
+    const { Skin } = await import('./Skin.js');
+    const skin = await Skin.findByPk(itemId);
+    let item = null;
     let isSkin = false;
-    if (!item) {
-      const { Skin } = await import('./Skin.js');
-      const skin = await Skin.findByPk(itemId);
-      if (!skin) return null;
+
+    if (skin) {
       isSkin = true;
       item = skin;
+      await Item.findOrCreate({
+        where: { id: itemId },
+        defaults: {
+          ten: skin.ten,
+          loai: 'Skin',
+          doHiem: 'Thường',
+          giaCoSo: skin.giaVnd,
+          chiSoJson: '{}',
+          moTa: skin.moTa
+        }
+      });
+    } else {
+      item = await Item.findByPk(itemId);
     }
+
+    if (!item) return null;
 
     const isEquipable = !isSkin && ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
     const isBreakthroughPill = !isSkin && item.id.startsWith('dan_dot_pha_');

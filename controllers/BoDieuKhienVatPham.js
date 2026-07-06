@@ -38,7 +38,7 @@ async function reloadItemsList(idNguoiDung, capDo = 1) {
   const result = [];
   for (const inv of freshInvList) {
     const d = await Item.findByPk(inv.itemId);
-    if (d) result.push({
+    if (d && d.loai !== 'Skin') result.push({
       invId:         inv.id,
       item:          d,
       soLuong:       inv.soLuong,
@@ -256,7 +256,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
         for (const inv of allInv) {
           const item = await Item.findByPk(inv.itemId);
-          if (!item) continue;
+          if (!item || item.loai === 'Skin') continue;
 
           if (qsRarity !== 'tat_ca' && item.doHiem !== qsRarity) continue;
 
