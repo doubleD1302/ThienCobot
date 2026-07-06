@@ -58,6 +58,17 @@ const getTaiXiuMultiplier = (choiceId) => {
   return 2;
 };
 
+const DICE_EMOJIS = {
+  1: '<:item_1:1523649243758330008>',
+  2: '<:item_2:1523649246006349906>',
+  3: '<:item_3:1523649249286553681>',
+  4: '<:item_4:1523649236623691877>',
+  5: '<:item_5:1523649239333208064>',
+  6: '<:item_6:1523649241619239082>'
+};
+
+const getDiceEmojiStr = (d) => DICE_EMOJIS[d] || `[${d}]`;
+
 const KIEM_GIAP_CHOICES = {
   kgp_kiem: { id: 'kgp_kiem', name: '🗡️ Kiếm', short: 'Kiếm', label: '🗡️ Kiếm' },
   kgp_giap: { id: 'kgp_giap', name: '🛡️ Giáp', short: 'Giáp', label: '🛡️ Giáp' },
@@ -389,7 +400,10 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
         let outcomeText = '';
 
         if (game === 'TAI_XIU') {
-          outcomeText = `🎲 Xúc xắc: \`[ ${outcome.d1} ] · [ ${outcome.d2} ] · [ ${outcome.d3} ]\`\n• Tổng điểm: **${outcome.sum}** → **${outcome.result === 'tx_tai' ? 'Tài' : 'Xỉu'}**`;
+          const e1 = getDiceEmojiStr(outcome.d1);
+          const e2 = getDiceEmojiStr(outcome.d2);
+          const e3 = getDiceEmojiStr(outcome.d3);
+          outcomeText = `🎲 Xúc xắc: ${e1} ${e2} ${e3}\n• Tổng điểm: **${outcome.sum}** → **${outcome.result === 'tx_tai' ? 'Tài' : 'Xỉu'}**`;
         } else if (game === 'KIEM_GIAP_PHAP') {
           outcomeText = `⚔️ Thiên Đạo ra chiêu: **${getChoiceMeta(game, outcome.botChoiceId)?.name || outcome.botChoiceId}**`;
         } else if (game === 'BAU_CUA') {
@@ -1041,7 +1055,10 @@ class BoDieuKhienDamDao extends BoDieuKhienGoc {
             tuSi.vnd = Math.max(0, tuSi.vnd + playerOutcome.delta + jackpotShare);
             await tuSi.save();
 
-            let outcomeText = `🎲 Xúc xắc: \`[ ${outcome.d1} ] · [ ${outcome.d2} ] · [ ${outcome.d3} ]\`\n` +
+            const e1 = getDiceEmojiStr(outcome.d1);
+            const e2 = getDiceEmojiStr(outcome.d2);
+            const e3 = getDiceEmojiStr(outcome.d3);
+            let outcomeText = `🎲 Xúc xắc: ${e1} ${e2} ${e3}\n` +
               `• Tổng điểm: \`${outcome.sum}\` ➔ **${outcome.sum >= 11 ? 'Tài' : 'Xỉu'}**`;
 
             const resultEmbed = new EmbedBuilder()

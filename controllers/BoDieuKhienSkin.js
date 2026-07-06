@@ -4,7 +4,8 @@ import {
   StringSelectMenuBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder
+  EmbedBuilder,
+  AttachmentBuilder
 } from 'discord.js';
 
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
@@ -120,6 +121,10 @@ class BoDieuKhienSkin extends BoDieuKhienGoc {
                 .setLabel('💰 Mua Skin')
                 .setStyle(ButtonStyle.Success),
               new ButtonBuilder()
+                .setCustomId('skin_shop_preview')
+                .setLabel('👁️ Xem Trước')
+                .setStyle(ButtonStyle.Primary),
+              new ButtonBuilder()
                 .setCustomId('skin_shop_close')
                 .setLabel('❌ Đóng Cửa Hàng')
                 .setStyle(ButtonStyle.Secondary)
@@ -164,6 +169,57 @@ class BoDieuKhienSkin extends BoDieuKhienGoc {
         if (i.customId === 'skin_shop_select') {
           selectedSkinId = i.values[0];
           await i.editReply(await buildShopPayload());
+          return;
+        }
+
+        if (i.customId === 'skin_shop_preview') {
+          if (!selectedSkinId) return;
+          const skin = availableSkins.find(s => s.id === selectedSkinId);
+          if (!skin) return;
+
+          const freshTuSi = await this.layTuSi(interaction.user.id);
+          if (!freshTuSi) return;
+
+          const originalBg = freshTuSi.equippedBackground;
+          const originalAura = freshTuSi.equippedAura;
+          const originalSkin = freshTuSi.equippedSkin;
+
+          if (skin.loai === 'background') {
+            freshTuSi.equippedBackground = skin.id;
+          } else if (skin.loai === 'aura') {
+            freshTuSi.equippedAura = skin.id;
+          } else if (skin.loai === 'skin') {
+            freshTuSi.equippedSkin = skin.id;
+          }
+
+          const { BoDieuKhienTuSi } = await import('./BoDieuKhienTuSi.js');
+          const ctrlTuSi = new BoDieuKhienTuSi();
+          const buffer = await ctrlTuSi.veNhanVatSkin(freshTuSi);
+
+          freshTuSi.equippedBackground = originalBg;
+          freshTuSi.equippedAura = originalAura;
+          freshTuSi.equippedSkin = originalSkin;
+
+          if (buffer) {
+            const previewAttachment = new AttachmentBuilder(buffer, { name: 'skin_preview.png' });
+            const previewEmbed = new EmbedBuilder()
+              .setTitle(`👀 Xem Trước Ngoại Hình`)
+              .setColor(0x9b59b6)
+              .setDescription(`Đây là ngoại hình dự kiến của đạo hữu **${freshTuSi.ten}** khi trang bị skin **${skin.ten}**:`)
+              .setImage('attachment://skin_preview.png')
+              .setTimestamp();
+
+            await i.followUp({
+              embeds: [previewEmbed],
+              files: [previewAttachment],
+              ephemeral: true
+            });
+          } else {
+            await i.followUp({
+              content: '❌ Không thể tạo ảnh xem trước lúc này!',
+              ephemeral: true
+            });
+          }
           return;
         }
 
