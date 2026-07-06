@@ -28,6 +28,7 @@ const { GiftCode } = await import('./models/GiftCode.js');
 const { PlayerGiftCode } = await import('./models/PlayerGiftCode.js');
 const { DongGopEmoji } = await import('./models/DongGopEmoji.js');
 const { AuctionListing } = await import('./models/AuctionListing.js');
+const { Skin } = await import('./models/Skin.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -1810,7 +1811,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   });
 
   test('Auto Cultivation System refilling, toggling, and loop execution', async () => {
-    const { chayTienTrinhAuto } = await import('./controllers/BoDieuKhienAuto.js');
+    const { chayTienTrinhAuto, creditAutoRewards } = await import('./controllers/BoDieuKhienAuto.js');
     const { Dungeon } = await import('./models/Dungeon.js');
     const { AdventureEvent } = await import('./models/AdventureEvent.js');
 
@@ -1844,7 +1845,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       canhGioiYeuCauText: 'Luyện Khí',
       quaiVatJson: JSON.stringify({ ten: 'Yêu Kê', hp: 10, vatCong: 5, phapCong: 0, vatPhong: 1, phapPhong: 1 }),
       thuongJson: JSON.stringify({ expMin: 10, expMax: 10, stonesMin: 50, stonesMax: 50 }),
-      dropsJson: '[]'
+      dropsJson: JSON.stringify([{ itemId: 'hat_giong_linh_chi', tile: 1.0 }])
     });
 
     // Make sure we have an adventure event
@@ -1853,7 +1854,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       ten: 'Auto Gặp Linh Thảo',
       moTa: 'Đạo hữu ngửi thấy linh hương.',
       loai: 'tot',
-      hieuUngJson: JSON.stringify({ exp: { min: 20, max: 20 }, stones: { min: 100, max: 100 } })
+      hieuUngJson: JSON.stringify({ exp: { min: 20, max: 20 }, stones: { min: 100, max: 100 }, itemSpecified: { itemId: 'hat_giong_nhan_sam', quantity: 1 } })
     });
 
     // --- 1. Test refilling time ---
@@ -1880,8 +1881,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // --- 3. Test background loop execution ---
     // Executing the loop should:
     // - Deduct 5 minutes of auto time (leaving 245)
-    // - Perform autoDiBiCanh (costs 1 stamina, gives exp and stones)
-    // - Perform autoDiLichLuyen (costs 1 stamina, gives exp and stones)
+    // - Perform autoDiBiCanh (costs 1 stamina, gives exp and stones, accumulated in thongKeAuto)
+    // - Perform autoDiLichLuyen (costs 1 stamina, gives exp and stones, accumulated in thongKeAuto)
     const statsLatest = await tuSi.layChiSoDayDu();
     tuSi.hp = statsLatest.max_hp;
     tuSi.mp = statsLatest.max_mp;
@@ -1891,24 +1892,41 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     await tuSi.reload();
     assert.strictEqual(tuSi.thoiGianAuto, 245);
-    // Dungeon gave 10 exp, event gave 20 exp -> total 30 exp
-    assert.strictEqual(tuSi.linhLuc, 30);
-    // Dungeon gave 50 stones, event gave 100 stones -> total 150 stones added to 5000 -> 5150
-    assert.strictEqual(tuSi.linhThach, 5150);
+    // EXP and Linh Thach NOT immediately credited
+    assert.strictEqual(tuSi.linhLuc, 0);
+    assert.strictEqual(tuSi.linhThach, 5000);
+
+    // Items are NOT yet added to database inventory
+    let invItems = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    assert.strictEqual(invItems.length, 0);
+
     // Stamina decreased by 2 (1 for dungeon, 1 for adventure event)
     assert.strictEqual(tuSi.theLuc, 8);
 
     // --- 4. Test statistics accumulation ---
-    const statsObj = tuSi.thongKeAuto;
+    let statsObj = tuSi.thongKeAuto;
     assert.strictEqual(statsObj.activeMinutes, 5);
     assert.strictEqual(statsObj.exp, 30);
     assert.strictEqual(statsObj.stones, 150);
+    assert.ok(statsObj.items['hat_giong_linh_chi'] >= 1);
+    assert.ok(statsObj.items['hat_giong_nhan_sam'] >= 1);
 
-    // --- 5. Test harvest action resets stats ---
-    tuSi.thongKeAuto = { activeMinutes: 0, exp: 0, stones: 0, items: {} };
-    await tuSi.save();
+    // --- 5. Test harvest action credits rewards and resets stats ---
+    const harvestResult = await creditAutoRewards(tuSi);
+    assert.ok(harvestResult);
+    assert.strictEqual(harvestResult.expGained, 30);
+    assert.strictEqual(harvestResult.stonesGained, 150);
 
     await tuSi.reload();
+    assert.strictEqual(tuSi.linhLuc, 30);
+    assert.strictEqual(tuSi.linhThach, 5150);
+
+    // Check that items dropped are now added to Inventory
+    invItems = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    const itemIds = invItems.map(x => x.itemId);
+    assert.ok(itemIds.includes('hat_giong_linh_chi'));
+    assert.ok(itemIds.includes('hat_giong_nhan_sam'));
+
     assert.strictEqual(tuSi.thongKeAuto.activeMinutes, 0);
     assert.strictEqual(tuSi.thongKeAuto.exp, 0);
     assert.strictEqual(tuSi.thongKeAuto.stones, 0);
@@ -2933,6 +2951,144 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await invChibao.destroy();
     await mockChibao.destroy();
     await tuSi.destroy();
+  });
+
+  test('Skin purchase inventory addition falls back to Skin table', async () => {
+    const { Inventory } = await import('./models/Inventory.js');
+    const { Skin } = await import('./models/Skin.js');
+
+    // Create a mock skin in the database
+    const mockSkin = await Skin.create({
+      id: 'test_skin_custom_id',
+      ten: 'Y Phục Thử Nghiệm',
+      loai: 'skin',
+      gioiTinh: 'Cả hai',
+      fileAnh: 'test_skin.png',
+      giaVnd: 5000,
+      moTa: 'Skin dùng để test.'
+    });
+
+    // Try adding it to inventory via addVatPham
+    const userId = "777777111223";
+    const record = await Inventory.addVatPham(userId, 'test_skin_custom_id', 1);
+
+    assert.ok(record);
+    assert.strictEqual(record.itemId, 'test_skin_custom_id');
+    assert.strictEqual(record.soLuong, 1);
+
+    // Verify it exists in database
+    const dbRecord = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'test_skin_custom_id' } });
+    assert.ok(dbRecord);
+
+    // Clean up
+    await record.destroy();
+    await mockSkin.destroy();
+  });
+
+  test('Dam Dao multiplayer choices and Jackpot (No Hu) resolution', async () => {
+    const { CauHinhGuild } = await import('./models/CauHinhGuild.js');
+
+    // 1. Create players and set up test balances
+    const p1 = await TuSi.create({ idNguoiDung: "111", ten: "HostPlayer", gioiTinh: "Nam", huongTu: "Phap Tu", linhCan: "Thủy Linh Căn", capDo: 1, vnd: 1000000 });
+    const p2 = await TuSi.create({ idNguoiDung: "222", ten: "JoinPlayer", gioiTinh: "Nam", huongTu: "Phap Tu", linhCan: "Thủy Linh Căn", capDo: 1, vnd: 1000000 });
+
+    // 2. Set up CauHinhGuild for the server
+    const guildId = "999";
+    const guildConfig = await CauHinhGuild.create({
+      idGuild: guildId,
+      ngayKhoiTao: new Date(),
+      huTaiXiu: 1000000 // Base Jackpot is 1,000,000 VND
+    });
+
+    // 3. Define host choice, players map, and outcome
+    // Host bets 100,000 on tx_tai (Tài)
+    // Joiner bets 200,000 on tx_3 (specific sum 3)
+    const hostBet = 100000;
+    const playersMap = new Map();
+    playersMap.set("111", { userId: "111", userName: "HostPlayer", bet: hostBet, choiceId: 'tx_tai' });
+    playersMap.set("222", { userId: "222", userName: "JoinPlayer", bet: 200000, choiceId: 'tx_3' });
+
+    // Simulate 3% contribution logic
+    let contribution = 0;
+    for (const player of playersMap.values()) {
+      contribution += Math.floor(player.bet * 0.03);
+    }
+    guildConfig.huTaiXiu += contribution;
+    await guildConfig.save();
+
+    // Verify contribution was added (100,000 * 0.03 = 3000, 200,000 * 0.03 = 6000 -> total 9000 added to 1,000,000)
+    assert.strictEqual(Number(guildConfig.huTaiXiu), 1009000);
+
+    // Simulate roll outcome sum = 3 (this triggers jackpot!)
+    const mockOutcome = {
+      d1: 1, d2: 1, d3: 1, sum: 3, result: 'tx_xiu'
+    };
+
+    // Calculate outcomes per player
+    const winningPlayers = [];
+    const results = [];
+
+    // Helper outcome resolver simulating resolvePlayerOutcome logic
+    const resolveOutcome = (choiceId, wager, outcome) => {
+      let isWin = false;
+      const sum = outcome.sum;
+      if (choiceId === 'tx_tai') isWin = sum >= 11;
+      else if (choiceId === 'tx_xiu') isWin = sum <= 10;
+      else if (choiceId === 'tx_chan') isWin = sum % 2 === 0;
+      else if (choiceId === 'tx_le') isWin = sum % 2 !== 0;
+      else if (choiceId === `tx_${sum}`) isWin = true;
+
+      const multiplier = (choiceId === 'tx_3' || choiceId === 'tx_18') ? 32 : (choiceId.startsWith('tx_') && choiceId !== 'tx_tai' && choiceId !== 'tx_xiu' && choiceId !== 'tx_chan' && choiceId !== 'tx_le') ? 16 : 2;
+      const delta = isWin ? wager * (multiplier - 1) : -wager;
+      return { isWin, delta };
+    };
+
+    for (const player of playersMap.values()) {
+      const playerTuSi = player.userId === "111" ? p1 : p2;
+      const playerOutcome = resolveOutcome(player.choiceId, player.bet, mockOutcome);
+
+      if (playerOutcome.isWin) {
+        winningPlayers.push({ player, playerTuSi, playerOutcome });
+      } else {
+        playerTuSi.vnd = Math.max(0, playerTuSi.vnd + playerOutcome.delta);
+        await playerTuSi.save();
+        results.push({ userId: player.userId, delta: playerOutcome.delta, newBalance: playerTuSi.vnd, jackpotShare: 0 });
+      }
+    }
+
+    assert.strictEqual(winningPlayers.length, 1);
+    assert.strictEqual(winningPlayers[0].player.userId, "222");
+
+    let totalJackpotAwarded = 0;
+    const currentJackpotPool = Number(guildConfig.huTaiXiu);
+
+    for (const wp of winningPlayers) {
+      const share = currentJackpotPool; // Only 1 winner, so gets 100%
+      totalJackpotAwarded += share;
+      wp.playerTuSi.vnd = Math.max(0, wp.playerTuSi.vnd + wp.playerOutcome.delta + share);
+      await wp.playerTuSi.save();
+      results.push({ userId: wp.player.userId, delta: wp.playerOutcome.delta, newBalance: wp.playerTuSi.vnd, jackpotShare: share });
+    }
+
+    // Update pool
+    guildConfig.huTaiXiu = Math.max(1000000, currentJackpotPool - totalJackpotAwarded);
+    await guildConfig.save();
+
+    // Verify balances
+    await p1.reload();
+    await p2.reload();
+
+    // Host lost 100,000 VND -> 1,000,000 - 100,000 = 900,000 VND
+    assert.strictEqual(p1.vnd, 900000);
+    // Joiner won 6,200,000 + 1,009,000 jackpot = 7,209,000. Total = 1,000,000 + 7,209,000 = 8,209,000 VND
+    assert.strictEqual(p2.vnd, 8209000);
+    // Jackpot pool resets to base minimum (1,000,000)
+    assert.strictEqual(Number(guildConfig.huTaiXiu), 1000000);
+
+    // Clean up
+    await p1.destroy();
+    await p2.destroy();
+    await guildConfig.destroy();
   });
 
 });

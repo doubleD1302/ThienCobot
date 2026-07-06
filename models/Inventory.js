@@ -16,11 +16,18 @@ class Inventory extends Model {
     const { Item } = await import('./Item.js');
     const { rollDynamicStats } = await import('../config.js');
     
-    const item = await Item.findByPk(itemId);
-    if (!item) return null;
+    let item = await Item.findByPk(itemId);
+    let isSkin = false;
+    if (!item) {
+      const { Skin } = await import('./Skin.js');
+      const skin = await Skin.findByPk(itemId);
+      if (!skin) return null;
+      isSkin = true;
+      item = skin;
+    }
 
-    const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
-    const isBreakthroughPill = item.id.startsWith('dan_dot_pha_');
+    const isEquipable = !isSkin && ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
+    const isBreakthroughPill = !isSkin && item.id.startsWith('dan_dot_pha_');
 
     if (isEquipable) {
       // Mỗi trang bị chiếm 1 dòng duy nhất, sinh chỉ số ngẫu nhiên

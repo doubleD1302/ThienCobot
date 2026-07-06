@@ -56,6 +56,46 @@ const buildAutoComponents = (tuSi) => {
   return [row];
 };
 
+export async function creditAutoRewards(freshTuSi) {
+  const statsObj = freshTuSi.thongKeAuto || {};
+  const expGained = statsObj.exp || 0;
+  const stonesGained = statsObj.stones || 0;
+  const itemsMap = statsObj.items || {};
+
+  const hasRewards = expGained > 0 || stonesGained > 0 || Object.keys(itemsMap).length > 0;
+  if (!hasRewards) {
+    return null;
+  }
+
+  // 1. Credit EXP and Linh thach
+  freshTuSi.linhLuc += expGained;
+  freshTuSi.linhThach += stonesGained;
+
+  // 2. Credit Items and build lines
+  let itemLines = '';
+  for (const [itemId, qty] of Object.entries(itemsMap)) {
+    if (qty <= 0) continue;
+
+    await Inventory.addVatPham(freshTuSi.idNguoiDung, itemId, qty);
+
+    const itemDetail = await Item.findByPk(itemId);
+    const nameText = itemDetail ? itemDetail.ten : itemId;
+    itemLines += `• **${nameText}** x${qty}\n`;
+  }
+  if (!itemLines) itemLines = '_Không thu hoạch được vật phẩm nào._';
+
+  // 3. Reset stats
+  freshTuSi.thongKeAuto = { activeMinutes: 0, exp: 0, stones: 0, items: {} };
+  await freshTuSi.save();
+
+  return {
+    expGained,
+    stonesGained,
+    itemLines,
+    activeMins: statsObj.activeMinutes || 0
+  };
+}
+
 class BoDieuKhienAuto extends BoDieuKhienGoc {
   constructor() {
     super();
@@ -97,37 +137,31 @@ class BoDieuKhienAuto extends BoDieuKhienGoc {
           if (freshTuSi.kichHoatAuto) {
             freshTuSi.kichHoatAuto = false;
 
-            const statsObj = freshTuSi.thongKeAuto;
-            const activeMins = statsObj.activeMinutes || 0;
-            const expGained = statsObj.exp || 0;
-            const stonesGained = statsObj.stones || 0;
-            const itemsMap = statsObj.items || {};
+            const res = await creditAutoRewards(freshTuSi);
+            if (res) {
+              const reportEmbed = new EmbedBuilder()
+                .setTitle('📝 BÁO CÁO KẾT QUẢ TỰ ĐỘNG TU LUYỆN 📝')
+                .setColor(0x3498db)
+                .setDescription(
+                  `Đạo hữu **${freshTuSi.ten}** đã dừng auto.\n` +
+                  `Trong thời gian **${res.activeMins} phút** sử dụng Tự Tại Tu Hành Lệnh, đạo hữu đã thu thập được:\n\n` +
+                  `• **Tu vi tích lũy**: \`+${res.expGained}\` Exp ✨\n` +
+                  `• **Linh thạch nhận được**: \`+${res.stonesGained.toLocaleString()}\` Linh Thạch 💎\n\n` +
+                  `**Vật phẩm thu hoạch**:\n${res.itemLines}`
+                )
+                .setTimestamp()
+                .setFooter({ text: 'Thiên Đạo Tu Tiên RPG Auto System' });
 
-            let itemLines = '';
-            for (const [name, qty] of Object.entries(itemsMap)) {
-              itemLines += `• **${name}** x${qty}\n`;
+              await i.followUp({
+                embeds: [reportEmbed],
+                ephemeral: false
+              });
+            } else {
+              await i.followUp({
+                content: 'ℹ️ Đã dừng tự động tu luyện. Không có tích lũy nào để kết toán.',
+                ephemeral: true
+              });
             }
-            if (!itemLines) itemLines = '_Không thu hoạch được vật phẩm nào._';
-
-            const reportEmbed = new EmbedBuilder()
-              .setTitle('📝 BÁO CÁO KẾT QUẢ TỰ ĐỘNG TU LUYỆN 📝')
-              .setColor(0x3498db)
-              .setDescription(
-                `Đạo hữu **${freshTuSi.ten}** đã dừng auto.\n` +
-                `Trong thời gian **${activeMins} phút** sử dụng Tự Tại Tu Hành Lệnh, đạo hữu đã thu thập được:\n\n` +
-                `• **Tu vi tích lũy**: \`+${expGained}\` Exp ✨\n` +
-                `• **Linh thạch nhận được**: \`+${stonesGained.toLocaleString()}\` Linh Thạch 💎\n\n` +
-                `**Vật phẩm thu hoạch**:\n${itemLines}`
-              )
-              .setTimestamp()
-              .setFooter({ text: 'Thiên Đạo Tu Tiên RPG Auto System' });
-
-            await i.followUp({
-              embeds: [reportEmbed],
-              ephemeral: false
-            });
-
-            freshTuSi.thongKeAuto = { activeMinutes: 0, exp: 0, stones: 0, items: {} };
           } else {
             if (freshTuSi.thoiGianAuto <= 0) {
               await i.followUp({
@@ -135,6 +169,20 @@ class BoDieuKhienAuto extends BoDieuKhienGoc {
                 ephemeral: true
               });
               return;
+            }
+            const res = await creditAutoRewards(freshTuSi);
+            if (res) {
+              const leftoverEmbed = new EmbedBuilder()
+                .setTitle('🌾 KẾT TOÁN TÍCH LŨY CŨ 🌾')
+                .setColor(0x9b59b6)
+                .setDescription(
+                  `Phát hiện phần thưởng cũ chưa thu hoạch của đạo hữu **${freshTuSi.ten}**:\n\n` +
+                  `• **Tu vi nhận được**: \`+${res.expGained}\` Exp ✨\n` +
+                  `• **Linh thạch nhận được**: \`+${res.stonesGained.toLocaleString()}\` Linh Thạch 💎\n\n` +
+                  `**Vật phẩm nhận được**:\n${res.itemLines}`
+                )
+                .setTimestamp();
+              await i.followUp({ embeds: [leftoverEmbed] });
             }
             freshTuSi.kichHoatAuto = true;
             freshTuSi.thongKeAuto = { activeMinutes: 0, exp: 0, stones: 0, items: {} };
@@ -160,39 +208,31 @@ class BoDieuKhienAuto extends BoDieuKhienGoc {
             return;
           }
 
-          const statsObj = freshTuSi.thongKeAuto;
-          const activeMins = statsObj.activeMinutes || 0;
-          const expGained = statsObj.exp || 0;
-          const stonesGained = statsObj.stones || 0;
-          const itemsMap = statsObj.items || {};
+          const res = await creditAutoRewards(freshTuSi);
+          if (res) {
+            const reportEmbed = new EmbedBuilder()
+              .setTitle('🌾 BÁO CÁO THU HOẠCH CHIẾN LỢI PHẨM 🌾')
+              .setColor(0x2ecc71)
+              .setDescription(
+                `Đạo hữu **${freshTuSi.ten}** đã tiến hành thu hoạch chiến lợi phẩm tích lũy:\n\n` +
+                `• **Thời gian tích lũy**: \`${res.activeMins} phút\` ⏳\n` +
+                `• **Tu vi nhận được**: \`+${res.expGained}\` Exp ✨\n` +
+                `• **Linh thạch nhận được**: \`+${res.stonesGained.toLocaleString()}\` Linh Thạch 💎\n\n` +
+                `**Vật phẩm thu hoạch**:\n${res.itemLines}`
+              )
+              .setTimestamp()
+              .setFooter({ text: 'Thiên Đạo Tu Tiên RPG Auto System' });
 
-          let itemLines = '';
-          for (const [name, qty] of Object.entries(itemsMap)) {
-            itemLines += `• **${name}** x${qty}\n`;
+            await i.followUp({
+              embeds: [reportEmbed],
+              ephemeral: false
+            });
+          } else {
+            await i.followUp({
+              content: 'ℹ️ Hiện tại chưa tích lũy được chiến lợi phẩm nào mới.',
+              ephemeral: true
+            });
           }
-          if (!itemLines) itemLines = '_Không thu hoạch được vật phẩm nào._';
-
-          const reportEmbed = new EmbedBuilder()
-            .setTitle('🌾 BÁO CÁO THU HOẠCH CHIẾN LỢI PHẨM 🌾')
-            .setColor(0x2ecc71)
-            .setDescription(
-              `Đạo hữu **${freshTuSi.ten}** đã tiến hành thu hoạch chiến lợi phẩm tích lũy:\n\n` +
-              `• **Thời gian tích lũy**: \`${activeMins} phút\` ⏳\n` +
-              `• **Tu vi nhận được**: \`+${expGained}\` Exp ✨\n` +
-              `• **Linh thạch nhận được**: \`+${stonesGained.toLocaleString()}\` Linh Thạch 💎\n\n` +
-              `**Vật phẩm thu hoạch**:\n${itemLines}`
-            )
-            .setTimestamp()
-            .setFooter({ text: 'Thiên Đạo Tu Tiên RPG Auto System' });
-
-          await i.followUp({
-            embeds: [reportEmbed],
-            ephemeral: false
-          });
-
-          // Reset the statistics counter for the next harvest/stop report
-          freshTuSi.thongKeAuto = { activeMinutes: 0, exp: 0, stones: 0, items: {} };
-          await freshTuSi.save();
         }
 
         await i.editReply({
@@ -561,8 +601,7 @@ async function autoDiBiCanh(tuSi) {
           const itemDetail = await Item.findByPk(targetId);
           if (itemDetail) {
             droppedItem = itemDetail;
-            await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
-            itemsMap[itemDetail.ten] = (itemsMap[itemDetail.ten] || 0) + 1;
+            itemsMap[targetId] = (itemsMap[targetId] || 0) + 1;
             break;
           }
         }
@@ -570,9 +609,7 @@ async function autoDiBiCanh(tuSi) {
 
       if (Math.random() <= 0.20) {
         const seedId = Math.random() < 0.5 ? 'hat_giong_linh_chi' : 'hat_giong_nhan_sam';
-        const seedName = seedId === 'hat_giong_linh_chi' ? 'Hạt Giống Linh Chi' : 'Hạt Giống Nhân Sâm';
-        await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);
-        itemsMap[seedName] = (itemsMap[seedName] || 0) + 1;
+        itemsMap[seedId] = (itemsMap[seedId] || 0) + 1;
       }
 
       // 15% cơ hội rơi nguyên liệu hoặc đan đột phá phù hợp cảnh giới
@@ -590,14 +627,12 @@ async function autoDiBiCanh(tuSi) {
         }
         const itemDetail = await Item.findByPk(targetId);
         if (itemDetail) {
-          await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
-          itemsMap[itemDetail.ten] = (itemsMap[itemDetail.ten] || 0) + 1;
+          itemsMap[targetId] = (itemsMap[targetId] || 0) + 1;
         }
       }
 
       if (Math.random() <= 0.03) {
-        await Inventory.addVatPham(tuSi.idNguoiDung, 'co_duyen_lenh', 1);
-        itemsMap['Cơ Duyên Lệnh'] = (itemsMap['Cơ Duyên Lệnh'] || 0) + 1;
+        itemsMap['co_duyen_lenh'] = (itemsMap['co_duyen_lenh'] || 0) + 1;
       }
 
       // Rơi Vạn Yêu Quả (phẩm cấp giảm dần)
@@ -613,8 +648,7 @@ async function autoDiBiCanh(tuSi) {
       if (targetVyqId) {
         const vyqDetail = await Item.findByPk(targetVyqId);
         if (vyqDetail) {
-          await Inventory.addVatPham(tuSi.idNguoiDung, targetVyqId, 1);
-          itemsMap[vyqDetail.ten] = (itemsMap[vyqDetail.ten] || 0) + 1;
+          itemsMap[targetVyqId] = (itemsMap[targetVyqId] || 0) + 1;
         }
       }
 
@@ -628,16 +662,13 @@ async function autoDiBiCanh(tuSi) {
       if (targetEggId) {
         const eggDetail = await Item.findByPk(targetEggId);
         if (eggDetail) {
-          await Inventory.addVatPham(tuSi.idNguoiDung, targetEggId, 1);
-          itemsMap[eggDetail.ten] = (itemsMap[eggDetail.ten] || 0) + 1;
+          itemsMap[targetEggId] = (itemsMap[targetEggId] || 0) + 1;
         }
       }
 
       statsObj.items = itemsMap;
       tuSi.thongKeAuto = statsObj;
 
-      tuSi.linhLuc += gainedExp;
-      tuSi.linhThach += gainedStones;
       tuSi.hp = playerHp;
     } else {
       tuSi.hp = Math.max(1, Math.floor(tuSi.hp - stats.max_hp * 0.30));
@@ -690,14 +721,12 @@ async function autoDiLichLuyen(tuSi) {
       const minExp = effects.exp.min || 10;
       const maxExp = effects.exp.max || 20;
       const addedExp = Math.floor((minExp + Math.random() * (maxExp - minExp)) * thienDao.expMult);
-      tuSi.linhLuc += addedExp;
       statsObj.exp = (statsObj.exp || 0) + addedExp;
     }
     if (effects.stones) {
       const minStones = effects.stones.min || 5;
       const maxStones = effects.stones.max || 15;
       const addedStones = Math.floor((minStones + Math.random() * (maxStones - minStones)) * thienDao.stoneMult);
-      tuSi.linhThach += addedStones;
       statsObj.stones = (statsObj.stones || 0) + addedStones;
     }
     if (effects.itemRandomEligible) {
@@ -705,8 +734,7 @@ async function autoDiLichLuyen(tuSi) {
       const eligibleItems = allItems.filter(item => item.doHiem === 'Thường' || item.doHiem === 'Hiếm');
       const itemDropped = eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
       if (itemDropped) {
-        await Inventory.addVatPham(tuSi.idNguoiDung, itemDropped.id, 1);
-        itemsMap[itemDropped.ten] = (itemsMap[itemDropped.ten] || 0) + 1;
+        itemsMap[itemDropped.id] = (itemsMap[itemDropped.id] || 0) + 1;
         if (effects.thienDaoLuc && effects.thienDaoLucMsg) {
           const formattedMsg = effects.thienDaoLucMsg
             .replace('{name}', `**${tuSi.ten}**`)
@@ -719,16 +747,14 @@ async function autoDiLichLuyen(tuSi) {
       const allItems = await Item.findAll({ where: { loai: effects.itemRandom.loai } });
       const itemDropped = allItems.length > 0 ? allItems[Math.floor(Math.random() * allItems.length)] : null;
       if (itemDropped) {
-        await Inventory.addVatPham(tuSi.idNguoiDung, itemDropped.id, 1);
-        itemsMap[itemDropped.ten] = (itemsMap[itemDropped.ten] || 0) + 1;
+        itemsMap[itemDropped.id] = (itemsMap[itemDropped.id] || 0) + 1;
       }
     }
     if (effects.itemSpecified) {
       const itemDropped = await Item.findByPk(effects.itemSpecified.itemId);
       if (itemDropped) {
         const qty = effects.itemSpecified.quantity || 1;
-        await Inventory.addVatPham(tuSi.idNguoiDung, itemDropped.id, qty);
-        itemsMap[itemDropped.ten] = (itemsMap[itemDropped.ten] || 0) + qty;
+        itemsMap[itemDropped.id] = (itemsMap[itemDropped.id] || 0) + qty;
       }
     }
     if (effects.hpPhat) {
@@ -742,9 +768,7 @@ async function autoDiLichLuyen(tuSi) {
 
     if (Math.random() <= 0.20) {
       const seedId = Math.random() < 0.5 ? 'hat_giong_linh_chi' : 'hat_giong_nhan_sam';
-      const seedName = seedId === 'hat_giong_linh_chi' ? 'Hạt Giống Linh Chi' : 'Hạt Giống Nhân Sâm';
-      await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);
-      itemsMap[seedName] = (itemsMap[seedName] || 0) + 1;
+      itemsMap[seedId] = (itemsMap[seedId] || 0) + 1;
     }
 
     // 10% cơ hội rơi nguyên liệu hoặc đan đột phá phù hợp cảnh giới
@@ -762,8 +786,7 @@ async function autoDiLichLuyen(tuSi) {
       }
       const itemDetail = await Item.findByPk(targetId);
       if (itemDetail) {
-        await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
-        itemsMap[itemDetail.ten] = (itemsMap[itemDetail.ten] || 0) + 1;
+        itemsMap[targetId] = (itemsMap[targetId] || 0) + 1;
       }
     }
 

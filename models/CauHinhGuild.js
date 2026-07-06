@@ -23,6 +23,12 @@ CauHinhGuild.init({
     allowNull: false,
     defaultValue: DataTypes.NOW,
     field: 'created_at'
+  },
+  huTaiXiu: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    defaultValue: 1000000,
+    field: 'hu_tai_xiu'
   }
 }, {
   sequelize,
