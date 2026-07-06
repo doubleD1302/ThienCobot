@@ -271,6 +271,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
           if (inv.khoa) continue;
           if (item.loai === 'Chí bảo') continue;
+          if (item.food === 0) continue; // Vật phẩm bị khóa giao dịch
 
           if (item.giaCoSo > 0) {
             matchingItems.push({ inv, item });

@@ -391,6 +391,16 @@ async function start() {
         });
       }
 
+      if (!itemsDesc.food) {
+        console.log('Phát hiện thiếu cột food trong bảng items. Tiến hành thêm vào...');
+        await queryInterface.addColumn('items', 'food', {
+          type: DataTypes.INTEGER,
+          allowNull: false,
+          defaultValue: 1
+        });
+        console.log('Đã thêm cột food vào bảng items thành công.');
+      }
+
       // Sửa lỗi độ dài cột emoji trong bảng pet_templates thành VARCHAR(100)
       try {
         const petTemplatesDesc = await queryInterface.describeTable('pet_templates');
@@ -527,7 +537,8 @@ async function start() {
           chiSoJson: item.chiSoJson,
           yeuCauCanhGioi: item.yeuCauCanhGioi || 1,
           moTa: item.moTa,
-          emoji: item.emoji || null
+          emoji: item.emoji || null,
+          food: item.food !== undefined ? item.food : 1
         });
       }
       console.log(`Đã đồng bộ thành công ${config.ITEMS.length} vật phẩm mẫu vào CSDL.`);

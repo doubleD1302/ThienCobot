@@ -1147,6 +1147,9 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               actionMessage = BoTaoEmbed.loi(`Sủng vật đã đạt cấp độ giới hạn ${levelCap}. Hãy tiến hóa để mở khóa giới hạn.`);
             } else {
               const allFoods = myInventory.filter(e => {
+                // Chỉ lấy items có food = 1 (được phép làm thức ăn)
+                if (e.item.food !== 1) return false;
+
                 const isLinhThao = e.item.loai === 'Linh thảo' && e.item.id.includes('_');
                 const isVanYeuQua = e.item.id.startsWith('van_yeu_qua_');
                 if (!isLinhThao && !isVanYeuQua) return false;

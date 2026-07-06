@@ -78,6 +78,12 @@ Item.init({
     type: DataTypes.STRING(100),
     allowNull: true,
     defaultValue: null
+  },
+  food: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1, // 1 = có thể giao dịch / làm thức ăn; 0 = bị khóa toàn bộ
+    field: 'food'
   }
 }, {
   sequelize,
