@@ -362,6 +362,41 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         }
       }
 
+      else if (menu === 'PET_RESET_CONFIRM') {
+        const pet = await Pet.findByPk(selectedPetId);
+        if (pet) {
+          const embed = new EmbedBuilder()
+            .setTitle('🔄 Xác Nhận Trùng Sinh (Reset) Linh Thú')
+            .setDescription(
+              `⚠️ Đạo hữu có chắc chắn muốn **Trùng Sinh** Linh Thú **${pet.name}** về Cấp 1 hay không?\n\n` +
+              `• Toàn bộ Đá Tiến Hóa tiêu hao sẽ được hoàn trả.\n` +
+              `• Toàn bộ EXP tích lũy sẽ quy đổi thành **Vạn Yêu Quả** hoàn trả tương ứng.\n\n` +
+              `*Lưu ý: Thao tác này không thể hoàn tác sau khi đồng ý.*`
+            )
+            .setColor(0xe67e22)
+            .setTimestamp();
+          embeds.push(embed);
+        }
+      }
+      else if (menu === 'PET_RENOUNCE_CONFIRM') {
+        const pet = await Pet.findByPk(selectedPetId);
+        if (pet) {
+          const embed = new EmbedBuilder()
+            .setTitle('💥 Xác Nhận Phóng Sinh (Thả) Linh Thú')
+            .setDescription(
+              `🚨 **CẢNH BÁO CỰC KỲ QUAN TRỌNG** 🚨\n\n` +
+              `Đạo hữu có chắc chắn muốn **PHÓNG SINH** Linh Thú **${pet.name}** hay không?\n\n` +
+              `🔥 **HẬU QUẢ VĨNH VIỄN**:\n` +
+              `• Linh Thú sẽ bị **xóa hoàn toàn** khỏi tiên giới.\n` +
+              `• Không thể khôi phục, không được hoàn trả bất kỳ tài nguyên hay vật phẩm nào.\n\n` +
+              `*Hãy suy nghĩ kỹ trước khi quyết định.*`
+            )
+            .setColor(0xc0392b)
+            .setTimestamp();
+          embeds.push(embed);
+        }
+      }
+
       // ══════════════════════════════════════════════════════════════
       // 7.1. CHỌN LINH THÚ DUNG HỢP (PET_FUSION_SELECT)
       // ══════════════════════════════════════════════════════════════
@@ -910,6 +945,35 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         rows.push(actionRow3);
       }
 
+      else if (menu === 'PET_RESET_CONFIRM') {
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('pet_reset_confirm_yes')
+              .setLabel('🔄 Đồng Ý Trùng Sinh')
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId('pet_reset_confirm_no')
+              .setLabel('↩️ Hủy Bỏ')
+              .setStyle(ButtonStyle.Secondary)
+          )
+        );
+      }
+      else if (menu === 'PET_RENOUNCE_CONFIRM') {
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('pet_renounce_confirm_yes')
+              .setLabel('💥 Đồng Ý Phóng Sinh')
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId('pet_renounce_confirm_no')
+              .setLabel('↩️ Hủy Bỏ')
+              .setStyle(ButtonStyle.Secondary)
+          )
+        );
+      }
+
       // ══════════════════════════════════════════════════════════════
       // 7.1. CHỌN LINH THÚ DUNG HỢP (PET_FUSION_SELECT)
       // ══════════════════════════════════════════════════════════════
@@ -1298,7 +1362,6 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 actionMessage = BoTaoEmbed.thanhCong('⚔️ Sủng vật xuất chiến', `**${pet.name}** đã xuất chiến hộ mệnh đạo hữu.`);
               }
             }
-            await this.sendMessage(i, actionMessage);
           } else if (i.customId === 'pet_food_prev') {
             foodPage = Math.max(0, foodPage - 1);
           } else if (i.customId === 'pet_food_next') {
@@ -1306,9 +1369,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             const maxPage = Math.ceil(allFoods.length / 23) - 1;
             foodPage = Math.min(maxPage, foodPage + 1);
           } else if (i.customId === 'pet_action_renounce') {
-            await pet.destroy();
-            actionMessage = BoTaoEmbed.thanhCong('💥 Thả sủng vật', `Đạo hữu đã phóng sinh sủng vật thành công.`);
-            menuStack.pop();
+            menuStack.push('PET_RENOUNCE_CONFIRM');
           } else if (i.customId === 'pet_action_quick_feed') {
             const filterId = i.values[0];
             const levelCap = config.getPetLevelCap(pet);
@@ -1565,6 +1626,48 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               }
             }
           } else if (i.customId === 'pet_action_reset') {
+            menuStack.push('PET_RESET_CONFIRM');
+          } else if (i.customId === 'pet_action_god_evolve') {
+            const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
+            if (!pet.isMax || isThan) {
+              actionMessage = BoTaoEmbed.thatBai('🧬 Hóa Thần Thất Bại', 'Chỉ sủng vật Linh Thú đạt cấp độ MAX mới có thể Hóa Thần.');
+            } else {
+              const pillInv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'hoa_than_linh_sung_dan' } });
+              if (!pillInv || pillInv.soLuong <= 0) {
+                actionMessage = BoTaoEmbed.thatBai('🧬 Hóa Thần Thất Bại', 'Đạo hữu không có Hóa Thần Linh Sủng Đan.');
+              } else {
+                pillInv.soLuong -= 1;
+                if (pillInv.soLuong <= 0) await pillInv.destroy();
+                else await pillInv.save();
+
+                const thanTemplates = config.PET_TEMPLATES_SEED.filter(t => t.group === 'than_thu');
+                const randomThan = thanTemplates[Math.floor(Math.random() * thanTemplates.length)];
+
+                const oldName = pet.name;
+                pet.type = randomThan.id;
+                pet.rarity = 'TT_4';
+                pet.tienHoa = 10;
+                pet.extraEvo = 1;
+                pet.isMax = true;
+                pet.name = config.getFormattedPetName(randomThan.name, 'TT_4', 10, true);
+                await pet.save();
+
+                actionMessage = BoTaoEmbed.thanhCong(
+                  '🌌 Nghịch Thiên Hóa Thần',
+                  `Chúc mừng! Linh thú **${oldName}** đã hóa thân thành công, lột xác thành **Thần Thú: ${pet.name}**! ` +
+                  `Bảo lưu toàn bộ \`44\` lần tiến hóa cộng dồn trước đó.`
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // ── XỬ LÝ XÁC NHẬN TRÙNG SINH (PET_RESET_CONFIRM) ─────────────────────
+      else if (currentMenu === 'PET_RESET_CONFIRM') {
+        const pet = await Pet.findByPk(selectedPetId);
+        if (i.customId === 'pet_reset_confirm_yes') {
+          if (pet) {
             let refundedStones = 0;
             const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
             const baseCost = isThan ? 10000 : 1000;
@@ -1629,39 +1732,26 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               `Đã trùng sinh sủng vật thành công về Cấp 1.\n` +
               `**Hoàn trả**: \`+${refundedStones.toLocaleString()} Linh thạch\` 🪙${refundListMsg}`
             );
-          } else if (i.customId === 'pet_action_god_evolve') {
-            const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
-            if (!pet.isMax || isThan) {
-              actionMessage = BoTaoEmbed.thatBai('🧬 Hóa Thần Thất Bại', 'Chỉ sủng vật Linh Thú đạt cấp độ MAX mới có thể Hóa Thần.');
-            } else {
-              const pillInv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'hoa_than_linh_sung_dan' } });
-              if (!pillInv || pillInv.soLuong <= 0) {
-                actionMessage = BoTaoEmbed.thatBai('🧬 Hóa Thần Thất Bại', 'Đạo hữu không có Hóa Thần Linh Sủng Đan.');
-              } else {
-                pillInv.soLuong -= 1;
-                if (pillInv.soLuong <= 0) await pillInv.destroy();
-                else await pillInv.save();
-
-                const thanTemplates = config.PET_TEMPLATES_SEED.filter(t => t.group === 'than_thu');
-                const randomThan = thanTemplates[Math.floor(Math.random() * thanTemplates.length)];
-
-                const oldName = pet.name;
-                pet.type = randomThan.id;
-                pet.rarity = 'TT_4';
-                pet.tienHoa = 10;
-                pet.extraEvo = 1;
-                pet.isMax = true;
-                pet.name = config.getFormattedPetName(randomThan.name, 'TT_4', 10, true);
-                await pet.save();
-
-                actionMessage = BoTaoEmbed.thanhCong(
-                  '🌌 Nghịch Thiên Hóa Thần',
-                  `Chúc mừng! Linh thú **${oldName}** đã hóa thân thành công, lột xác thành **Thần Thú: ${pet.name}**! ` +
-                  `Bảo lưu toàn bộ \`44\` lần tiến hóa cộng dồn trước đó.`
-                );
-              }
-            }
           }
+          menuStack.pop(); // Quay lại PET_DETAIL
+        } else if (i.customId === 'pet_reset_confirm_no') {
+          menuStack.pop(); // Quay lại PET_DETAIL
+        }
+      }
+
+      // ── XỬ LÝ XÁC NHẬN PHÓNG SINH (PET_RENOUNCE_CONFIRM) ───────────────────
+      else if (currentMenu === 'PET_RENOUNCE_CONFIRM') {
+        const pet = await Pet.findByPk(selectedPetId);
+        if (i.customId === 'pet_renounce_confirm_yes') {
+          if (pet) {
+            await pet.destroy();
+            actionMessage = BoTaoEmbed.thanhCong('💥 Thả sủng vật', `Đạo hữu đã phóng sinh sủng vật thành công.`);
+          }
+          menuStack.pop(); // Pop PET_RENOUNCE_CONFIRM
+          menuStack.pop(); // Pop PET_DETAIL (Quay lại PETS)
+          selectedPetId = null;
+        } else if (i.customId === 'pet_renounce_confirm_no') {
+          menuStack.pop(); // Quay lại PET_DETAIL
         }
       }
 
