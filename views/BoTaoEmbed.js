@@ -46,6 +46,15 @@ export class BoTaoEmbed {
       .setFooter({ text: "Thiên Đạo Tu Tiên RPG" });
   }
 
+  static thatBai(tieuDe, moTa) {
+    return new EmbedBuilder()
+      .setTitle(tieuDe)
+      .setDescription(moTa)
+      .setColor(0xe74c3c)
+      .setTimestamp()
+      .setFooter({ text: "Thiên Đạo Tu Tiên RPG" });
+  }
+
   static thanhCong(tieuDe, moTa) {
     return new EmbedBuilder()
       .setTitle(tieuDe)

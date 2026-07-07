@@ -519,9 +519,27 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
     const customId = interaction.customId;
     const guildId = interaction.guildId;
 
+    // Helper bọc an toàn tránh lỗi Unknown interaction (10062) khi mạng chậm
+    const safeDefer = async (type = 'update', options = {}) => {
+      try {
+        if (type === 'update') {
+          await interaction.deferUpdate();
+        } else {
+          await interaction.deferReply(options);
+        }
+        return true;
+      } catch (e) {
+        if (e.code === 10062 || e.message?.includes('Unknown interaction')) {
+          console.warn(`[Boss Interaction] Token expired or unknown interaction for user ${interaction.user.id}: ${e.message}`);
+          return false;
+        }
+        throw e;
+      }
+    };
+
     // 1. Admin bấm triệu hồi Boss
     if (customId === `boss_admin_spawn_${guildId}`) {
-      await interaction.deferUpdate();
+      if (!await safeDefer('update')) return;
 
       const client = interaction.client;
       const guild = interaction.guild;
@@ -542,7 +560,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
     }
 
     if (customId === 'boss_cancel') {
-      await interaction.deferUpdate();
+      if (!await safeDefer('update')) return;
       await interaction.editReply({
         embeds: [new EmbedBuilder().setColor(0x7f8c8d).setDescription('Đã hủy yêu cầu.')],
         components: []
@@ -552,7 +570,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
     // 2. Làm mới trạng thái Boss
     if (customId === `boss_refresh_${guildId}`) {
-      await interaction.deferUpdate();
+      if (!await safeDefer('update')) return;
       const boss = await WorldBoss.findOne({ where: { idGuild: guildId, active: true } });
       if (!boss) {
         return await interaction.editReply({
@@ -569,7 +587,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
     // 3. Tấn công Boss
     if (customId === `boss_attack_${guildId}`) {
-      await interaction.deferReply({ ephemeral: true });
+      if (!await safeDefer('reply', { ephemeral: true })) return;
 
       const tuSi = await this.layTuSi(interaction.user.id);
       if (!tuSi) {
