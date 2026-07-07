@@ -81,12 +81,35 @@ export class BoTaoEmbed {
 
     const pathName = config.HUONG_DI[tuSi.huongTu]?.name || 'Chưa rõ';
 
+    let duyenText = '• **Mối duyên**: *Chưa kết duyên*\n';
+    let hieuUngText = '';
+    if (tuSi.duyenType && tuSi.duyenUserId) {
+      let label = '';
+      let hieuUngLabel = '';
+      if (tuSi.duyenType === 'huynh_de') {
+        label = 'Huynh đệ 🤝';
+        hieuUngLabel = '`Huynh Đệ Đồng Tâm 🤝` *(Tốc độ tu luyện bằng 130% trung bình cộng của cả hai)*';
+      } else if (tuSi.duyenType === 'ty_muoi') {
+        label = 'Tỷ muội 🌸';
+        hieuUngLabel = '`Tỷ Muội Kim Lan 🌸` *(Tốc độ tu luyện bằng 130% trung bình cộng của cả hai)*';
+      } else if (tuSi.duyenType === 'hon_phu') {
+        label = 'Hôn phu 💍';
+        hieuUngLabel = '`Đồng Tâm Hiệp Lực 💍` *(Tốc độ tu luyện bằng 150% trung bình cộng của cả hai)*';
+      }
+      duyenText = `• **Mối duyên**: ${label} <@${tuSi.duyenUserId}>\n`;
+      hieuUngText = `• **Hiệu ứng**: ${hieuUngLabel}\n`;
+    }
+
     embed.addFields(
       {
         name: "☯️ Linh Căn & Đạo Pháp",
         value: `• **Giới tính**: ${tuSi.gioiTinh}\n` +
                (isThienDao ? `• **Danh hiệu**: \`Thiên Đạo\` 🌌\n` : '') +
-               `• **Học thuyết**: \`${pathName}\`\n• **Linh căn**: \`${tuSi.linhCan}\`\n• **Tu luyện tốc độ**: \`+${tocDoTuLuyen}\` Linh lực/Đạo Niên ⚡`,
+               `• **Học thuyết**: \`${pathName}\`\n` +
+               `• **Linh căn**: \`${tuSi.linhCan}\`\n` +
+               `• **Tu luyện tốc độ**: \`+${tocDoTuLuyen.toLocaleString()}\` Linh lực/Đạo Niên ⚡\n` +
+               duyenText +
+               hieuUngText,
         inline: true
       },
       {

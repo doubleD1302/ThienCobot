@@ -1050,5 +1050,34 @@ export function formatFusedStats(fusedStats) {
   return lines.join(' & ');
 }
 
+export async function tangLuongDuyen(userId1, userId2, delta = 1) {
+  const { PlayerAffinity } = await import('./models/PlayerAffinity.js');
+  const id1 = String(userId1) < String(userId2) ? userId1 : userId2;
+  const id2 = String(userId1) < String(userId2) ? userId2 : userId1;
+  let record = await PlayerAffinity.findOne({
+    where: { userIdA: id1, userIdB: id2 }
+  });
+  if (!record) {
+    record = await PlayerAffinity.create({
+      userIdA: id1,
+      userIdB: id2,
+      points: 0
+    });
+  }
+  record.points += delta;
+  await record.save();
+  return record.points;
+}
+
+export async function layLuongDuyen(userId1, userId2) {
+  const { PlayerAffinity } = await import('./models/PlayerAffinity.js');
+  const id1 = String(userId1) < String(userId2) ? userId1 : userId2;
+  const id2 = String(userId1) < String(userId2) ? userId2 : userId1;
+  const record = await PlayerAffinity.findOne({
+    where: { userIdA: id1, userIdB: id2 }
+  });
+  return record ? record.points : 0;
+}
+
 
 

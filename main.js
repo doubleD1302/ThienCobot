@@ -44,6 +44,7 @@ import './models/GiftCode.js';
 import './models/PlayerGiftCode.js';
 import './models/AuctionListing.js';
 import './models/Skin.js';
+import './models/PlayerAffinity.js';
 // Bắt các lỗi promise không được catch toàn cục, tránh crash bot
 process.on('unhandledRejection', error => {
   if (error && error.code === 10062) {

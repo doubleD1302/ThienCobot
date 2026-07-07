@@ -644,6 +644,18 @@ TuSi.init({
     allowNull: true,
     defaultValue: null,
     field: 'equipped_skin'
+  },
+  duyenType: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    defaultValue: null,
+    field: 'duyen_type'
+  },
+  duyenUserId: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    defaultValue: null,
+    field: 'duyen_user_id'
   }
 }, {
   sequelize,

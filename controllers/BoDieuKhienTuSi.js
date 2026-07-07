@@ -241,6 +241,28 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const heSoTuLuyen = tuSi.layHeSoTuLuyen(activePet);
       // Nhân thêm tốc độ từ Động phủ
       const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen * (1 + lvDongPhu));
+
+      let tocDoTuLuyenFinal = tocDoTuLuyen;
+      if (tuSi.duyenType && tuSi.duyenUserId) {
+        const partner = await this.layTuSi(tuSi.duyenUserId);
+        if (partner && String(partner.duyenUserId) === String(tuSi.idNguoiDung) && partner.duyenType === tuSi.duyenType) {
+          const abodeB = await Abode.findByPk(partner.idNguoiDung);
+          const lvDongPhuB = abodeB ? abodeB.level : 0;
+          let activePetB = await Pet.findOne({ where: { userId: partner.idNguoiDung, isActive: true } });
+          if (activePetB) {
+            const checkB = config.checkHuyetMachApChe(partner.capDo, activePetB.rarity);
+            if (!checkB.allowed) activePetB = null;
+          }
+          const cgB = await CanhGioi.findByPk(partner.capDo);
+          const tocDoCoBanB = cgB ? cgB.tocDoCoBan : 100;
+          const heSoTuLuyenB = partner.layHeSoTuLuyen(activePetB);
+          const rawSpeedB = Math.floor(tocDoCoBanB * heSoTuLuyenB * (1 + lvDongPhuB));
+
+          const factor = tuSi.duyenType === 'hon_phu' ? 1.50 : 1.30;
+          tocDoTuLuyenFinal = Math.floor(factor * (tocDoTuLuyen + rawSpeedB) / 2);
+        }
+      }
+
       const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
 
       // Check if equipped skin exists
@@ -258,7 +280,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         }
       }
 
-      const embed = BoTaoEmbed.hoSo(tuSi, targetUser, stats, daoNien, tocDoTuLuyen, reqExp, equippedItems, skinImageUrl);
+      const embed = BoTaoEmbed.hoSo(tuSi, targetUser, stats, daoNien, tocDoTuLuyenFinal, reqExp, equippedItems, skinImageUrl);
 
       // Components (Buttons) for /nv
       const components = [];

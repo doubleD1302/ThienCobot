@@ -29,6 +29,7 @@ const { PlayerGiftCode } = await import('./models/PlayerGiftCode.js');
 const { DongGopEmoji } = await import('./models/DongGopEmoji.js');
 const { AuctionListing } = await import('./models/AuctionListing.js');
 const { Skin } = await import('./models/Skin.js');
+const { PlayerAffinity } = await import('./models/PlayerAffinity.js');
 const config = await import('./config.js');
 
 test.describe('Tu Tien Gameplay Mechanics Tests', () => {
@@ -3233,6 +3234,106 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await petB.destroy();
     await fusedPet.destroy();
     await player.destroy();
+  });
+
+  test('Relationship Feature (Kết Duyên) logic', async () => {
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Abode } = await import('./models/Abode.js');
+    const { _simCombat } = await import('./controllers/BoDieuKhienTuongTac.js');
+
+    // Create 2 mock TuSi
+    const playerA = await TuSi.create({
+      idNguoiDung: "7777777777777777",
+      ten: "PlayerAlpha",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 1000000
+    });
+    playerA.linhCanList = ["Hoa"];
+
+    const playerB = await TuSi.create({
+      idNguoiDung: "8888888888888888",
+      ten: "PlayerBeta",
+      gioiTinh: "Nữ",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100000
+    });
+    playerB.linhCanList = ["Thuy"];
+    await playerA.save();
+    await playerB.save();
+
+    // 1. Test affinity points helper
+    let points = await config.layLuongDuyen(playerA.idNguoiDung, playerB.idNguoiDung);
+    assert.strictEqual(points, 0);
+
+    points = await config.tangLuongDuyen(playerA.idNguoiDung, playerB.idNguoiDung, 5);
+    assert.strictEqual(points, 5);
+
+    points = await config.layLuongDuyen(playerB.idNguoiDung, playerA.idNguoiDung); // should sort IDs
+    assert.strictEqual(points, 5);
+
+    await config.tangLuongDuyen(playerA.idNguoiDung, playerB.idNguoiDung, 5);
+    points = await config.layLuongDuyen(playerA.idNguoiDung, playerB.idNguoiDung);
+    assert.strictEqual(points, 10);
+
+    // 2. Establish marriage (hôn phu)
+    playerA.duyenType = 'hon_phu';
+    playerA.duyenUserId = playerB.idNguoiDung;
+    playerB.duyenType = 'hon_phu';
+    playerB.duyenUserId = playerA.idNguoiDung;
+    await playerA.save();
+    await playerB.save();
+
+    // 3. Verify cultivation speed boost in profiles
+    // Raw speed for A: base speed of Luyen Khi 1 = 100. heSoTuLuyen = 1.0 (no pet, Hoa Linh can = 1.5).
+    // So rawSpeedA = 100 * 1.5 = 150.
+    // Raw speed for B: base speed = 100. heSoTuLuyen = 1.0 (no pet, Thuy Linh can = 1.5).
+    // So rawSpeedB = 100 * 1.5 = 150.
+    // Since they are spouses (1.50 multiplier), their new speed = 1.50 * (150 + 150) / 2 = 225!
+    
+    const abodeA = await Abode.create({ userId: playerA.idNguoiDung, level: 0 });
+    const abodeB = await Abode.create({ userId: playerB.idNguoiDung, level: 0 });
+
+    const cgA = await CanhGioi.findByPk(playerA.capDo);
+    const tocDoCoBanA = cgA ? cgA.tocDoCoBan : 100;
+    const heSoTuLuyenA = playerA.layHeSoTuLuyen(null);
+    const rawSpeedA = Math.floor(tocDoCoBanA * heSoTuLuyenA * 1); // 1 + abode level (0)
+    assert.strictEqual(rawSpeedA, 150);
+
+    let speedFinalA = rawSpeedA;
+    if (playerA.duyenType && playerA.duyenUserId) {
+      const partner = await TuSi.findOne({ where: { idNguoiDung: playerA.duyenUserId } });
+      if (partner && String(partner.duyenUserId) === String(playerA.idNguoiDung) && partner.duyenType === playerA.duyenType) {
+        const abB = await Abode.findByPk(partner.idNguoiDung);
+        const lvDongPhuB = abB ? abB.level : 0;
+        const cgB = await CanhGioi.findByPk(partner.capDo);
+        const tocDoCoBanB = cgB ? cgB.tocDoCoBan : 100;
+        const heSoTuLuyenB = partner.layHeSoTuLuyen(null);
+        const rawSpeedB = Math.floor(tocDoCoBanB * heSoTuLuyenB * (1 + lvDongPhuB));
+        const factor = playerA.duyenType === 'hon_phu' ? 1.50 : 1.30;
+        speedFinalA = Math.floor(factor * (rawSpeedA + rawSpeedB) / 2);
+      }
+    }
+    assert.strictEqual(speedFinalA, 187);
+
+    // 4. Test _simCombat
+    const { winner, battleLogs, round } = await _simCombat(playerA, playerB);
+    assert.ok(winner);
+    assert.ok(battleLogs.length > 0);
+
+    // Clean up
+    await playerA.destroy();
+    await playerB.destroy();
+    await abodeA.destroy();
+    await abodeB.destroy();
+    const aff = await PlayerAffinity.findOne({ where: { userIdA: "7777777777777777", userIdB: "8888888888888888" } });
+    if (aff) await aff.destroy();
   });
 
 });

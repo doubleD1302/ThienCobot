@@ -49,8 +49,30 @@ export class BoDieuKhienGoc {
       // Cộng thêm tốc độ tu luyện từ Động Phủ: mỗi cấp tăng +100% (cấp 1 x2, cấp 10 x11)
       const speedMult = 1 + lvDongPhu;
 
+      let finalCultivationSpeed = tocDoCoBan * multiplier * speedMult;
+      if (tuSi.duyenType && tuSi.duyenUserId) {
+        const { TuSi } = await import('../models/TuSi.js');
+        const partner = await TuSi.findOne({ where: { idNguoiDung: tuSi.duyenUserId } });
+        if (partner && String(partner.duyenUserId) === String(tuSi.idNguoiDung) && partner.duyenType === tuSi.duyenType) {
+          const abodeB = await Abode.findByPk(partner.idNguoiDung);
+          const lvDongPhuB = abodeB ? abodeB.level : 0;
+          let activePetB = await Pet.findOne({ where: { userId: partner.idNguoiDung, isActive: true } });
+          if (activePetB) {
+            const checkB = config.checkHuyetMachApChe(partner.capDo, activePetB.rarity);
+            if (!checkB.allowed) activePetB = null;
+          }
+          const cgB = await CanhGioi.findByPk(partner.capDo);
+          const tocDoCoBanB = cgB ? cgB.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
+          const multiplierB = partner.layHeSoTuLuyen(activePetB);
+          const rawSpeedB = tocDoCoBanB * multiplierB * (1 + lvDongPhuB);
+
+          const factor = tuSi.duyenType === 'hon_phu' ? 1.50 : 1.30;
+          finalCultivationSpeed = factor * (finalCultivationSpeed + rawSpeedB) / 2;
+        }
+      }
+
       const thienDao = await tuSi.layHeSoThienDao();
-      const rawExp = tocDoCoBan * multiplier * speedMult * elapsedDaoNien * thienDao.expMult + (tuSi.linhLucDu || 0.0);
+      const rawExp = finalCultivationSpeed * elapsedDaoNien * thienDao.expMult + (tuSi.linhLucDu || 0.0);
       const rawStones = 10 * tuSi.capDo * elapsedDaoNien * thienDao.stoneMult + (tuSi.linhThachDu || 0.0);
 
       const gainedExp = Math.floor(rawExp);
