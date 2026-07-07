@@ -557,7 +557,7 @@ export const ADVENTURE_EVENTS = [
     ten: '🎫 Nhặt Được Cơ Duyên Lệnh 🎫',
     moTa: 'Dưới gốc cây tùng cổ thụ ngàn năm tuổi, đạo hữu vô tình phát hiện ra một miếng ngọc giản cũ màu vàng nhạt, lấp lánh ánh kim. Nhìn kỹ thì ra đó chính là một tấm Cơ Duyên Lệnh!',
     loai: 'dai_co_duyen',
-    hieuUngJson: '{"itemSpecified":{"itemId":"co_duyen_lenh","quantity":1},"thienDaoLuc":true,"thienDaoLucMsg":"🎫 **Cơ Duyên Lệnh Xuất Thế**: Đạo hữu {name} trong lúc lịch luyện nhặt được Cơ Duyên Lệnh cổ xưa!"}'
+    hieuUngJson: '{"itemSpecified":{"itemId":"co_duyen_lenh","quantity":3},"thienDaoLuc":true,"thienDaoLucMsg":"🎫 **Cơ Duyên Lệnh Xuất Thế**: Đạo hữu {name} trong lúc lịch luyện nhặt được Cơ Duyên Lệnh cổ xưa!"}'
   },
   {
     id: 'co_duyen_lichluyen_2',
@@ -966,5 +966,89 @@ export function checkHuyetMachApChe(level, rarity) {
   }
   return { allowed: true };
 }
+
+export function getPetDefaultBaseStats(type) {
+  const stats = {};
+  if (!type) return stats;
+  if (type.startsWith('ma_lang_')) {
+    const val = type === 'ma_lang_1' ? 0.08 : (type === 'ma_lang_2' ? 0.10 : 0.12);
+    stats.vat_cong = val;
+  } else if (type.startsWith('loi_diep_')) {
+    const val = type === 'loi_diep_1' ? 0.08 : (type === 'loi_diep_2' ? 0.10 : 0.12);
+    stats.tu_toc = val;
+    if (type === 'loi_diep_2') stats.crit_rate = 0.05;
+  } else if (type.startsWith('than_vien_')) {
+    const hpVal = type === 'than_vien_1' ? 0.10 : (type === 'than_vien_2' ? 0.15 : 0.18);
+    const giapVal = type === 'than_vien_1' ? 0.08 : (type === 'than_vien_2' ? 0.10 : 0.12);
+    stats.max_hp = hpVal;
+    stats.giap = giapVal;
+  } else if (type.startsWith('linh_ho_fox_')) {
+    const neVal = type === 'linh_ho_fox_1' ? 0.08 : (type === 'linh_ho_fox_2' ? 0.12 : 0.15);
+    stats.ne = neVal;
+    if (type === 'linh_ho_fox_2') stats.crit_rate = 0.05;
+    else if (type === 'linh_ho_fox_3') stats.crit_rate = 0.08;
+  } else if (type.startsWith('linh_ho_')) {
+    const val = type === 'linh_ho_1' ? 0.08 : (type === 'linh_ho_2' ? 0.12 : 0.15);
+    stats.vat_cong = val;
+  } else if (type.startsWith('to_long_')) {
+    const hpVal = type === 'to_long_1' ? 0.20 : 0.25;
+    stats.max_hp = hpVal;
+    stats.phap_cong = 0.15;
+  } else if (type.startsWith('phuong_hoang_')) {
+    const hpVal = type === 'phuong_hoang_1' ? 0.25 : 0.28;
+    const neVal = type === 'phuong_hoang_1' ? 0.20 : 0.22;
+    stats.max_hp = hpVal;
+    stats.ne = neVal;
+  } else if (type.startsWith('ky_lan_')) {
+    const val = type === 'ky_lan_1' ? 0.20 : 0.25;
+    stats.max_hp = val;
+    stats.vat_cong = val;
+    stats.phap_cong = val;
+  } else if (type.startsWith('huyen_vu_')) {
+    const giapVal = type === 'huyen_vu_1' ? 0.25 : 0.30;
+    const hpVal = type === 'huyen_vu_1' ? 0.20 : 0.25;
+    stats.giap = giapVal;
+    stats.max_hp = hpVal;
+  } else if (type.startsWith('bach_ho_')) {
+    const hpVal = type === 'bach_ho_1' ? 0.22 : 0.25;
+    const vatVal = type === 'bach_ho_1' ? 0.12 : 0.15;
+    stats.max_hp = hpVal;
+    stats.vat_cong = vatVal;
+  }
+  return stats;
+}
+
+export function getPetCurrentStats(pet) {
+  if (pet && pet.fusedStats) {
+    try {
+      const parsed = JSON.parse(pet.fusedStats);
+      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+        return parsed;
+      }
+    } catch (e) {
+      console.error("Error parsing pet fusedStats:", e);
+    }
+  }
+  return pet ? getPetDefaultBaseStats(pet.type) : {};
+}
+
+export function formatFusedStats(fusedStats) {
+  if (!fusedStats || Object.keys(fusedStats).length === 0) return '';
+  const lines = [];
+  for (const [key, val] of Object.entries(fusedStats)) {
+    const pct = (val * 100).toFixed(2);
+    let label = '';
+    if (key === 'vat_cong') label = 'Vật Công';
+    else if (key === 'phap_cong') label = 'Pháp Công';
+    else if (key === 'max_hp') label = 'HP';
+    else if (key === 'giap') label = 'Giáp';
+    else if (key === 'ne') label = 'Né tránh';
+    else if (key === 'crit_rate') label = 'Bạo kích';
+    else if (key === 'tu_toc') label = 'Tu tốc';
+    lines.push(`+${pct}% ${label}`);
+  }
+  return lines.join(' & ');
+}
+
 
 

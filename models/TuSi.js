@@ -200,45 +200,68 @@ class TuSi extends Model {
         const isThan = template.group === 'than_thu';
         const groupMult = isThan ? 1.5 : 1.0;
 
-        if (template.species === 'ma_lang') {
-          vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
-        } else if (template.species === 'loi_diep') {
-          if (activePet.type === 'loi_diep_2') {
-            critRate += 0.05 * scalePct * evoMult * groupMult;
+        if (activePet.fusedStats) {
+          try {
+            const stats = JSON.parse(activePet.fusedStats);
+            for (const [key, val] of Object.entries(stats)) {
+              if (key === 'vat_cong') {
+                vatCong += baseVatCongVal * val * scale * evoMult * groupMult;
+              } else if (key === 'phap_cong') {
+                phapCong += basePhapCongVal * val * scale * evoMult * groupMult;
+              } else if (key === 'max_hp') {
+                maxHp += baseHpVal * val * scale * evoMult * groupMult;
+              } else if (key === 'giap') {
+                giap += baseStats.giap * val * scale * evoMult * groupMult;
+              } else if (key === 'ne') {
+                ne += val * scalePct * evoMult * groupMult;
+              } else if (key === 'crit_rate') {
+                critRate += val * scalePct * evoMult * groupMult;
+              }
+            }
+          } catch (e) {
+            console.error("Error applying fused stats in layChiSo:", e);
           }
-          // tu_toc được tính ở layHeSoTuLuyen
-        } else if (template.species === 'than_vien') {
-          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-          const giapPct = activePet.type === 'than_vien_1' ? 0.08 : (activePet.type === 'than_vien_2' ? 0.10 : 0.12);
-          giap += baseStats.giap * giapPct * scale * evoMult * groupMult;
-        } else if (template.species === 'linh_ho') {
-          vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
-        } else if (template.species === 'linh_ho_fox') {
-          ne += template.statValue * scalePct * evoMult * groupMult;
-          if (activePet.type === 'linh_ho_fox_2') {
-            critRate += 0.05 * scalePct * evoMult * groupMult;
-          } else if (activePet.type === 'linh_ho_fox_3') {
-            critRate += 0.08 * scalePct * evoMult * groupMult;
+        } else {
+          if (template.species === 'ma_lang') {
+            vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
+          } else if (template.species === 'loi_diep') {
+            if (activePet.type === 'loi_diep_2') {
+              critRate += 0.05 * scalePct * evoMult * groupMult;
+            }
+            // tu_toc được tính ở layHeSoTuLuyen
+          } else if (template.species === 'than_vien') {
+            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
+            const giapPct = activePet.type === 'than_vien_1' ? 0.08 : (activePet.type === 'than_vien_2' ? 0.10 : 0.12);
+            giap += baseStats.giap * giapPct * scale * evoMult * groupMult;
+          } else if (template.species === 'linh_ho') {
+            vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
+          } else if (template.species === 'linh_ho_fox') {
+            ne += template.statValue * scalePct * evoMult * groupMult;
+            if (activePet.type === 'linh_ho_fox_2') {
+              critRate += 0.05 * scalePct * evoMult * groupMult;
+            } else if (activePet.type === 'linh_ho_fox_3') {
+              critRate += 0.08 * scalePct * evoMult * groupMult;
+            }
+          } else if (template.species === 'to_long') {
+            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
+            phapCong += basePhapCongVal * 0.15 * scale * evoMult * groupMult;
+          } else if (template.species === 'phuong_hoang') {
+            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
+            const nePct = activePet.type === 'phuong_hoang_1' ? 0.20 : 0.22;
+            ne += nePct * scalePct * evoMult * groupMult;
+          } else if (template.species === 'ky_lan') {
+            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
+            vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
+            phapCong += basePhapCongVal * template.statValue * scale * evoMult * groupMult;
+          } else if (template.species === 'huyen_vu') {
+            giap += baseStats.giap * template.statValue * scale * evoMult * groupMult;
+            const hpPct = activePet.type === 'huyen_vu_1' ? 0.20 : 0.25;
+            maxHp += baseHpVal * hpPct * scale * evoMult * groupMult;
+          } else if (template.species === 'bach_ho') {
+            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
+            const vatPct = activePet.type === 'bach_ho_1' ? 0.12 : 0.15;
+            vatCong += baseVatCongVal * vatPct * scale * evoMult * groupMult;
           }
-        } else if (template.species === 'to_long') {
-          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-          phapCong += basePhapCongVal * 0.15 * scale * evoMult * groupMult;
-        } else if (template.species === 'phuong_hoang') {
-          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-          const nePct = activePet.type === 'phuong_hoang_1' ? 0.20 : 0.22;
-          ne += nePct * scalePct * evoMult * groupMult;
-        } else if (template.species === 'ky_lan') {
-          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-          vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
-          phapCong += basePhapCongVal * template.statValue * scale * evoMult * groupMult;
-        } else if (template.species === 'huyen_vu') {
-          giap += baseStats.giap * template.statValue * scale * evoMult * groupMult;
-          const hpPct = activePet.type === 'huyen_vu_1' ? 0.20 : 0.25;
-          maxHp += baseHpVal * hpPct * scale * evoMult * groupMult;
-        } else if (template.species === 'bach_ho') {
-          maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-          const vatPct = activePet.type === 'bach_ho_1' ? 0.12 : 0.15;
-          vatCong += baseVatCongVal * vatPct * scale * evoMult * groupMult;
         }
       }
     }
@@ -315,13 +338,27 @@ class TuSi extends Model {
     // Tốc độ tu luyện cộng thêm từ sủng vật Lôi Điệp (nếu có và xuất chiến)
     if (activePet) {
       const template = config.PET_TEMPLATES[activePet.type];
-      if (template && template.species === 'loi_diep') {
-        const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
-        const scalePct = 1.0 + (scale - 1.0) * 0.01;
-        const totalEvolves = config.getPetTotalEvolves(activePet);
-        const evoMult = Math.pow(1.1, totalEvolves);
-        const groupMult = template.group === 'than_thu' ? 1.5 : 1.0;
-        mult *= (1.0 + template.statValue * scalePct * evoMult * groupMult);
+      if (template) {
+        let tuTocVal = 0;
+        if (activePet.fusedStats) {
+          try {
+            const stats = JSON.parse(activePet.fusedStats);
+            if (stats && stats.tu_toc) {
+              tuTocVal = stats.tu_toc;
+            }
+          } catch (e) {}
+        } else if (template.species === 'loi_diep') {
+          tuTocVal = template.statValue;
+        }
+
+        if (tuTocVal > 0) {
+          const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
+          const scalePct = 1.0 + (scale - 1.0) * 0.01;
+          const totalEvolves = config.getPetTotalEvolves(activePet);
+          const evoMult = Math.pow(1.1, totalEvolves);
+          const groupMult = template.group === 'than_thu' ? 1.5 : 1.0;
+          mult *= (1.0 + tuTocVal * scalePct * evoMult * groupMult);
+        }
       }
     }
 

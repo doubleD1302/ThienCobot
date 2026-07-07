@@ -80,6 +80,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     let menuStack = [...initialStack]; // Stack màn hình tuỳ chỉnh để back/quay lại
     let selectedSlotIndex = null; // Ô đất đang chọn
     let selectedPetId = null;     // Sủng vật đang chọn để thao tác
+    let selectedFusePetId = null; // Sủng vật nguyên liệu được chọn để dung hợp
     let foodPage = 0;             // Trang phân trang menu thức ăn sủng vật
     let actionMessage = null;     // Lưu thông báo kết quả hành động
 
@@ -321,6 +322,31 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             skillText = `\n• **Kỹ năng Thần Thú**: **${skillName}**\n  *Mô tả*: ${skillDesc}`;
           }
 
+          let hoTheDesc = '';
+          if (pet.fusedStats) {
+            try {
+              const stats = JSON.parse(pet.fusedStats);
+              const parts = [];
+              for (const [key, val] of Object.entries(stats)) {
+                const pct = (val * 100).toFixed(2);
+                let label = '';
+                if (key === 'vat_cong') label = 'Sát thương Vật lý nền';
+                else if (key === 'phap_cong') label = 'Pháp Công nền';
+                else if (key === 'max_hp') label = 'HP tối đa';
+                else if (key === 'giap') label = 'Hộ giáp nền';
+                else if (key === 'ne') label = 'Né tránh';
+                else if (key === 'crit_rate') label = 'Bạo kích';
+                else if (key === 'tu_toc') label = 'Tu tốc nền';
+                parts.push(`+${pct}% ${label}`);
+              }
+              hoTheDesc = `Hộ thể (Dung hợp): ${parts.join(' & ')}`;
+            } catch(e) {
+              hoTheDesc = template ? template.desc : '';
+            }
+          } else {
+            hoTheDesc = template ? template.desc : '';
+          }
+
           const embed = new EmbedBuilder()
             .setTitle(`🐯 Sủng Vật: ${pet.name}`)
             .setColor(0xe67e22)
@@ -330,7 +356,68 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               `• **Trạng thái**: **${activeTag}**\n` +
               `• **Cấp độ**: \`Cấp ${pet.level}\` (EXP: \`${pet.exp} / ${nextLvlExp}\`)\n` +
               `• **Tư chất**: \`${pet.tuChat} / 250\` *(Tư chất càng cao chỉ số cộng cho tu sĩ càng lớn)*\n` +
-              `• **Hiệu ứng hộ thể**: ${template ? template.desc : ''}${evoTxt}${skillText}`
+              `• **Hiệu ứng hộ thể**: ${hoTheDesc}${evoTxt}${skillText}`
+            );
+          embeds.push(embed);
+        }
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // 7.1. CHỌN LINH THÚ DUNG HỢP (PET_FUSION_SELECT)
+      // ══════════════════════════════════════════════════════════════
+      else if (menu === 'PET_FUSION_SELECT') {
+        const petA = await Pet.findByPk(selectedPetId);
+        if (petA) {
+          const templateA = config.PET_TEMPLATES[petA.type];
+          const statsA = config.getPetCurrentStats(petA);
+          const statsTextA = config.formatFusedStats(statsA);
+          const speciesA = templateA?.name || petA.type;
+
+          const embed = new EmbedBuilder()
+            .setTitle('🧬 Dung Hợp Linh Thú')
+            .setColor(0xe67e22)
+            .setDescription(
+              `Đạo hữu đang chọn **Linh Thú chính**:\n` +
+              `• **Tên**: **${petA.name}**\n` +
+              `• **Chủng loài**: ${speciesA}\n` +
+              `• **Chỉ số hiện tại**: \`${statsTextA}\`\n\n` +
+              `Hãy chọn **Linh Thú thứ hai** (sẽ bị tiêu hao) từ danh sách bên dưới để tiến hành dung hợp.`
+            );
+          embeds.push(embed);
+        }
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // 7.2. XÁC NHẬN DUNG HỢP (PET_FUSION_CONFIRM)
+      // ══════════════════════════════════════════════════════════════
+      else if (menu === 'PET_FUSION_CONFIRM') {
+        const petA = await Pet.findByPk(selectedPetId);
+        const petB = await Pet.findByPk(selectedFusePetId);
+        if (petA && petB) {
+          const templateA = config.PET_TEMPLATES[petA.type];
+          const templateB = config.PET_TEMPLATES[petB.type];
+          const statsA = config.getPetCurrentStats(petA);
+          const statsB = config.getPetCurrentStats(petB);
+
+          const statsTextA = config.formatFusedStats(statsA);
+          const statsTextB = config.formatFusedStats(statsB);
+
+          const isThanA = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petA.type);
+          const isThanB = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petB.type);
+          const cost = (isThanA || isThanB) ? 100000 : 5000;
+
+          const embed = new EmbedBuilder()
+            .setTitle('🧬 Xác Nhận Dung Hợp Linh Thú')
+            .setColor(0xe67e22)
+            .setDescription(
+              `Đạo hữu có chắc chắn muốn tiến hành dung hợp hai Linh Thú sau?\n\n` +
+              `🔥 **Linh Thú 1**: **${petA.name}** (${templateA?.name || petA.type})\n` +
+              `   *Chỉ số*: \`${statsTextA}\`\n\n` +
+              `🧪 **Linh Thú 2**: **${petB.name}** (${templateB?.name || petB.type})\n` +
+              `   *Chỉ số*: \`${statsTextB}\`\n\n` +
+              `💰 **Chi phí**: \`${cost.toLocaleString()}\` Linh Thạch\n` +
+              `🪙 **Hiện có**: \`${tuSi.linhThach.toLocaleString()}\` Linh Thạch\n\n` +
+              `⚠️ **Cảnh báo**: Cả hai Linh Thú gốc sẽ được dung hợp làm một. Linh Thú mới sẽ ngẫu nhiên mang chủng loài của 1 trong 2 Linh Thú gốc, bắt đầu lại từ Cấp 1, và được cộng 10% chỉ số.`
             );
           embeds.push(embed);
         }
@@ -784,6 +871,14 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         );
 
         if (pet) {
+          actionRow3.addComponents(
+            new ButtonBuilder()
+              .setCustomId('pet_action_fuse')
+              .setLabel('🧬 Dung Hợp')
+              .setStyle(ButtonStyle.Primary)
+              .setDisabled(myPets.length <= 1)
+          );
+
           const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
           const q = config.getPetQualityIndex(pet.rarity);
           const p = pet.tienHoa;
@@ -813,6 +908,75 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           }
         }
         rows.push(actionRow3);
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // 7.1. CHỌN LINH THÚ DUNG HỢP (PET_FUSION_SELECT)
+      // ══════════════════════════════════════════════════════════════
+      else if (menu === 'PET_FUSION_SELECT') {
+        const otherPets = myPets.filter(p => String(p.id) !== String(selectedPetId));
+        if (otherPets.length > 0) {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('pet_fusion_target_select')
+                .setPlaceholder('🐾 Chọn Linh Thú nguyên liệu...')
+                .addOptions(otherPets.map(p => ({
+                  label: p.name,
+                  value: String(p.id),
+                  description: `Cấp ${p.level} · ${config.PET_TEMPLATES[p.type]?.name || p.type}`
+                })))
+            )
+          );
+        } else {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('dummy_no_pets')
+                .setLabel('Không còn Linh Thú khác')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(true)
+            )
+          );
+        }
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('btn_back')
+              .setLabel('↩️ Quay Lại')
+              .setStyle(ButtonStyle.Secondary)
+          )
+        );
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // 7.2. XÁC NHẬN DUNG HỢP (PET_FUSION_CONFIRM)
+      // ══════════════════════════════════════════════════════════════
+      else if (menu === 'PET_FUSION_CONFIRM') {
+        const petA = myPets.find(p => String(p.id) === String(selectedPetId));
+        const petB = myPets.find(p => String(p.id) === String(selectedFusePetId));
+
+        let canFuse = false;
+        if (petA && petB) {
+          const isThanA = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petA.type);
+          const isThanB = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petB.type);
+          const cost = (isThanA || isThanB) ? 100000 : 5000;
+          canFuse = tuSi.linhThach >= cost && !petA.isActive && !petB.isActive;
+        }
+
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('btn_back')
+              .setLabel('❌ Hủy Bỏ')
+              .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+              .setCustomId('pet_action_fuse_confirm')
+              .setLabel('🔥 Xác Nhận Dung Hợp')
+              .setStyle(ButtonStyle.Danger)
+              .setDisabled(!canFuse)
+          )
+        );
       }
 
       // ══════════════════════════════════════════════════════════════
@@ -880,8 +1044,14 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           collector.stop('closed');
           return;
         }
+        const nextMenu = getCurrentMenu();
+        if (nextMenu !== 'PET_DETAIL' && nextMenu !== 'PET_FUSION_SELECT') {
+          selectedPetId = null;
+        }
+        if (nextMenu !== 'PET_FUSION_CONFIRM') {
+          selectedFusePetId = null;
+        }
         selectedSlotIndex = null;
-        selectedPetId = null;
         foodPage = 0; // Reset trang thức ăn khi quay lại
       }
 
@@ -1308,6 +1478,12 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 actionMessage = BoTaoEmbed.thatBai('Cho Ăn Thất Bại', 'Số lượng thức ăn trong hành lý không đủ.');
               }
             }
+          } else if (i.customId === 'pet_action_fuse') {
+            if (pet.isActive) {
+              actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', 'Không thể dung hợp Linh Thú đang xuất chiến. Hãy cho sủng vật nghỉ ngơi trước.');
+            } else {
+              menuStack.push('PET_FUSION_SELECT');
+            }
           } else if (i.customId === 'pet_action_enhance') {
             if (tuSi.linhThach >= 500 && pet.tuChat < 250) {
               tuSi.linhThach -= 500;
@@ -1484,6 +1660,119 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                   `Bảo lưu toàn bộ \`44\` lần tiến hóa cộng dồn trước đó.`
                 );
               }
+            }
+          }
+        }
+      }
+
+      // ── XỬ LÝ CHỌN LINH THÚ DUNG HỢP (PET_FUSION_SELECT) ──────────────────
+      else if (currentMenu === 'PET_FUSION_SELECT') {
+        if (i.customId === 'pet_fusion_target_select') {
+          selectedFusePetId = parseInt(i.values[0], 10);
+          const petB = myPets.find(p => p.id === selectedFusePetId);
+          if (petB && petB.isActive) {
+            actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', 'Không thể dung hợp Linh Thú đang xuất chiến. Hãy cho sủng vật nghỉ ngơi trước.');
+            selectedFusePetId = null;
+          } else {
+            menuStack.push('PET_FUSION_CONFIRM');
+          }
+        }
+      }
+
+      // ── XỬ LÝ XÁC NHẬN DUNG HỢP (PET_FUSION_CONFIRM) ─────────────────────
+      else if (currentMenu === 'PET_FUSION_CONFIRM') {
+        if (i.customId === 'pet_action_fuse_confirm') {
+          const petA = await Pet.findByPk(selectedPetId);
+          const petB = await Pet.findByPk(selectedFusePetId);
+          if (!petA || !petB) {
+            actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', 'Không tìm thấy Linh Thú để tiến hành dung hợp.');
+            menuStack = ['MAIN', 'PETS'];
+            selectedPetId = null;
+            selectedFusePetId = null;
+          } else if (petA.isActive || petB.isActive) {
+            actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', 'Không thể dung hợp Linh Thú đang xuất chiến. Hãy cho sủng vật nghỉ ngơi trước.');
+            menuStack.pop(); // Go back to SELECT
+            selectedFusePetId = null;
+          } else {
+            const isThanA = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petA.type);
+            const isThanB = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petB.type);
+            const cost = (isThanA || isThanB) ? 100000 : 5000;
+
+            if (tuSi.linhThach < cost) {
+              actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', `Không đủ linh thạch (Cần ${cost.toLocaleString()} Linh Thạch).`);
+            } else {
+              tuSi.linhThach -= cost;
+              await tuSi.save();
+
+              const statsA = config.getPetCurrentStats(petA);
+              const statsB = config.getPetCurrentStats(petB);
+
+              let newStats = {};
+              const isSuperRare = Math.random() < 0.01; // 1%
+
+              if (isSuperRare) {
+                const allKeys = new Set([...Object.keys(statsA), ...Object.keys(statsB)]);
+                for (const key of allKeys) {
+                  const valA = statsA[key] || 0;
+                  const valB = statsB[key] || 0;
+                  newStats[key] = parseFloat(((valA + valB) * 1.10).toFixed(4));
+                }
+              } else {
+                const chosenParentStats = Math.random() < 0.5 ? statsA : statsB;
+                for (const [key, val] of Object.entries(chosenParentStats)) {
+                  newStats[key] = parseFloat((val * 1.10).toFixed(4));
+                }
+              }
+
+              // Randomly choose species
+              const speciesProvider = Math.random() < 0.5 ? petA : petB;
+              const newType = speciesProvider.type;
+              const template = config.PET_TEMPLATES[newType];
+              const newRarity = template.group === 'than_thu' ? 'TT_1' : 'LT_1';
+              const newTuChat = Math.max(petA.tuChat, petB.tuChat);
+              const newName = config.getFormattedPetName(template.name, newRarity, 0, false);
+
+              // Create fused pet
+              const fusedPet = await Pet.create({
+                userId: tuSi.idNguoiDung,
+                name: newName,
+                type: newType,
+                rarity: newRarity,
+                level: 1,
+                exp: 0,
+                tuChat: newTuChat,
+                tienHoa: 0,
+                extraEvo: 0,
+                isMax: false,
+                isActive: false,
+                fusedStats: JSON.stringify(newStats)
+              });
+
+              // Destroy parents
+              await petA.destroy();
+              await petB.destroy();
+
+              const statsText = config.formatFusedStats(newStats);
+              let rateMsg = '';
+              if (isSuperRare) {
+                rateMsg = `\n\n✨ **SIÊU HIẾM (1%)**: Linh thú mới đã hấp thụ tinh hoa và thừa hưởng toàn bộ chỉ số của cả hai Linh Thú gốc! (+10% chỉ số)`;
+              } else {
+                rateMsg = `\n\n📈 Linh thú mới đã kế thừa chỉ số của 1 trong 2 Linh Thú gốc và được cộng 10% chỉ số.`;
+              }
+
+              actionMessage = BoTaoEmbed.thanhCong(
+                '🧬 Dung Hợp Linh Thú Thành Công',
+                `Đạo hữu đã dung hợp thành công **${petA.name}** và **${petB.name}**!\n\n` +
+                `• **Linh thú mới**: **${fusedPet.name}**\n` +
+                `• **Chủng loài**: \`${template.name}\`\n` +
+                `• **Tư chất**: \`${newTuChat}/250\`\n` +
+                `• **Chỉ số hộ thể mới**: \`${statsText}\`${rateMsg}`
+              );
+
+              // Go back to PETS
+              menuStack = ['MAIN', 'PETS'];
+              selectedPetId = null;
+              selectedFusePetId = null;
             }
           }
         }

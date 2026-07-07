@@ -3091,5 +3091,149 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await guildConfig.destroy();
   });
 
+  test('Pet Fusion Feature logic', async () => {
+    const { Pet } = await import('./models/Pet.js');
+    const { TuSi } = await import('./models/TuSi.js');
+
+    // Create a mock TuSi
+    const player = await TuSi.create({
+      idNguoiDung: "8888888888888888",
+      ten: "FusionTestPlayer",
+      gioiTinh: "Nữ",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 200000
+    });
+    player.linhCanList = ["Hoa"];
+
+    // 1. Create two normal pets
+    const petA = await Pet.create({
+      userId: player.idNguoiDung,
+      name: "Thanh Vân Điệp",
+      type: "loi_diep_1",
+      rarity: "LT_1",
+      level: 10,
+      tuChat: 110,
+      isActive: false
+    });
+
+    const petB = await Pet.create({
+      userId: player.idNguoiDung,
+      name: "Thiết Tý Viên",
+      type: "than_vien_1",
+      rarity: "LT_1",
+      level: 5,
+      tuChat: 120,
+      isActive: false
+    });
+
+    // Verify config default base stats mapping
+    const defaultStatsA = config.getPetDefaultBaseStats(petA.type);
+    assert.strictEqual(defaultStatsA.tu_toc, 0.08);
+
+    const defaultStatsB = config.getPetDefaultBaseStats(petB.type);
+    assert.strictEqual(defaultStatsB.max_hp, 0.10);
+    assert.strictEqual(defaultStatsB.giap, 0.08);
+
+    // Verify config current stats fallback works
+    const currentStatsA = config.getPetCurrentStats(petA);
+    assert.strictEqual(currentStatsA.tu_toc, 0.08);
+
+    // Simulate 99% (default) fusion stats calculation (let's assume we selected parent A and it got +10%)
+    const statsA = config.getPetCurrentStats(petA);
+    const statsB = config.getPetCurrentStats(petB);
+
+    const isThanA = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petA.type);
+    const isThanB = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petB.type);
+    const cost = (isThanA || isThanB) ? 100000 : 5000;
+    assert.strictEqual(cost, 5000); // Both are normal pets
+
+    // Fused stats logic: select parent A and apply +10%
+    const fusedStatsA = {};
+    for (const [key, val] of Object.entries(statsA)) {
+      fusedStatsA[key] = parseFloat((val * 1.10).toFixed(4));
+    }
+    assert.strictEqual(fusedStatsA.tu_toc, 0.088);
+
+    // Fused stats logic: select parent B and apply +10%
+    const fusedStatsB = {};
+    for (const [key, val] of Object.entries(statsB)) {
+      fusedStatsB[key] = parseFloat((val * 1.10).toFixed(4));
+    }
+    assert.strictEqual(fusedStatsB.max_hp, 0.11);
+    assert.strictEqual(fusedStatsB.giap, 0.088);
+
+    // 1% super-rare fusion logic: merge both and apply +10%
+    const fusedStatsMerged = {};
+    const allKeys = new Set([...Object.keys(statsA), ...Object.keys(statsB)]);
+    for (const key of allKeys) {
+      const valA = statsA[key] || 0;
+      const valB = statsB[key] || 0;
+      fusedStatsMerged[key] = parseFloat(((valA + valB) * 1.10).toFixed(4));
+    }
+    assert.strictEqual(fusedStatsMerged.tu_toc, 0.088);
+    assert.strictEqual(fusedStatsMerged.max_hp, 0.11);
+    assert.strictEqual(fusedStatsMerged.giap, 0.088);
+
+    // Create a new fused pet in DB with merged stats to verify TuSi logic
+    const fusedPet = await Pet.create({
+      userId: player.idNguoiDung,
+      name: "Thanh Vân Điệp [Fused]",
+      type: petA.type,
+      rarity: "LT_1",
+      level: 1,
+      exp: 0,
+      tuChat: Math.max(petA.tuChat, petB.tuChat), // should be 120
+      tienHoa: 0,
+      extraEvo: 0,
+      isMax: false,
+      isActive: true,
+      fusedStats: JSON.stringify(fusedStatsMerged)
+    });
+
+    assert.strictEqual(fusedPet.tuChat, 120);
+
+    // Verify that the custom fused stats are loaded and format correctly
+    const loadedStats = config.getPetCurrentStats(fusedPet);
+    assert.strictEqual(loadedStats.tu_toc, 0.088);
+    assert.strictEqual(loadedStats.max_hp, 0.11);
+    assert.strictEqual(loadedStats.giap, 0.088);
+
+    const formatted = config.formatFusedStats(loadedStats);
+    assert.ok(formatted.includes('+8.80% Tu tốc'));
+    assert.ok(formatted.includes('+11.00% HP'));
+    assert.ok(formatted.includes('+8.80% Giáp'));
+
+    // Check speed multiplier using fused pet
+    // Formula inside layHeSoTuLuyen:
+    // scale = level (1) * tuChat (120) / 100 = 1.2
+    // scalePct = 1.0 + (1.2 - 1.0) * 0.01 = 1.002
+    // totalEvolves = 0, evoMult = 1.0
+    // groupMult = 1.0 (normal pet)
+    // tuTocVal = 0.088
+    // speed multiplier from pet = 1.0 + 0.088 * 1.002 * 1.0 * 1.0 = 1.088176
+    // Base speed mult for Hoa Linh Can = 1.5
+    // Expected total speed mult = 1.5 * 1.088176 = 1.632264
+    const speedMult = player.layHeSoTuLuyen(fusedPet);
+    assert.ok(speedMult > 1.63);
+    assert.ok(speedMult < 1.64);
+
+    // Verify stats in layChiSo using fused pet
+    const baseStats = player.layChiSo([], fusedPet);
+    // Base HP mapping for Phap Tu: 120 (base) + 15 * (capDo - 1) = 120
+    // + Thuy/Tho element mult: none
+    // + Pet max_hp addition: baseHpVal (120) * val (0.11) * scale (1.2) * evoMult (1) * groupMult (1) = 15.84
+    // Total HP before fail breakthroughs/capped dodge = (120 + 15.84) * 10 = 1358
+    assert.strictEqual(baseStats.max_hp, 1358);
+
+    // Clean up
+    await petA.destroy();
+    await petB.destroy();
+    await fusedPet.destroy();
+    await player.destroy();
+  });
+
 });
 

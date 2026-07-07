@@ -69,6 +69,11 @@ Pet.init({
     allowNull:    false,
     defaultValue: false,
     field:        'is_active'
+  },
+  fusedStats: {
+    type:         DataTypes.TEXT,
+    allowNull:    true,
+    field:        'fused_stats'
   }
 }, {
   sequelize,
