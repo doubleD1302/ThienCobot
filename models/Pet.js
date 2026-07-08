@@ -74,6 +74,11 @@ Pet.init({
     type:         DataTypes.TEXT,
     allowNull:    true,
     field:        'fused_stats'
+  },
+  cd: {
+    type:         DataTypes.INTEGER,
+    allowNull:    true,
+    field:        'cd'
   }
 }, {
   sequelize,

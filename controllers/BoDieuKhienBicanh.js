@@ -171,6 +171,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let round = 1;
         let phoenixTriggered = false;
         let phoenixRegenRounds = 0;
+        let petSkillCooldownLeft = 0;
 
         let toLongBuffActive = false;
         let bachHoBuffActive = false;
@@ -225,7 +226,11 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         if (activePet && monsterHp > 0) {
           const template = config.PET_TEMPLATES[activePet.type];
           if (template && template.group === 'than_thu') {
+            const baseCd = (activePet.cd !== null && activePet.cd !== undefined) ? activePet.cd : 5;
             const totalEvolves = config.getPetTotalEvolves(activePet);
+            const petSkillCd = Math.max(1, baseCd - totalEvolves);
+            petSkillCooldownLeft = petSkillCd;
+
             const evoMult = Math.pow(1.1, totalEvolves);
             const petHpRef = Math.max(1, Math.floor(stats.max_hp / 10));
 
@@ -390,13 +395,21 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             }
           }
 
+          if (petSkillCooldownLeft > 0) {
+            petSkillCooldownLeft--;
+          }
+
           if (isWin) break;
 
           // Sủng Vật Thần Thú chủ động (20%)
-          if (activePet && Math.random() <= 0.20) {
+          if (activePet && petSkillCooldownLeft === 0 && Math.random() <= 0.20) {
             const template = config.PET_TEMPLATES[activePet.type];
             if (template && template.group === 'than_thu') {
+              const baseCd = (activePet.cd !== null && activePet.cd !== undefined) ? activePet.cd : 5;
               const totalEvolves = config.getPetTotalEvolves(activePet);
+              const petSkillCd = Math.max(1, baseCd - totalEvolves);
+              petSkillCooldownLeft = petSkillCd;
+
               const evoMult = Math.pow(1.1, totalEvolves);
               const petHpRef = Math.max(1, Math.floor(stats.max_hp / 10));
 

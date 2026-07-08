@@ -3713,5 +3713,58 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await activePet.destroy();
   });
 
+  test('Phoenix pet and active pet skill cooldown logic', async () => {
+    const { Pet } = await import('./models/Pet.js');
+    const config = await import('./config.js');
+
+    const userId = "777777111226";
+    // 1. Verify default base cd is 5
+    const petDefault = await Pet.create({
+      userId: userId,
+      name: "Tổ Long Thử Nghiệm",
+      type: "to_long_1",
+      rarity: "TT_1",
+      level: 1,
+      tuChat: 100,
+      tienHoa: 0,
+      extraEvo: 0,
+      cd: null,
+      isActive: false
+    });
+    
+    let baseCd = (petDefault.cd !== null && petDefault.cd !== undefined) ? petDefault.cd : 5;
+    let totalEvolves = config.getPetTotalEvolves(petDefault);
+    let petSkillCd = Math.max(1, baseCd - totalEvolves);
+    assert.strictEqual(petSkillCd, 5); // 5 - 0 = 5
+
+    // 2. Verify custom cd is 3
+    petDefault.cd = 3;
+    await petDefault.save();
+
+    baseCd = (petDefault.cd !== null && petDefault.cd !== undefined) ? petDefault.cd : 5;
+    petSkillCd = Math.max(1, baseCd - totalEvolves);
+    assert.strictEqual(petSkillCd, 3); // 3 - 0 = 3
+
+    // 3. Verify evolve decreases cd
+    petDefault.tienHoa = 1; // 1 evolve
+    await petDefault.save();
+
+    baseCd = (petDefault.cd !== null && petDefault.cd !== undefined) ? petDefault.cd : 5;
+    totalEvolves = config.getPetTotalEvolves(petDefault);
+    petSkillCd = Math.max(1, baseCd - totalEvolves);
+    assert.strictEqual(petSkillCd, 2); // 3 - 1 = 2
+
+    // 4. Verify minimum cd is 1
+    petDefault.tienHoa = 5; // 5 evolves
+    await petDefault.save();
+
+    baseCd = (petDefault.cd !== null && petDefault.cd !== undefined) ? petDefault.cd : 5;
+    totalEvolves = config.getPetTotalEvolves(petDefault);
+    petSkillCd = Math.max(1, baseCd - totalEvolves);
+    assert.strictEqual(petSkillCd, 1); // Math.max(1, 3 - 5) = 1
+
+    await petDefault.destroy();
+  });
+
 });
 

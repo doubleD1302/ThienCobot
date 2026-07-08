@@ -665,6 +665,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       const battleLogs = [];
       let phoenixTriggered = false;
       let phoenixRegenRounds = 0;
+      let petSkillCooldownLeft = 0;
 
       let toLongBuffActive = false;
       let bachHoBuffActive = false;
@@ -675,7 +676,11 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       if (activePet && monsterHp > 0) {
         const template = config.PET_TEMPLATES[activePet.type];
         if (template && template.group === 'than_thu') {
+          const baseCd = (activePet.cd !== null && activePet.cd !== undefined) ? activePet.cd : 5;
           const totalEvolves = config.getPetTotalEvolves(activePet);
+          const petSkillCd = Math.max(1, baseCd - totalEvolves);
+          petSkillCooldownLeft = petSkillCd;
+
           const evoMult = Math.pow(1.1, totalEvolves);
           const maxPlayerAtk = Math.max(stats.vat_cong, stats.phap_cong);
           const petHpRef = Math.max(1, Math.floor(stats.max_hp / 10));
@@ -834,11 +839,14 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           break;
         }
 
-        // Thần thú active skills (20% cơ hội mỗi hiệp)
-        if (activePet && Math.random() <= 0.10) {
+        // Thần thú active skills (10% cơ hội mỗi hiệp)
+        if (activePet && petSkillCooldownLeft === 0 && Math.random() <= 0.10) {
           const template = config.PET_TEMPLATES[activePet.type];
           if (template && template.group === 'than_thu') {
+            const baseCd = (activePet.cd !== null && activePet.cd !== undefined) ? activePet.cd : 5;
             const totalEvolves = config.getPetTotalEvolves(activePet);
+            const petSkillCd = Math.max(1, baseCd - totalEvolves);
+            petSkillCooldownLeft = petSkillCd;
             const evoMult = Math.pow(1.1, totalEvolves);
             const maxPlayerAtk = Math.max(stats.vat_cong, stats.phap_cong);
             const petHpRef = Math.max(1, Math.floor(stats.max_hp / 10));
@@ -954,6 +962,10 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
         if (playerHp <= 0) {
           break;
+        }
+
+        if (petSkillCooldownLeft > 0) {
+          petSkillCooldownLeft--;
         }
 
         round++;
