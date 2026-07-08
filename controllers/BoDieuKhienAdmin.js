@@ -374,7 +374,16 @@ class BoDieuKhienAdmin {
         option.setName('target')
           .setDescription('Đạo hữu cần điều chỉnh')
           .setRequired(true)
-      ),
+      )
+      .addUserOption(option => option.setName('target2').setDescription('Đạo hữu cần điều chỉnh 2').setRequired(false))
+      .addUserOption(option => option.setName('target3').setDescription('Đạo hữu cần điều chỉnh 3').setRequired(false))
+      .addUserOption(option => option.setName('target4').setDescription('Đạo hữu cần điều chỉnh 4').setRequired(false))
+      .addUserOption(option => option.setName('target5').setDescription('Đạo hữu cần điều chỉnh 5').setRequired(false))
+      .addUserOption(option => option.setName('target6').setDescription('Đạo hữu cần điều chỉnh 6').setRequired(false))
+      .addUserOption(option => option.setName('target7').setDescription('Đạo hữu cần điều chỉnh 7').setRequired(false))
+      .addUserOption(option => option.setName('target8').setDescription('Đạo hữu cần điều chỉnh 8').setRequired(false))
+      .addUserOption(option => option.setName('target9').setDescription('Đạo hữu cần điều chỉnh 9').setRequired(false))
+      .addUserOption(option => option.setName('target10').setDescription('Đạo hữu cần điều chỉnh 10').setRequired(false)),
 
     execute: async (interaction) => {
       if (interaction.user.username !== 'wiine5100') {
@@ -386,17 +395,36 @@ class BoDieuKhienAdmin {
 
       await interaction.deferReply({ ephemeral: true });
 
-      const targetUser = interaction.options.getUser('target');
-      
+      const targetUsers = [];
+      const targetOptionNames = ['target', 'target2', 'target3', 'target4', 'target5', 'target6', 'target7', 'target8', 'target9', 'target10'];
+      for (const name of targetOptionNames) {
+        const u = interaction.options.getUser(name);
+        if (u) {
+          if (!targetUsers.some(existing => existing.id === u.id)) {
+            targetUsers.push(u);
+          }
+        }
+      }
+
       const { TuSi } = await import('../models/TuSi.js');
       const { Inventory } = await import('../models/Inventory.js');
       const { Item } = await import('../models/Item.js');
       const config = await import('../config.js');
 
-      let tuSi = await TuSi.findOne({ where: { idNguoiDung: targetUser.id } });
-      if (!tuSi) {
+      const tuSiList = [];
+      const invalidUsers = [];
+      for (const user of targetUsers) {
+        const ts = await TuSi.findOne({ where: { idNguoiDung: user.id } });
+        if (!ts) {
+          invalidUsers.push(user.username);
+        } else {
+          tuSiList.push(ts);
+        }
+      }
+
+      if (invalidUsers.length > 0) {
         return interaction.editReply({
-          content: `❌ Đạo hữu **${targetUser.username}** chưa khởi đầu kiếp tu tiên (\`/start\`).`
+          content: `❌ Các đạo hữu sau chưa khởi đầu kiếp tu tiên (\`/start\`): **${invalidUsers.join(', ')}**.`
         });
       }
 
@@ -410,12 +438,13 @@ class BoDieuKhienAdmin {
 
       const sendPublicLog = async (actionText) => {
         try {
+          const targetsText = tuSiList.map(ts => `**${ts.ten}** (<@${ts.idNguoiDung}>)`).join(', ');
           await interaction.channel.send({
             embeds: [
               new EmbedBuilder()
                 .setTitle('📢 Thiên Đạo Chi Chỉ')
                 .setColor(0x9b59b6)
-                .setDescription(`⚡ **Thiên đạo** vừa tác động lên tu sĩ **${tuSi.ten}** (<@${tuSi.idNguoiDung}>):\n→ *${actionText}*`)
+                .setDescription(`⚡ **Thiên đạo** vừa tác động lên tu sĩ ${targetsText}:\n→ *${actionText}*`)
                 .setTimestamp()
             ]
           });
@@ -448,47 +477,65 @@ class BoDieuKhienAdmin {
 
       // Helper to build Payload (Embed + ActionRows)
       const buildPayload = async () => {
-        await tuSi.reload();
+        for (const ts of tuSiList) {
+          await ts.reload();
+        }
 
+        const namesFooter = tuSiList.map(ts => ts.ten).join(', ');
         const embed = new EmbedBuilder()
           .setTimestamp()
-          .setFooter({ text: `Đang thao tác trên đạo hữu: ${tuSi.ten} (${tuSi.idNguoiDung})` });
+          .setFooter({ text: `Đang thao tác trên: ${namesFooter.substring(0, 100)}` });
 
         const rows = [];
 
         if (currentMenu === 'MAIN') {
-          let desc = `• **Đạo hiệu**: **${tuSi.ten}**\n` +
-                     `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
-                     `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
-                     `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
-                     `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
-                     `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\`\n\n` +
-                     `*Vui lòng sử dụng các nút tương tác bên dưới để chỉnh sửa.*`;
+          let desc = '';
+          if (tuSiList.length === 1) {
+            const tuSi = tuSiList[0];
+            desc = `• **Đạo hiệu**: **${tuSi.ten}**\n` +
+                   `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
+                   `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
+                   `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
+                   `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
+                   `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\`\n\n`;
+          } else {
+            desc = `• **Danh sách đạo hữu (${tuSiList.length})**:\n` +
+                   tuSiList.map(ts => `  - **${ts.ten}** (<@${ts.idNguoiDung}>): \`${ts.canhGioi}\` (Linh Lực: \`${ts.linhLuc.toLocaleString()}\`, Linh Thạch: \`${ts.linhThach.toLocaleString()}\`)`).join('\n') + `\n\n`;
+          }
           if (statusMessage) {
             desc = `🔔 **Thiên Đạo Báo**: ${statusMessage}\n\n` + desc;
           }
-          embed.setTitle(`🛠️ Bảng Thiên Đạo Điều Phối — ${tuSi.ten}`)
+          const mainTitle = tuSiList.length === 1 ? `🛠️ Bảng Thiên Đạo Điều Phối — ${tuSiList[0].ten}` : `🛠️ Bảng Thiên Đạo Điều Phối (Hàng Loạt)`;
+          embed.setTitle(mainTitle)
             .setColor(0x9b59b6)
-            .setDescription(desc);
+            .setDescription(desc + `*Vui lòng sử dụng các nút tương tác bên dưới để chỉnh sửa.*`);
 
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('edit_btn_stats').setLabel('☯️ Chỉnh Chỉ Số / Tiền').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('edit_btn_gift').setLabel('🎁 Tặng Vật Phẩm').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId('edit_btn_revoke').setLabel('🗑️ Thu Hồi Vật Phẩm').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId('edit_btn_revoke').setLabel('🗑️ Thu Hồi Vật Phẩm').setStyle(ButtonStyle.Danger).setDisabled(tuSiList.length > 1),
             new ButtonBuilder().setCustomId('edit_btn_close').setLabel('❌ Đóng Bảng').setStyle(ButtonStyle.Secondary)
           );
           rows.push(row);
 
         } else if (currentMenu === 'EDIT_STATS') {
-          let desc = `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
-                     `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
-                     `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
-                     `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
-                     `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\``;
+          let desc = '';
+          if (tuSiList.length === 1) {
+            const tuSi = tuSiList[0];
+            desc = `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
+                   `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
+                   `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
+                   `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
+                   `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\``;
+          } else {
+            desc = `• **Danh sách đạo hữu (${tuSiList.length})**:\n` +
+                   tuSiList.map(ts => `  - **${ts.ten}**: LL \`${ts.linhLuc.toLocaleString()}\` | LT \`${ts.linhThach.toLocaleString()}\` | VND \`${ts.vnd.toLocaleString()}\``).join('\n');
+          }
           if (statusMessage) {
             desc = `🔔 **Thiên Đạo Báo**: ${statusMessage}\n\n` + desc;
           }
-          embed.setTitle(`☯️ Thiên Đạo Điều Chỉnh Chỉ Số — ${tuSi.ten}`)
+          const editTitle = tuSiList.length === 1 ? `☯️ Thiên Đạo Điều Chỉnh Chỉ Số — ${tuSiList[0].ten}` : `☯️ Thiên Đạo Điều Chỉnh Chỉ Số (Hàng Loạt)`;
+          embed.setTitle(editTitle)
             .setColor(0xf1c40f)
             .setDescription(desc);
 
@@ -518,9 +565,11 @@ class BoDieuKhienAdmin {
             }
           }
 
-          embed.setTitle(`🎁 Thiên Đạo Ban Tặng Vật Phẩm — ${tuSi.ten}`)
+          const giftTitle = tuSiList.length === 1 ? `🎁 Thiên Đạo Ban Tặng Vật Phẩm — ${tuSiList[0].ten}` : `🎁 Thiên Đạo Ban Tặng Vật Phẩm (Hàng Loạt)`;
+          embed.setTitle(giftTitle)
             .setColor(0x2ecc71);
           let desc = `*Hãy chọn danh mục vật phẩm, chọn vật phẩm cụ thể và bấm số lượng tặng.*\n\n` +
+                     `• Đang chọn tặng cho: ${tuSiList.map(ts => `**${ts.ten}**`).join(', ')}\n` +
                      `• Danh mục hiện tại: **${selectedCategory || 'Chưa chọn'}**\n` +
                      `• ${itemDetails}`;
           if (statusMessage) {
@@ -613,8 +662,9 @@ class BoDieuKhienAdmin {
           rows.push(actionRow);
 
         } else if (currentMenu === 'REVOKE_ITEM') {
+          const firstTuSi = tuSiList[0];
           // Load target inventory
-          const freshInvList = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+          const freshInvList = await Inventory.findAll({ where: { idNguoiDung: firstTuSi.idNguoiDung } });
           let invDetails = '_Chưa chọn vật phẩm để thu hồi._';
           
           if (selectedInvRecordToRevoke) {
@@ -630,7 +680,7 @@ class BoDieuKhienAdmin {
             }
           }
 
-          embed.setTitle(`🗑️ Thiên Đạo Thu Hồi Vật Phẩm — ${tuSi.ten}`)
+          embed.setTitle(`🗑️ Thiên Đạo Thu Hồi Vật Phẩm — ${firstTuSi.ten}`)
             .setColor(0xe74c3c);
           let desc = `*Hãy chọn một dòng vật phẩm trong balo của người chơi dưới đây và bấm số lượng thu hồi.*\n\n` +
                      `• ${invDetails}`;
@@ -731,8 +781,9 @@ class BoDieuKhienAdmin {
             labelText = 'Cộng/Trừ VND (vd: +100K, -50K, 1M)';
           }
 
+          const firstTuSi = tuSiList[0];
           const modal = new ModalBuilder()
-            .setCustomId(`modal_${customId}_${tuSi.idNguoiDung}`)
+            .setCustomId(`modal_${customId}_${firstTuSi.idNguoiDung}`)
             .setTitle(modalTitle);
 
           const amountInput = new TextInputBuilder()
@@ -748,7 +799,7 @@ class BoDieuKhienAdmin {
             await i.showModal(modal);
 
             const submitted = await i.awaitModalSubmit({
-              filter: submitInteraction => submitInteraction.customId === `modal_${customId}_${tuSi.idNguoiDung}` && submitInteraction.user.id === interaction.user.id,
+              filter: submitInteraction => submitInteraction.customId === `modal_${customId}_${firstTuSi.idNguoiDung}` && submitInteraction.user.id === interaction.user.id,
               time: 60000
             });
 
@@ -760,38 +811,39 @@ class BoDieuKhienAdmin {
               statusMessage = `❌ Định dạng số lượng nhập không hợp lệ: "${rawVal}"`;
             } else {
               const { value, sign } = parsed;
-              if (customId === 'edit_stat_mod_ll') {
-                if (sign === '+') {
-                  tuSi.linhLuc += value;
-                  statusMessage = `✅ Đã cộng **${value.toLocaleString()} Linh Lực**!`;
-                  await sendPublicLog(`Cộng ${value.toLocaleString()} Linh Lực`);
-                } else {
-                  tuSi.linhLuc = Math.max(0, Number(tuSi.linhLuc) - value);
-                  statusMessage = `✅ Đã trừ **${value.toLocaleString()} Linh Lực**!`;
-                  await sendPublicLog(`Khấu trừ ${value.toLocaleString()} Linh Lực`);
+              for (const tuSi of tuSiList) {
+                if (customId === 'edit_stat_mod_ll') {
+                  if (sign === '+') {
+                    tuSi.linhLuc += value;
+                  } else {
+                    tuSi.linhLuc = Math.max(0, Number(tuSi.linhLuc) - value);
+                  }
+                } else if (customId === 'edit_stat_mod_lt') {
+                  if (sign === '+') {
+                    tuSi.linhThach += value;
+                  } else {
+                    tuSi.linhThach = Math.max(0, Number(tuSi.linhThach) - value);
+                  }
+                } else if (customId === 'edit_stat_mod_vnd') {
+                  if (sign === '+') {
+                    tuSi.vnd += value;
+                  } else {
+                    tuSi.vnd = Math.max(0, Number(tuSi.vnd) - value);
+                  }
                 }
-              } else if (customId === 'edit_stat_mod_lt') {
-                if (sign === '+') {
-                  tuSi.linhThach += value;
-                  statusMessage = `✅ Đã cộng **${value.toLocaleString()} Linh Thạch**!`;
-                  await sendPublicLog(`Cộng ${value.toLocaleString()} Linh Thạch`);
-                } else {
-                  tuSi.linhThach = Math.max(0, Number(tuSi.linhThach) - value);
-                  statusMessage = `✅ Đã trừ **${value.toLocaleString()} Linh Thạch**!`;
-                  await sendPublicLog(`Khấu trừ ${value.toLocaleString()} Linh Thạch`);
-                }
-              } else if (customId === 'edit_stat_mod_vnd') {
-                if (sign === '+') {
-                  tuSi.vnd += value;
-                  statusMessage = `✅ Đã cộng **${value.toLocaleString()} VND**!`;
-                  await sendPublicLog(`Cộng ${value.toLocaleString()} VND`);
-                } else {
-                  tuSi.vnd = Math.max(0, Number(tuSi.vnd) - value);
-                  statusMessage = `✅ Đã trừ **${value.toLocaleString()} VND**!`;
-                  await sendPublicLog(`Khấu trừ ${value.toLocaleString()} VND`);
-                }
+                await tuSi.save();
               }
-              await tuSi.save();
+
+              if (customId === 'edit_stat_mod_ll') {
+                statusMessage = sign === '+' ? `✅ Đã cộng **${value.toLocaleString()} Linh Lực** cho tất cả!` : `✅ Đã trừ **${value.toLocaleString()} Linh Lực** của tất cả!`;
+                await sendPublicLog(`${sign === '+' ? 'Cộng' : 'Khấu trừ'} ${value.toLocaleString()} Linh Lực`);
+              } else if (customId === 'edit_stat_mod_lt') {
+                statusMessage = sign === '+' ? `✅ Đã cộng **${value.toLocaleString()} Linh Thạch** cho tất cả!` : `✅ Đã trừ **${value.toLocaleString()} Linh Thạch** của tất cả!`;
+                await sendPublicLog(`${sign === '+' ? 'Cộng' : 'Khấu trừ'} ${value.toLocaleString()} Linh Thạch`);
+              } else if (customId === 'edit_stat_mod_vnd') {
+                statusMessage = sign === '+' ? `✅ Đã cộng **${value.toLocaleString()} VND** cho tất cả!` : `✅ Đã trừ **${value.toLocaleString()} VND** của tất cả!`;
+                await sendPublicLog(`${sign === '+' ? 'Cộng' : 'Khấu trừ'} ${value.toLocaleString()} VND`);
+              }
             }
 
             const nextPayload = await buildPayload();
@@ -837,26 +889,32 @@ class BoDieuKhienAdmin {
 
         // Stats editing operations
         else if (customId === 'edit_stat_reset_hpmp') {
-          const stats = await tuSi.layChiSoDayDu();
-          tuSi.hp = stats.max_hp;
-          tuSi.mp = stats.max_mp;
-          await tuSi.save();
-          statusMessage = '✅ Đã hồi phục đầy HP/MP!';
+          for (const tuSi of tuSiList) {
+            const stats = await tuSi.layChiSoDayDu();
+            tuSi.hp = stats.max_hp;
+            tuSi.mp = stats.max_mp;
+            await tuSi.save();
+          }
+          statusMessage = '✅ Đã hồi phục đầy HP/MP cho tất cả!';
           await sendPublicLog('Khôi phục toàn bộ trạng thái HP/MP');
         } else if (customId === 'edit_stat_cg_p1') {
-          tuSi.capDo = Math.min(31, tuSi.capDo + 1);
-          const cg = config.layThongTinCanhGioi(tuSi.capDo);
-          tuSi.canhGioi = `${cg.realmName} - ${cg.stageName}`;
-          await tuSi.save();
-          statusMessage = `✅ Đã tăng cảnh giới lên cấp **${tuSi.capDo}** (${tuSi.canhGioi})!`;
-          await sendPublicLog(`Tăng cảnh giới lên cấp ${tuSi.capDo} (${tuSi.canhGioi})`);
+          for (const tuSi of tuSiList) {
+            tuSi.capDo = Math.min(31, tuSi.capDo + 1);
+            const cg = config.layThongTinCanhGioi(tuSi.capDo);
+            tuSi.canhGioi = `${cg.realmName} - ${cg.stageName}`;
+            await tuSi.save();
+          }
+          statusMessage = `✅ Đã tăng cảnh giới lên 1 cấp cho tất cả!`;
+          await sendPublicLog(`Tăng cảnh giới lên 1 cấp`);
         } else if (customId === 'edit_stat_cg_m1') {
-          tuSi.capDo = Math.max(1, tuSi.capDo - 1);
-          const cg = config.layThongTinCanhGioi(tuSi.capDo);
-          tuSi.canhGioi = `${cg.realmName} - ${cg.stageName}`;
-          await tuSi.save();
-          statusMessage = `✅ Đã giảm cảnh giới xuống cấp **${tuSi.capDo}** (${tuSi.canhGioi})!`;
-          await sendPublicLog(`Hạ cảnh giới xuống cấp ${tuSi.capDo} (${tuSi.canhGioi})`);
+          for (const tuSi of tuSiList) {
+            tuSi.capDo = Math.max(1, tuSi.capDo - 1);
+            const cg = config.layThongTinCanhGioi(tuSi.capDo);
+            tuSi.canhGioi = `${cg.realmName} - ${cg.stageName}`;
+            await tuSi.save();
+          }
+          statusMessage = `✅ Đã giảm cảnh giới xuống 1 cấp cho tất cả!`;
+          await sendPublicLog(`Hạ cảnh giới xuống 1 cấp`);
         }
 
         // Gift operations
@@ -871,8 +929,10 @@ class BoDieuKhienAdmin {
           if (selectedItemToGift) {
             const configItem = config.ITEMS.find(item => item.id === selectedItemToGift);
             const nameText = configItem ? configItem.ten : selectedItemToGift;
-            await Inventory.addVatPham(tuSi.idNguoiDung, selectedItemToGift, qty);
-            statusMessage = `🎁 Đã tặng thành công **x${qty} ${nameText}**!`;
+            for (const tuSi of tuSiList) {
+              await Inventory.addVatPham(tuSi.idNguoiDung, selectedItemToGift, qty);
+            }
+            statusMessage = `🎁 Đã tặng thành công **x${qty} ${nameText}** cho tất cả!`;
             await sendPublicLog(`Tặng x${qty} ${nameText}`);
             selectedItemToGift = null; // reset select after gifting
           }

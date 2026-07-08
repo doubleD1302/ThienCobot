@@ -3669,6 +3669,160 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await targetTuSi.destroy();
   });
 
+  test('Admin /edit Command multi-target gifting and stats modification', async () => {
+    const { boDieuKhienAdmin } = await import('./controllers/BoDieuKhienAdmin.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+
+    // Create two targets
+    const target1 = await TuSi.create({
+      idNguoiDung: "999999999999221",
+      ten: "Tu Sĩ Đệ Nhất",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      linhLuc: 100,
+      linhThach: 100,
+      vnd: 100
+    });
+
+    const target2 = await TuSi.create({
+      idNguoiDung: "999999999999222",
+      ten: "Tu Sĩ Đệ Nhị",
+      gioiTinh: "Nữ",
+      huongTu: "Kiem Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 200,
+      linhThach: 200,
+      vnd: 200
+    });
+
+    let editReplyPayload = null;
+    let collectHandler = null;
+    let endHandler = null;
+
+    const interaction = {
+      user: { username: 'wiine5100', id: '12345' },
+      deferReply: async () => {},
+      channel: { send: async () => {} },
+      options: {
+        getUser: (name) => {
+          if (name === 'target') return { id: target1.idNguoiDung, username: target1.ten };
+          if (name === 'target2') return { id: target2.idNguoiDung, username: target2.ten };
+          return null;
+        }
+      },
+      editReply: async (payload) => {
+        editReplyPayload = payload;
+        return {
+          createMessageComponentCollector: () => {
+            return {
+              on: (event, handler) => {
+                if (event === 'collect') collectHandler = handler;
+                if (event === 'end') endHandler = handler;
+              },
+              stop: (reason) => {
+                if (endHandler) endHandler(null, reason);
+              }
+            };
+          }
+        };
+      }
+    };
+
+    await boDieuKhienAdmin.lenhEdit.execute(interaction);
+
+    assert.ok(editReplyPayload);
+    assert.ok(editReplyPayload.embeds[0].data.title.includes('Bảng Thiên Đạo Điều Phối (Hàng Loạt)'));
+
+    // Check that both users are listed in description
+    const desc = editReplyPayload.embeds[0].data.description;
+    assert.ok(desc.includes(target1.ten));
+    assert.ok(desc.includes(target2.ten));
+
+    // Test stats modification menu click
+    const mockClickStats = {
+      customId: 'edit_btn_stats',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickStats);
+    assert.ok(editReplyPayload.embeds[0].data.title.includes('Thiên Đạo Điều Chỉnh Chỉ Số (Hàng Loạt)'));
+
+    // Mock adding +100M Linh Thạch via Modal
+    const mockAddGold = {
+      customId: 'edit_stat_mod_lt',
+      user: { id: '12345' },
+      showModal: async () => {},
+      awaitModalSubmit: async () => {
+        return {
+          customId: `modal_edit_stat_mod_lt_${target1.idNguoiDung}`,
+          deferUpdate: async () => {},
+          fields: {
+            getTextInputValue: (id) => {
+              if (id === 'amount_input') return '+100M';
+              return '';
+            }
+          }
+        };
+      }
+    };
+    await collectHandler(mockAddGold);
+    await target1.reload();
+    await target2.reload();
+    assert.strictEqual(target1.linhThach, 100000100);
+    assert.strictEqual(target2.linhThach, 100000200);
+
+    // Test gifting item to both
+    const mockClickGift = {
+      customId: 'edit_btn_gift',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickGift);
+    assert.ok(editReplyPayload.embeds[0].data.title.includes('Thiên Đạo Ban Tặng Vật Phẩm (Hàng Loạt)'));
+
+    // Select category 'Đan dược'
+    const mockSelectCat = {
+      customId: 'edit_gift_cat_select',
+      values: ['Đan dược'],
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockSelectCat);
+
+    // Select item 'dan_than_pham'
+    const mockSelectItem = {
+      customId: 'edit_gift_item_select',
+      values: ['dan_than_pham'],
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockSelectItem);
+
+    // Click Tặng x10
+    const mockClickGiftBtn = {
+      customId: 'edit_gift_x10',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickGiftBtn);
+
+    // Check inventory for both targets
+    const gifted1 = await Inventory.findOne({ where: { idNguoiDung: target1.idNguoiDung, itemId: 'dan_than_pham' } });
+    const gifted2 = await Inventory.findOne({ where: { idNguoiDung: target2.idNguoiDung, itemId: 'dan_than_pham' } });
+    assert.ok(gifted1);
+    assert.ok(gifted2);
+    assert.strictEqual(gifted1.soLuong, 10);
+    assert.strictEqual(gifted2.soLuong, 10);
+
+    // Clean up
+    await target1.destroy();
+    await target2.destroy();
+  });
+
   test('Phoenix pet stats and active skill damage calculation', async () => {
     const { TuSi } = await import('./models/TuSi.js');
     const { Pet } = await import('./models/Pet.js');
