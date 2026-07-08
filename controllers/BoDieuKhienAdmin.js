@@ -732,7 +732,7 @@ class BoDieuKhienAdmin {
           }
 
           const modal = new ModalBuilder()
-            .setCustomId(`modal_${customId}`)
+            .setCustomId(`modal_${customId}_${tuSi.idNguoiDung}`)
             .setTitle(modalTitle);
 
           const amountInput = new TextInputBuilder()
@@ -748,7 +748,7 @@ class BoDieuKhienAdmin {
             await i.showModal(modal);
 
             const submitted = await i.awaitModalSubmit({
-              filter: submitInteraction => submitInteraction.customId === `modal_${customId}` && submitInteraction.user.id === interaction.user.id,
+              filter: submitInteraction => submitInteraction.customId === `modal_${customId}_${tuSi.idNguoiDung}` && submitInteraction.user.id === interaction.user.id,
               time: 60000
             });
 

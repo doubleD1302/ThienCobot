@@ -3546,7 +3546,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       showModal: async () => {},
       awaitModalSubmit: async () => {
         return {
-          customId: 'modal_edit_stat_mod_lt',
+          customId: `modal_edit_stat_mod_lt_${targetTuSi.idNguoiDung}`,
           deferUpdate: async () => {},
           fields: {
             getTextInputValue: (id) => {
@@ -3568,7 +3568,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       showModal: async () => {},
       awaitModalSubmit: async () => {
         return {
-          customId: 'modal_edit_stat_mod_ll',
+          customId: `modal_edit_stat_mod_ll_${targetTuSi.idNguoiDung}`,
           deferUpdate: async () => {},
           fields: {
             getTextInputValue: (id) => {
