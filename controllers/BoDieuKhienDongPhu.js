@@ -307,7 +307,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               skillName = 'Long Thần Chi Nộ 🐉';
               skillDesc = `Phát động Long Thần Chi Nộ gây sát thương bằng 15% HP tối đa của bản thân (x${hoTheMult.toFixed(2)} từ tiến hóa).`;
             } else if (template.species === 'phuong_hoang') {
-              skillName = 'Hỏa Phượng Liệt Diễm 🐦';
+              skillName = 'Hỏa Phượng Liệt Diễm';
               skillDesc = `Gây sát thương bằng 100% song công của chủ nhân (x${hoTheMult.toFixed(2)} từ tiến hóa), cộng thêm 1 lần tấn công với mỗi 80% bạo thương của chủ nhân (mỗi lần sau tăng 20% sát thương).`;
             } else if (template.species === 'ky_lan') {
               skillName = 'Kỳ Lân Hộ Thể 🦄';

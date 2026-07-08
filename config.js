@@ -932,8 +932,8 @@ export const PET_TEMPLATES_SEED = [
   { id: 'to_long_1', name: 'Hỗn Thiên Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.20, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +20% HP & +20% Pháp Công' },
   { id: 'to_long_2', name: 'Thượng Cổ Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +25% HP & +25% Pháp Công' },
 
-  { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +25% HP, +100% Bạo thương & +20% Song công' },
-  { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +28% HP, +100% Bạo thương & +20% Song công' },
+  { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618377662484>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +25% HP, +100% Bạo thương & +20% Song công' },
+  { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618377662484>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +28% HP, +100% Bạo thương & +20% Song công' },
 
   { id: 'ky_lan_1', name: 'Bạch Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.20, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +20% HP & +20% Công' },
   { id: 'ky_lan_2', name: 'Thiên Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% HP & +25% Công' },

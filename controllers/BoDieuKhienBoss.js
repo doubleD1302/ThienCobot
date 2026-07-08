@@ -721,7 +721,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             totalPetDmg = Math.floor(totalPetDmg);
             monsterHp = Math.max(0, monsterHp - totalPetDmg);
             totalDmgDealt += totalPetDmg;
-            battleLogs.push(`🐦 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm 🐦**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+            battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
           }
         }
       }
@@ -773,7 +773,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         if (phoenixRegenRounds > 0) {
           const regenAmt = Math.floor(stats.max_hp * 0.05);
           playerHp = Math.min(stats.max_hp, playerHp + regenAmt);
-          battleLogs.push(`🐦 **Phượng Hoàng Hộ Thể**: Hồi phục \`+${regenAmt}\` HP từ hiệu ứng Niết Bàn (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+          battleLogs.push(`<:phung:1522635618377662484> **Phượng Hoàng Hộ Thể**: Hồi phục \`+${regenAmt}\` HP từ hiệu ứng Niết Bàn (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
           phoenixRegenRounds--;
         }
 
@@ -912,7 +912,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               totalPetDmg = Math.floor(totalPetDmg);
               monsterHp = Math.max(0, monsterHp - totalPetDmg);
               totalDmgDealt += totalPetDmg;
-              battleLogs.push(`🐦 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm 🐦**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+              battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`).`);
               if (monsterHp <= 0) {
                 break;
               }
