@@ -2954,6 +2954,131 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Daily Cards (Thẻ Vĩnh Viễn, Thẻ Quý, Thẻ Tháng) behavior and expiry', async () => {
+    const { Inventory } = await import('./models/Inventory.js');
+    const { Item } = await import('./models/Item.js');
+    const { BoTaoEmbed } = await import('./views/BoTaoEmbed.js');
+    const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+
+    const userId = "777777111224";
+    const tuSi = await TuSi.create({
+      idNguoiDung: userId,
+      ten: "Thẻ Tester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      hp: 100,
+      mp: 100
+    });
+
+    // 1. Ensure new items are upserted/synced in DB
+    await Item.upsert({
+      id: 'the_vinh_vien',
+      ten: 'Thẻ Vĩnh Viễn',
+      loai: 'Chí bảo',
+      doHiem: 'Thần cấp',
+      giaCoSo: 0,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1,
+      moTa: 'test'
+    });
+    await Item.upsert({
+      id: 'the_thang',
+      ten: 'Thẻ Tháng',
+      loai: 'Chí bảo',
+      doHiem: 'Hiếm',
+      giaCoSo: 0,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1,
+      moTa: 'test'
+    });
+    await Item.upsert({
+      id: 'co_duyen_lenh',
+      ten: 'Cơ Duyên Lệnh 🎫',
+      loai: 'Linh thảo',
+      doHiem: 'Hiếm',
+      giaCoSo: 2000,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1,
+      moTa: 'test'
+    });
+    await Item.upsert({
+      id: 'dan_tu_vi_tim',
+      ten: 'Tu Vi Đan (Siêu) 💊',
+      loai: 'Đan dược',
+      doHiem: 'Cực hiếm',
+      giaCoSo: 2000,
+      chiSoJson: '{}',
+      yeuCauCanhGioi: 1,
+      moTa: 'test'
+    });
+
+    // 2. Add Thẻ Tháng
+    const now = Date.now();
+    const invThang = await Inventory.addVatPham(userId, 'the_thang', 1);
+    assert.ok(invThang);
+    const meta1 = JSON.parse(invThang.dongChiSoJson);
+    assert.ok(meta1.expireAt);
+    const diff1 = meta1.expireAt - now;
+    // should be roughly 30 days
+    assert.ok(diff1 > 29 * 24 * 60 * 60 * 1000 && diff1 < 31 * 24 * 60 * 60 * 1000);
+
+    // 3. Add second Thẻ Tháng to extend duration
+    const invThang2 = await Inventory.addVatPham(userId, 'the_thang', 1);
+    assert.strictEqual(invThang2.id, invThang.id); // Same inventory row
+    const meta2 = JSON.parse(invThang2.dongChiSoJson);
+    const diff2 = meta2.expireAt - now;
+    // should be roughly 60 days
+    assert.ok(diff2 > 59 * 24 * 60 * 60 * 1000 && diff2 < 61 * 24 * 60 * 60 * 1000);
+
+    // 4. Test Daily Usage of Thẻ Tháng
+    // First use: success, reward added
+    const resUse1 = await boDieuKhienVatPham._thucHienDungItem(tuSi, invThang2, 'the_thang');
+    assert.strictEqual(resUse1.ok, true);
+    assert.ok(resUse1.msg.includes('Nhận Phúc Lợi Thẻ Tháng Thành Công'));
+
+    // Check inventory has co_duyen_lenh x2
+    const cdlRecord = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'co_duyen_lenh' } });
+    assert.ok(cdlRecord);
+    assert.strictEqual(cdlRecord.soLuong, 2);
+
+    // Second use today: should fail
+    const resUse2 = await boDieuKhienVatPham._thucHienDungItem(tuSi, invThang2, 'the_thang');
+    assert.strictEqual(resUse2.ok, false);
+    assert.ok(resUse2.msg.includes('ngày mai'));
+
+    // 5. Test Thẻ Vĩnh Viễn
+    const invVinhVien = await Inventory.addVatPham(userId, 'the_vinh_vien', 1);
+    const resUseVV = await boDieuKhienVatPham._thucHienDungItem(tuSi, invVinhVien, 'the_vinh_vien');
+    assert.strictEqual(resUseVV.ok, true);
+    assert.ok(resUseVV.msg.includes('Nhận Phúc Lợi Thẻ Vĩnh Viễn Thành Công'));
+
+    // Check we got the Tu Vi Đan (Siêu)
+    const tvRecord = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'dan_tu_vi_tim' } });
+    assert.ok(tvRecord);
+    assert.strictEqual(tvRecord.soLuong, 1);
+
+    // 6. Test Expiry
+    const invThangExpired = await Inventory.addVatPham(userId, 'the_thang', 1);
+    const expiredMeta = { expireAt: Date.now() - 1000 };
+    invThangExpired.dongChiSoJson = JSON.stringify(expiredMeta);
+    await invThangExpired.save();
+
+    // Usage should fail and destroy the card
+    const resUseExpired = await boDieuKhienVatPham._thucHienDungItem(tuSi, invThangExpired, 'the_thang');
+    assert.strictEqual(resUseExpired.ok, false);
+    assert.ok(resUseExpired.msg.includes('hết hạn'));
+
+    // Check DB - should be deleted
+    const checkCard = await Inventory.findByPk(invThangExpired.id);
+    assert.strictEqual(checkCard, null);
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: userId } });
+    await tuSi.destroy();
+  });
+
   test('Skin purchase inventory addition falls back to Skin table', async () => {
     const { Inventory } = await import('./models/Inventory.js');
     const { Skin } = await import('./models/Skin.js');
@@ -3334,6 +3459,258 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await abodeB.destroy();
     const aff = await PlayerAffinity.findOne({ where: { userIdA: "7777777777777777", userIdB: "8888888888888888" } });
     if (aff) await aff.destroy();
+  });
+
+  test('Admin /edit Command restricted to wiine5100 and interactive panel functions', async () => {
+    const { boDieuKhienAdmin } = await import('./controllers/BoDieuKhienAdmin.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+
+    // Create target player
+    const targetTuSi = await TuSi.create({
+      idNguoiDung: "999999999999111",
+      ten: "Thử Nghiệm Bị Chỉnh",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100,
+      vnd: 100
+    });
+
+    // 1. Test unauthorized execution (username !== 'wiine5100')
+    let rejectedMsg = null;
+    const unauthorizedInteraction = {
+      user: { username: 'normal_user' },
+      reply: async (payload) => {
+        rejectedMsg = payload.content;
+      }
+    };
+    await boDieuKhienAdmin.lenhEdit.execute(unauthorizedInteraction);
+    assert.ok(rejectedMsg);
+    assert.ok(rejectedMsg.includes('Vô pháp vô thiên'));
+
+    // 2. Test authorized execution (username === 'wiine5100')
+    let editReplyPayload = null;
+    let collectHandler = null;
+    let endHandler = null;
+
+    const authorizedInteraction = {
+      user: { username: 'wiine5100', id: '12345' },
+      deferReply: async () => {},
+      options: {
+        getUser: (name) => {
+          if (name === 'target') return { id: targetTuSi.idNguoiDung, username: targetTuSi.ten };
+          return null;
+        }
+      },
+      editReply: async (payload) => {
+        editReplyPayload = payload;
+        return {
+          createMessageComponentCollector: () => {
+            return {
+              on: (event, handler) => {
+                if (event === 'collect') collectHandler = handler;
+                if (event === 'end') endHandler = handler;
+              },
+              stop: (reason) => {
+                if (endHandler) endHandler(null, reason);
+              }
+            };
+          }
+        };
+      }
+    };
+
+    await boDieuKhienAdmin.lenhEdit.execute(authorizedInteraction);
+    
+    // Check main dashboard output
+    assert.ok(editReplyPayload);
+    assert.ok(editReplyPayload.embeds[0].data.title.includes('Bảng Thiên Đạo Điều Phối'));
+
+    // Test stats edit click: first mock stats menu navigation
+    const mockClickStats = {
+      customId: 'edit_btn_stats',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickStats);
+    assert.ok(editReplyPayload.embeds[0].data.title.includes('Thiên Đạo Điều Chỉnh Chỉ Số'));
+
+    // Mock adding +10M Linh Thạch
+    const mockAddGold = {
+      customId: 'edit_stat_lt_p10m',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockAddGold);
+    await targetTuSi.reload();
+    assert.strictEqual(targetTuSi.linhThach, 10000100);
+
+    // Mock adding +1B Linh Luc
+    const mockAddExp = {
+      customId: 'edit_stat_ll_p1b',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockAddExp);
+    await targetTuSi.reload();
+    assert.strictEqual(targetTuSi.linhLuc, 1000000000);
+
+    // Test gifting item
+    const mockClickGift = {
+      customId: 'edit_btn_gift',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickGift);
+    assert.ok(editReplyPayload.embeds[0].data.title.includes('Thiên Đạo Ban Tặng Vật Phẩm'));
+
+    // Select category 'Đan dược'
+    const mockSelectCat = {
+      customId: 'edit_gift_cat_select',
+      values: ['Đan dược'],
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockSelectCat);
+
+    // Select item 'dan_than_pham'
+    const mockSelectItem = {
+      customId: 'edit_gift_item_select',
+      values: ['dan_than_pham'],
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockSelectItem);
+
+    // Click Tặng x5
+    const mockClickGiftBtn = {
+      customId: 'edit_gift_x5',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickGiftBtn);
+
+    // Check inventory
+    const gifted = await Inventory.findOne({ where: { idNguoiDung: targetTuSi.idNguoiDung, itemId: 'dan_than_pham' } });
+    assert.ok(gifted);
+    assert.strictEqual(gifted.soLuong, 5);
+
+    // Test revoking item
+    const mockClickRevoke = {
+      customId: 'edit_btn_revoke',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickRevoke);
+    assert.ok(editReplyPayload.embeds[0].data.title.includes('Thiên Đạo Thu Hồi Vật Phẩm'));
+
+    // Select gifted item from list
+    const mockSelectRevokeItem = {
+      customId: 'edit_revoke_item_select',
+      values: [String(gifted.id)],
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockSelectRevokeItem);
+
+    // Click Thu hồi 1
+    const mockClickRevokeBtn = {
+      customId: 'edit_revoke_x1',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickRevokeBtn);
+
+    // Check inventory quantity reduced to 4
+    await gifted.reload();
+    assert.strictEqual(gifted.soLuong, 4);
+
+    // Click Thu hồi tất cả
+    const mockClickRevokeAllBtn = {
+      customId: 'edit_revoke_all',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickRevokeAllBtn);
+
+    // Check inventory - record destroyed
+    const checkDeleted = await Inventory.findByPk(gifted.id);
+    assert.strictEqual(checkDeleted, null);
+
+    // Clean up
+    await targetTuSi.destroy();
+  });
+
+  test('Phoenix pet stats and active skill damage calculation', async () => {
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Pet } = await import('./models/Pet.js');
+    const config = await import('./config.js');
+
+    const userId = "777777111225";
+    const player = await TuSi.create({
+      idNguoiDung: userId,
+      ten: "Phụng Hoàng Đạo Sĩ",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      hp: 100,
+      mp: 100,
+      linhThach: 100
+    });
+
+    const activePet = await Pet.create({
+      userId: userId,
+      name: "Phượng Hoàng Lửa",
+      type: "phuong_hoang_1",
+      rarity: "TT_1",
+      level: 1,
+      tuChat: 100,
+      isActive: true
+    });
+
+    player.linhCanList = ["Hoa"];
+    await player.save();
+
+    const stats = await player.layChiSoDayDu();
+
+    // 1. Assert passive stats additions
+    // Base crit_dmg for Phap Tu: 1.50.
+    // template.species === 'phuong_hoang' adds +100% bạo thương (1.00 * scalePct * evoMult * groupMult).
+    // scalePct = 1.0 (level 1, tuChat 100), evoMult = 1.0, groupMult = 1.0 -> should add +1.0 crit_dmg.
+    // Total crit_dmg should be baseline + 1.00 = 3.10.
+    assert.strictEqual(stats.crit_dmg, 3.10);
+
+    // HuongTu is Phap Tu, so phap_cong should get +20% base phap_cong.
+    // Base phap_cong = 20.
+    // 20 * 0.20 = 4.
+    // plus elements or others, but it should increase base stats phap_cong by 20%
+    assert.ok(stats.phap_cong > 20);
+
+    // 2. Active skill damage verification
+    const evoMult = 1.0;
+    const baseDmg = (stats.vat_cong + stats.phap_cong) * evoMult;
+    const addHits = Math.floor(stats.crit_dmg / 0.8); // 3.10 / 0.8 = 3 hits
+    const totalHits = 1 + addHits; // 4 hits total
+    
+    let totalPetDmg = 0;
+    let currentHitDmg = baseDmg;
+    for (let h = 0; h < totalHits; h++) {
+      totalPetDmg += currentHitDmg;
+      currentHitDmg = currentHitDmg * 1.2;
+    }
+    totalPetDmg = Math.floor(totalPetDmg);
+
+    // Verify hits calculation: 3.10 / 0.8 is 3, so total hits is 4
+    assert.strictEqual(totalHits, 4);
+    assert.ok(totalPetDmg > baseDmg * 4); // because of 20% compound growth
+
+    // Clean up
+    await player.destroy();
+    await activePet.destroy();
   });
 
 });

@@ -253,6 +253,19 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
               monsterHp = Math.max(0, monsterHp - dmg);
               bachHoBuffActive = true;
               battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${monster.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Đồng thời tăng **15% tỷ lệ bạo kích** & **30% sát thương bạo kích** cho tu sĩ đến hết trận!`);
+            } else if (template.species === 'phuong_hoang') {
+              const baseDmg = (stats.vat_cong + stats.phap_cong) * evoMult;
+              const addHits = Math.floor(stats.crit_dmg / 0.8);
+              const totalHits = 1 + addHits;
+              let totalPetDmg = 0;
+              let currentHitDmg = baseDmg;
+              for (let h = 0; h < totalHits; h++) {
+                totalPetDmg += currentHitDmg;
+                currentHitDmg = currentHitDmg * 1.2;
+              }
+              totalPetDmg = Math.floor(totalPetDmg);
+              monsterHp = Math.max(0, monsterHp - totalPetDmg);
+              battleLogs.push(`🐦 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm 🐦**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên **${monster.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
             }
 
             if (monsterHp <= 0) {
@@ -443,6 +456,23 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                   isWin = true;
                   break;
                 }
+              } else if (template.species === 'phuong_hoang') {
+                const baseDmg = (stats.vat_cong + stats.phap_cong) * evoMult;
+                const addHits = Math.floor(stats.crit_dmg / 0.8);
+                const totalHits = 1 + addHits;
+                let totalPetDmg = 0;
+                let currentHitDmg = baseDmg;
+                for (let h = 0; h < totalHits; h++) {
+                  totalPetDmg += currentHitDmg;
+                  currentHitDmg = currentHitDmg * 1.2;
+                }
+                totalPetDmg = Math.floor(totalPetDmg);
+                monsterHp = Math.max(0, monsterHp - totalPetDmg);
+                battleLogs.push(`🐦 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm 🐦**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+                if (monsterHp <= 0) {
+                  isWin = true;
+                  break;
+                }
               }
             }
           }
@@ -481,18 +511,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           }
 
           if (playerHp <= 0) {
-            const template = activePet ? config.PET_TEMPLATES[activePet.type] : null;
-            if (template && template.species === 'phuong_hoang' && !phoenixTriggered) {
-              phoenixTriggered = true;
-              const totalEvolves = config.getPetTotalEvolves(activePet);
-              const evoMult = Math.pow(1.1, totalEvolves);
-              playerHp = Math.floor(stats.max_hp * 0.30 * evoMult);
-              phoenixRegenRounds = 3;
-              battleLogs.push(`🐦 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Niết Bàn Trùng Sinh 🐦**, hồi sinh đạo hữu từ cõi chết với \`${playerHp.toLocaleString()}\` HP, đồng thời kích hoạt hồi phục **5% Max HP mỗi hiệp** trong 3 hiệp tiếp theo!`);
-            } else {
-              isWin = false;
-              break;
-            }
+            isWin = false;
+            break;
           }
 
           round++;

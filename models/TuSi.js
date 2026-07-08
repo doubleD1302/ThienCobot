@@ -247,8 +247,12 @@ class TuSi extends Model {
             phapCong += basePhapCongVal * 0.15 * scale * evoMult * groupMult;
           } else if (template.species === 'phuong_hoang') {
             maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-            const nePct = activePet.type === 'phuong_hoang_1' ? 0.20 : 0.22;
-            ne += nePct * scalePct * evoMult * groupMult;
+            critDmg += 1.00 * scalePct * evoMult * groupMult;
+            if (this.huongTu === 'The Tu') {
+              vatCong += baseVatCongVal * 0.20 * scale * evoMult * groupMult;
+            } else {
+              phapCong += basePhapCongVal * 0.20 * scale * evoMult * groupMult;
+            }
           } else if (template.species === 'ky_lan') {
             maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
             vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;

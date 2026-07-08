@@ -365,8 +365,390 @@ class BoDieuKhienAdmin {
 
     }
   };
+
+  lenhEdit = {
+    data: new SlashCommandBuilder()
+      .setName('edit')
+      .setDescription('Bảng điều chỉnh sửa thông tin người chơi (Chỉ dành cho wiine5100)')
+      .addUserOption(option =>
+        option.setName('target')
+          .setDescription('Đạo hữu cần điều chỉnh')
+          .setRequired(true)
+      ),
+
+    execute: async (interaction) => {
+      if (interaction.user.username !== 'wiine5100') {
+        return interaction.reply({
+          content: '❌ **Vô pháp vô thiên!** Quyền hạn bất túc để sử dụng thiên đạo lệnh này!',
+          ephemeral: true
+        });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+
+      const targetUser = interaction.options.getUser('target');
+      
+      const { TuSi } = await import('../models/TuSi.js');
+      const { Inventory } = await import('../models/Inventory.js');
+      const { Item } = await import('../models/Item.js');
+      const config = await import('../config.js');
+
+      let tuSi = await TuSi.findOne({ where: { idNguoiDung: targetUser.id } });
+      if (!tuSi) {
+        return interaction.editReply({
+          content: `❌ Đạo hữu **${targetUser.username}** chưa khởi đầu kiếp tu tiên (\`/start\`).`
+        });
+      }
+
+      let currentMenu = 'MAIN'; // 'MAIN', 'EDIT_STATS', 'GIFT_ITEM', 'REVOKE_ITEM'
+      let selectedCategory = null;
+      let selectedItemToGift = null;
+      let selectedInvRecordToRevoke = null;
+
+      // Helper to build Payload (Embed + ActionRows)
+      const buildPayload = async () => {
+        await tuSi.reload();
+
+        const embed = new EmbedBuilder()
+          .setTimestamp()
+          .setFooter({ text: `Đang thao tác trên đạo hữu: ${tuSi.ten} (${tuSi.idNguoiDung})` });
+
+        const rows = [];
+
+        if (currentMenu === 'MAIN') {
+          embed.setTitle(`🛠️ Bảng Thiên Đạo Điều Phối — ${tuSi.ten}`)
+            .setColor(0x9b59b6)
+            .setDescription(
+              `• **Đạo hiệu**: **${tuSi.ten}**\n` +
+              `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
+              `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
+              `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
+              `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
+              `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\`\n\n` +
+              `*Vui lòng sử dụng các nút tương tác bên dưới để chỉnh sửa.*`
+            );
+
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_btn_stats').setLabel('☯️ Chỉnh Chỉ Số / Tiền').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_btn_gift').setLabel('🎁 Tặng Vật Phẩm').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('edit_btn_revoke').setLabel('🗑️ Thu Hồi Vật Phẩm').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId('edit_btn_close').setLabel('❌ Đóng Bảng').setStyle(ButtonStyle.Secondary)
+          );
+          rows.push(row);
+
+        } else if (currentMenu === 'EDIT_STATS') {
+          embed.setTitle(`☯️ Thiên Đạo Điều Chỉnh Chỉ Số — ${tuSi.ten}`)
+            .setColor(0xf1c40f)
+            .setDescription(
+              `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
+              `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
+              `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
+              `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
+              `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\``
+            );
+
+          const row1 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_stat_ll_p100m').setLabel('Linh Lực +100M').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_stat_ll_m100m').setLabel('Linh Lực -100M').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_stat_ll_p1b').setLabel('Linh Lực +1B').setStyle(ButtonStyle.Primary)
+          );
+
+          const row2 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_stat_lt_p1m').setLabel('Linh Thạch +1M').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('edit_stat_lt_m1m').setLabel('Linh Thạch -1M').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('edit_stat_lt_p10m').setLabel('Linh Thạch +10M').setStyle(ButtonStyle.Success)
+          );
+
+          const row3 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_stat_vnd_p1m').setLabel('VND +1M').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId('edit_stat_vnd_m1m').setLabel('VND -1M').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId('edit_stat_vnd_p10m').setLabel('VND +10M').setStyle(ButtonStyle.Danger)
+          );
+
+          const row4 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_stat_cg_p1').setLabel('Cảnh Giới +1 Cấp').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_stat_cg_m1').setLabel('Cảnh Giới -1 Cấp').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_stat_reset_hpmp').setLabel('Hồi Phục HP/MP').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('edit_stat_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
+          );
+
+          rows.push(row1, row2, row3, row4);
+
+        } else if (currentMenu === 'GIFT_ITEM') {
+          let itemDetails = '_Chưa chọn vật phẩm để tặng._';
+          if (selectedItemToGift) {
+            const configItem = config.ITEMS.find(item => item.id === selectedItemToGift);
+            if (configItem) {
+              itemDetails = `**Vật phẩm đang chọn**: ${configItem.emoji || '📦'} **${configItem.ten}**\n` +
+                            `• Loại: \`${configItem.loai}\` | Độ hiếm: \`${configItem.doHiem}\`\n` +
+                            `• Mô tả: *${configItem.moTa || 'Không có'}*`;
+            }
+          }
+
+          embed.setTitle(`🎁 Thiên Đạo Ban Tặng Vật Phẩm — ${tuSi.ten}`)
+            .setColor(0x2ecc71)
+            .setDescription(
+              `*Hãy chọn danh mục vật phẩm, chọn vật phẩm cụ thể và bấm số lượng tặng.*\n\n` +
+              `• Danh mục hiện tại: **${selectedCategory || 'Chưa chọn'}**\n` +
+              `• ${itemDetails}`
+            );
+
+          // Select Category row
+          const catRow = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('edit_gift_cat_select')
+              .setPlaceholder('Chọn danh mục vật phẩm...')
+              .addOptions([
+                { label: '💊 Đan dược', value: 'Đan dược' },
+                { label: '🌱 Linh thảo & Trứng', value: 'Linh thảo' },
+                { label: '🗡️ Trang bị (Vũ khí/Giáp/Bội)', value: 'Trang bi' },
+                { label: '🔮 Cổ bảo & Pháp bảo', value: 'Phap bao' },
+                { label: '🏺 Chí bảo', value: 'Chí bảo' },
+                { label: '🎭 Trang phục (Skin)', value: 'Skin' }
+              ])
+          );
+          rows.push(catRow);
+
+          // Filter and select items
+          if (selectedCategory) {
+            let filterFunc = item => item.loai === selectedCategory;
+            if (selectedCategory === 'Trang bi') {
+              filterFunc = item => ['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai);
+            } else if (selectedCategory === 'Phap bao') {
+              filterFunc = item => ['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
+            }
+
+            const matchedItems = config.ITEMS.filter(filterFunc).slice(0, 25);
+            if (matchedItems.length > 0) {
+              const itemOptions = matchedItems.map(item => ({
+                label: item.ten.substring(0, 50),
+                value: item.id,
+                description: `${item.loai} | ${item.doHiem} | ID: ${item.id}`.substring(0, 100)
+              }));
+
+              const itemRow = new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                  .setCustomId('edit_gift_item_select')
+                  .setPlaceholder('Chọn vật phẩm cụ thể để tặng...')
+                  .addOptions(itemOptions)
+              );
+              rows.push(itemRow);
+            } else {
+              embed.setDescription(embed.data.description + `\n⚠️ *Không tìm thấy vật phẩm nào trong danh mục này.*`);
+            }
+          }
+
+          // Gift quantity buttons
+          const actionRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_gift_x1').setLabel('Tặng x1').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToGift),
+            new ButtonBuilder().setCustomId('edit_gift_x5').setLabel('Tặng x5').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToGift),
+            new ButtonBuilder().setCustomId('edit_gift_x10').setLabel('Tặng x10').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToGift),
+            new ButtonBuilder().setCustomId('edit_gift_x50').setLabel('Tặng x50').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToGift),
+            new ButtonBuilder().setCustomId('edit_gift_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
+          );
+          rows.push(actionRow);
+
+        } else if (currentMenu === 'REVOKE_ITEM') {
+          // Load target inventory
+          const freshInvList = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+          let invDetails = '_Chưa chọn vật phẩm để thu hồi._';
+          
+          if (selectedInvRecordToRevoke) {
+            const record = freshInvList.find(r => r.id === selectedInvRecordToRevoke);
+            if (record) {
+              const configItem = config.ITEMS.find(item => item.id === record.itemId);
+              const nameText = configItem ? configItem.ten : record.itemId;
+              invDetails = `**Vật phẩm đang chọn**: **${nameText}**\n` +
+                           `• Số lượng hiện tại: \`${record.soLuong}\`\n` +
+                           `• Mã dòng balo: \`#${record.id}\``;
+            } else {
+              selectedInvRecordToRevoke = null;
+            }
+          }
+
+          embed.setTitle(`🗑️ Thiên Đạo Thu Hồi Vật Phẩm — ${tuSi.ten}`)
+            .setColor(0xe74c3c)
+            .setDescription(
+              `*Hãy chọn một dòng vật phẩm trong balo của người chơi dưới đây và bấm số lượng thu hồi.*\n\n` +
+              `• ${invDetails}`
+            );
+
+          if (freshInvList.length > 0) {
+            // Build options for select menu (limit 25)
+            const matchedOptions = [];
+            for (const record of freshInvList.slice(0, 25)) {
+              const configItem = config.ITEMS.find(item => item.id === record.itemId);
+              const nameText = configItem ? configItem.ten.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '').trim() : record.itemId;
+              matchedOptions.push({
+                label: `${nameText} x${record.soLuong} (#${record.id})`.substring(0, 50),
+                value: String(record.id),
+                description: `ID: ${record.itemId} | Mặc: ${record.trangBi ? 'Có' : 'Không'}`.substring(0, 100)
+              });
+            }
+
+            const invRow = new ActionRowBuilder().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('edit_revoke_item_select')
+                .setPlaceholder('Chọn dòng vật phẩm để thu hồi...')
+                .addOptions(matchedOptions)
+            );
+            rows.push(invRow);
+          } else {
+            embed.setDescription(embed.data.description + `\n\n📦 *Balo của đạo hữu này trống rỗng.*`);
+          }
+
+          const actionRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_revoke_x1').setLabel('Thu Hồi 1').setStyle(ButtonStyle.Danger).setDisabled(!selectedInvRecordToRevoke),
+            new ButtonBuilder().setCustomId('edit_revoke_x5').setLabel('Thu Hồi 5').setStyle(ButtonStyle.Danger).setDisabled(!selectedInvRecordToRevoke),
+            new ButtonBuilder().setCustomId('edit_revoke_all').setLabel('Thu Hồi Tất Cả').setStyle(ButtonStyle.Danger).setDisabled(!selectedInvRecordToRevoke),
+            new ButtonBuilder().setCustomId('edit_revoke_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
+          );
+          rows.push(actionRow);
+        }
+
+        return { embeds: [embed], components: rows };
+      };
+
+      const payload = await buildPayload();
+      const response = await interaction.editReply(payload);
+
+      // Create component collector
+      const collector = response.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time: 300000 // 5 minutes
+      });
+
+      collector.on('collect', async i => {
+        try {
+          await i.deferUpdate();
+        } catch (_) {
+          return;
+        }
+
+        const customId = i.customId;
+
+        // Navigation
+        if (customId === 'edit_btn_stats') {
+          currentMenu = 'EDIT_STATS';
+        } else if (customId === 'edit_btn_gift') {
+          currentMenu = 'GIFT_ITEM';
+          selectedCategory = null;
+          selectedItemToGift = null;
+        } else if (customId === 'edit_btn_revoke') {
+          currentMenu = 'REVOKE_ITEM';
+          selectedInvRecordToRevoke = null;
+        } else if (customId === 'edit_btn_close') {
+          collector.stop('closed');
+          return;
+        } else if (['edit_stat_back', 'edit_gift_back', 'edit_revoke_back'].includes(customId)) {
+          currentMenu = 'MAIN';
+        }
+
+        // Stats editing operations
+        else if (customId === 'edit_stat_ll_p100m') {
+          tuSi.linhLuc += 100000000;
+          await tuSi.save();
+        } else if (customId === 'edit_stat_ll_m100m') {
+          tuSi.linhLuc = Math.max(0, Number(tuSi.linhLuc) - 100000000);
+          await tuSi.save();
+        } else if (customId === 'edit_stat_ll_p1b') {
+          tuSi.linhLuc += 1000000000;
+          await tuSi.save();
+        } else if (customId === 'edit_stat_lt_p1m') {
+          tuSi.linhThach += 1000000;
+          await tuSi.save();
+        } else if (customId === 'edit_stat_lt_m1m') {
+          tuSi.linhThach = Math.max(0, Number(tuSi.linhThach) - 1000000);
+          await tuSi.save();
+        } else if (customId === 'edit_stat_lt_p10m') {
+          tuSi.linhThach += 10000000;
+          await tuSi.save();
+        } else if (customId === 'edit_stat_vnd_p1m') {
+          tuSi.vnd += 1000000;
+          await tuSi.save();
+        } else if (customId === 'edit_stat_vnd_m1m') {
+          tuSi.vnd = Math.max(0, Number(tuSi.vnd) - 1000000);
+          await tuSi.save();
+        } else if (customId === 'edit_stat_vnd_p10m') {
+          tuSi.vnd += 10000000;
+          await tuSi.save();
+        } else if (customId === 'edit_stat_reset_hpmp') {
+          const stats = await tuSi.layChiSoDayDu();
+          tuSi.hp = stats.max_hp;
+          tuSi.mp = stats.max_mp;
+          await tuSi.save();
+        } else if (customId === 'edit_stat_cg_p1') {
+          tuSi.capDo = Math.min(31, tuSi.capDo + 1);
+          const cg = config.layThongTinCanhGioi(tuSi.capDo);
+          tuSi.canhGioi = `${cg.realmName} - ${cg.stageName}`;
+          await tuSi.save();
+        } else if (customId === 'edit_stat_cg_m1') {
+          tuSi.capDo = Math.max(1, tuSi.capDo - 1);
+          const cg = config.layThongTinCanhGioi(tuSi.capDo);
+          tuSi.canhGioi = `${cg.realmName} - ${cg.stageName}`;
+          await tuSi.save();
+        }
+
+        // Gift operations
+        else if (customId === 'edit_gift_cat_select') {
+          selectedCategory = i.values[0];
+          selectedItemToGift = null;
+        } else if (customId === 'edit_gift_item_select') {
+          selectedItemToGift = i.values[0];
+        } else if (customId.startsWith('edit_gift_x')) {
+          const qty = parseInt(customId.replace('edit_gift_x', ''), 10);
+          if (selectedItemToGift) {
+            await Inventory.addVatPham(tuSi.idNguoiDung, selectedItemToGift, qty);
+            selectedItemToGift = null; // reset select after gifting
+          }
+        }
+
+        // Revoke operations
+        else if (customId === 'edit_revoke_item_select') {
+          selectedInvRecordToRevoke = parseInt(i.values[0], 10);
+        } else if (customId.startsWith('edit_revoke_')) {
+          const mode = customId.replace('edit_revoke_', '');
+          if (selectedInvRecordToRevoke) {
+            const record = await Inventory.findOne({ where: { id: selectedInvRecordToRevoke } });
+            if (record) {
+              if (mode === 'all') {
+                await record.destroy();
+                selectedInvRecordToRevoke = null;
+              } else {
+                const qty = parseInt(mode.replace('x', ''), 10);
+                if (record.soLuong <= qty) {
+                  await record.destroy();
+                  selectedInvRecordToRevoke = null;
+                } else {
+                  record.soLuong -= qty;
+                  await record.save();
+                }
+              }
+            }
+          }
+        }
+
+        const nextPayload = await buildPayload();
+        await interaction.editReply(nextPayload);
+      });
+
+      collector.on('end', async (_, reason) => {
+        try {
+          if (reason === 'closed') {
+            await interaction.editReply({
+              content: '✅ **Đã đóng bảng thiên đạo.**',
+              embeds: [],
+              components: []
+            });
+          } else {
+            await interaction.editReply({ components: [] });
+          }
+        } catch (_) {}
+      });
+    }
+  };
 }
 
 const controller = new BoDieuKhienAdmin();
-export const danhSachLenhAdmin = [controller.lenhAdmin];
+export const danhSachLenhAdmin = [controller.lenhAdmin, controller.lenhEdit];
 export { controller as boDieuKhienAdmin };

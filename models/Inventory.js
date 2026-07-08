@@ -41,6 +41,58 @@ class Inventory extends Model {
 
     if (!item) return null;
 
+    const isCard = ['the_vinh_vien', 'the_quy', 'the_thang'].includes(itemId);
+    if (isCard) {
+      const existing = await Inventory.findOne({
+        where: { idNguoiDung, itemId }
+      });
+      
+      const durationMap = {
+        'the_thang': 30 * 24 * 60 * 60 * 1000,
+        'the_quy': 90 * 24 * 60 * 60 * 1000,
+        'the_vinh_vien': null
+      };
+      
+      const duration = durationMap[itemId];
+      
+      if (existing) {
+        let meta = {};
+        if (existing.dongChiSoJson) {
+          try {
+            meta = JSON.parse(existing.dongChiSoJson);
+          } catch (e) {}
+        }
+        
+        if (duration !== null) {
+          const now = Date.now();
+          let currentExpire = meta.expireAt ? Number(meta.expireAt) : now;
+          if (currentExpire < now) {
+            currentExpire = now;
+          }
+          meta.expireAt = currentExpire + duration * soLuong;
+        }
+        
+        existing.dongChiSoJson = JSON.stringify(meta);
+        existing.soLuong = 1;
+        await existing.save();
+        return existing;
+      } else {
+        let meta = {};
+        if (duration !== null) {
+          meta.expireAt = Date.now() + duration * soLuong;
+        }
+        const record = await Inventory.create({
+          idNguoiDung,
+          itemId,
+          soLuong: 1,
+          trangBi: false,
+          nangCapSao: 0,
+          dongChiSoJson: JSON.stringify(meta)
+        });
+        return record;
+      }
+    }
+
     const isEquipable = !isSkin && ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
     const isBreakthroughPill = !isSkin && item.id.startsWith('dan_dot_pha_');
 

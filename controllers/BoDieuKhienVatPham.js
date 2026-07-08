@@ -37,6 +37,15 @@ async function reloadItemsList(idNguoiDung, capDo = 1) {
   const freshInvList = await Inventory.findAll({ where: { idNguoiDung } });
   const result = [];
   for (const inv of freshInvList) {
+    if (['the_quy', 'the_thang'].includes(inv.itemId) && inv.dongChiSoJson) {
+      try {
+        const meta = JSON.parse(inv.dongChiSoJson);
+        if (meta && meta.expireAt && Date.now() > Number(meta.expireAt)) {
+          await inv.destroy();
+          continue;
+        }
+      } catch (e) {}
+    }
     const d = await Item.findByPk(inv.itemId);
     if (d && d.loai !== 'Skin') result.push({
       invId:         inv.id,
@@ -885,6 +894,72 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
              `• **Tư chất**: \`${pet.tuChat}\` *(chỉ số bất kỳ theo phẩm chất trứng)*\n` +
              `*Đạo hữu hãy gõ lệnh \`/dongphu\` (mục Linh Thú) để quản lý hoặc trang bị (cho xuất chiến) linh thú này.*`
       };
+    }
+
+    // Xử lý các loại Thẻ (Thẻ Vĩnh Viễn, Thẻ Quý, Thẻ Tháng)
+    if (['the_vinh_vien', 'the_quy', 'the_thang'].includes(itemDetail.id)) {
+      let meta = {};
+      if (inv.dongChiSoJson) {
+        try {
+          meta = JSON.parse(inv.dongChiSoJson);
+        } catch (e) {}
+      }
+
+      // Check / initialize expiry
+      if (itemDetail.id !== 'the_vinh_vien') {
+        const durationMap = {
+          'the_thang': 30 * 24 * 60 * 60 * 1000,
+          'the_quy': 90 * 24 * 60 * 60 * 1000
+        };
+        if (!meta.expireAt) {
+          meta.expireAt = Date.now() + durationMap[itemDetail.id];
+          inv.dongChiSoJson = JSON.stringify(meta);
+          await inv.save();
+        }
+        if (Date.now() > Number(meta.expireAt)) {
+          await inv.destroy();
+          return { ok: false, msg: `Vật phẩm **${itemDetail.ten}** đã hết hạn sử dụng và đã biến mất khỏi balo.` };
+        }
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      if (meta.lastUsed === today) {
+        return { ok: false, msg: `Hôm nay đạo hữu đã nhận phúc lợi từ **${itemDetail.ten}** rồi, hãy đợi ngày mai!` };
+      }
+
+      // Claim reward
+      if (itemDetail.id === 'the_vinh_vien') {
+        await Inventory.addVatPham(tuSi.idNguoiDung, 'co_duyen_lenh', 2);
+        await Inventory.addVatPham(tuSi.idNguoiDung, 'dan_tu_vi_tim', 1);
+        meta.lastUsed = today;
+        inv.dongChiSoJson = JSON.stringify(meta);
+        await inv.save();
+        return {
+          ok: true,
+          msg: `🎉 **Nhận Phúc Lợi Thẻ Vĩnh Viễn Thành Công!**\n` +
+               `Đạo hữu **${tuSi.ten}** đã nhận được:\n` +
+               `• 🎫 **2 Cơ Duyên Lệnh**\n` +
+               `• <:thuoc:1522632141698105354> **1 Tu Vi Đan (Siêu) 💊**\n\n` +
+               `*Thẻ Vĩnh Viễn không bị tiêu hao và có thời hạn vĩnh viễn.*`
+        };
+      } else {
+        await Inventory.addVatPham(tuSi.idNguoiDung, 'co_duyen_lenh', 2);
+        meta.lastUsed = today;
+        inv.dongChiSoJson = JSON.stringify(meta);
+        await inv.save();
+
+        const label = itemDetail.id === 'the_quy' ? 'Thẻ Quý' : 'Thẻ Tháng';
+        const msLeft = Number(meta.expireAt) - Date.now();
+        const daysLeft = Math.ceil(msLeft / (24 * 60 * 60 * 1000));
+
+        return {
+          ok: true,
+          msg: `🎉 **Nhận Phúc Lợi ${label} Thành Công!**\n` +
+               `Đạo hữu **${tuSi.ten}** đã nhận được:\n` +
+               `• 🎫 **2 Cơ Duyên Lệnh**\n\n` +
+               `*Thẻ này không bị tiêu hao. Hạn sử dụng còn lại: **${daysLeft} ngày**.*`
+        };
+      }
     }
 
     // Xử lý Bình Tinh Hải

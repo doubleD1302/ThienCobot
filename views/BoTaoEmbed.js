@@ -387,6 +387,26 @@ export class BoTaoEmbed {
         } catch (e) {}
       }
 
+      let cardExpiryText = '';
+      if (['the_vinh_vien', 'the_quy', 'the_thang'].includes(item.id)) {
+        if (item.id === 'the_vinh_vien') {
+          cardExpiryText = ' (Hạn: Vĩnh viễn)';
+        } else if (dongChiSoJson) {
+          try {
+            const cardMeta = JSON.parse(dongChiSoJson);
+            if (cardMeta && cardMeta.expireAt) {
+              const msLeft = Number(cardMeta.expireAt) - Date.now();
+              if (msLeft <= 0) {
+                cardExpiryText = ' (Đã hết hạn)';
+              } else {
+                const daysLeft = Math.ceil(msLeft / (24 * 60 * 60 * 1000));
+                cardExpiryText = ` (Còn ${daysLeft} ngày)`;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+
       let reqText = '';
       if (item.yeuCauCanhGioi && item.yeuCauCanhGioi > 1) {
         const cgReq = config.layThongTinCanhGioi(item.yeuCauCanhGioi);
@@ -399,7 +419,7 @@ export class BoTaoEmbed {
         const tenSach = item.ten.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '').trim();
         tenHienThi = `${item.emoji} ${tenSach}`;
       }
-      const formattedLine = `• **${tenHienThi}**${pillQualityText}${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
+      const formattedLine = `• **${tenHienThi}**${pillQualityText}${cardExpiryText}${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
 
       if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
       else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);

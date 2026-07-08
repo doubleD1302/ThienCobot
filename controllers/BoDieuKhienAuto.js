@@ -378,6 +378,18 @@ async function autoDiBiCanh(tuSi) {
           const dmg = Math.floor(petHpRef * 0.18 * evoMult);
           monsterHp = Math.max(0, monsterHp - dmg);
           bachHoBuffActive = true;
+        } else if (template.species === 'phuong_hoang') {
+          const baseDmg = (stats.vat_cong + stats.phap_cong) * evoMult;
+          const addHits = Math.floor(stats.crit_dmg / 0.8);
+          const totalHits = 1 + addHits;
+          let totalPetDmg = 0;
+          let currentHitDmg = baseDmg;
+          for (let h = 0; h < totalHits; h++) {
+            totalPetDmg += currentHitDmg;
+            currentHitDmg = currentHitDmg * 1.2;
+          }
+          totalPetDmg = Math.floor(totalPetDmg);
+          monsterHp = Math.max(0, monsterHp - totalPetDmg);
         }
 
         if (monsterHp <= 0) {
@@ -529,6 +541,22 @@ async function autoDiBiCanh(tuSi) {
               isWin = true;
               break;
             }
+          } else if (template.species === 'phuong_hoang') {
+            const baseDmg = (stats.vat_cong + stats.phap_cong) * evoMult;
+            const addHits = Math.floor(stats.crit_dmg / 0.8);
+            const totalHits = 1 + addHits;
+            let totalPetDmg = 0;
+            let currentHitDmg = baseDmg;
+            for (let h = 0; h < totalHits; h++) {
+              totalPetDmg += currentHitDmg;
+              currentHitDmg = currentHitDmg * 1.2;
+            }
+            totalPetDmg = Math.floor(totalPetDmg);
+            monsterHp = Math.max(0, monsterHp - totalPetDmg);
+            if (monsterHp <= 0) {
+              isWin = true;
+              break;
+            }
           }
         }
       }
@@ -564,17 +592,8 @@ async function autoDiBiCanh(tuSi) {
       }
 
       if (playerHp <= 0) {
-        const template = activePet ? config.PET_TEMPLATES[activePet.type] : null;
-        if (template && template.species === 'phuong_hoang' && !phoenixTriggered) {
-          phoenixTriggered = true;
-          const totalEvolves = config.getPetTotalEvolves(activePet);
-          const evoMult = Math.pow(1.1, totalEvolves);
-          playerHp = Math.floor(stats.max_hp * 0.30 * evoMult);
-          phoenixRegenRounds = 3;
-        } else {
-          isWin = false;
-          break;
-        }
+        isWin = false;
+        break;
       }
 
       round++;

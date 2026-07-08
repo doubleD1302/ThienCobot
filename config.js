@@ -381,6 +381,9 @@ export const ITEMS = [
   // Gacha & Chí Bảo — food: 0
   { id: 'co_duyen_lenh', ten: 'Cơ Duyên Lệnh 🎫', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tấm thẻ ẩn chứa cơ duyên thiên địa, dùng để quay Hồ Tạo Hóa.', food: 0 },
   { id: 'binh_tinh_hai', ten: 'Bình Tinh Hải', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Chí bảo thượng cổ, mỗi ngày có thể trích xuất sinh cơ để ngưng tụ 2 viên Đan Thần Phẩm.', emoji: '<:binh_tinh_hai:1523244204333994016>', food: 0 },
+  { id: 'the_vinh_vien', ten: 'Thẻ Vĩnh Viễn', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ vĩnh viễn chí bảo, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh và 1 Tu Vi Đan (Siêu).', emoji: '<:the_vinh_vien:1524432820892733650>', food: 0 },
+  { id: 'the_quy', ten: 'Thẻ Quý', loai: 'Chí bảo', doHiem: 'Cực hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ quý chí bảo thời hạn 90 ngày, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh.', emoji: '<:the_quy:1524432824042520659>', food: 0 },
+  { id: 'the_thang', ten: 'Thẻ Tháng', loai: 'Chí bảo', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ tháng chí bảo thời hạn 30 ngày, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh.', emoji: '<:the_thang:1524432822608068720>', food: 0 },
   { id: 'dan_than_pham', ten: 'Đan Thần Phẩm 🔴', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược thần cấp trích xuất từ Bình Tinh Hải, khi nuốt lập tức gia tăng tu vi tương đương 128 Đạo Niên tu luyện.', emoji: '<:dan_than_pham:1522644612605411379>', food: 0 },
   { id: 'dich_dung_dan', ten: 'Dịch Dung Đan 🎭', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược thần bí dùng để nhận ngẫu nhiên trang phục và nền ảnh tân thủ.', emoji: '<:dich_dung_dan:1523300794701582397>', food: 0 },
   { id: 'nam_1', ten: 'Trang phục Tân Thủ Nam 1 👕', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nam.', emoji: '🎭', food: 0 },
@@ -929,8 +932,8 @@ export const PET_TEMPLATES_SEED = [
   { id: 'to_long_1', name: 'Hỗn Thiên Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.20, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +20% HP & +20% Pháp Công' },
   { id: 'to_long_2', name: 'Thượng Cổ Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Long Thần Chi Nộ. Hộ thể: +25% HP & +25% Pháp Công' },
 
-  { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +25% HP & +20% Né tránh' },
-  { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Niết Bàn Trùng Sinh. Hộ thể: +28% HP & +22% Né tránh' },
+  { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +25% HP, +100% Bạo thương & +20% Song công' },
+  { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618376624844>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +28% HP, +100% Bạo thương & +20% Song công' },
 
   { id: 'ky_lan_1', name: 'Bạch Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.20, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +20% HP & +20% Công' },
   { id: 'ky_lan_2', name: 'Thiên Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +25% HP & +25% Công' },
@@ -996,9 +999,9 @@ export function getPetDefaultBaseStats(type) {
     stats.phap_cong = 0.15;
   } else if (type.startsWith('phuong_hoang_')) {
     const hpVal = type === 'phuong_hoang_1' ? 0.25 : 0.28;
-    const neVal = type === 'phuong_hoang_1' ? 0.20 : 0.22;
     stats.max_hp = hpVal;
-    stats.ne = neVal;
+    stats.crit_dmg = 1.00;
+    stats.song_cong = 0.20;
   } else if (type.startsWith('ky_lan_')) {
     const val = type === 'ky_lan_1' ? 0.20 : 0.25;
     stats.max_hp = val;
