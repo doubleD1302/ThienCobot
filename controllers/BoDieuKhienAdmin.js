@@ -404,6 +404,8 @@ class BoDieuKhienAdmin {
       let selectedCategory = null;
       let selectedItemToGift = null;
       let selectedInvRecordToRevoke = null;
+      let giftItemPage = 0;
+      let revokeItemPage = 0;
 
       // Helper to build Payload (Embed + ActionRows)
       const buildPayload = async () => {
@@ -518,9 +520,17 @@ class BoDieuKhienAdmin {
               filterFunc = item => ['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
             }
 
-            const matchedItems = config.ITEMS.filter(filterFunc).slice(0, 25);
+            const matchedItems = config.ITEMS.filter(filterFunc);
+            const ITEMS_PER_PAGE = 25;
+            const totalGiftPages = Math.ceil(matchedItems.length / ITEMS_PER_PAGE);
+            giftItemPage = Math.max(0, Math.min(giftItemPage, totalGiftPages - 1));
+
+            const pageStart = matchedItems.length === 0 ? 0 : (giftItemPage * ITEMS_PER_PAGE) + 1;
+            const pageEnd = Math.min(matchedItems.length, (giftItemPage + 1) * ITEMS_PER_PAGE);
+
             if (matchedItems.length > 0) {
-              const itemOptions = matchedItems.map(item => ({
+              const slicedItems = matchedItems.slice(giftItemPage * ITEMS_PER_PAGE, (giftItemPage + 1) * ITEMS_PER_PAGE);
+              const itemOptions = slicedItems.map(item => ({
                 label: item.ten.substring(0, 50),
                 value: item.id,
                 description: `${item.loai} | ${item.doHiem} | ID: ${item.id}`.substring(0, 100)
@@ -533,6 +543,27 @@ class BoDieuKhienAdmin {
                   .addOptions(itemOptions)
               );
               rows.push(itemRow);
+
+              if (totalGiftPages > 1) {
+                const paginationRow = new ActionRowBuilder().addComponents(
+                  new ButtonBuilder()
+                    .setCustomId('edit_gift_prev')
+                    .setLabel('◀ Trang trước')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(giftItemPage === 0),
+                  new ButtonBuilder()
+                    .setCustomId('edit_gift_indicator')
+                    .setLabel(`Trang ${giftItemPage + 1}/${totalGiftPages} (${pageStart}-${pageEnd}/${matchedItems.length})`)
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(true),
+                  new ButtonBuilder()
+                    .setCustomId('edit_gift_next')
+                    .setLabel('Trang sau ▶')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(giftItemPage >= totalGiftPages - 1)
+                );
+                rows.push(paginationRow);
+              }
             } else {
               embed.setDescription(embed.data.description + `\n⚠️ *Không tìm thấy vật phẩm nào trong danh mục này.*`);
             }
@@ -574,9 +605,16 @@ class BoDieuKhienAdmin {
             );
 
           if (freshInvList.length > 0) {
-            // Build options for select menu (limit 25)
+            const ITEMS_PER_PAGE = 25;
+            const totalRevokePages = Math.ceil(freshInvList.length / ITEMS_PER_PAGE);
+            revokeItemPage = Math.max(0, Math.min(revokeItemPage, totalRevokePages - 1));
+
+            const pageStart = (revokeItemPage * ITEMS_PER_PAGE) + 1;
+            const pageEnd = Math.min(freshInvList.length, (revokeItemPage + 1) * ITEMS_PER_PAGE);
+
             const matchedOptions = [];
-            for (const record of freshInvList.slice(0, 25)) {
+            const slicedList = freshInvList.slice(revokeItemPage * ITEMS_PER_PAGE, (revokeItemPage + 1) * ITEMS_PER_PAGE);
+            for (const record of slicedList) {
               const configItem = config.ITEMS.find(item => item.id === record.itemId);
               const nameText = configItem ? configItem.ten.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '').trim() : record.itemId;
               matchedOptions.push({
@@ -593,6 +631,27 @@ class BoDieuKhienAdmin {
                 .addOptions(matchedOptions)
             );
             rows.push(invRow);
+
+            if (totalRevokePages > 1) {
+              const paginationRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                  .setCustomId('edit_revoke_prev')
+                  .setLabel('◀ Trang trước')
+                  .setStyle(ButtonStyle.Secondary)
+                  .setDisabled(revokeItemPage === 0),
+                new ButtonBuilder()
+                  .setCustomId('edit_revoke_indicator')
+                  .setLabel(`Trang ${revokeItemPage + 1}/${totalRevokePages} (${pageStart}-${pageEnd}/${freshInvList.length})`)
+                  .setStyle(ButtonStyle.Secondary)
+                  .setDisabled(true),
+                new ButtonBuilder()
+                  .setCustomId('edit_revoke_next')
+                  .setLabel('Trang sau ▶')
+                  .setStyle(ButtonStyle.Secondary)
+                  .setDisabled(revokeItemPage >= totalRevokePages - 1)
+              );
+              rows.push(paginationRow);
+            }
           } else {
             embed.setDescription(embed.data.description + `\n\n📦 *Balo của đạo hữu này trống rỗng.*`);
           }
@@ -634,14 +693,24 @@ class BoDieuKhienAdmin {
           currentMenu = 'GIFT_ITEM';
           selectedCategory = null;
           selectedItemToGift = null;
+          giftItemPage = 0;
         } else if (customId === 'edit_btn_revoke') {
           currentMenu = 'REVOKE_ITEM';
           selectedInvRecordToRevoke = null;
+          revokeItemPage = 0;
         } else if (customId === 'edit_btn_close') {
           collector.stop('closed');
           return;
         } else if (['edit_stat_back', 'edit_gift_back', 'edit_revoke_back'].includes(customId)) {
           currentMenu = 'MAIN';
+        } else if (customId === 'edit_gift_prev') {
+          giftItemPage = Math.max(0, giftItemPage - 1);
+        } else if (customId === 'edit_gift_next') {
+          giftItemPage = giftItemPage + 1;
+        } else if (customId === 'edit_revoke_prev') {
+          revokeItemPage = Math.max(0, revokeItemPage - 1);
+        } else if (customId === 'edit_revoke_next') {
+          revokeItemPage = revokeItemPage + 1;
         }
 
         // Stats editing operations
@@ -693,6 +762,7 @@ class BoDieuKhienAdmin {
         else if (customId === 'edit_gift_cat_select') {
           selectedCategory = i.values[0];
           selectedItemToGift = null;
+          giftItemPage = 0;
         } else if (customId === 'edit_gift_item_select') {
           selectedItemToGift = i.values[0];
         } else if (customId.startsWith('edit_gift_x')) {

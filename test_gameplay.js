@@ -3766,5 +3766,100 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await petDefault.destroy();
   });
 
+  test('Admin /edit Command can gift egg items via Trung category', async () => {
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { boDieuKhienAdmin } = await import('./controllers/BoDieuKhienAdmin.js');
+
+    const targetUserId = "777777111227";
+    const targetTuSi = await TuSi.create({
+      idNguoiDung: targetUserId,
+      ten: "Đạo Sĩ Ấp Trứng",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      hp: 100,
+      mp: 100,
+      linhThach: 100
+    });
+
+    // Mock command interaction
+    let editReplyPayload = null;
+    const mockInteraction = {
+      user: { username: 'wiine5100', id: '12345' },
+      options: {
+        getUser: () => ({ id: targetUserId, username: "Đạo Sĩ Ấp Trứng" })
+      },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        editReplyPayload = payload;
+        return {
+          createMessageComponentCollector: () => ({
+            on: (event, handler) => {
+              if (event === 'collect') {
+                collectHandler = handler;
+              }
+            }
+          })
+        };
+      }
+    };
+
+    let collectHandler = null;
+
+    await boDieuKhienAdmin.lenhEdit.execute(mockInteraction);
+
+    // Click gift button
+    const mockClickGift = {
+      customId: 'edit_btn_gift',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickGift);
+
+    // Select category 'Linh thảo'
+    const mockSelectCat = {
+      customId: 'edit_gift_cat_select',
+      values: ['Linh thảo'],
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockSelectCat);
+
+    // Click next page to see the eggs (on page 1)
+    const mockClickNext = {
+      customId: 'edit_gift_next',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickNext);
+
+    // Select item 'trung_than_thu'
+    const mockSelectItem = {
+      customId: 'edit_gift_item_select',
+      values: ['trung_than_thu'],
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockSelectItem);
+
+    // Click Tặng x1
+    const mockClickGiftBtn = {
+      customId: 'edit_gift_x1',
+      user: { id: '12345' },
+      deferUpdate: async () => {}
+    };
+    await collectHandler(mockClickGiftBtn);
+
+    // Check inventory
+    const gifted = await Inventory.findOne({ where: { idNguoiDung: targetUserId, itemId: 'trung_than_thu' } });
+    assert.ok(gifted);
+    assert.strictEqual(gifted.soLuong, 1);
+
+    // Clean up
+    await targetTuSi.destroy();
+  });
+
 });
 
