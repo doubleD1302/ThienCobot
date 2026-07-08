@@ -406,6 +406,45 @@ class BoDieuKhienAdmin {
       let selectedInvRecordToRevoke = null;
       let giftItemPage = 0;
       let revokeItemPage = 0;
+      let statusMessage = null;
+
+      const sendPublicLog = async (actionText) => {
+        try {
+          await interaction.channel.send({
+            embeds: [
+              new EmbedBuilder()
+                .setTitle('📢 Thiên Đạo Chi Chỉ')
+                .setColor(0x9b59b6)
+                .setDescription(`⚡ **Thiên đạo** vừa tác động lên tu sĩ **${tuSi.ten}** (<@${tuSi.idNguoiDung}>):\n→ *${actionText}*`)
+                .setTimestamp()
+            ]
+          });
+        } catch (_) {}
+      };
+
+      const parseSignedAmount = (str) => {
+        if (!str) return null;
+        const clean = str.trim().toLowerCase();
+
+        const match = clean.match(/^([+-]?)\s*([\d.]+)\s*([kmb]?)$/);
+        if (!match) return null;
+
+        const sign = match[1];
+        const numPart = parseFloat(match[2]);
+        if (isNaN(numPart) || numPart < 0) return null;
+
+        const suffix = match[3];
+        let multiplier = 1;
+        if (suffix === 'k') multiplier = 1000;
+        else if (suffix === 'm') multiplier = 1000000;
+        else if (suffix === 'b') multiplier = 1000000000;
+
+        const finalValue = Math.floor(numPart * multiplier);
+        return {
+          value: finalValue,
+          sign: sign || '+'
+        };
+      };
 
       // Helper to build Payload (Embed + ActionRows)
       const buildPayload = async () => {
@@ -418,17 +457,19 @@ class BoDieuKhienAdmin {
         const rows = [];
 
         if (currentMenu === 'MAIN') {
+          let desc = `• **Đạo hiệu**: **${tuSi.ten}**\n` +
+                     `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
+                     `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
+                     `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
+                     `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
+                     `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\`\n\n` +
+                     `*Vui lòng sử dụng các nút tương tác bên dưới để chỉnh sửa.*`;
+          if (statusMessage) {
+            desc = `🔔 **Thiên Đạo Báo**: ${statusMessage}\n\n` + desc;
+          }
           embed.setTitle(`🛠️ Bảng Thiên Đạo Điều Phối — ${tuSi.ten}`)
             .setColor(0x9b59b6)
-            .setDescription(
-              `• **Đạo hiệu**: **${tuSi.ten}**\n` +
-              `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
-              `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
-              `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
-              `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
-              `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\`\n\n` +
-              `*Vui lòng sử dụng các nút tương tác bên dưới để chỉnh sửa.*`
-            );
+            .setDescription(desc);
 
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('edit_btn_stats').setLabel('☯️ Chỉnh Chỉ Số / Tiền').setStyle(ButtonStyle.Primary),
@@ -439,42 +480,32 @@ class BoDieuKhienAdmin {
           rows.push(row);
 
         } else if (currentMenu === 'EDIT_STATS') {
+          let desc = `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
+                     `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
+                     `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
+                     `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
+                     `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\``;
+          if (statusMessage) {
+            desc = `🔔 **Thiên Đạo Báo**: ${statusMessage}\n\n` + desc;
+          }
           embed.setTitle(`☯️ Thiên Đạo Điều Chỉnh Chỉ Số — ${tuSi.ten}`)
             .setColor(0xf1c40f)
-            .setDescription(
-              `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
-              `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
-              `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
-              `• **Cảnh giới**: \`${tuSi.canhGioi}\` (Cấp \`${tuSi.capDo}\`)\n` +
-              `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\``
-            );
+            .setDescription(desc);
 
           const row1 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('edit_stat_ll_p100m').setLabel('Linh Lực +100M').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('edit_stat_ll_m100m').setLabel('Linh Lực -100M').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('edit_stat_ll_p1b').setLabel('Linh Lực +1B').setStyle(ButtonStyle.Primary)
+            new ButtonBuilder().setCustomId('edit_stat_mod_ll').setLabel('☯️ Chỉnh Linh Lực').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_stat_mod_lt').setLabel('🪙 Chỉnh Linh Thạch').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('edit_stat_mod_vnd').setLabel('💵 Chỉnh VND').setStyle(ButtonStyle.Danger)
           );
 
           const row2 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('edit_stat_lt_p1m').setLabel('Linh Thạch +1M').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId('edit_stat_lt_m1m').setLabel('Linh Thạch -1M').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId('edit_stat_lt_p10m').setLabel('Linh Thạch +10M').setStyle(ButtonStyle.Success)
-          );
-
-          const row3 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('edit_stat_vnd_p1m').setLabel('VND +1M').setStyle(ButtonStyle.Danger),
-            new ButtonBuilder().setCustomId('edit_stat_vnd_m1m').setLabel('VND -1M').setStyle(ButtonStyle.Danger),
-            new ButtonBuilder().setCustomId('edit_stat_vnd_p10m').setLabel('VND +10M').setStyle(ButtonStyle.Danger)
-          );
-
-          const row4 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('edit_stat_cg_p1').setLabel('Cảnh Giới +1 Cấp').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('edit_stat_cg_m1').setLabel('Cảnh Giới -1 Cấp').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('edit_stat_reset_hpmp').setLabel('Hồi Phục HP/MP').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId('edit_stat_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
           );
 
-          rows.push(row1, row2, row3, row4);
+          rows.push(row1, row2);
 
         } else if (currentMenu === 'GIFT_ITEM') {
           let itemDetails = '_Chưa chọn vật phẩm để tặng._';
@@ -488,12 +519,14 @@ class BoDieuKhienAdmin {
           }
 
           embed.setTitle(`🎁 Thiên Đạo Ban Tặng Vật Phẩm — ${tuSi.ten}`)
-            .setColor(0x2ecc71)
-            .setDescription(
-              `*Hãy chọn danh mục vật phẩm, chọn vật phẩm cụ thể và bấm số lượng tặng.*\n\n` +
-              `• Danh mục hiện tại: **${selectedCategory || 'Chưa chọn'}**\n` +
-              `• ${itemDetails}`
-            );
+            .setColor(0x2ecc71);
+          let desc = `*Hãy chọn danh mục vật phẩm, chọn vật phẩm cụ thể và bấm số lượng tặng.*\n\n` +
+                     `• Danh mục hiện tại: **${selectedCategory || 'Chưa chọn'}**\n` +
+                     `• ${itemDetails}`;
+          if (statusMessage) {
+            desc = `🔔 **Thiên Đạo Báo**: ${statusMessage}\n\n` + desc;
+          }
+          embed.setDescription(desc);
 
           // Select Category row
           const catRow = new ActionRowBuilder().addComponents(
@@ -598,11 +631,13 @@ class BoDieuKhienAdmin {
           }
 
           embed.setTitle(`🗑️ Thiên Đạo Thu Hồi Vật Phẩm — ${tuSi.ten}`)
-            .setColor(0xe74c3c)
-            .setDescription(
-              `*Hãy chọn một dòng vật phẩm trong balo của người chơi dưới đây và bấm số lượng thu hồi.*\n\n` +
-              `• ${invDetails}`
-            );
+            .setColor(0xe74c3c);
+          let desc = `*Hãy chọn một dòng vật phẩm trong balo của người chơi dưới đây và bấm số lượng thu hồi.*\n\n` +
+                     `• ${invDetails}`;
+          if (statusMessage) {
+            desc = `🔔 **Thiên Đạo Báo**: ${statusMessage}\n\n` + desc;
+          }
+          embed.setDescription(desc);
 
           if (freshInvList.length > 0) {
             const ITEMS_PER_PAGE = 25;
@@ -678,13 +713,100 @@ class BoDieuKhienAdmin {
       });
 
       collector.on('collect', async i => {
+        const customId = i.customId;
+
+        if (['edit_stat_mod_ll', 'edit_stat_mod_lt', 'edit_stat_mod_vnd'].includes(customId)) {
+          const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+
+          let modalTitle = '';
+          let labelText = '';
+          if (customId === 'edit_stat_mod_ll') {
+            modalTitle = '☯️ Điều Chỉnh Linh Lực';
+            labelText = 'Cộng/Trừ Linh Lực (vd: +100M, -50M, 1B)';
+          } else if (customId === 'edit_stat_mod_lt') {
+            modalTitle = '🪙 Điều Chỉnh Linh Thạch';
+            labelText = 'Cộng/Trừ Linh Thạch (vd: +1M, -500K, 10M)';
+          } else if (customId === 'edit_stat_mod_vnd') {
+            modalTitle = '💵 Điều Chỉnh VND';
+            labelText = 'Cộng/Trừ VND (vd: +100K, -50K, 1M)';
+          }
+
+          const modal = new ModalBuilder()
+            .setCustomId(`modal_${customId}`)
+            .setTitle(modalTitle);
+
+          const amountInput = new TextInputBuilder()
+            .setCustomId('amount_input')
+            .setLabel(labelText.substring(0, 45))
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setPlaceholder('Ví dụ: +100M hoặc -50M');
+
+          modal.addComponents(new ActionRowBuilder().addComponents(amountInput));
+
+          try {
+            await i.showModal(modal);
+
+            const submitted = await i.awaitModalSubmit({
+              filter: submitInteraction => submitInteraction.customId === `modal_${customId}` && submitInteraction.user.id === interaction.user.id,
+              time: 60000
+            });
+
+            await submitted.deferUpdate();
+
+            const rawVal = submitted.fields.getTextInputValue('amount_input');
+            const parsed = parseSignedAmount(rawVal);
+            if (!parsed) {
+              statusMessage = `❌ Định dạng số lượng nhập không hợp lệ: "${rawVal}"`;
+            } else {
+              const { value, sign } = parsed;
+              if (customId === 'edit_stat_mod_ll') {
+                if (sign === '+') {
+                  tuSi.linhLuc += value;
+                  statusMessage = `✅ Đã cộng **${value.toLocaleString()} Linh Lực**!`;
+                  await sendPublicLog(`Cộng ${value.toLocaleString()} Linh Lực`);
+                } else {
+                  tuSi.linhLuc = Math.max(0, Number(tuSi.linhLuc) - value);
+                  statusMessage = `✅ Đã trừ **${value.toLocaleString()} Linh Lực**!`;
+                  await sendPublicLog(`Khấu trừ ${value.toLocaleString()} Linh Lực`);
+                }
+              } else if (customId === 'edit_stat_mod_lt') {
+                if (sign === '+') {
+                  tuSi.linhThach += value;
+                  statusMessage = `✅ Đã cộng **${value.toLocaleString()} Linh Thạch**!`;
+                  await sendPublicLog(`Cộng ${value.toLocaleString()} Linh Thạch`);
+                } else {
+                  tuSi.linhThach = Math.max(0, Number(tuSi.linhThach) - value);
+                  statusMessage = `✅ Đã trừ **${value.toLocaleString()} Linh Thạch**!`;
+                  await sendPublicLog(`Khấu trừ ${value.toLocaleString()} Linh Thạch`);
+                }
+              } else if (customId === 'edit_stat_mod_vnd') {
+                if (sign === '+') {
+                  tuSi.vnd += value;
+                  statusMessage = `✅ Đã cộng **${value.toLocaleString()} VND**!`;
+                  await sendPublicLog(`Cộng ${value.toLocaleString()} VND`);
+                } else {
+                  tuSi.vnd = Math.max(0, Number(tuSi.vnd) - value);
+                  statusMessage = `✅ Đã trừ **${value.toLocaleString()} VND**!`;
+                  await sendPublicLog(`Khấu trừ ${value.toLocaleString()} VND`);
+                }
+              }
+              await tuSi.save();
+            }
+
+            const nextPayload = await buildPayload();
+            await interaction.editReply(nextPayload);
+          } catch (err) {
+            // modal submit timeout/cancel
+          }
+          return;
+        }
+
         try {
           await i.deferUpdate();
         } catch (_) {
           return;
         }
-
-        const customId = i.customId;
 
         // Navigation
         if (customId === 'edit_btn_stats') {
@@ -714,48 +836,27 @@ class BoDieuKhienAdmin {
         }
 
         // Stats editing operations
-        else if (customId === 'edit_stat_ll_p100m') {
-          tuSi.linhLuc += 100000000;
-          await tuSi.save();
-        } else if (customId === 'edit_stat_ll_m100m') {
-          tuSi.linhLuc = Math.max(0, Number(tuSi.linhLuc) - 100000000);
-          await tuSi.save();
-        } else if (customId === 'edit_stat_ll_p1b') {
-          tuSi.linhLuc += 1000000000;
-          await tuSi.save();
-        } else if (customId === 'edit_stat_lt_p1m') {
-          tuSi.linhThach += 1000000;
-          await tuSi.save();
-        } else if (customId === 'edit_stat_lt_m1m') {
-          tuSi.linhThach = Math.max(0, Number(tuSi.linhThach) - 1000000);
-          await tuSi.save();
-        } else if (customId === 'edit_stat_lt_p10m') {
-          tuSi.linhThach += 10000000;
-          await tuSi.save();
-        } else if (customId === 'edit_stat_vnd_p1m') {
-          tuSi.vnd += 1000000;
-          await tuSi.save();
-        } else if (customId === 'edit_stat_vnd_m1m') {
-          tuSi.vnd = Math.max(0, Number(tuSi.vnd) - 1000000);
-          await tuSi.save();
-        } else if (customId === 'edit_stat_vnd_p10m') {
-          tuSi.vnd += 10000000;
-          await tuSi.save();
-        } else if (customId === 'edit_stat_reset_hpmp') {
+        else if (customId === 'edit_stat_reset_hpmp') {
           const stats = await tuSi.layChiSoDayDu();
           tuSi.hp = stats.max_hp;
           tuSi.mp = stats.max_mp;
           await tuSi.save();
+          statusMessage = '✅ Đã hồi phục đầy HP/MP!';
+          await sendPublicLog('Khôi phục toàn bộ trạng thái HP/MP');
         } else if (customId === 'edit_stat_cg_p1') {
           tuSi.capDo = Math.min(31, tuSi.capDo + 1);
           const cg = config.layThongTinCanhGioi(tuSi.capDo);
           tuSi.canhGioi = `${cg.realmName} - ${cg.stageName}`;
           await tuSi.save();
+          statusMessage = `✅ Đã tăng cảnh giới lên cấp **${tuSi.capDo}** (${tuSi.canhGioi})!`;
+          await sendPublicLog(`Tăng cảnh giới lên cấp ${tuSi.capDo} (${tuSi.canhGioi})`);
         } else if (customId === 'edit_stat_cg_m1') {
           tuSi.capDo = Math.max(1, tuSi.capDo - 1);
           const cg = config.layThongTinCanhGioi(tuSi.capDo);
           tuSi.canhGioi = `${cg.realmName} - ${cg.stageName}`;
           await tuSi.save();
+          statusMessage = `✅ Đã giảm cảnh giới xuống cấp **${tuSi.capDo}** (${tuSi.canhGioi})!`;
+          await sendPublicLog(`Hạ cảnh giới xuống cấp ${tuSi.capDo} (${tuSi.canhGioi})`);
         }
 
         // Gift operations
@@ -768,7 +869,11 @@ class BoDieuKhienAdmin {
         } else if (customId.startsWith('edit_gift_x')) {
           const qty = parseInt(customId.replace('edit_gift_x', ''), 10);
           if (selectedItemToGift) {
+            const configItem = config.ITEMS.find(item => item.id === selectedItemToGift);
+            const nameText = configItem ? configItem.ten : selectedItemToGift;
             await Inventory.addVatPham(tuSi.idNguoiDung, selectedItemToGift, qty);
+            statusMessage = `🎁 Đã tặng thành công **x${qty} ${nameText}**!`;
+            await sendPublicLog(`Tặng x${qty} ${nameText}`);
             selectedItemToGift = null; // reset select after gifting
           }
         }
@@ -781,17 +886,27 @@ class BoDieuKhienAdmin {
           if (selectedInvRecordToRevoke) {
             const record = await Inventory.findOne({ where: { id: selectedInvRecordToRevoke } });
             if (record) {
+              const configItem = config.ITEMS.find(item => item.id === record.itemId);
+              const nameText = configItem ? configItem.ten : record.itemId;
               if (mode === 'all') {
+                const oldQty = record.soLuong;
                 await record.destroy();
+                statusMessage = `🗑️ Đã thu hồi toàn bộ **x${oldQty} ${nameText}**!`;
+                await sendPublicLog(`Thu hồi toàn bộ x${oldQty} ${nameText}`);
                 selectedInvRecordToRevoke = null;
               } else {
                 const qty = parseInt(mode.replace('x', ''), 10);
                 if (record.soLuong <= qty) {
+                  const oldQty = record.soLuong;
                   await record.destroy();
+                  statusMessage = `🗑️ Đã thu hồi toàn bộ **x${oldQty} ${nameText}**!`;
+                  await sendPublicLog(`Thu hồi toàn bộ x${oldQty} ${nameText}`);
                   selectedInvRecordToRevoke = null;
                 } else {
                   record.soLuong -= qty;
                   await record.save();
+                  statusMessage = `🗑️ Đã thu hồi **x${qty} ${nameText}**! (Còn lại x${record.soLuong})`;
+                  await sendPublicLog(`Thu hồi x${qty} ${nameText}`);
                 }
               }
             }

@@ -39,7 +39,8 @@ const SHOP_TABS = [
   { value: 'tat_ca',    label: 'Tất Cả Hàng',   emoji: '🏪', loai: null },
   { value: 'vu_khi',   label: 'Vũ Khí & Giáp', emoji: '⚔️', loai: ['Vũ khí', 'Giáp', 'Ngọc Bội'] },
   { value: 'phap_bao', label: 'Cổ Bảo & Pháp Bảo', emoji: '🔮', loai: ['Cổ Bảo Chủ Động', 'Pháp Bảo'] },
-  { value: 'tieu_hao', label: 'Đan Dược',       emoji: '💊', loai: ['Đan dược', 'Linh thảo'] }
+  { value: 'tieu_hao', label: 'Đan Dược',       emoji: '💊', loai: ['Đan dược', 'Linh thảo'] },
+  { value: 'pet',      label: 'Tiên Thú (Công Đức)', emoji: '🐾', loai: null }
 ];
 
 const ITEMS_PER_PAGE = 8; // số item trên mỗi trang trong shop
@@ -64,6 +65,7 @@ async function loadShopCatalog() {
 
 // ── Helper: lọc catalog theo tab ───────────────────────────────────────────
 function filterByTab(catalog, tabValue) {
+  if (tabValue === 'pet') return [];
   const tab = SHOP_TABS.find(t => t.value === tabValue);
   if (!tab || !tab.loai) return catalog;
   return catalog.filter(e => tab.loai.includes(e.item.loai));
@@ -100,6 +102,21 @@ function buildShopEmbed(tuSi, entries, pageIdx, totalPages, tabLabel) {
 
     return `**${idx}.** ${doHiemEm}${loaiEm} **${item.ten}** — ${giaText}${tonText}${reqText}${statsText}`;
   });
+
+  if (tabLabel === 'Tiên Thú (Công Đức)') {
+    const lines = [
+      `**1.** 🟢🥚 **Trứng Linh Thú (Linh)** — \`2\` Điểm Công Đức\n   *(Trứng linh thú phẩm chất Linh. Ấp nở tại Động Phủ để nhận được linh thú trung thành. Có 1% tỷ lệ nở ra Thần Thú.)*`
+    ];
+    return new EmbedBuilder()
+      .setTitle(`🏪 Linh Bảo Các — Cửa Hàng Tu Tiên`)
+      .setColor(color)
+      .setDescription(
+        `> 🌟 **Điểm Công Đức hiện có**: \`${tuSi.congDuc || 0}\`  |  📋 **Danh mục**: ${tabLabel}\n` +
+        `${'─'.repeat(38)}\n${lines.join('\n\n')}`
+      )
+      .setTimestamp()
+      .setFooter({ text: 'Chọn vật phẩm bên dưới → Bấm nút Mua phía dưới cùng để giao dịch.' });
+  }
 
   const desc = entries.length > 0
     ? lines.join('\n\n')
@@ -347,7 +364,25 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         );
 
         // Row 3: Chọn item trên trang hiện tại
-        if (pageEntries.length === 0) {
+        if (shopTab === 'pet') {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('buy_item_select')
+                .setPlaceholder('🔍 Chọn vật phẩm xem chi tiết...')
+                .setDisabled(disabled)
+                .addOptions([
+                  {
+                    label: 'Trứng Linh Thú (Linh)',
+                    value: 'buy_pet_egg_linh',
+                    emoji: '🥚',
+                    description: 'Đổi bằng 2 Điểm Công Đức',
+                    default: selectedShopId === 'buy_pet_egg_linh'
+                  }
+                ])
+            )
+          );
+        } else if (pageEntries.length === 0) {
           rows.push(
             new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
@@ -525,9 +560,28 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
           const embeds = [buildShopEmbed(tuSi, pageEntries, shopPageIdx, total, tabLabel)];
 
           if (selectedShopId) {
-            const entry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
-            if (entry) {
-              embeds.push(buildItemDetailEmbed(tuSi, entry));
+            if (selectedShopId === 'buy_pet_egg_linh') {
+              const color = layMauCanhGioi(tuSi.canhGioi);
+              const canAfford = (tuSi.congDuc || 0) >= 2;
+              embeds.push(
+                new EmbedBuilder()
+                  .setTitle(`🟢🥚 Chi Tiết: Trứng Linh Thú (Linh)`)
+                  .setColor(canAfford ? 0x2ecc71 : 0xe74c3c)
+                  .addFields(
+                    { name: '📦 Phân Loại', value: 'Linh thảo · Hiếm', inline: true },
+                    { name: '🌟 Giá Bán', value: '`2` Điểm Công Đức', inline: true },
+                    { name: '📦 Tồn Kho', value: '∞ Vô hạn', inline: true },
+                    { name: '🌟 Điểm Công Đức Của Ngươi', value: `\`${tuSi.congDuc || 0}\` Công Đức`, inline: true },
+                    { name: '✅ Trạng Thái', value: canAfford ? '🟢 Đủ điều kiện mua' : '🔴 Không đủ điều kiện', inline: true },
+                    { name: '📖 Mô Tả', value: 'Trứng linh thú phẩm chất Linh. Ấp nở tại Động Phủ để nhận được linh thú trung thành. Có 1% tỷ lệ nở ra Thần Thú.', inline: false }
+                  )
+                  .setFooter({ text: 'Mã vật phẩm: trung_linh_thu_linh' })
+              );
+            } else {
+              const entry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
+              if (entry) {
+                embeds.push(buildItemDetailEmbed(tuSi, entry));
+              }
             }
           }
           return embeds;
@@ -670,17 +724,25 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
             const qty = i.customId === 'buy_action_1' ? 1
                       : i.customId === 'buy_action_5' ? 5 : 10;
             
-            const shopEntry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
-            if (shopEntry) {
-              const res = await this._thucHienMua(tuSi, shopEntry, qty);
+            if (selectedShopId === 'buy_pet_egg_linh') {
+              const res = await this._thucHienMuaPetEggLinh(tuSi, qty);
               actionResultEmbed = res.ok
                 ? BoTaoEmbed.thanhCong('🛒 Mua Hàng Thành Công', res.msg)
                 : BoTaoEmbed.loi(res.msg);
-
-              if (res.ok && shopEntry.shop.soLuongTon !== -1) {
-                shopEntry.shop.soLuongTon -= qty;
-              }
               selectedShopId = null;
+            } else {
+              const shopEntry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
+              if (shopEntry) {
+                const res = await this._thucHienMua(tuSi, shopEntry, qty);
+                actionResultEmbed = res.ok
+                  ? BoTaoEmbed.thanhCong('🛒 Mua Hàng Thành Công', res.msg)
+                  : BoTaoEmbed.loi(res.msg);
+
+                if (res.ok && shopEntry.shop.soLuongTon !== -1) {
+                  shopEntry.shop.soLuongTon -= qty;
+                }
+                selectedShopId = null;
+              }
             }
             break;
           }
@@ -786,6 +848,39 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
       });
     }
   };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  PRIVATE HELPER: thực hiện giao dịch đổi trứng linh thú bằng Công Đức
+  // ─────────────────────────────────────────────────────────────────────────
+  async _thucHienMuaPetEggLinh(tuSi, soLuong = 1) {
+    const tongGia = 2 * soLuong;
+    if ((tuSi.congDuc || 0) < tongGia) {
+      return {
+        ok: false,
+        msg: `Điểm Công Đức không đủ! Cần \`${tongGia}\` Điểm Công Đức (Ngươi đang có \`${tuSi.congDuc || 0}\`).`
+      };
+    }
+
+    tuSi.congDuc = (tuSi.congDuc || 0) - tongGia;
+    await tuSi.save();
+
+    await Inventory.addVatPham(tuSi.idNguoiDung, 'trung_linh_thu_linh', soLuong);
+
+    // Ghi lịch sử
+    await LichSuMua.create({
+      idNguoiDung: tuSi.idNguoiDung,
+      itemId:      'trung_linh_thu_linh',
+      soLuong,
+      giaDaTra:    tongGia,
+      giaLoai:     'Công Đức'
+    });
+
+    return {
+      ok: true,
+      msg: `Đạo hữu **${tuSi.ten}** đã đổi thành công **Trứng Linh Thú (Linh)** x${soLuong} tiêu hao \`${tongGia}\` Điểm Công Đức.\n` +
+           `• Điểm công đức còn lại: \`${tuSi.congDuc}\` Công Đức`
+    };
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   //  PRIVATE HELPER: thực hiện giao dịch mua hàng

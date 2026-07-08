@@ -424,3 +424,13 @@ REPLACE INTO gift_codes (code, linh_thach, linh_luc, vnd, items_json, created_at
 INSERT OR REPLACE INTO gift_codes (code, linh_thach, linh_luc, vnd, items_json, created_at) VALUES
 ('BOSS', 0, 0, 0, '[]', CURRENT_TIMESTAMP);
 
+
+-- ==========================================================
+-- GIAI ĐOẠN 4: CẬP NHẬT CỘT CÔNG ĐỨC CHO NGƯỜI CHƠI
+-- ==========================================================
+
+-- 1. DÀNH CHO MYSQL / TiDB
+-- Thêm cột cong_duc vào bảng players nếu chưa có
+ALTER TABLE players ADD COLUMN IF NOT EXISTS cong_duc INT NOT NULL DEFAULT 0;
+
+

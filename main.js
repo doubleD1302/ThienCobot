@@ -355,6 +355,14 @@ async function start() {
           defaultValue: null
         });
       }
+      if (!playersDesc.cong_duc) {
+        console.log('Phát hiện thiếu cột cong_duc. Tiến hành thêm vào bảng players...');
+        await queryInterface.addColumn('players', 'cong_duc', {
+          type: DataTypes.INTEGER,
+          allowNull: false,
+          defaultValue: 0
+        });
+      }
 
       const cooldownsDesc = await queryInterface.describeTable('cooldowns');
       if (cooldownsDesc.user_id && cooldownsDesc.user_id.autoIncrement) {

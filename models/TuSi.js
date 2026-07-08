@@ -660,6 +660,12 @@ TuSi.init({
     allowNull: true,
     defaultValue: null,
     field: 'duyen_user_id'
+  },
+  congDuc: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    field: 'cong_duc'
   }
 }, {
   sequelize,

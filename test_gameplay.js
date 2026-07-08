@@ -3499,6 +3499,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const authorizedInteraction = {
       user: { username: 'wiine5100', id: '12345' },
       deferReply: async () => {},
+      channel: { send: async () => {} },
       options: {
         getUser: (name) => {
           if (name === 'target') return { id: targetTuSi.idNguoiDung, username: targetTuSi.ten };
@@ -3538,21 +3539,45 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await collectHandler(mockClickStats);
     assert.ok(editReplyPayload.embeds[0].data.title.includes('Thiên Đạo Điều Chỉnh Chỉ Số'));
 
-    // Mock adding +10M Linh Thạch
+    // Mock adding +10M Linh Thạch via Modal
     const mockAddGold = {
-      customId: 'edit_stat_lt_p10m',
+      customId: 'edit_stat_mod_lt',
       user: { id: '12345' },
-      deferUpdate: async () => {}
+      showModal: async () => {},
+      awaitModalSubmit: async () => {
+        return {
+          customId: 'modal_edit_stat_mod_lt',
+          deferUpdate: async () => {},
+          fields: {
+            getTextInputValue: (id) => {
+              if (id === 'amount_input') return '+10M';
+              return '';
+            }
+          }
+        };
+      }
     };
     await collectHandler(mockAddGold);
     await targetTuSi.reload();
     assert.strictEqual(targetTuSi.linhThach, 10000100);
 
-    // Mock adding +1B Linh Luc
+    // Mock adding +1B Linh Luc via Modal
     const mockAddExp = {
-      customId: 'edit_stat_ll_p1b',
+      customId: 'edit_stat_mod_ll',
       user: { id: '12345' },
-      deferUpdate: async () => {}
+      showModal: async () => {},
+      awaitModalSubmit: async () => {
+        return {
+          customId: 'modal_edit_stat_mod_ll',
+          deferUpdate: async () => {},
+          fields: {
+            getTextInputValue: (id) => {
+              if (id === 'amount_input') return '+1B';
+              return '';
+            }
+          }
+        };
+      }
     };
     await collectHandler(mockAddExp);
     await targetTuSi.reload();
@@ -3792,6 +3817,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
         getUser: () => ({ id: targetUserId, username: "Đạo Sĩ Ấp Trứng" })
       },
       deferReply: async () => {},
+      channel: { send: async () => {} },
       editReply: async (payload) => {
         editReplyPayload = payload;
         return {
@@ -3859,6 +3885,221 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Clean up
     await targetTuSi.destroy();
+  });
+
+  test('Pet Quick Release feature with species and bloodline filters', async () => {
+    const { Pet } = await import('./models/Pet.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { boDieuKhienDongPhu } = await import('./controllers/BoDieuKhienDongPhu.js');
+
+    const testUserId = "777777111229";
+    const tuSi = await TuSi.create({
+      idNguoiDung: testUserId,
+      ten: "Tu Sĩ Nuôi Sủng",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      hp: 100,
+      mp: 100,
+      linhThach: 50000
+    });
+
+    // Create 3 pets (2 Loi Diep, 1 Ma Lang)
+    const pet1 = await Pet.create({
+      userId: testUserId,
+      name: "Butterfly A",
+      type: "loi_diep_1",
+      rarity: "LT_1",
+      level: 1,
+      isActive: false
+    });
+    const pet2 = await Pet.create({
+      userId: testUserId,
+      name: "Butterfly B",
+      type: "loi_diep_2",
+      rarity: "LT_2",
+      level: 1,
+      isActive: false
+    });
+    const pet3 = await Pet.create({
+      userId: testUserId,
+      name: "Wolf C",
+      type: "ma_lang_1",
+      rarity: "LT_1",
+      level: 1,
+      isActive: false
+    });
+    const petActive = await Pet.create({
+      userId: testUserId,
+      name: "Equipped Pet",
+      type: "ma_lang_1",
+      rarity: "LT_1",
+      level: 1,
+      isActive: true // active - should NEVER be quick released!
+    });
+
+    let editReplyPayload = null;
+    let collectHandler = null;
+
+    const mockInteraction = {
+      user: { id: testUserId },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        editReplyPayload = payload;
+        return {
+          createMessageComponentCollector: () => ({
+            on: (event, handler) => {
+              if (event === 'collect') {
+                collectHandler = handler;
+              }
+            }
+          })
+        };
+      }
+    };
+
+    // Open /pet command (which starts with stack = ['PETS'])
+    await boDieuKhienDongPhu.lenhPet.execute(mockInteraction);
+
+    // Click 'Phóng Sinh Nhanh' button
+    await collectHandler({
+      customId: 'pet_quick_release_menu',
+      user: { id: testUserId },
+      deferUpdate: async () => {},
+      editReply: async () => {}
+    });
+
+    // Filter species: 'loi_diep' (蝶)
+    await collectHandler({
+      customId: 'pet_release_filter_species',
+      values: ['loi_diep'],
+      user: { id: testUserId },
+      deferUpdate: async () => {},
+      editReply: async () => {}
+    });
+
+    // Filter bloodline: 'LT_1' (Hoang Dã)
+    await collectHandler({
+      customId: 'pet_release_filter_bloodline',
+      values: ['LT_1'],
+      user: { id: testUserId },
+      deferUpdate: async () => {},
+      editReply: async () => {}
+    });
+
+    // Execute Release!
+    await collectHandler({
+      customId: 'pet_release_execute',
+      user: { id: testUserId },
+      deferUpdate: async () => {},
+      editReply: async () => {}
+    });
+
+    // Verify database: pet1 (Butterfly A: loi_diep_1 & LT_1) must be destroyed.
+    const checkPet1 = await Pet.findByPk(pet1.id);
+    assert.strictEqual(checkPet1, null);
+
+    // pet2 (Butterfly B: loi_diep_2 & LT_2) must NOT be destroyed.
+    const checkPet2 = await Pet.findByPk(pet2.id);
+    assert.ok(checkPet2);
+
+    // pet3 (Wolf C: ma_lang_1 & LT_1) must NOT be destroyed.
+    const checkPet3 = await Pet.findByPk(pet3.id);
+    assert.ok(checkPet3);
+
+    // petActive (Active Wolf) must NOT be destroyed.
+    const checkActive = await Pet.findByPk(petActive.id);
+    assert.ok(checkActive);
+
+    // Verify player merit points (1 pet was released)
+    await tuSi.reload();
+    assert.strictEqual(tuSi.congDuc, 1);
+
+    // Clean up
+    if (checkPet2) await checkPet2.destroy();
+    if (checkPet3) await checkPet3.destroy();
+    if (checkActive) await checkActive.destroy();
+    await tuSi.destroy();
+  });
+
+  test('Shop Merit Points tab and buying custom pet egg', async () => {
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { boDieuKhienShop } = await import('./controllers/BoDieuKhienShop.js');
+
+    const testUserId = "777777111230";
+    const tuSi = await TuSi.create({
+      idNguoiDung: testUserId,
+      ten: "MeritShopPlayer",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      congDuc: 3 // Start with 3 merit points
+    });
+
+    let editReplyPayload = null;
+    let collectHandler = null;
+
+    const mockInteraction = {
+      user: { id: testUserId },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        editReplyPayload = payload;
+        return {
+          createMessageComponentCollector: () => ({
+            on: (event, handler) => {
+              if (event === 'collect') {
+                collectHandler = handler;
+              }
+            }
+          })
+        };
+      }
+    };
+
+    // Open shop command
+    await boDieuKhienShop.lenhShop.execute(mockInteraction);
+
+    // Switch tab to 'pet'
+    await collectHandler({
+      customId: 'buy_tab_select',
+      values: ['pet'],
+      user: { id: testUserId },
+      deferUpdate: async () => {},
+      editReply: async () => {}
+    });
+
+    // Select the pet egg
+    await collectHandler({
+      customId: 'buy_item_select',
+      values: ['buy_pet_egg_linh'],
+      user: { id: testUserId },
+      deferUpdate: async () => {},
+      editReply: async () => {}
+    });
+
+    // Click Buy x1 (costs 2 merit points)
+    await collectHandler({
+      customId: 'buy_action_1',
+      user: { id: testUserId },
+      deferUpdate: async () => {},
+      editReply: async () => {}
+    });
+
+    // Verify player merit points
+    await tuSi.reload();
+    assert.strictEqual(tuSi.congDuc, 1); // 3 - 2 = 1 merit point left
+
+    // Verify item in inventory
+    const egg = await Inventory.findOne({ where: { idNguoiDung: testUserId, itemId: 'trung_linh_thu_linh' } });
+    assert.ok(egg);
+    assert.strictEqual(egg.soLuong, 1);
+
+    // Clean up
+    if (egg) await egg.destroy();
+    await tuSi.destroy();
   });
 
 });

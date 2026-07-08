@@ -83,6 +83,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     let selectedFusePetId = null; // Sủng vật nguyên liệu được chọn để dung hợp
     let foodPage = 0;             // Trang phân trang menu thức ăn sủng vật
     let actionMessage = null;     // Lưu thông báo kết quả hành động
+    let releaseFilterSpecies = 'all';
+    let releaseFilterBloodline = 'all';
 
     // Kiểm tra reset ngày tưới nước/ăn đan dược
     const todayStr = new Date().toISOString().split('T')[0];
@@ -272,6 +274,35 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           .setTitle(`🐅 Thú Xá Sủng Vật: ${tuSi.ten}`)
           .setColor(0xe67e22)
           .setDescription(desc);
+        embeds.push(embed);
+      }
+
+      else if (menu === 'PET_QUICK_RELEASE') {
+        const myPets = await Pet.findAll({ where: { userId: tuSi.idNguoiDung } });
+        const matchedPets = myPets.filter(p => !p.isActive &&
+          (releaseFilterSpecies === 'all' || config.PET_TEMPLATES[p.type]?.species === releaseFilterSpecies) &&
+          (releaseFilterBloodline === 'all' || p.rarity === releaseFilterBloodline)
+        );
+
+        const filterSpeciesName = releaseFilterSpecies === 'all' ? 'Tất cả' : (config.PET_TEMPLATES_SEED.find(t => t.species === releaseFilterSpecies)?.name || releaseFilterSpecies);
+        const filterBloodlineName = releaseFilterBloodline === 'all' ? 'Tất cả' : (config.PET_QUALITY_LABELS[releaseFilterBloodline] || releaseFilterBloodline);
+
+        const petListText = matchedPets.slice(0, 20).map((p, idx) => `**${idx + 1}.** **${p.name}** · Cấp ${p.level} · *Huyết mạch:* ${getPetRarityText(p.rarity)}`).join('\n') +
+          (matchedPets.length > 20 ? `\n... và ${matchedPets.length - 20} sủng vật khác.` : '') || '_Không có sủng vật nào khớp bộ lọc._';
+
+        const embed = new EmbedBuilder()
+          .setTitle('💥 Phóng Sinh Nhanh Sủng Vật')
+          .setColor(0xc0392b)
+          .setDescription(
+            `*Thiết lập bộ lọc để phóng sinh hàng loạt sủng vật không sử dụng. Sủng vật đang xuất chiến sẽ được tự động bỏ qua để đảm bảo an toàn.*\n\n` +
+            `⚡ **BỘ LỌC HIỆN TẠI**:\n` +
+            `• Chủng loài: **${filterSpeciesName}**\n` +
+            `• Huyết mạch: **${filterBloodlineName}**\n\n` +
+            `📋 **DANH SÁCH SỦNG VẬT BỊ PHÓNG SINH (${matchedPets.length} con):**\n` +
+            `${petListText}\n\n` +
+            `🚨 **CẢNH BÁO**: Toàn bộ sủng vật trong danh sách trên sẽ bị **phóng sinh vĩnh viễn** khỏi động phủ. Thao tác này không thể hoàn tác!`
+          )
+          .setTimestamp();
         embeds.push(embed);
       }
 
@@ -795,11 +826,79 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           );
         }
 
+        const actionRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('btn_back')
+            .setLabel('↩️ Quay Lại')
+            .setStyle(ButtonStyle.Secondary)
+        );
+        if (myPets.length > 0) {
+          actionRow.addComponents(
+            new ButtonBuilder()
+              .setCustomId('pet_quick_release_menu')
+              .setLabel('💥 Phóng Sinh Nhanh')
+              .setStyle(ButtonStyle.Danger)
+          );
+        }
+        rows.push(actionRow);
+      }
+
+      else if (menu === 'PET_QUICK_RELEASE') {
+        const matchedPets = myPets.filter(p => !p.isActive &&
+          (releaseFilterSpecies === 'all' || config.PET_TEMPLATES[p.type]?.species === releaseFilterSpecies) &&
+          (releaseFilterBloodline === 'all' || p.rarity === releaseFilterBloodline)
+        );
+
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('pet_release_filter_species')
+              .setPlaceholder('Chọn chủng loài cần lọc...')
+              .addOptions([
+                { label: '🐾 Tất cả chủng loài', value: 'all' },
+                { label: '🐺 Lang (Ma Lang)', value: 'ma_lang' },
+                { label: '🦋 Điệp (Lôi Điệp)', value: 'loi_diep' },
+                { label: '🦍 Viên (Thần Viên)', value: 'than_vien' },
+                { label: '🐯 Hổ (Linh Hổ)', value: 'linh_ho' },
+                { label: '🦊 Hồ (Linh Hồ)', value: 'linh_ho_fox' },
+                { label: '🐉 Long (Tổ Long)', value: 'to_long' },
+                { label: '🦅 Phượng (Phượng Hoàng)', value: 'phuong_hoang' },
+                { label: '🦄 Lân (Kỳ Lân)', value: 'ky_lan' },
+                { label: '🐢 Vũ (Huyền Vũ)', value: 'huyen_vu' },
+                { label: '🐅 Hổ Thần (Bạch Hổ)', value: 'bach_ho' }
+              ])
+          )
+        );
+
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('pet_release_filter_bloodline')
+              .setPlaceholder('Chọn phẩm cấp huyết mạch...')
+              .addOptions([
+                { label: '✨ Tất cả huyết mạch', value: 'all' },
+                { label: '🐾 Hoang Dã (LT_1)', value: 'LT_1' },
+                { label: '✨ Linh Thuần (LT_2)', value: 'LT_2' },
+                { label: '👑 Vương Giả (LT_3)', value: 'LT_3' },
+                { label: '🌟 Hoàng Kim (LT_4)', value: 'LT_4' },
+                { label: '🦖 Thái Cổ (TT_1)', value: 'TT_1' },
+                { label: '🌀 Hỗn Độn (TT_2)', value: 'TT_2' },
+                { label: '🌋 Hồng Hoang (TT_3)', value: 'TT_3' },
+                { label: '🌌 Khởi Nguyên (TT_4)', value: 'TT_4' }
+              ])
+          )
+        );
+
         rows.push(
           new ActionRowBuilder().addComponents(
             new ButtonBuilder()
+              .setCustomId('pet_release_execute')
+              .setLabel(`💥 Phóng Sinh ${matchedPets.length} Linh Thú`)
+              .setStyle(ButtonStyle.Danger)
+              .setDisabled(matchedPets.length === 0),
+            new ButtonBuilder()
               .setCustomId('btn_back')
-              .setLabel('↩️ Quay Lại')
+              .setLabel('↩️ Hủy Bỏ')
               .setStyle(ButtonStyle.Secondary)
           )
         );
@@ -1115,6 +1214,10 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         if (nextMenu !== 'PET_FUSION_CONFIRM') {
           selectedFusePetId = null;
         }
+        if (nextMenu !== 'PET_QUICK_RELEASE') {
+          releaseFilterSpecies = 'all';
+          releaseFilterBloodline = 'all';
+        }
         selectedSlotIndex = null;
         foodPage = 0; // Reset trang thức ăn khi quay lại
       }
@@ -1285,6 +1388,10 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           selectedPetId = parseInt(i.values[0], 10);
           foodPage = 0; // Reset trang thức ăn khi chọn sủng vật mới
           menuStack.push('PET_DETAIL');
+        } else if (i.customId === 'pet_quick_release_menu') {
+          menuStack.push('PET_QUICK_RELEASE');
+          releaseFilterSpecies = 'all';
+          releaseFilterBloodline = 'all';
         } else if (i.customId === 'pet_egg_hatch') {
           const eggId = i.values[0];
           const hasVideo = eggId === 'trung_linh_thu_tien' || eggId === 'trung_linh_thu_than' || eggId === 'trung_than_thu' || eggId === 'trung_than';
@@ -1745,7 +1852,9 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         if (i.customId === 'pet_renounce_confirm_yes') {
           if (pet) {
             await pet.destroy();
-            actionMessage = BoTaoEmbed.thanhCong('💥 Thả sủng vật', `Đạo hữu đã phóng sinh sủng vật thành công.`);
+            tuSi.congDuc = (tuSi.congDuc || 0) + 1;
+            await tuSi.save();
+            actionMessage = BoTaoEmbed.thanhCong('💥 Thả sủng vật', `Đạo hữu đã phóng sinh sủng vật thành công. Nhận được **+1** Điểm Công Đức!`);
           }
           menuStack.pop(); // Pop PET_RENOUNCE_CONFIRM
           menuStack.pop(); // Pop PET_DETAIL (Quay lại PETS)
@@ -1882,6 +1991,31 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
 
           const result = await this._processStoneSmash(tuSi, tier, cost);
           actionResultEmbed(result);
+        }
+      }
+
+      // ── XỬ LÝ PHÓNG SINH NHANH (PET_QUICK_RELEASE) ────────────────────────
+      else if (currentMenu === 'PET_QUICK_RELEASE') {
+        if (i.customId === 'pet_release_filter_species') {
+          releaseFilterSpecies = i.values[0];
+        } else if (i.customId === 'pet_release_filter_bloodline') {
+          releaseFilterBloodline = i.values[0];
+        } else if (i.customId === 'pet_release_execute') {
+          const matchedPets = myPets.filter(p => !p.isActive &&
+            (releaseFilterSpecies === 'all' || config.PET_TEMPLATES[p.type]?.species === releaseFilterSpecies) &&
+            (releaseFilterBloodline === 'all' || p.rarity === releaseFilterBloodline)
+          );
+
+          if (matchedPets.length > 0) {
+            const count = matchedPets.length;
+            for (const p of matchedPets) {
+              await p.destroy();
+            }
+            tuSi.congDuc = (tuSi.congDuc || 0) + count;
+            await tuSi.save();
+            menuStack.pop();
+            actionMessage = BoTaoEmbed.thanhCong('💥 Phóng Sinh Hàng Loạt Thành Công', `Đạo hữu đã phóng sinh thành công **${count}** sủng vật hợp bộ lọc. Nhận được **+${count}** Điểm Công Đức!`);
+          }
         }
       }
 
