@@ -511,10 +511,46 @@ class BoDieuKhienAdmin {
             .setDescription(desc + `*Vui lòng sử dụng các nút tương tác bên dưới để chỉnh sửa.*`);
 
           const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('edit_btn_stats').setLabel('☯️ Chỉnh Chỉ Số / Tiền').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('edit_btn_gift').setLabel('🎁 Tặng Vật Phẩm').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId('edit_btn_revoke').setLabel('🗑️ Thu Hồi Vật Phẩm').setStyle(ButtonStyle.Danger).setDisabled(tuSiList.length > 1),
-            new ButtonBuilder().setCustomId('edit_btn_close').setLabel('❌ Đóng Bảng').setStyle(ButtonStyle.Secondary)
+            new ButtonBuilder().setCustomId('edit_btn_stats').setLabel('☯️ Chỉ Số / Tiền').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_btn_gift').setLabel('🎁 Tặng Vật').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('edit_btn_revoke').setLabel('🗑️ Thu Hồi').setStyle(ButtonStyle.Danger).setDisabled(tuSiList.length > 1),
+            new ButtonBuilder().setCustomId('edit_btn_boss').setLabel('👹 Cài Đặt Cự Thú').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_btn_close').setLabel('❌ Đóng').setStyle(ButtonStyle.Secondary)
+          );
+          rows.push(row);
+
+        } else if (currentMenu === 'BOSS_SETTINGS') {
+          const { CauHinhGuild } = await import('../models/CauHinhGuild.js');
+          let guildConfig = await CauHinhGuild.findByPk(interaction.guildId);
+          if (!guildConfig) {
+            guildConfig = await CauHinhGuild.create({ idGuild: interaction.guildId });
+          }
+
+          let lastSpawnStr = 'Chưa triệu hồi lần nào';
+          if (guildConfig.bossLastSpawnAt) {
+            lastSpawnStr = new Date(guildConfig.bossLastSpawnAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+          }
+
+          const spawnTypeDisplay = guildConfig.bossSpawnType === 'chu_ky' ? 'Chu kỳ (phút)' : 'Mốc giờ cố định';
+          const spawnValDisplay = guildConfig.bossSpawnType === 'chu_ky' ? `Mỗi ${guildConfig.bossSpawnValue} phút` : guildConfig.bossSpawnValue;
+
+          embed.setTitle(`👹 Cài Đặt Triệu Hồi Cự Thú 👹`)
+            .setColor(0xe74c3c);
+          let desc = `*Cấu hình tần suất hoặc thời gian tự động xuất hiện của Boss thế giới tại Server này.*\n\n` +
+                     `• **Kiểu triệu hồi**: \`${spawnTypeDisplay}\`\n` +
+                     `• **Giá trị cấu hình**: \`${spawnValDisplay}\`\n` +
+                     `• **Lần triệu hồi cuối**: \`${lastSpawnStr}\`\n\n`;
+
+          if (statusMessage) {
+            desc = `🔔 **Thiên Đạo Báo**: ${statusMessage}\n\n` + desc;
+          }
+          embed.setDescription(desc);
+
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_boss_set_cycle').setLabel('⏳ Cài Đặt Chu Kỳ').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_boss_set_hours').setLabel('⏰ Cài Đặt Mốc Giờ').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('edit_boss_spawn_now').setLabel('👹 Triệu Hồi Ngay').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId('edit_boss_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
           );
           rows.push(row);
 
@@ -854,6 +890,112 @@ class BoDieuKhienAdmin {
           return;
         }
 
+        if (customId === 'edit_boss_set_cycle') {
+          const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+          const modal = new ModalBuilder()
+            .setCustomId(`modal_boss_cycle_${interaction.guildId}`)
+            .setTitle('⏳ Cấu Hình Chu Kỳ Cự Thú');
+
+          const input = new TextInputBuilder()
+            .setCustomId('cycle_input')
+            .setLabel('Nhập số phút chu kỳ (ví dụ: 60, 120)')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setPlaceholder('Nhập số phút chu kỳ...');
+
+          modal.addComponents(new ActionRowBuilder().addComponents(input));
+
+          try {
+            await i.showModal(modal);
+
+            const submitted = await i.awaitModalSubmit({
+              filter: submitInteraction => submitInteraction.customId === `modal_boss_cycle_${interaction.guildId}` && submitInteraction.user.id === interaction.user.id,
+              time: 60000
+            });
+
+            await submitted.deferUpdate();
+
+            const rawVal = submitted.fields.getTextInputValue('cycle_input');
+            const minutes = parseInt(rawVal.trim(), 10);
+            if (isNaN(minutes) || minutes <= 0) {
+              statusMessage = `❌ Số phút nhập không hợp lệ: "${rawVal}"`;
+            } else {
+              const { CauHinhGuild } = await import('../models/CauHinhGuild.js');
+              let guildConfig = await CauHinhGuild.findByPk(interaction.guildId);
+              if (!guildConfig) {
+                guildConfig = await CauHinhGuild.create({ idGuild: interaction.guildId });
+              }
+              guildConfig.bossSpawnType = 'chu_ky';
+              guildConfig.bossSpawnValue = String(minutes);
+              await guildConfig.save();
+              statusMessage = `✅ Cập nhật chu kỳ triệu hồi cự thú: **Mỗi ${minutes} phút**!`;
+            }
+
+            const nextPayload = await buildPayload();
+            await interaction.editReply(nextPayload);
+          } catch (err) {
+            // modal submit timeout/cancel
+          }
+          return;
+        }
+
+        if (customId === 'edit_boss_set_hours') {
+          const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+          const modal = new ModalBuilder()
+            .setCustomId(`modal_boss_hours_${interaction.guildId}`)
+            .setTitle('⏰ Cấu Hình Mốc Giờ Cố Định');
+
+          const input = new TextInputBuilder()
+            .setCustomId('hours_input')
+            .setLabel('Danh sách mốc giờ (tối đa 10, vd: 06:00,12:00)')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setPlaceholder('Nhập tối đa 10 mốc giờ, cách nhau bằng dấu phẩy');
+
+          modal.addComponents(new ActionRowBuilder().addComponents(input));
+
+          try {
+            await i.showModal(modal);
+
+            const submitted = await i.awaitModalSubmit({
+              filter: submitInteraction => submitInteraction.customId === `modal_boss_hours_${interaction.guildId}` && submitInteraction.user.id === interaction.user.id,
+              time: 60000
+            });
+
+            await submitted.deferUpdate();
+
+            const rawVal = submitted.fields.getTextInputValue('hours_input');
+            const parts = rawVal.split(',')
+              .map(t => t.trim())
+              .filter(Boolean);
+
+            const invalidParts = parts.filter(t => !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(t));
+            if (parts.length > 10) {
+              statusMessage = `❌ Vượt quá giới hạn 10 mốc giờ (hiện tại: ${parts.length} mốc).`;
+            } else if (invalidParts.length > 0) {
+              statusMessage = `❌ Mốc giờ không hợp lệ: "${invalidParts.join(', ')}" (phải đúng định dạng HH:MM, ví dụ: 06:00).`;
+            } else if (parts.length === 0) {
+              statusMessage = `❌ Vui lòng nhập ít nhất 1 mốc giờ hợp lệ.`;
+            } else {
+              const { CauHinhGuild } = await import('../models/CauHinhGuild.js');
+              let guildConfig = await CauHinhGuild.findByPk(interaction.guildId);
+              if (!guildConfig) {
+                guildConfig = await CauHinhGuild.create({ idGuild: interaction.guildId });
+              }
+              guildConfig.bossSpawnType = 'moc_gio';
+              guildConfig.bossSpawnValue = parts.join(',');
+              await guildConfig.save();
+              statusMessage = `✅ Cập nhật mốc giờ triệu hồi cự thú: **${parts.join(', ')}**!`;
+            }
+
+            const nextPayload = await buildPayload();
+            await interaction.editReply(nextPayload);
+          } catch (err) {
+            // modal submit timeout/cancel
+          }
+          return;
+        }
+
         try {
           await i.deferUpdate();
         } catch (_) {
@@ -872,10 +1014,28 @@ class BoDieuKhienAdmin {
           currentMenu = 'REVOKE_ITEM';
           selectedInvRecordToRevoke = null;
           revokeItemPage = 0;
+        } else if (customId === 'edit_btn_boss') {
+          currentMenu = 'BOSS_SETTINGS';
+          statusMessage = null;
+        } else if (customId === 'edit_boss_spawn_now') {
+          try {
+            const { boDieuKhienBoss } = await import('./BoDieuKhienBoss.js');
+            const { WorldBoss } = await import('../models/WorldBoss.js');
+            const hasActive = await WorldBoss.findOne({ where: { idGuild: interaction.guildId, active: true } });
+            if (hasActive) {
+              statusMessage = `⚠️ Guild này hiện đang có Cự Thú xuất thế (\`${hasActive.ten}\`). Đạo hữu hãy tiêu diệt boss cũ trước.`;
+            } else {
+              await boDieuKhienBoss.trieuHoiWorldBossTuDong(interaction.client, interaction.guildId, interaction.guild);
+              statusMessage = `👹 Thiên Đạo giáng thế Cự Thú thế giới ngay lập tức!`;
+            }
+          } catch (spawnErr) {
+            console.error('[Admin Command] Lỗi triệu hồi boss:', spawnErr);
+            statusMessage = `❌ Thao tác triệu hồi gặp lỗi linh lực bất túc.`;
+          }
         } else if (customId === 'edit_btn_close') {
           collector.stop('closed');
           return;
-        } else if (['edit_stat_back', 'edit_gift_back', 'edit_revoke_back'].includes(customId)) {
+        } else if (['edit_stat_back', 'edit_gift_back', 'edit_revoke_back', 'edit_boss_back'].includes(customId)) {
           currentMenu = 'MAIN';
         } else if (customId === 'edit_gift_prev') {
           giftItemPage = Math.max(0, giftItemPage - 1);

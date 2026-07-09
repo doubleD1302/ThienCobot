@@ -360,36 +360,55 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           }
         }
 
-        // 2. Tự động sinh Boss cố định theo khung giờ cho các Server hoạt động
-        const localTimeStr = now.toLocaleTimeString('en-US', {
-          timeZone: 'Asia/Ho_Chi_Minh',
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        const [hStr, mStr] = localTimeStr.split(':');
-        const localHour = parseInt(hStr, 10);
-        const localMinute = parseInt(mStr, 10);
+        // 2. Tự động sinh Boss theo cấu hình từng Guild
+        const { CauHinhGuild } = await import('../models/CauHinhGuild.js');
+        const guilds = client.guilds.cache;
+        for (const [guildId, guild] of guilds) {
+          try {
+            let guildConfig = await CauHinhGuild.findByPk(guildId);
+            if (!guildConfig) {
+              guildConfig = await CauHinhGuild.create({ idGuild: guildId });
+            }
 
-        const allowedHours = [6, 12, 22];
-        const localDateStr = now.toLocaleDateString('en-US', {
-          timeZone: 'Asia/Ho_Chi_Minh',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
-        const todayStr = localDateStr.replace(/\//g, '-');
-        const spawnKey = `${todayStr}-${localHour}`;
-
-        if (allowedHours.includes(localHour) && localMinute === 0 && this.lastSpawnKey !== spawnKey) {
-          this.lastSpawnKey = spawnKey;
-          const guilds = client.guilds.cache;
-          for (const [guildId, guild] of guilds) {
-            // Kiểm tra xem Guild này đã có Boss đang active chưa
             const hasActive = await WorldBoss.findOne({ where: { idGuild: guildId, active: true } });
             if (hasActive) continue;
 
-            await this.trieuHoiWorldBossTuDong(client, guildId, guild);
+            const nowTime = now.getTime();
+            let shouldSpawn = false;
+
+            if (guildConfig.bossSpawnType === 'chu_ky') {
+              const minutes = parseInt(guildConfig.bossSpawnValue, 10) || 60;
+              const lastSpawn = guildConfig.bossLastSpawnAt ? new Date(guildConfig.bossLastSpawnAt).getTime() : 0;
+              if (nowTime - lastSpawn >= minutes * 60000) {
+                shouldSpawn = true;
+              }
+            } else if (guildConfig.bossSpawnType === 'moc_gio') {
+              const localTimeStr = now.toLocaleTimeString('en-US', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              const hoursList = (guildConfig.bossSpawnValue || '')
+                .split(',')
+                .map(t => t.trim())
+                .filter(Boolean);
+              
+              if (hoursList.includes(localTimeStr)) {
+                const lastSpawn = guildConfig.bossLastSpawnAt ? new Date(guildConfig.bossLastSpawnAt).getTime() : 0;
+                if (nowTime - lastSpawn >= 60000) {
+                  shouldSpawn = true;
+                }
+              }
+            }
+
+            if (shouldSpawn) {
+              guildConfig.bossLastSpawnAt = now;
+              await guildConfig.save();
+              await this.trieuHoiWorldBossTuDong(client, guildId, guild);
+            }
+          } catch (gErr) {
+            console.error(`[Boss System] Lỗi khi xử lý tự động triệu hồi cho guild ${guildId}:`, gErr);
           }
         }
 
@@ -672,47 +691,63 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       let kyLanBuffActive = false;
       let huyenVuBuffActive = false;
 
+      // Trạng thái hiệu ứng mới
+      let playerLifestealRounds = 0;   // Hút máu tăng cường của Tổ Long
+      let bossStunnedRounds = 0;       // Yêu thú bị choáng
+      let bossWeakenRounds = 0;        // Yêu thú bị suy yếu
+      let bossWeakenPct = 0;           // Tỷ lệ suy yếu của Bạch Hổ
+      let playerImmuneRounds = 0;      // Người chơi kháng hiệu ứng bất lợi
+      let bossPoisonRounds = 0;        // Hiệp độc của Huyền Vũ
+      let bossPoisonStacks = 0;        // Tích độc của Huyền Vũ
+      let bossPoisonDmgPerStack = 0;   // Sát thương độc mỗi tích
+      let huyenVuCritActive = false;   // Huyền Vũ giảm bạo & phản đòn
+      let critDmgRedPct = 0;           // Tỷ lệ giảm sát thương bạo
+
       // Kích hoạt kỹ năng chủ động của Thần Thú khi vào trận chiến
+      let kyLanCumulativeDmg = 0;
+      let kyLanBurstTriggered = false;
+
       if (activePet && monsterHp > 0) {
         const template = config.PET_TEMPLATES[activePet.type];
         if (template && template.group === 'than_thu') {
-          const baseCd = (activePet.cd !== null && activePet.cd !== undefined) ? activePet.cd : 5;
           const totalEvolves = config.getPetTotalEvolves(activePet);
-          const petSkillCd = Math.max(1, baseCd - totalEvolves);
-          petSkillCooldownLeft = petSkillCd;
-
           const evoMult = Math.pow(1.1, totalEvolves);
-          const maxPlayerAtk = Math.max(stats.vat_cong, stats.phap_cong);
-          const petHpRef = Math.max(1, Math.floor(stats.max_hp / 10));
 
           if (template.species === 'to_long') {
-            const dmg = Math.floor(petHpRef * 0.15 * evoMult);
+            const dmg = Math.floor(stats.phap_cong * 1.5 * evoMult);
             monsterHp = Math.max(0, monsterHp - dmg);
             totalDmgDealt += dmg;
             toLongBuffActive = true;
-            battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Long Thần Chi Nộ 🐉**, oanh tạc gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Đồng thời tăng **10% công kích** cho tu sĩ đến hết trận!`);
-          } else if (template.species === 'ky_lan') {
-            const dmg = Math.floor(petHpRef * 0.22 * evoMult);
-            monsterHp = Math.max(0, monsterHp - dmg);
-            totalDmgDealt += dmg;
-            const shieldAmt = Math.floor(petHpRef * 0.20 * evoMult);
-            playerShield = (playerShield || 0) + shieldAmt;
-            kyLanBuffActive = true;
-            battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Kỳ Lân Hộ Thể 🦄**, oanh kích gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`) và tạo lớp lá chắn \`${shieldAmt.toLocaleString()}\` HP hộ thể. Đồng thời tăng **15% né tránh** & **10% hút máu** cho tu sĩ đến hết trận!`);
+            playerLifestealRounds = (activePet.tienHoa >= 6) ? 3 : 2;
+            bossStunnedRounds = 2;
+            petSkillCooldownLeft = 5;
+            battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Phước lành chân long 🐉**, gây \`${dmg.toLocaleString()}\` sát thương pháp thuật lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Khiến yêu thú bị **Choáng trong 2 lượt** và tăng **50% hút máu** cho tu sĩ trong \`${playerLifestealRounds}\` lượt!`);
           } else if (template.species === 'huyen_vu') {
-            const dmg = Math.floor(petHpRef * 0.20 * evoMult);
-            monsterHp = Math.max(0, monsterHp - dmg);
-            totalDmgDealt += dmg;
-            const shieldAmt = Math.floor(petHpRef * 0.25 * evoMult);
+            const shieldAmt = Math.floor(stats.max_hp * 0.25 * evoMult);
             playerShield = (playerShield || 0) + shieldAmt;
             huyenVuBuffActive = true;
-            battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Huyền Vũ Bảo Vệ 🐢**, giáng xuống Huyền Thạch gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`) và tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh. Đồng thời tăng hiệu ứng **giảm 15% sát thương gánh chịu** cho tu sĩ đến hết trận!`);
+            huyenVuCritActive = true;
+            critDmgRedPct = Math.min(0.50, 0.20 + (activePet.tienHoa || 0) * 0.03);
+            
+            // Poison setup
+            bossPoisonRounds = 3;
+            bossPoisonStacks = 1;
+            bossPoisonDmgPerStack = Math.floor(stats.max_hp * Math.min(0.10, 0.05 + (activePet.tienHoa || 0) * 0.005));
+            const poisonDmgInitial = bossPoisonDmgPerStack * bossPoisonStacks;
+            petSkillCooldownLeft = 5;
+
+            battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh, đồng thời phun chất độc gây \`${poisonDmgInitial.toLocaleString()}\` sát thương độc lực đầu mỗi lượt (kéo dài 3 hiệp, cộng dồn tối đa 3 lần). Khi kẻ địch bạo kích, tu sĩ giảm \`${Math.floor(critDmgRedPct * 100)}%\` sát thương gánh chịu và phản lại 25% sát thương gánh chịu!`);
           } else if (template.species === 'bach_ho') {
-            const dmg = Math.floor(petHpRef * 0.18 * evoMult);
+            const dmg = Math.floor(stats.vat_cong * 1.5 * evoMult);
             monsterHp = Math.max(0, monsterHp - dmg);
             totalDmgDealt += dmg;
             bachHoBuffActive = true;
-            battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${dmg.toLocaleString()}\` sát thương cố định lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Đồng thời tăng **15% tỷ lệ bạo kích** & **30% sát thương bạo kích** cho tu sĩ đến hết trận!`);
+            
+            bossWeakenRounds = 2;
+            bossWeakenPct = Math.min(0.50, 0.20 + (activePet.tienHoa || 0) * 0.03);
+            playerImmuneRounds = 2;
+            petSkillCooldownLeft = 5;
+            battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${dmg.toLocaleString()}\` sát thương vật lý lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Khiến Boss bị **Suy yếu giảm ${Math.floor(bossWeakenPct * 100)}% song công** trong 2 lượt, tu sĩ giải trừ và kháng toàn bộ hiệu ứng bất lợi trong 2 lượt!`);
           } else if (template.species === 'phuong_hoang') {
             const baseDmg = (stats.vat_cong + stats.phap_cong) * evoMult;
             const addHits = Math.floor(stats.crit_dmg / 0.8);
@@ -726,7 +761,10 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             totalPetDmg = Math.floor(totalPetDmg);
             monsterHp = Math.max(0, monsterHp - totalPetDmg);
             totalDmgDealt += totalPetDmg;
+            petSkillCooldownLeft = 5;
             battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+          } else if (template.species === 'ky_lan') {
+            petSkillCooldownLeft = 0;
           }
         }
       }
@@ -774,201 +812,265 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         }
       }
 
-      while (monsterHp > 0 && playerHp > 0 && round <= 15) {
-        if (phoenixRegenRounds > 0) {
-          const regenAmt = Math.floor(stats.max_hp * 0.05);
-          playerHp = Math.min(stats.max_hp, playerHp + regenAmt);
-          battleLogs.push(`<:phung:1522635618377662484> **Phượng Hoàng Hộ Thể**: Hồi phục \`+${regenAmt}\` HP từ hiệu ứng Niết Bàn (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
-          phoenixRegenRounds--;
-        }
+      // Tốc độ và Điểm hành động (AV)
+      const playerSpeed = stats.speed || 100;
+      const bossSpeed = 100;
 
-        let currentRoundAtkMult = playerAtkMult;
-        if (toLongBuffActive) {
-          currentRoundAtkMult += 0.10;
-        }
-        const currentRoundPlayerAtk = Math.floor((isPhysical ? stats.vat_cong : stats.phap_cong) * currentRoundAtkMult);
+      let avPlayer = 10000 / playerSpeed;
+      let avBoss = 10000 / bossSpeed;
 
-        let pDmg = 0;
-        let roundCritRate = stats.crit_rate;
-        let roundCritDmg = stats.crit_dmg;
-        if (bachHoBuffActive) {
-          roundCritRate = Math.min(1.0, roundCritRate + 0.15);
-          roundCritDmg += 0.30;
-        }
-        const isCrit = Math.random() <= roundCritRate;
-        let castMsg = '';
+      const baseAvPlayer = avPlayer;
+      const baseAvBoss = avBoss;
 
-        const readySkill = skills.find(s => s.nextRoundAvailable <= round);
-        if (readySkill && Math.random() <= 0.60) {
-          const skill = readySkill.detail;
-          const capDo = readySkill.capDo;
-          const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
-          let rawDmg = currentRoundPlayerAtk * skillMult;
+      let playerActionCount = 0;
+      let combatRound = 1;
 
-          if (isCrit) rawDmg = rawDmg * roundCritDmg;
-          pDmg = Math.max(10, Math.floor(rawDmg) - bossDef);
+      while (monsterHp > 0 && playerHp > 0 && playerActionCount < 15) {
+        if (avPlayer <= avBoss) {
+          // Lượt của người chơi
+          const elapsed = avPlayer;
+          avBoss -= elapsed;
+          avPlayer = baseAvPlayer;
 
-          castMsg = `thi triển **${skill.ten} (Cấp ${capDo})**`;
-          readySkill.nextRoundAvailable = round + 3;
-        } else {
-          let rawDmg = currentRoundPlayerAtk;
-          if (isCrit) rawDmg = rawDmg * roundCritDmg;
-          pDmg = Math.max(10, Math.floor(rawDmg) - bossDef);
-
-          castMsg = `đánh thường`;
-        }
-
-        monsterHp = Math.max(0, monsterHp - pDmg);
-        totalDmgDealt += pDmg;
-        battleLogs.push(`💥 **Hiệp ${round}**: **${tuSi.ten}** ${castMsg} gây \`${pDmg.toLocaleString()}\` sát thương lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
-
-        // Hút máu nếu có
-        let roundLifesteal = stats.lifesteal;
-        if (kyLanBuffActive) {
-          roundLifesteal += 0.10;
-        }
-        if (roundLifesteal > 0 && monsterHp > 0) {
-          const healed = Math.floor(pDmg * roundLifesteal);
-          if (healed > 0) {
-            playerHp = Math.min(stats.max_hp, playerHp + healed);
-            battleLogs.push(`🩸 **Hút máu**: Hồi phục \`+${healed}\` HP (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+          if (phoenixRegenRounds > 0) {
+            const regenAmt = Math.floor(stats.max_hp * 0.05);
+            playerHp = Math.min(stats.max_hp, playerHp + regenAmt);
+            battleLogs.push(`<:phung:1522635618377662484> **Phượng Hoàng Hộ Thể**: Hồi phục \`+${regenAmt}\` HP từ hiệu ứng Niết Bàn (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+            phoenixRegenRounds--;
           }
-        }
 
-        if (monsterHp <= 0) {
-          break;
-        }
+          // Sát thương độc lực của Huyền Vũ (đầu lượt)
+          if (bossPoisonRounds > 0 && bossPoisonStacks > 0) {
+            const poisonDmgTotal = bossPoisonDmgPerStack * bossPoisonStacks;
+            monsterHp = Math.max(0, monsterHp - poisonDmgTotal);
+            totalDmgDealt += poisonDmgTotal;
+            battleLogs.push(`🤢 **Trúng độc**: **${boss.ten}** chịu \`-${poisonDmgTotal.toLocaleString()}\` sát thương độc lực (cộng dồn x${bossPoisonStacks}) (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+            bossPoisonRounds--;
+            if (bossPoisonRounds === 0) {
+              bossPoisonStacks = 0;
+            }
+            if (monsterHp <= 0) break;
+          }
 
-        // Thần thú active skills (10% cơ hội mỗi hiệp)
-        if (activePet && petSkillCooldownLeft === 0 && Math.random() <= 0.10) {
-          const template = config.PET_TEMPLATES[activePet.type];
-          if (template && template.group === 'than_thu') {
-            const baseCd = (activePet.cd !== null && activePet.cd !== undefined) ? activePet.cd : 5;
-            const totalEvolves = config.getPetTotalEvolves(activePet);
-            const petSkillCd = Math.max(1, baseCd - totalEvolves);
-            petSkillCooldownLeft = petSkillCd;
-            const evoMult = Math.pow(1.1, totalEvolves);
-            const maxPlayerAtk = Math.max(stats.vat_cong, stats.phap_cong);
-            const petHpRef = Math.max(1, Math.floor(stats.max_hp / 10));
+          let currentRoundAtkMult = playerAtkMult;
+          if (toLongBuffActive) {
+            currentRoundAtkMult += 0.10;
+          }
+          const currentRoundPlayerAtk = Math.floor((isPhysical ? stats.vat_cong : stats.phap_cong) * currentRoundAtkMult);
 
-            if (template.species === 'to_long') {
-              const petDmg = Math.floor(petHpRef * 0.15 * evoMult);
-              monsterHp = Math.max(0, monsterHp - petDmg);
-              totalDmgDealt += petDmg;
-              let buffMsg = '';
-              if (!toLongBuffActive) {
-                toLongBuffActive = true;
-                buffMsg = ` Đồng thời tăng **10% công kích** cho tu sĩ đến hết trận!`;
-              }
-              battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Long Thần Chi Nộ 🐉**, phun trào Long lực gây \`${petDmg.toLocaleString()}\` sát thương lên yêu thú!${buffMsg} (HP còn: \`${monsterHp.toLocaleString()}\`).`);
-              if (monsterHp <= 0) {
-                break;
-              }
-            } else if (template.species === 'ky_lan') {
-              const petDmg = Math.floor(petHpRef * 0.22 * evoMult);
-              monsterHp = Math.max(0, monsterHp - petDmg);
-              totalDmgDealt += petDmg;
-              const petShield = Math.floor(petHpRef * 0.20 * evoMult);
-              playerShield += petShield;
-              let buffMsg = '';
-              if (!kyLanBuffActive) {
-                kyLanBuffActive = true;
-                buffMsg = ` Đồng thời tăng **15% né tránh** & **10% hút máu** cho tu sĩ đến hết trận!`;
-              }
-              battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Kỳ Lân Hộ Thể 🦄**, oanh kích gây \`${petDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`) và ngưng tụ lá chắn \`${petShield.toLocaleString()}\` HP bảo vệ.${buffMsg}`);
-              if (monsterHp <= 0) {
-                break;
-              }
-            } else if (template.species === 'huyen_vu') {
-              const petDmg = Math.floor(petHpRef * 0.20 * evoMult);
-              monsterHp = Math.max(0, monsterHp - petDmg);
-              totalDmgDealt += petDmg;
-              const petShield = Math.floor(petHpRef * 0.25 * evoMult);
-              playerShield += petShield;
-              let buffMsg = '';
-              if (!huyenVuBuffActive) {
-                huyenVuBuffActive = true;
-                buffMsg = ` Đồng thời tăng hiệu ứng **giảm 15% sát thương gánh chịu** cho tu sĩ đến hết trận!`;
-              }
-              battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Huyền Vũ Bảo Vệ 🐢**, giáng xuống Huyền Thạch gây \`${petDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`) và tạo lá chắn dày \`${petShield.toLocaleString()}\` HP hộ vệ.${buffMsg}`);
-              if (monsterHp <= 0) {
-                break;
-              }
-            } else if (template.species === 'bach_ho') {
-              const petDmg = Math.floor(petHpRef * 0.18 * evoMult);
-              monsterHp = Math.max(0, monsterHp - petDmg);
-              totalDmgDealt += petDmg;
-              let buffMsg = '';
-              if (!bachHoBuffActive) {
-                bachHoBuffActive = true;
-                buffMsg = ` Đồng thời tăng **15% tỷ lệ bạo kích** & **30% sát thương bạo kích** cho tu sĩ đến hết trận!`;
-              }
-              battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích chém thẳng gây \`${petDmg.toLocaleString()}\` sát thương lên yêu thú!${buffMsg} (HP còn: \`${monsterHp.toLocaleString()}\`).`);
-              if (monsterHp <= 0) {
-                break;
-              }
-            } else if (template.species === 'phuong_hoang') {
-              const baseDmg = (stats.vat_cong + stats.phap_cong) * evoMult;
-              const addHits = Math.floor(stats.crit_dmg / 0.8);
-              const totalHits = 1 + addHits;
-              let totalPetDmg = 0;
-              let currentHitDmg = baseDmg;
-              for (let h = 0; h < totalHits; h++) {
-                totalPetDmg += currentHitDmg;
-                currentHitDmg = currentHitDmg * 1.2;
-              }
-              totalPetDmg = Math.floor(totalPetDmg);
-              monsterHp = Math.max(0, monsterHp - totalPetDmg);
-              totalDmgDealt += totalPetDmg;
-              battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`).`);
-              if (monsterHp <= 0) {
-                break;
+          let pDmg = 0;
+          let roundCritRate = stats.crit_rate;
+          let roundCritDmg = stats.crit_dmg;
+          if (bachHoBuffActive) {
+            roundCritRate = Math.min(1.0, roundCritRate + 0.15);
+            roundCritDmg += 0.30;
+          }
+          const isCrit = Math.random() <= roundCritRate;
+          let castMsg = '';
+
+          const readySkill = skills.find(s => s.nextRoundAvailable <= playerActionCount + 1);
+          if (readySkill && Math.random() <= 0.60) {
+            const skill = readySkill.detail;
+            const capDo = readySkill.capDo;
+            const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
+            let rawDmg = currentRoundPlayerAtk * skillMult;
+
+            if (isCrit) rawDmg = rawDmg * roundCritDmg;
+            pDmg = Math.max(10, Math.floor(rawDmg) - bossDef);
+
+            castMsg = `thi triển **${skill.ten} (Cấp ${capDo})**`;
+            readySkill.nextRoundAvailable = playerActionCount + 1 + 3;
+          } else {
+            let rawDmg = currentRoundPlayerAtk;
+            if (isCrit) rawDmg = rawDmg * roundCritDmg;
+            pDmg = Math.max(10, Math.floor(rawDmg) - bossDef);
+
+            castMsg = `đánh thường`;
+          }
+
+          monsterHp = Math.max(0, monsterHp - pDmg);
+          totalDmgDealt += pDmg;
+          battleLogs.push(`💥 **Hiệp ${combatRound}** (Lượt ${playerActionCount + 1}, AV: ${elapsed.toFixed(0)}): **${tuSi.ten}** ${castMsg} gây \`${pDmg.toLocaleString()}\` sát thương lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).` + (isCrit ? ` (BẠO KÍCH! 💥)` : ''));
+
+          // Hút máu nếu có
+          let roundLifesteal = stats.lifesteal;
+          if (kyLanBuffActive) {
+            roundLifesteal += 0.10;
+          }
+          if (playerLifestealRounds > 0) {
+            roundLifesteal += 0.50; // Phước lành chân long hút máu
+          }
+          if (roundLifesteal > 0 && monsterHp > 0) {
+            const healed = Math.floor(pDmg * roundLifesteal);
+            if (healed > 0) {
+              playerHp = Math.min(stats.max_hp, playerHp + healed);
+              battleLogs.push(`🩸 **Hút máu**: Hồi phục \`+${healed}\` HP (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+            }
+          }
+
+          if (monsterHp <= 0) break;
+
+          // Kỳ Lân active skill mỗi lượt của chủ nhân
+          if (activePet) {
+            const template = config.PET_TEMPLATES[activePet.type];
+            if (template && template.group === 'than_thu') {
+              const totalEvolves = config.getPetTotalEvolves(activePet);
+              const evoMult = Math.pow(1.1, totalEvolves);
+
+              if (template.species === 'ky_lan') {
+                const pct = Math.min(0.30, 0.25 + (activePet.tienHoa || 0) * 0.005);
+                const isPhap = tuSi.huongTu === 'Phap Tu' || tuSi.huongTu === 'Pháp Tu';
+                const dmgTypeVal = isPhap ? stats.phap_cong : stats.vat_cong;
+                let petDmg = Math.floor(dmgTypeVal * pct * evoMult);
+                monsterHp = Math.max(0, monsterHp - petDmg);
+                totalDmgDealt += petDmg;
+                kyLanCumulativeDmg = (kyLanCumulativeDmg || 0) + petDmg;
+                battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${activePet.name}** oanh kích gây \`${petDmg.toLocaleString()}\` sát thương ${isPhap ? 'pháp thuật' : 'vật lý'} lên yêu thú (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+
+                const limit = stats.max_hp * Math.min(0.70, 0.50 + (activePet.tienHoa || 0) * 0.02);
+                if (!kyLanBurstTriggered && kyLanCumulativeDmg >= limit) {
+                  const burstDmg = Math.floor(limit * 2);
+                  monsterHp = Math.max(0, monsterHp - burstDmg);
+                  totalDmgDealt += burstDmg;
+                  kyLanBurstTriggered = true;
+                  battleLogs.push(`🦄 **Kỳ Lân Bộc Phá**: Tích lũy sát thương đạt mốc, **${activePet.name}** bộc phát cuồng nộ x2 sát thương giới hạn, giáng thêm \`-${burstDmg.toLocaleString()}\` sát thương chí mạng lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`)!`);
+                }
+                if (monsterHp <= 0) break;
+              } else {
+                // Thần thú khác (Tổ Long, Huyền Vũ, Bạch Hổ, Phượng Hoàng)
+                if (petSkillCooldownLeft === 0 && Math.random() <= 0.10) {
+                  petSkillCooldownLeft = 5;
+                  if (template.species === 'to_long') {
+                    const petDmg = Math.floor(stats.phap_cong * 1.5 * evoMult);
+                    monsterHp = Math.max(0, monsterHp - petDmg);
+                    totalDmgDealt += petDmg;
+                    toLongBuffActive = true;
+                    playerLifestealRounds = (activePet.tienHoa >= 6) ? 3 : 2;
+                    bossStunnedRounds = 2;
+                    battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Phước lành chân long 🐉** gây \`${petDmg.toLocaleString()}\` sát thương pháp thuật lên yêu thú (HP còn: \`${monsterHp.toLocaleString()}\`). Boss bị **Choáng trong 2 lượt** và tu sĩ tăng **50% hút máu** trong \`${playerLifestealRounds}\` lượt!`);
+                    if (monsterHp <= 0) break;
+                  } else if (template.species === 'huyen_vu') {
+                    const petShield = Math.floor(stats.max_hp * 0.25 * evoMult);
+                    playerShield += petShield;
+                    
+                    bossPoisonRounds = 3;
+                    bossPoisonStacks = Math.min(3, (bossPoisonStacks || 0) + 1);
+                    bossPoisonDmgPerStack = Math.floor(stats.max_hp * Math.min(0.10, 0.05 + (activePet.tienHoa || 0) * 0.005));
+                    const poisonDmgTotal = bossPoisonDmgPerStack * bossPoisonStacks;
+
+                    huyenVuBuffActive = true;
+                    huyenVuCritActive = true;
+                    critDmgRedPct = Math.min(0.50, 0.20 + (activePet.tienHoa || 0) * 0.03);
+
+                    battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lá chắn \`${petShield.toLocaleString()}\` HP bảo vệ, và giải độc lực gây \`${poisonDmgTotal.toLocaleString()}\` sát thương độc mỗi lượt (cộng dồn lớp độc thứ \`${bossPoisonStacks}\`).`);
+                    if (monsterHp <= 0) break;
+                  } else if (template.species === 'bach_ho') {
+                    const petDmg = Math.floor(stats.vat_cong * 1.5 * evoMult);
+                    monsterHp = Math.max(0, monsterHp - petDmg);
+                    totalDmgDealt += petDmg;
+                    
+                    bossWeakenRounds = 2;
+                    bossWeakenPct = Math.min(0.50, 0.20 + (activePet.tienHoa || 0) * 0.03);
+                    playerImmuneRounds = 2;
+                    bachHoBuffActive = true;
+
+                    battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${petDmg.toLocaleString()}\` sát thương vật lý lên yêu thú (HP còn: \`${monsterHp.toLocaleString()}\`). Khiến Boss bị **Suy yếu giảm ${Math.floor(bossWeakenPct * 100)}% song công** trong 2 lượt, tu sĩ kháng toàn bộ hiệu ứng bất lợi trong 2 lượt!`);
+                    if (monsterHp <= 0) break;
+                  } else if (template.species === 'phuong_hoang') {
+                    const baseDmg = (stats.vat_cong + stats.phap_cong) * evoMult;
+                    const addHits = Math.floor(stats.crit_dmg / 0.8);
+                    const totalHits = 1 + addHits;
+                    let totalPetDmg = 0;
+                    let currentHitDmg = baseDmg;
+                    for (let h = 0; h < totalHits; h++) {
+                      totalPetDmg += currentHitDmg;
+                      currentHitDmg = currentHitDmg * 1.2;
+                    }
+                    totalPetDmg = Math.floor(totalPetDmg);
+                    monsterHp = Math.max(0, monsterHp - totalPetDmg);
+                    totalDmgDealt += totalPetDmg;
+                    battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên yêu thú! (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+                    if (monsterHp <= 0) break;
+                  }
+                }
               }
             }
           }
-        }
 
-        // Cự Thú phản công tu sĩ (Giảm 1/2 sát thương của Boss)
-        let bossDmg = Math.max(1, Math.floor((boss.vatCong - stats.vat_phong) / 2));
-        let roundNe = stats.ne;
-        if (kyLanBuffActive) {
-          roundNe = Math.min(0.90, roundNe + 0.15);
-        }
-        const isDodge = Math.random() <= roundNe;
-
-        if (isDodge) {
-          battleLogs.push(`💨 **Né tránh**: Đạo hữu nhanh nhẹn né tránh hoàn hảo đòn vồ!`);
-        } else {
-          if (huyenVuBuffActive) {
-            bossDmg = Math.floor(bossDmg * 0.85);
+          if (petSkillCooldownLeft > 0) {
+            petSkillCooldownLeft--;
           }
-          if (playerShield > 0) {
-            if (playerShield >= bossDmg) {
-              playerShield -= bossDmg;
-              battleLogs.push(`🛡️ **Lá Chắn**: Khiên hấp thụ toàn bộ \`${bossDmg}\` sát thương từ Boss (Khiên còn: \`${playerShield}\`).`);
-              bossDmg = 0;
+          if (playerLifestealRounds > 0) playerLifestealRounds--;
+          if (playerImmuneRounds > 0) playerImmuneRounds--;
+
+          playerActionCount++;
+          combatRound++;
+        } else {
+          // Lượt của Boss
+          const elapsed = avBoss;
+          avPlayer -= elapsed;
+          avBoss = baseAvBoss;
+
+          if (bossStunnedRounds > 0) {
+            battleLogs.push(`💤 **Choáng**: **${boss.ten}** bị choáng không thể phản công trong hiệp này!`);
+          } else {
+            let bossDmg = Math.max(1, Math.floor((boss.vatCong - stats.vat_phong) / 2)) * 2;
+            
+            if (bossWeakenRounds > 0) {
+              bossDmg = Math.floor(bossDmg * (1 - bossWeakenPct));
+              battleLogs.push(`✨ **Suy yếu**: Yêu thú bị suy yếu, sát thương phản công giảm đi \`-${Math.floor(bossWeakenPct * 100)}%\`.`);
+            }
+
+            const isBossCrit = Math.random() <= 0.15;
+            let bossCritMsg = '';
+            if (isBossCrit) {
+              bossDmg = Math.floor(bossDmg * 1.5);
+              bossCritMsg = ` (BẠO KÍCH! 💥)`;
+            }
+
+            if (isBossCrit && huyenVuCritActive) {
+              const redAmt = Math.floor(bossDmg * critDmgRedPct);
+              bossDmg -= redAmt;
+              const reflectDmg = Math.floor(bossDmg * 0.25);
+              monsterHp = Math.max(0, monsterHp - reflectDmg);
+              totalDmgDealt += reflectDmg;
+              battleLogs.push(`🐢 **Huyền Vũ Giảm Bạo**: Giảm \`-${Math.floor(critDmgRedPct * 100)}%\` sát thương bạo kích gánh chịu, phản hồi \`+${reflectDmg.toLocaleString()}\` sát thương ngược lại Boss (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+              if (monsterHp <= 0) break;
+            }
+
+            let roundNe = stats.ne;
+            if (kyLanBuffActive) {
+              roundNe = Math.min(0.90, roundNe + 0.15);
+            }
+            const isDodge = Math.random() <= roundNe;
+
+            if (isDodge) {
+              battleLogs.push(`💨 **Né tránh**: Đạo hữu nhanh nhẹn né tránh hoàn hảo đòn vồ từ Boss!`);
             } else {
-              bossDmg -= playerShield;
-              battleLogs.push(`🛡️ **Lá Chắn**: Khiên hấp thụ \`${playerShield}\` sát thương từ Boss rồi vỡ! Sát thương lọt qua: \`${bossDmg}\`.`);
-              playerShield = 0;
+              if (playerShield > 0) {
+                if (playerShield >= bossDmg) {
+                  playerShield -= bossDmg;
+                  battleLogs.push(`🛡️ **Lá Chắn**: Khiên hấp thụ toàn bộ \`${bossDmg}\`${bossCritMsg} sát thương từ Boss (Khiên còn: \`${playerShield}\`).`);
+                  bossDmg = 0;
+                } else {
+                  bossDmg -= playerShield;
+                  battleLogs.push(`🛡️ **Lá Chắn**: Khiên hấp thụ \`${playerShield}\`${bossCritMsg} sát thương từ Boss rồi vỡ! Sát thương lọt qua: \`${bossDmg}\`.`);
+                  playerShield = 0;
+                }
+              }
+
+              if (bossDmg > 0) {
+                playerHp = Math.max(0, playerHp - bossDmg);
+                battleLogs.push(`👹 **Cự Thú** (AV: ${elapsed.toFixed(0)}): **${boss.ten}** phản kích gây \`-${bossDmg}\`${bossCritMsg} sát thương lên **${tuSi.ten}** (HP còn: \`${playerHp}\`).`);
+              }
             }
           }
 
-          if (bossDmg > 0) {
-            playerHp = Math.max(0, playerHp - bossDmg);
-            battleLogs.push(`👹 **Cự Thú**: **${boss.ten}** phản kích gây \`-${bossDmg}\` sát thương lên **${tuSi.ten}** (HP còn: \`${playerHp}\`).`);
-          }
-        }
+          if (bossStunnedRounds > 0) bossStunnedRounds--;
+          if (bossWeakenRounds > 0) bossWeakenRounds--;
 
-        if (playerHp <= 0) {
-          break;
+          combatRound++;
         }
-
-        if (petSkillCooldownLeft > 0) {
-          petSkillCooldownLeft--;
-        }
-
-        round++;
       }
 
       boss.hp = monsterHp;

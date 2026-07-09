@@ -1096,154 +1096,671 @@ async function _simCombat(tuSiA, tuSiB) {
     }
   }
 
+    // Trạng thái hiệu ứng Thần thú A
+  let toLongBuffActiveA = false;
+  let playerLifestealRoundsA = 0;
+  let stunnedRoundsB = 0;
+  let petSkillCooldownLeftA = 0;
+  let huyenVuBuffActiveA = false;
+  let huyenVuCritActiveA = false;
+  let critDmgRedPctA = 0;
+  let poisonRoundsB = 0;
+  let poisonStacksB = 0;
+  let poisonDmgPerStackB = 0;
+  let bachHoBuffActiveA = false;
+  let weakenRoundsB = 0;
+  let weakenPctB = 0;
+  let playerImmuneRoundsA = 0;
+  let kyLanBuffActiveA = false;
+  let kyLanCumulativeDmgA = 0;
+  let kyLanBurstTriggeredA = false;
+  let phoenixTriggeredA = false;
+  let phoenixRegenRoundsA = 0;
+
+  // Trạng thái hiệu ứng Thần thú B
+  let toLongBuffActiveB = false;
+  let playerLifestealRoundsB = 0;
+  let stunnedRoundsA = 0;
+  let petSkillCooldownLeftB = 0;
+  let huyenVuBuffActiveB = false;
+  let huyenVuCritActiveB = false;
+  let critDmgRedPctB = 0;
+  let poisonRoundsA = 0;
+  let poisonStacksA = 0;
+  let poisonDmgPerStackA = 0;
+  let bachHoBuffActiveB = false;
+  let weakenRoundsA = 0;
+  let weakenPctA = 0;
+  let playerImmuneRoundsB = 0;
+  let kyLanBuffActiveB = false;
+  let kyLanCumulativeDmgB = 0;
+  let kyLanBurstTriggeredB = false;
+  let phoenixTriggeredB = false;
+  let phoenixRegenRoundsB = 0;
+
+  // Kích hoạt Thần thú A khi vào trận
+  if (petA && hpB > 0) {
+    const template = config.PET_TEMPLATES[petA.type];
+    if (template && template.group === 'than_thu') {
+      const totalEvolves = config.getPetTotalEvolves(petA);
+      const evoMult = Math.pow(1.1, totalEvolves);
+
+      if (template.species === 'to_long') {
+        const dmg = Math.floor(statsA.phap_cong * 1.5 * evoMult);
+        hpB = Math.max(0, hpB - dmg);
+        toLongBuffActiveA = true;
+        playerLifestealRoundsA = (petA.tienHoa >= 6) ? 3 : 2;
+        stunnedRoundsB = 2;
+        petSkillCooldownLeftA = 5;
+        battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${petA.name}** của **${tuSiA.ten}** thi triển **Phước lành chân long 🐉**, gây \`${dmg.toLocaleString()}\` sát thương pháp thuật lên **${tuSiB.ten}** (HP còn: \`${hpB.toLocaleString()}\`). Khiến đối phương bị **Choáng trong 2 lượt** và tăng **50% hút máu** cho chủ nhân trong \`${playerLifestealRoundsA}\` lượt!`);
+      } else if (template.species === 'huyen_vu') {
+        const shieldAmt = Math.floor(statsA.max_hp * 0.25 * evoMult);
+        shieldA = (shieldA || 0) + shieldAmt;
+        huyenVuBuffActiveA = true;
+        huyenVuCritActiveA = true;
+        critDmgRedPctA = Math.min(0.50, 0.20 + (petA.tienHoa || 0) * 0.03);
+
+        poisonRoundsB = 3;
+        poisonStacksB = 1;
+        poisonDmgPerStackB = Math.floor(statsA.max_hp * Math.min(0.10, 0.05 + (petA.tienHoa || 0) * 0.005));
+        const poisonDmgInitial = poisonDmgPerStackB * poisonStacksB;
+        petSkillCooldownLeftA = 5;
+
+        battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${petA.name}** của **${tuSiA.ten}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh, đồng thời phun chất độc gây \`${poisonDmgInitial.toLocaleString()}\` sát thương độc lực đầu mỗi lượt lên **${tuSiB.ten}**. Khi đối phương bạo kích, chủ nhân giảm \`${Math.floor(critDmgRedPctA * 100)}%\` sát thương gánh chịu và phản lại 25% sát thương gánh chịu!`);
+      } else if (template.species === 'bach_ho') {
+        const dmg = Math.floor(statsA.vat_cong * 1.5 * evoMult);
+        hpB = Math.max(0, hpB - dmg);
+        bachHoBuffActiveA = true;
+        
+        weakenRoundsB = 2;
+        weakenPctB = Math.min(0.50, 0.20 + (petA.tienHoa || 0) * 0.03);
+        playerImmuneRoundsA = 2;
+        petSkillCooldownLeftA = 5;
+        battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${petA.name}** của **${tuSiA.ten}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${dmg.toLocaleString()}\` sát thương vật lý lên **${tuSiB.ten}** (HP còn: \`${hpB.toLocaleString()}\`). Khiến đối phương bị **Suy yếu giảm ${Math.floor(weakenPctB * 100)}% song công** trong 2 lượt, giải trừ và kháng toàn bộ hiệu ứng bất lợi trong 2 lượt!`);
+      } else if (template.species === 'phuong_hoang') {
+        const baseDmg = (statsA.vat_cong + statsA.phap_cong) * evoMult;
+        const addHits = Math.floor(statsA.crit_dmg / 0.8);
+        const totalHits = 1 + addHits;
+        let totalPetDmg = 0;
+        let currentHitDmg = baseDmg;
+        for (let h = 0; h < totalHits; h++) {
+          totalPetDmg += currentHitDmg;
+          currentHitDmg = currentHitDmg * 1.2;
+        }
+        totalPetDmg = Math.floor(totalPetDmg);
+        hpB = Math.max(0, hpB - totalPetDmg);
+        petSkillCooldownLeftA = 5;
+        battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${petA.name}** của **${tuSiA.ten}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** lên **${tuSiB.ten}**, gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương (HP còn: \`${hpB.toLocaleString()}\`).`);
+      } else if (template.species === 'ky_lan') {
+        petSkillCooldownLeftA = 0;
+      }
+    }
+  }
+
+  // Kích hoạt Thần thú B khi vào trận
+  if (petB && hpA > 0) {
+    const template = config.PET_TEMPLATES[petB.type];
+    if (template && template.group === 'than_thu') {
+      const totalEvolves = config.getPetTotalEvolves(petB);
+      const evoMult = Math.pow(1.1, totalEvolves);
+
+      if (template.species === 'to_long') {
+        const dmg = Math.floor(statsB.phap_cong * 1.5 * evoMult);
+        hpA = Math.max(0, hpA - dmg);
+        toLongBuffActiveB = true;
+        playerLifestealRoundsB = (petB.tienHoa >= 6) ? 3 : 2;
+        stunnedRoundsA = 2;
+        petSkillCooldownLeftB = 5;
+        battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${petB.name}** của **${tuSiB.ten}** thi triển **Phước lành chân long 🐉**, gây \`${dmg.toLocaleString()}\` sát thương pháp thuật lên **${tuSiA.ten}** (HP còn: \`${hpA.toLocaleString()}\`). Khiến đối phương bị **Choáng trong 2 lượt** và tăng **50% hút máu** cho chủ nhân trong \`${playerLifestealRoundsB}\` lượt!`);
+      } else if (template.species === 'huyen_vu') {
+        const shieldAmt = Math.floor(statsB.max_hp * 0.25 * evoMult);
+        shieldB = (shieldB || 0) + shieldAmt;
+        huyenVuBuffActiveB = true;
+        huyenVuCritActiveB = true;
+        critDmgRedPctB = Math.min(0.50, 0.20 + (petB.tienHoa || 0) * 0.03);
+
+        poisonRoundsA = 3;
+        poisonStacksA = 1;
+        poisonDmgPerStackA = Math.floor(statsB.max_hp * Math.min(0.10, 0.05 + (petB.tienHoa || 0) * 0.005));
+        const poisonDmgInitial = poisonDmgPerStackA * poisonStacksA;
+        petSkillCooldownLeftB = 5;
+
+        battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${petB.name}** của **${tuSiB.ten}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh, đồng thời phun chất độc gây \`${poisonDmgInitial.toLocaleString()}\` sát thương độc lực đầu mỗi lượt lên **${tuSiA.ten}**. Khi đối phương bạo kích, chủ nhân giảm \`${Math.floor(critDmgRedPctB * 100)}%\` sát thương gánh chịu và phản lại 25% sát thương gánh chịu!`);
+      } else if (template.species === 'bach_ho') {
+        const dmg = Math.floor(statsB.vat_cong * 1.5 * evoMult);
+        hpA = Math.max(0, hpA - dmg);
+        bachHoBuffActiveB = true;
+        
+        weakenRoundsA = 2;
+        weakenPctB = Math.min(0.50, 0.20 + (petB.tienHoa || 0) * 0.03);
+        playerImmuneRoundsB = 2;
+        petSkillCooldownLeftB = 5;
+        battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${petB.name}** của **${tuSiB.ten}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${dmg.toLocaleString()}\` sát thương vật lý lên **${tuSiA.ten}** (HP còn: \`${hpA.toLocaleString()}\`). Khiến đối phương bị **Suy yếu giảm ${Math.floor(weakenPctB * 100)}% song công** trong 2 lượt, giải trừ và kháng toàn bộ hiệu ứng bất lợi trong 2 lượt!`);
+      } else if (template.species === 'phuong_hoang') {
+        const baseDmg = (statsB.vat_cong + statsB.phap_cong) * evoMult;
+        const addHits = Math.floor(statsB.crit_dmg / 0.8);
+        const totalHits = 1 + addHits;
+        let totalPetDmg = 0;
+        let currentHitDmg = baseDmg;
+        for (let h = 0; h < totalHits; h++) {
+          totalPetDmg += currentHitDmg;
+          currentHitDmg = currentHitDmg * 1.2;
+        }
+        totalPetDmg = Math.floor(totalPetDmg);
+        hpA = Math.max(0, hpA - totalPetDmg);
+        petSkillCooldownLeftB = 5;
+        battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${petB.name}** của **${tuSiB.ten}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** lên **${tuSiA.ten}**, gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương (HP còn: \`${hpA.toLocaleString()}\`).`);
+      } else if (template.species === 'ky_lan') {
+        petSkillCooldownLeftB = 0;
+      }
+    }
+  }
+
+  if (hpA <= 0 || hpB <= 0) {
+    if (hpA <= 0 && hpB <= 0) {
+      winner = hpA >= hpB ? tuSiA : tuSiB;
+    } else if (hpA <= 0) {
+      winner = tuSiB;
+    } else {
+      winner = tuSiA;
+    }
+  }
+
   const atkA = tuSiA.huongTu === 'The Tu' ? statsA.vat_cong : statsA.phap_cong;
   const defB = tuSiA.huongTu === 'The Tu' ? statsB.vat_phong : statsB.phap_phong;
   const atkB = tuSiB.huongTu === 'The Tu' ? statsB.vat_cong : statsB.phap_cong;
   const defA = tuSiB.huongTu === 'The Tu' ? statsA.vat_phong : statsA.phap_phong;
 
-  while (hpA > 0 && hpB > 0 && round <= 300) {
-    // A -> B
-    let roundAtkAMult = 1.0;
-    for (const buff of activeBuffsA) {
-      if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
-        roundAtkAMult += buff.triGia / 100;
+  // Điểm hành động (AV)
+  const speedA = statsA.speed || 100;
+  const speedB = statsB.speed || 100;
+
+  let avPlayerA = 10000 / speedA;
+  let avPlayerB = 10000 / speedB;
+
+  const baseAvA = avPlayerA;
+  const baseAvB = avPlayerB;
+
+  let combatRound = 1;
+  let actionCountA = 0;
+  let actionCountB = 0;
+
+  while (hpA > 0 && hpB > 0 && (actionCountA + actionCountB) < 300) {
+    if (avPlayerA <= avPlayerB) {
+      // Lượt của Player A
+      const elapsed = avPlayerA;
+      avPlayerB -= elapsed;
+      avPlayerA = baseAvA;
+
+      // Hồi Niết Bàn của A
+      if (phoenixRegenRoundsA > 0) {
+        const regenAmt = Math.floor(statsA.max_hp * 0.05);
+        hpA = Math.min(statsA.max_hp, hpA + regenAmt);
+        battleLogs.push(`<:phung:1522635618377662484> **Phượng Hoàng Hộ Thể**: **${tuSiA.ten}** hồi phục \`+${regenAmt}\` HP từ Niết Bàn (Hiện tại: \`${hpA}/${statsA.max_hp}\`).`);
+        phoenixRegenRoundsA--;
       }
-    }
-    const currentRoundAtkA = Math.floor(atkA * roundAtkAMult);
 
-    const readySkillA = skillsA.find(s => s.nextRoundAvailable <= round);
-    let dmgA = 0;
-    let castMsgA = '';
-    let isCritA = Math.random() <= statsA.crit_rate;
+      // Độc lực của Huyền Vũ tác dụng lên A (nếu B xài Huyền Vũ)
+      if (poisonRoundsA > 0 && poisonStacksA > 0) {
+        const poisonDmg = poisonDmgPerStackA * poisonStacksA;
+        hpA = Math.max(0, hpA - poisonDmg);
+        battleLogs.push(`🤢 **Trúng độc**: **${tuSiA.ten}** chịu \`-${poisonDmg.toLocaleString()}\` sát thương độc lực từ Thần thú của **${tuSiB.ten}** (HP còn: \`${hpA}\`).`);
+        poisonRoundsA--;
+        if (poisonRoundsA === 0) poisonStacksA = 0;
+        if (hpA <= 0) {
+          winner = tuSiB;
+          break;
+        }
+      }
 
-    if (readySkillA) {
-      const skill = readySkillA.detail;
-      const capDo = readySkillA.capDo;
-      const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
-      let rawDmg = currentRoundAtkA * skillMult;
+      if (stunnedRoundsA > 0) {
+        battleLogs.push(`💤 **Choáng**: **${tuSiA.ten}** bị choáng không thể hành động trong lượt này!`);
+        stunnedRoundsA--;
+      } else {
+        // A tấn công B
+        let roundAtkAMult = 1.0;
+        for (const buff of activeBuffsA) {
+          if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
+            roundAtkAMult += buff.triGia / 100;
+          }
+        }
+        if (toLongBuffActiveA) roundAtkAMult += 0.10;
+        let currentRoundAtkA = Math.floor(atkA * roundAtkAMult);
 
-      if (isCritA) rawDmg = rawDmg * statsA.crit_dmg;
-      dmgA = Math.max(1, Math.floor(rawDmg) - defB);
+        // Suy yếu của B giảm công của A
+        if (weakenRoundsA > 0) {
+          currentRoundAtkA = Math.floor(currentRoundAtkA * (1 - weakenPctA));
+        }
 
-      const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
-      readySkillA.nextRoundAvailable = round + cooldownRounds;
+        const readySkillA = skillsA.find(s => s.nextRoundAvailable <= actionCountA + 1);
+        let dmgA = 0;
+        let castMsgA = '';
+        let isCritA = Math.random() <= statsA.crit_rate;
 
-      castMsgA = `thi triển **${skill.ten} (Cấp ${capDo})**`;
-    } else {
-      let rawDmg = currentRoundAtkA;
-      if (isCritA) rawDmg = rawDmg * statsA.crit_dmg;
-      dmgA = Math.max(1, Math.floor(rawDmg) - defB);
-      castMsgA = `đánh thường`;
-    }
+        if (readySkillA) {
+          const skill = readySkillA.detail;
+          const capDo = readySkillA.capDo;
+          const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
+          let rawDmg = currentRoundAtkA * skillMult;
 
-    if (Math.random() <= statsB.ne) {
-      battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiA.ten}** ${castMsgA} nhưng **${tuSiB.ten}** ảo ảnh lướt nhẹ né tránh thành công!`);
-    } else {
-      if (shieldB > 0) {
-        if (shieldB >= dmgA) {
-          shieldB -= dmgA;
-          battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiB.ten}** hấp thụ toàn bộ \`${dmgA}\` sát thương (Khiên còn: \`${shieldB}\`).`);
-          dmgA = 0;
+          if (isCritA) rawDmg = rawDmg * statsA.crit_dmg;
+          dmgA = Math.max(1, Math.floor(rawDmg) - defB);
+
+          const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
+          readySkillA.nextRoundAvailable = actionCountA + 1 + cooldownRounds;
+
+          castMsgA = `thi triển **${skill.ten} (Cấp ${capDo})**`;
         } else {
-          dmgA -= shieldB;
-          battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiB.ten}** hấp thụ \`${shieldB}\` sát thương rồi vỡ! Sát thương lọt qua: \`${dmgA}\`.`);
-          shieldB = 0;
+          let rawDmg = currentRoundAtkA;
+          if (isCritA) rawDmg = rawDmg * statsA.crit_dmg;
+          dmgA = Math.max(1, Math.floor(rawDmg) - defB);
+          castMsgA = `đánh thường`;
         }
-      }
-      if (dmgA > 0) {
-        hpB = Math.max(0, hpB - dmgA);
-        battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiA.ten}** ${castMsgA} gây \`${dmgA}\`${isCritA ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiB.ten}** (HP còn: \`${hpB}\`).`);
-      }
-    }
 
-    if (hpB <= 0) {
-      winner = tuSiA;
-      break;
-    }
+        // B né tránh đòn A
+        let roundNeB = statsB.ne;
+        if (kyLanBuffActiveB) roundNeB = Math.min(0.90, roundNeB + 0.15);
 
-    // B -> A
-    let roundAtkBMult = 1.0;
-    for (const buff of activeBuffsB) {
-      if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
-        roundAtkBMult += buff.triGia / 100;
-      }
-    }
-    const currentRoundAtkB = Math.floor(atkB * roundAtkBMult);
-
-    const readySkillB = skillsB.find(s => s.nextRoundAvailable <= round);
-    let dmgB = 0;
-    let castMsgB = '';
-    let isCritB = Math.random() <= statsB.crit_rate;
-
-    if (readySkillB) {
-      const skill = readySkillB.detail;
-      const capDo = readySkillB.capDo;
-      const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
-      let rawDmg = currentRoundAtkB * skillMult;
-
-      if (isCritB) rawDmg = rawDmg * statsB.crit_dmg;
-      dmgB = Math.max(1, Math.floor(rawDmg) - defA);
-
-      const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
-      readySkillB.nextRoundAvailable = round + cooldownRounds;
-
-      castMsgB = `thi triển **${skill.ten} (Cấp ${capDo})**`;
-    } else {
-      let rawDmg = currentRoundAtkB;
-      if (isCritB) rawDmg = rawDmg * statsB.crit_dmg;
-      dmgB = Math.max(1, Math.floor(rawDmg) - defA);
-      castMsgB = `phản kích đánh thường`;
-    }
-
-    if (Math.random() <= statsA.ne) {
-      battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiB.ten}** ${castMsgB} nhưng **${tuSiA.ten}** né tránh thành công!`);
-    } else {
-      if (shieldA > 0) {
-        if (shieldA >= dmgB) {
-          shieldA -= dmgB;
-          battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiA.ten}** hấp thụ toàn bộ \`${dmgB}\` sát thương (Khiên còn: \`${shieldA}\`).`);
-          dmgB = 0;
+        if (Math.random() <= roundNeB) {
+          battleLogs.push(`⚡ **Hiệp ${combatRound}** (Lượt ${actionCountA + 1} của **${tuSiA.ten}**, AV: ${elapsed.toFixed(0)}): **${tuSiA.ten}** ${castMsgA} nhưng **${tuSiB.ten}** né tránh thành công!`);
         } else {
-          dmgB -= shieldA;
-          battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiA.ten}** hấp thụ \`${shieldA}\` sát thương rồi vỡ! Sát thương lọt qua: \`${dmgB}\`.`);
-          shieldA = 0;
+          // B gánh chịu sát thương, bạo kích Huyền Vũ giảm bạo/phản đòn
+          if (isCritA && huyenVuCritActiveB) {
+            const redAmt = Math.floor(dmgA * critDmgRedPctB);
+            dmgA -= redAmt;
+            const reflectDmg = Math.floor(dmgA * 0.25);
+            hpA = Math.max(0, hpA - reflectDmg);
+            battleLogs.push(`🐢 **Huyền Vũ Giảm Bạo**: **${tuSiB.ten}** giảm \`-${Math.floor(critDmgRedPctB * 100)}%\` sát thương bạo kích gánh chịu, phản hồi \`+${reflectDmg.toLocaleString()}\` sát thương ngược lại **${tuSiA.ten}** (HP còn: \`${hpA.toLocaleString()}\`).`);
+          }
+
+          if (shieldB > 0) {
+            if (shieldB >= dmgA) {
+              shieldB -= dmgA;
+              battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiB.ten}** hấp thụ toàn bộ \`${dmgA}\` sát thương (Khiên còn: \`${shieldB}\`).`);
+              dmgA = 0;
+            } else {
+              dmgA -= shieldB;
+              battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiB.ten}** hấp thụ \`${shieldB}\` sát thương rồi vỡ! Sát thương lọt qua: \`${dmgA}\`.`);
+              shieldB = 0;
+            }
+          }
+
+          if (dmgA > 0) {
+            hpB = Math.max(0, hpB - dmgA);
+            battleLogs.push(`⚡ **Hiệp ${combatRound}** (Lượt ${actionCountA + 1} của **${tuSiA.ten}**, AV: ${elapsed.toFixed(0)}): **${tuSiA.ten}** ${castMsgA} gây \`${dmgA}\`${isCritA ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiB.ten}** (HP còn: \`${hpB}\`).`);
+
+            // Hút máu của A
+            let roundLifestealA = statsA.lifesteal;
+            if (kyLanBuffActiveA) roundLifestealA += 0.10;
+            if (playerLifestealRoundsA > 0) roundLifestealA += 0.50;
+            if (roundLifestealA > 0) {
+              const healed = Math.floor(dmgA * roundLifestealA);
+              if (healed > 0) {
+                hpA = Math.min(statsA.max_hp, hpA + healed);
+                battleLogs.push(`🩸 **Hút máu**: **${tuSiA.ten}** hồi phục \`+${healed}\` HP (Hiện tại: \`${hpA}/${statsA.max_hp}\`).`);
+              }
+            }
+          }
+        }
+
+        if (hpB <= 0) {
+          winner = tuSiA;
+          break;
+        }
+
+        // Kỳ Lân của A đánh mỗi lượt của A
+        if (petA) {
+          const template = config.PET_TEMPLATES[petA.type];
+          if (template && template.group === 'than_thu') {
+            const totalEvolves = config.getPetTotalEvolves(petA);
+            const evoMult = Math.pow(1.1, totalEvolves);
+
+            if (template.species === 'ky_lan') {
+              const pct = Math.min(0.30, 0.25 + (petA.tienHoa || 0) * 0.005);
+              const isPhap = tuSiA.huongTu === 'Phap Tu' || tuSiA.huongTu === 'Pháp Tu';
+              const dmgTypeVal = isPhap ? statsA.phap_cong : statsA.vat_cong;
+              let petDmg = Math.floor(dmgTypeVal * pct * evoMult);
+              hpB = Math.max(0, hpB - petDmg);
+              kyLanCumulativeDmgA = (kyLanCumulativeDmgA || 0) + petDmg;
+              battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${petA.name}** oanh kích gây \`${petDmg.toLocaleString()}\` sát thương ${isPhap ? 'pháp thuật' : 'vật lý'} lên **${tuSiB.ten}** (HP còn: \`${hpB.toLocaleString()}\`).`);
+
+              const limit = statsA.max_hp * Math.min(0.70, 0.50 + (petA.tienHoa || 0) * 0.02);
+              if (!kyLanBurstTriggeredA && kyLanCumulativeDmgA >= limit) {
+                const burstDmg = Math.floor(limit * 2);
+                hpB = Math.max(0, hpB - burstDmg);
+                kyLanBurstTriggeredA = true;
+                battleLogs.push(`🦄 **Kỳ Lân Bộc Phá**: Tích lũy sát thương đạt mốc, **${petA.name}** bộc phát cuồng nộ x2 sát thương giới hạn, giáng thêm \`-${burstDmg.toLocaleString()}\` sát thương chí mạng lên **${tuSiB.ten}** (HP còn: \`${hpB.toLocaleString()}\`)!`);
+              }
+              if (hpB <= 0) {
+                winner = tuSiA;
+                break;
+              }
+            } else {
+              // Thần thú khác của A chủ động (20%)
+              if (petSkillCooldownLeftA === 0 && Math.random() <= 0.20) {
+                petSkillCooldownLeftA = 5;
+                if (template.species === 'to_long') {
+                  const petDmg = Math.floor(statsA.phap_cong * 1.5 * evoMult);
+                  hpB = Math.max(0, hpB - petDmg);
+                  toLongBuffActiveA = true;
+                  playerLifestealRoundsA = (petA.tienHoa >= 6) ? 3 : 2;
+                  stunnedRoundsB = 2;
+                  battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${petA.name}** thi triển **Phước lành chân long 🐉** gây \`${petDmg.toLocaleString()}\` sát thương pháp thuật lên **${tuSiB.ten}** (HP còn: \`${hpB.toLocaleString()}\`). Đối phương bị **Choáng trong 2 lượt** và tăng **50% hút máu** cho chủ nhân trong \`${playerLifestealRoundsA}\` lượt!`);
+                  if (hpB <= 0) {
+                    winner = tuSiA;
+                    break;
+                  }
+                } else if (template.species === 'huyen_vu') {
+                  const petShield = Math.floor(statsA.max_hp * 0.25 * evoMult);
+                  shieldA += petShield;
+                  
+                  poisonRoundsB = 3;
+                  poisonStacksB = Math.min(3, (poisonStacksB || 0) + 1);
+                  poisonDmgPerStackB = Math.floor(statsA.max_hp * Math.min(0.10, 0.05 + (petA.tienHoa || 0) * 0.005));
+                  const poisonDmgTotal = poisonDmgPerStackB * poisonStacksB;
+
+                  huyenVuBuffActiveA = true;
+                  huyenVuCritActiveA = true;
+                  critDmgRedPctA = Math.min(0.50, 0.20 + (petA.tienHoa || 0) * 0.03);
+
+                  battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${petA.name}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lá chắn \`${petShield.toLocaleString()}\` HP bảo vệ, và giải độc lực gây \`${poisonDmgTotal.toLocaleString()}\` sát thương độc mỗi lượt lên đối thủ.`);
+                  if (hpB <= 0) {
+                    winner = tuSiA;
+                    break;
+                  }
+                } else if (template.species === 'bach_ho') {
+                  const petDmg = Math.floor(statsA.vat_cong * 1.5 * evoMult);
+                  hpB = Math.max(0, hpB - petDmg);
+                  
+                  weakenRoundsB = 2;
+                  weakenPctB = Math.min(0.50, 0.20 + (petA.tienHoa || 0) * 0.03);
+                  playerImmuneRoundsA = 2;
+                  bachHoBuffActiveA = true;
+
+                  battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${petA.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${petDmg.toLocaleString()}\` sát thương vật lý lên **${tuSiB.ten}** (HP còn: \`${hpB.toLocaleString()}\`). Khiến đối phương bị **Suy yếu giảm ${Math.floor(weakenPctB * 100)}% song công** trong 2 lượt, chủ nhân kháng toàn bộ hiệu ứng bất lợi trong 2 lượt!`);
+                  if (hpB <= 0) {
+                    winner = tuSiA;
+                    break;
+                  }
+                } else if (template.species === 'phuong_hoang') {
+                  const baseDmg = (statsA.vat_cong + statsA.phap_cong) * evoMult;
+                  const addHits = Math.floor(statsA.crit_dmg / 0.8);
+                  const totalHits = 1 + addHits;
+                  let totalPetDmg = 0;
+                  let currentHitDmg = baseDmg;
+                  for (let h = 0; h < totalHits; h++) {
+                    totalPetDmg += currentHitDmg;
+                    currentHitDmg = currentHitDmg * 1.2;
+                  }
+                  totalPetDmg = Math.floor(totalPetDmg);
+                  hpB = Math.max(0, hpB - totalPetDmg);
+                  battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${petA.name}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** lên đối thủ, gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương.`);
+                  if (hpB <= 0) {
+                    winner = tuSiA;
+                    break;
+                  }
+                }
+              }
+            }
+          }
         }
       }
-      if (dmgB > 0) {
-        hpA = Math.max(0, hpA - dmgB);
-        battleLogs.push(`⚡ **Hiệp ${round}**: **${tuSiB.ten}** ${castMsgB} gây \`${dmgB}\`${isCritB ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiA.ten}** (HP còn: \`${hpA}\`).`);
-      }
-    }
 
-    if (hpA <= 0) {
-      winner = tuSiB;
-      break;
-    }
-
-    // Giảm duration
-    for (const buff of activeBuffsA) {
-      if (buff.roundsLeft > 0) {
-        buff.roundsLeft--;
-        if (buff.roundsLeft === 0) {
-          battleLogs.push(`✨ Hiệu ứng [${buff.ten}] của **${buff.pbTen}** (${tuSiA.ten}) đã hết tác dụng.`);
+      // Giảm buff thời hạn Pháp bảo của A
+      for (const buff of activeBuffsA) {
+        if (buff.roundsLeft > 0) {
+          buff.roundsLeft--;
+          if (buff.roundsLeft === 0) {
+            battleLogs.push(`✨ Hiệu ứng [${buff.ten}] của **${buff.pbTen}** (${tuSiA.ten}) đã hết tác dụng.`);
+          }
         }
       }
-    }
-    for (const buff of activeBuffsB) {
-      if (buff.roundsLeft > 0) {
-        buff.roundsLeft--;
-        if (buff.roundsLeft === 0) {
-          battleLogs.push(`✨ Hiệu ứng [${buff.ten}] của **${buff.pbTen}** (${tuSiB.ten}) đã hết tác dụng.`);
+
+      if (petSkillCooldownLeftA > 0) petSkillCooldownLeftA--;
+      if (playerLifestealRoundsA > 0) playerLifestealRoundsA--;
+      if (playerImmuneRoundsA > 0) playerImmuneRoundsA--;
+      if (weakenRoundsA > 0) weakenRoundsA--;
+
+      actionCountA++;
+      combatRound++;
+    } else {
+      // Lượt của Player B
+      const elapsed = avPlayerB;
+      avPlayerA -= elapsed;
+      avPlayerB = baseAvB;
+
+      // Hồi Niết Bàn của B
+      if (phoenixRegenRoundsB > 0) {
+        const regenAmt = Math.floor(statsB.max_hp * 0.05);
+        hpB = Math.min(statsB.max_hp, hpB + regenAmt);
+        battleLogs.push(`<:phung:1522635618377662484> **Phượng Hoàng Hộ Thể**: **${tuSiB.ten}** hồi phục \`+${regenAmt}\` HP từ Niết Bàn (Hiện tại: \`${hpB}/${statsB.max_hp}\`).`);
+        phoenixRegenRoundsB--;
+      }
+
+      // Độc lực của Huyền Vũ tác dụng lên B (nếu A xài Huyền Vũ)
+      if (poisonRoundsB > 0 && poisonStacksB > 0) {
+        const poisonDmg = poisonDmgPerStackB * poisonStacksB;
+        hpB = Math.max(0, hpB - poisonDmg);
+        battleLogs.push(`🤢 **Trúng độc**: **${tuSiB.ten}** chịu \`-${poisonDmg.toLocaleString()}\` sát thương độc lực từ Thần thú của **${tuSiA.ten}** (HP còn: \`${hpB}\`).`);
+        poisonRoundsB--;
+        if (poisonRoundsB === 0) poisonStacksB = 0;
+        if (hpB <= 0) {
+          winner = tuSiA;
+          break;
         }
       }
+
+      if (stunnedRoundsB > 0) {
+        battleLogs.push(`💤 **Choáng**: **${tuSiB.ten}** bị choáng không thể hành động trong lượt này!`);
+        stunnedRoundsB--;
+      } else {
+        // B tấn công A
+        let roundAtkBMult = 1.0;
+        for (const buff of activeBuffsB) {
+          if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
+            roundAtkBMult += buff.triGia / 100;
+          }
+        }
+        if (toLongBuffActiveB) roundAtkBMult += 0.10;
+        let currentRoundAtkB = Math.floor(atkB * roundAtkBMult);
+
+        // Suy yếu của A giảm công của B
+        if (weakenRoundsB > 0) {
+          currentRoundAtkB = Math.floor(currentRoundAtkB * (1 - weakenPctB));
+        }
+
+        const readySkillB = skillsB.find(s => s.nextRoundAvailable <= actionCountB + 1);
+        let dmgB = 0;
+        let castMsgB = '';
+        let isCritB = Math.random() <= statsB.crit_rate;
+
+        if (readySkillB) {
+          const skill = readySkillB.detail;
+          const capDo = readySkillB.capDo;
+          const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
+          let rawDmg = currentRoundAtkB * skillMult;
+
+          if (isCritB) rawDmg = rawDmg * statsB.crit_dmg;
+          dmgB = Math.max(1, Math.floor(rawDmg) - defA);
+
+          const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
+          readySkillB.nextRoundAvailable = actionCountB + 1 + cooldownRounds;
+
+          castMsgB = `thi triển **${skill.ten} (Cấp ${capDo})**`;
+        } else {
+          let rawDmg = currentRoundAtkB;
+          if (isCritB) rawDmg = rawDmg * statsB.crit_dmg;
+          dmgB = Math.max(1, Math.floor(rawDmg) - defA);
+          castMsgB = `phản kích đánh thường`;
+        }
+
+        // A né tránh đòn B
+        let roundNeA = statsA.ne;
+        if (kyLanBuffActiveA) roundNeA = Math.min(0.90, roundNeA + 0.15);
+
+        if (Math.random() <= roundNeA) {
+          battleLogs.push(`⚡ **Hiệp ${combatRound}** (Lượt ${actionCountB + 1} của **${tuSiB.ten}**, AV: ${elapsed.toFixed(0)}): **${tuSiB.ten}** ${castMsgB} nhưng **${tuSiA.ten}** né tránh thành công!`);
+        } else {
+          // A gánh chịu sát thương, bạo kích Huyền Vũ giảm bạo/phản đòn
+          if (isCritB && huyenVuCritActiveA) {
+            const redAmt = Math.floor(dmgB * critDmgRedPctA);
+            dmgB -= redAmt;
+            const reflectDmg = Math.floor(dmgB * 0.25);
+            hpB = Math.max(0, hpB - reflectDmg);
+            battleLogs.push(`🐢 **Huyền Vũ Giảm Bạo**: **${tuSiA.ten}** giảm \`-${Math.floor(critDmgRedPctA * 100)}%\` sát thương bạo kích gánh chịu, phản hồi \`+${reflectDmg.toLocaleString()}\` sát thương ngược lại **${tuSiB.ten}** (HP còn: \`${hpB.toLocaleString()}\`).`);
+          }
+
+          if (shieldA > 0) {
+            if (shieldA >= dmgB) {
+              shieldA -= dmgB;
+              battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiA.ten}** hấp thụ toàn bộ \`${dmgB}\` sát thương (Khiên còn: \`${shieldA}\`).`);
+              dmgB = 0;
+            } else {
+              dmgB -= shieldA;
+              battleLogs.push(`🛡️ **Lá Chắn**: Khiên của **${tuSiA.ten}** hấp thụ \`${shieldA}\` sát thương rồi vỡ! Sát thương lọt qua: \`${dmgB}\`.`);
+              shieldA = 0;
+            }
+          }
+
+          if (dmgB > 0) {
+            hpA = Math.max(0, hpA - dmgB);
+            battleLogs.push(`⚡ **Hiệp ${combatRound}** (Lượt ${actionCountB + 1} của **${tuSiB.ten}**, AV: ${elapsed.toFixed(0)}): **${tuSiB.ten}** ${castMsgB} gây \`${dmgB}\`${isCritB ? ' 💥 (Bạo!)' : ''} sát thương lên **${tuSiA.ten}** (HP còn: \`${hpA}\`).`);
+
+            // Hút máu của B
+            let roundLifestealB = statsB.lifesteal;
+            if (kyLanBuffActiveB) roundLifestealB += 0.10;
+            if (playerLifestealRoundsB > 0) roundLifestealB += 0.50;
+            if (roundLifestealB > 0) {
+              const healed = Math.floor(dmgB * roundLifestealB);
+              if (healed > 0) {
+                hpB = Math.min(statsB.max_hp, hpB + healed);
+                battleLogs.push(`🩸 **Hút máu**: **${tuSiB.ten}** hồi phục \`+${healed}\` HP (Hiện tại: \`${hpB}/${statsB.max_hp}\`).`);
+              }
+            }
+          }
+        }
+
+        if (hpA <= 0) {
+          winner = tuSiB;
+          break;
+        }
+
+        // Kỳ Lân của B đánh mỗi lượt của B
+        if (petB) {
+          const template = config.PET_TEMPLATES[petB.type];
+          if (template && template.group === 'than_thu') {
+            const totalEvolves = config.getPetTotalEvolves(petB);
+            const evoMult = Math.pow(1.1, totalEvolves);
+
+            if (template.species === 'ky_lan') {
+              const pct = Math.min(0.30, 0.25 + (petB.tienHoa || 0) * 0.005);
+              const isPhap = tuSiB.huongTu === 'Phap Tu' || tuSiB.huongTu === 'Pháp Tu';
+              const dmgTypeVal = isPhap ? statsB.phap_cong : statsB.vat_cong;
+              let petDmg = Math.floor(dmgTypeVal * pct * evoMult);
+              hpA = Math.max(0, hpA - petDmg);
+              kyLanCumulativeDmgB = (kyLanCumulativeDmgB || 0) + petDmg;
+              battleLogs.push(`🦄 **Thần Thú Kích Hoạt**: **${petB.name}** oanh kích gây \`${petDmg.toLocaleString()}\` sát thương ${isPhap ? 'pháp thuật' : 'vật lý'} lên **${tuSiA.ten}** (HP còn: \`${hpA.toLocaleString()}\`).`);
+
+              const limit = statsB.max_hp * Math.min(0.70, 0.50 + (petB.tienHoa || 0) * 0.02);
+              if (!kyLanBurstTriggeredB && kyLanCumulativeDmgB >= limit) {
+                const burstDmg = Math.floor(limit * 2);
+                hpA = Math.max(0, hpA - burstDmg);
+                kyLanBurstTriggeredB = true;
+                battleLogs.push(`🦄 **Kỳ Lân Bộc Phá**: Tích lũy sát thương đạt mốc, **${petB.name}** bộc phát cuồng nộ x2 sát thương giới hạn, giáng thêm \`-${burstDmg.toLocaleString()}\` sát thương chí mạng lên **${tuSiA.ten}** (HP còn: \`${hpA.toLocaleString()}\`)!`);
+              }
+              if (hpA <= 0) {
+                winner = tuSiB;
+                break;
+              }
+            } else {
+              // Thần thú khác của B chủ động (20%)
+              if (petSkillCooldownLeftB === 0 && Math.random() <= 0.20) {
+                petSkillCooldownLeftB = 5;
+                if (template.species === 'to_long') {
+                  const petDmg = Math.floor(statsB.phap_cong * 1.5 * evoMult);
+                  hpA = Math.max(0, hpA - petDmg);
+                  toLongBuffActiveB = true;
+                  playerLifestealRoundsB = (petB.tienHoa >= 6) ? 3 : 2;
+                  stunnedRoundsA = 2;
+                  battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${petB.name}** thi triển **Phước lành chân long 🐉** gây \`${petDmg.toLocaleString()}\` sát thương pháp thuật lên **${tuSiA.ten}** (HP còn: \`${hpA.toLocaleString()}\`). Đối phương bị **Choáng trong 2 lượt** và tăng **50% hút máu** cho chủ nhân trong \`${playerLifestealRoundsB}\` lượt!`);
+                  if (hpA <= 0) {
+                    winner = tuSiB;
+                    break;
+                  }
+                } else if (template.species === 'huyen_vu') {
+                  const petShield = Math.floor(statsB.max_hp * 0.25 * evoMult);
+                  shieldB += petShield;
+                  
+                  poisonRoundsA = 3;
+                  poisonStacksA = Math.min(3, (poisonStacksA || 0) + 1);
+                  poisonDmgPerStackA = Math.floor(statsB.max_hp * Math.min(0.10, 0.05 + (petB.tienHoa || 0) * 0.005));
+                  const poisonDmgTotal = poisonDmgPerStackA * poisonStacksA;
+
+                  huyenVuBuffActiveB = true;
+                  huyenVuCritActiveB = true;
+                  critDmgRedPctB = Math.min(0.50, 0.20 + (petB.tienHoa || 0) * 0.03);
+
+                  battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${petB.name}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lá chắn \`${petShield.toLocaleString()}\` HP bảo vệ, và giải độc lực gây \`${poisonDmgTotal.toLocaleString()}\` sát thương độc mỗi lượt lên đối thủ.`);
+                  if (hpA <= 0) {
+                    winner = tuSiB;
+                    break;
+                  }
+                } else if (template.species === 'bach_ho') {
+                  const petDmg = Math.floor(statsB.vat_cong * 1.5 * evoMult);
+                  hpA = Math.max(0, hpA - petDmg);
+                  
+                  weakenRoundsA = 2;
+                  weakenPctA = Math.min(0.50, 0.20 + (petB.tienHoa || 0) * 0.03);
+                  playerImmuneRoundsB = 2;
+                  bachHoBuffActiveB = true;
+
+                  battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${petB.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${petDmg.toLocaleString()}\` sát thương vật lý lên **${tuSiA.ten}** (HP còn: \`${hpA.toLocaleString()}\`). Khiến đối phương bị **Suy yếu giảm ${Math.floor(weakenPctA * 100)}% song công** trong 2 lượt, chủ nhân kháng toàn bộ hiệu ứng bất lợi trong 2 lượt!`);
+                  if (hpA <= 0) {
+                    winner = tuSiB;
+                    break;
+                  }
+                } else if (template.species === 'phuong_hoang') {
+                  const baseDmg = (statsB.vat_cong + statsB.phap_cong) * evoMult;
+                  const addHits = Math.floor(statsB.crit_dmg / 0.8);
+                  const totalHits = 1 + addHits;
+                  let totalPetDmg = 0;
+                  let currentHitDmg = baseDmg;
+                  for (let h = 0; h < totalHits; h++) {
+                    totalPetDmg += currentHitDmg;
+                    currentHitDmg = currentHitDmg * 1.2;
+                  }
+                  totalPetDmg = Math.floor(totalPetDmg);
+                  hpA = Math.max(0, hpA - totalPetDmg);
+                  battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${petB.name}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** lên đối thủ, gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương.`);
+                  if (hpA <= 0) {
+                    winner = tuSiB;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Giảm buff thời hạn Pháp bảo của B
+      for (const buff of activeBuffsB) {
+        if (buff.roundsLeft > 0) {
+          buff.roundsLeft--;
+          if (buff.roundsLeft === 0) {
+            battleLogs.push(`✨ Hiệu ứng [${buff.ten}] của **${buff.pbTen}** (${tuSiB.ten}) đã hết tác dụng.`);
+          }
+        }
+      }
+
+      if (petSkillCooldownLeftB > 0) petSkillCooldownLeftB--;
+      if (playerLifestealRoundsB > 0) playerLifestealRoundsB--;
+      if (playerImmuneRoundsB > 0) playerImmuneRoundsB--;
+      if (weakenRoundsB > 0) weakenRoundsB--;
+
+      actionCountB++;
+      combatRound++;
     }
-
-    round++;
-  }
-
-  if (!winner) {
-    winner = hpA >= hpB ? tuSiA : tuSiB;
-    battleLogs.push(`⏳ Bất phân thắng bại sau 300 hiệp! Xét lượng khí huyết còn lại để định đoạt.`);
   }
 
   return { winner, battleLogs, round };

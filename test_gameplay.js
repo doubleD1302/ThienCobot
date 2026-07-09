@@ -114,8 +114,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Kiểm tra chỉ số cơ bản
     const stats = tuSi.layChiSo();
-    // Thể Tu HP gốc = 200 -> nhân 10 = 2000
-    assert.strictEqual(stats.max_hp, 2000);
+    // Thể Tu HP gốc = 200 -> nhân 10 = 2000 -> chia 3 = 666
+    assert.strictEqual(stats.max_hp, 666);
     // Thể Tu MP gốc = 50
     assert.strictEqual(stats.max_mp, 50);
     // Lôi Linh Căn: bạo thương tăng thêm 30% -> 1.50 + 0.30 = 1.80
@@ -130,8 +130,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(tuSi.tang, 1);
 
     const statsLvl10 = tuSi.layChiSo();
-    // Thể Tu HP tăng trưởng = 30 / cấp. Cấp 10 = (200 + 30 * 9) * 10 = 4700
-    assert.strictEqual(statsLvl10.max_hp, 4700);
+    // Thể Tu HP tăng trưởng = 30 / cấp. Cấp 10 = (200 + 30 * 9) * 10 = 4700 -> chia 3 = 1566
+    assert.strictEqual(statsLvl10.max_hp, 1566);
     // Thể Tu MP tăng trưởng = 5 / cấp. Cấp 10 = 50 + 5 * 9 = 95
     assert.strictEqual(statsLvl10.max_mp, 95);
   });
@@ -334,8 +334,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     
     assert.strictEqual(statsEquipped.vat_cong, expectedAtkWithItem);
     assert.strictEqual(statsEquipped.vat_phong, statsRaw.vat_phong + 20);  // x2 from equipment
-    assert.strictEqual(statsEquipped.max_hp, statsRaw.max_hp + 5000);        // x10 from equipment * 10 = 5000
-
+    assert.strictEqual(statsEquipped.max_hp, 2333);        // (2000 base + 5000 item) / 3 = 2333
     await tuSi.destroy();
   });
 
@@ -1140,7 +1139,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Verify layChiSoDayDu includes the bonus HP/MP
     const stats = await tuSi.layChiSoDayDu();
-    assert.strictEqual(stats.max_hp, 21200); // (120 base + 200 * 10 bonus) * 10 = 21200
+    assert.strictEqual(stats.max_hp, 7066); // (120 base + 200 * 10 bonus) * 10 / 3 = 7066
     assert.strictEqual(stats.max_mp, 250);  // 150 base + 100 bonus = 250 (mp unchanged)
 
     // Test item recovery
@@ -1165,7 +1164,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(useRes.ok, true);
 
     await tuSi.reload();
-    // HP should recover: 10 + 500 * 10 = 5010, below new max_hp of 21200 so not capped
+    // HP should recover: 10 + 500 * 10 = 5010, below new max_hp of 7066 so not capped
     assert.strictEqual(tuSi.hp, 5010);
 
     // Test rest recovery (/nghi)
@@ -1184,8 +1183,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     };
     await boDieuKhienTuLuyen.lenhNghiNgoi.execute(mockInteraction);
     await tuSi.reload();
-    // HP and MP should go to full bonus maximums (21200 and 250 with new x10 hp multiplier)
-    assert.strictEqual(tuSi.hp, 21200);
+    // HP and MP should go to full bonus maximums (7066 and 250 with new x10 hp multiplier)
+    assert.strictEqual(tuSi.hp, 7066);
     assert.strictEqual(tuSi.mp, 250);
 
     // Clean up
@@ -2415,9 +2414,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Tho Linh Can: +10% max HP -> 220 HP.
     // Than Vien base protect: +15% HP, scale = (level 1 * tuChat 100)/100 = 1.0.
     // evoMult = Math.pow(1.1, 1) = 1.10.
-    // HP bonus: 200 * 0.15 * 1.0 * 1.10 = 33 HP.
-    // Total HP should be (220 + 33) * 10 = 2530.
-    assert.strictEqual(stats.max_hp, 2530);
+    // Total HP should be (220 + 33) * 10 / 3 = 843.
+    assert.strictEqual(stats.max_hp, 843);
 
     // Clean up
     await pet.destroy();
@@ -2768,10 +2766,11 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     });
 
     const statsLong = await tuSi.layChiSoDayDu();
-    // baseHpVal is 120 + 15 * 24 = 480.
-    // to_long_1 adds 22% HP. basePhapCong is 100.
-    // Let's verify max_hp is boosted by pet.
-    assert.ok(statsLong.max_hp > 5500); // 10x HP + 22% pet bonus
+    // to_long_1 adds +30% phap_cong and +10% crit_rate (x1.5 = +45% phap_cong and +15% crit_rate)
+    // base phap_cong = 25 + 6 * 24 = 169. expected total = 169 + 169 * 0.45 = 245.
+    // base crit_rate = 0.08 + 0.003 * 24 = 0.152. expected total = 0.152 + 0.15 = 0.302.
+    assert.ok(statsLong.phap_cong >= 245); 
+    assert.ok(statsLong.crit_rate >= 0.30);
 
     // 2. Equip Thần Thú Bạch Hổ
     petLong.isActive = false;
@@ -2788,7 +2787,11 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     });
 
     const statsHo = await tuSi.layChiSoDayDu();
-    assert.ok(statsHo.max_hp > 5500); // 10x HP + 22% pet bonus
+    // bach_ho_1 adds +30% vat_cong and +10% crit_rate (x1.5 = +45% vat_cong and +15% crit_rate)
+    // base vat_cong = 5 + 1 * 24 = 29. expected total = 29 + 29 * 0.45 = 42.
+    // base crit_rate = 0.302
+    assert.ok(statsHo.vat_cong >= 42);
+    assert.ok(statsHo.crit_rate >= 0.30);
 
     // Clean up
     await petLong.destroy();
@@ -3350,9 +3353,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const baseStats = player.layChiSo([], fusedPet);
     // Base HP mapping for Phap Tu: 120 (base) + 15 * (capDo - 1) = 120
     // + Thuy/Tho element mult: none
-    // + Pet max_hp addition: baseHpVal (120) * val (0.11) * scale (1.2) * evoMult (1) * groupMult (1) = 15.84
-    // Total HP before fail breakthroughs/capped dodge = (120 + 15.84) * 10 = 1358
-    assert.strictEqual(baseStats.max_hp, 1358);
+    // Total HP before fail breakthroughs/capped dodge = (120 + 15.84) * 10 / 3 = 452
+    assert.strictEqual(baseStats.max_hp, 452);
 
     // Clean up
     await petA.destroy();

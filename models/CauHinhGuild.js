@@ -29,6 +29,23 @@ CauHinhGuild.init({
     allowNull: false,
     defaultValue: 1000000,
     field: 'hu_tai_xiu'
+  },
+  bossSpawnType: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'moc_gio',
+    field: 'boss_spawn_type'
+  },
+  bossSpawnValue: {
+    type: DataTypes.STRING(200),
+    allowNull: false,
+    defaultValue: '06:00,12:00,22:00',
+    field: 'boss_spawn_value'
+  },
+  bossLastSpawnAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'boss_last_spawn_at'
   }
 }, {
   sequelize,

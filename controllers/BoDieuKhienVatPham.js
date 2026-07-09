@@ -843,18 +843,23 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
       let rollThanThuRate = 0; // Tỷ lệ nở ra Thần Thú
 
-      if (eggId === 'trung_linh_thu_than' || eggId === 'trung_than_thu' || eggId === 'trung_than') {
-        rollThanThuRate = 50;
-      } else if (eggId === 'trung_linh_thu_tien') {
-        rollThanThuRate = 3;
-      } else if (eggId === 'trung_linh_thu_linh') {
-        rollThanThuRate = 1;
-      } else if (eggId === 'trung_linh_thu_pham' || eggId === 'trung_linh_thu') {
-        rollThanThuRate = 0;
+      // Trứng Thần Thú Thượng Cổ: đảm bảo 100% ra Thần Thú Huyết Mạch Thái Cổ (TT_1)
+      let isThan = false;
+      if (eggId === 'trung_than_thu') {
+        isThan = true;
+      } else {
+        if (eggId === 'trung_linh_thu_than' || eggId === 'trung_than') {
+          rollThanThuRate = 50;
+        } else if (eggId === 'trung_linh_thu_tien') {
+          rollThanThuRate = 3;
+        } else if (eggId === 'trung_linh_thu_linh') {
+          rollThanThuRate = 1;
+        } else if (eggId === 'trung_linh_thu_pham' || eggId === 'trung_linh_thu') {
+          rollThanThuRate = 0;
+        }
+        const roll = Math.random() * 100;
+        isThan = roll < rollThanThuRate;
       }
-
-      const roll = Math.random() * 100;
-      const isThan = roll < rollThanThuRate;
 
       let selectedTemplate = null;
       if (isThan) {

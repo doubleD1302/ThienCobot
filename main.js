@@ -497,6 +497,30 @@ async function start() {
         console.log('Đã sửa đổi cột guild_id trong bảng guild_settings thành công.');
       }
 
+      if (!guildSettingsDesc.boss_spawn_type) {
+        console.log('Thêm cột boss_spawn_type vào bảng guild_settings...');
+        await queryInterface.addColumn('guild_settings', 'boss_spawn_type', {
+          type: DataTypes.STRING(20),
+          allowNull: false,
+          defaultValue: 'moc_gio'
+        });
+      }
+      if (!guildSettingsDesc.boss_spawn_value) {
+        console.log('Thêm cột boss_spawn_value vào bảng guild_settings...');
+        await queryInterface.addColumn('guild_settings', 'boss_spawn_value', {
+          type: DataTypes.STRING(200),
+          allowNull: false,
+          defaultValue: '06:00,12:00,22:00'
+        });
+      }
+      if (!guildSettingsDesc.boss_last_spawn_at) {
+        console.log('Thêm cột boss_last_spawn_at vào bảng guild_settings...');
+        await queryInterface.addColumn('guild_settings', 'boss_last_spawn_at', {
+          type: DataTypes.DATE,
+          allowNull: true
+        });
+      }
+
       // Dọn dẹp cấu hình guild lỗi (nếu có)
       const { CauHinhGuild } = await import('./models/CauHinhGuild.js');
       const deletedGuildsCount = await CauHinhGuild.destroy({

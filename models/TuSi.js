@@ -81,6 +81,7 @@ class TuSi extends Model {
     let critDmg = baseStats.crit_dmg + growth.crit_dmg * lvlDiff;
     let ne = 0.0; // Né tránh mặc định
     let lifesteal = 0.0; // Hút máu mặc định
+    let speed = Math.floor(100 * (1.10 ** lvlDiff));
 
     // Lưu chỉ số nền của tu sĩ để tính phần trăm gia tăng từ các dòng chỉ số ngẫu nhiên
     const baseHpVal = maxHp;
@@ -90,6 +91,7 @@ class TuSi extends Model {
     const baseVatPhongVal = vatPhong;
     const basePhapPhongVal = phapPhong;
     const baseXuyenGiapVal = xuyenGiap;
+    const baseSpeedVal = speed;
 
     // 2. Cộng chỉ số từ các trang bị đang mặc
     for (const eq of equippedInvList) {
@@ -200,71 +202,30 @@ class TuSi extends Model {
         const isThan = template.group === 'than_thu';
         const groupMult = isThan ? 1.5 : 1.0;
 
-        if (activePet.fusedStats) {
-          try {
-            const stats = JSON.parse(activePet.fusedStats);
-            for (const [key, val] of Object.entries(stats)) {
-              if (key === 'vat_cong') {
-                vatCong += baseVatCongVal * val * scale * evoMult * groupMult;
-              } else if (key === 'phap_cong') {
-                phapCong += basePhapCongVal * val * scale * evoMult * groupMult;
-              } else if (key === 'max_hp') {
-                maxHp += baseHpVal * val * scale * evoMult * groupMult;
-              } else if (key === 'giap') {
-                giap += baseStats.giap * val * scale * evoMult * groupMult;
-              } else if (key === 'ne') {
-                ne += val * scalePct * evoMult * groupMult;
-              } else if (key === 'crit_rate') {
-                critRate += val * scalePct * evoMult * groupMult;
-              }
-            }
-          } catch (e) {
-            console.error("Error applying fused stats in layChiSo:", e);
-          }
-        } else {
-          if (template.species === 'ma_lang') {
-            vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
-          } else if (template.species === 'loi_diep') {
-            if (activePet.type === 'loi_diep_2') {
-              critRate += 0.05 * scalePct * evoMult * groupMult;
-            }
-            // tu_toc được tính ở layHeSoTuLuyen
-          } else if (template.species === 'than_vien') {
-            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-            const giapPct = activePet.type === 'than_vien_1' ? 0.08 : (activePet.type === 'than_vien_2' ? 0.10 : 0.12);
-            giap += baseStats.giap * giapPct * scale * evoMult * groupMult;
-          } else if (template.species === 'linh_ho') {
-            vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
-          } else if (template.species === 'linh_ho_fox') {
-            ne += template.statValue * scalePct * evoMult * groupMult;
-            if (activePet.type === 'linh_ho_fox_2') {
-              critRate += 0.05 * scalePct * evoMult * groupMult;
-            } else if (activePet.type === 'linh_ho_fox_3') {
-              critRate += 0.08 * scalePct * evoMult * groupMult;
-            }
-          } else if (template.species === 'to_long') {
-            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-            phapCong += basePhapCongVal * 0.15 * scale * evoMult * groupMult;
-          } else if (template.species === 'phuong_hoang') {
-            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-            critDmg += 1.00 * scalePct * evoMult * groupMult;
+        const petStats = config.getPetCurrentStats(activePet);
+        for (const [key, val] of Object.entries(petStats)) {
+          if (key === 'vat_cong') {
+            vatCong += baseVatCongVal * val * scale * evoMult * groupMult;
+          } else if (key === 'phap_cong') {
+            phapCong += basePhapCongVal * val * scale * evoMult * groupMult;
+          } else if (key === 'max_hp') {
+            maxHp += baseHpVal * val * scale * evoMult * groupMult;
+          } else if (key === 'giap') {
+            giap += baseStats.giap * val * scale * evoMult * groupMult;
+          } else if (key === 'ne') {
+            ne += val * scalePct * evoMult * groupMult;
+          } else if (key === 'crit_rate') {
+            critRate += val * scalePct * evoMult * groupMult;
+          } else if (key === 'crit_dmg') {
+            critDmg += val * scalePct * evoMult * groupMult;
+          } else if (key === 'speed') {
+            speed += baseSpeedVal * val * scale * evoMult * groupMult;
+          } else if (key === 'song_cong') {
             if (this.huongTu === 'The Tu') {
-              vatCong += baseVatCongVal * 0.20 * scale * evoMult * groupMult;
+              vatCong += baseVatCongVal * val * scale * evoMult * groupMult;
             } else {
-              phapCong += basePhapCongVal * 0.20 * scale * evoMult * groupMult;
+              phapCong += basePhapCongVal * val * scale * evoMult * groupMult;
             }
-          } else if (template.species === 'ky_lan') {
-            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-            vatCong += baseVatCongVal * template.statValue * scale * evoMult * groupMult;
-            phapCong += basePhapCongVal * template.statValue * scale * evoMult * groupMult;
-          } else if (template.species === 'huyen_vu') {
-            giap += baseStats.giap * template.statValue * scale * evoMult * groupMult;
-            const hpPct = activePet.type === 'huyen_vu_1' ? 0.20 : 0.25;
-            maxHp += baseHpVal * hpPct * scale * evoMult * groupMult;
-          } else if (template.species === 'bach_ho') {
-            maxHp += baseHpVal * template.statValue * scale * evoMult * groupMult;
-            const vatPct = activePet.type === 'bach_ho_1' ? 0.12 : 0.15;
-            vatCong += baseVatCongVal * vatPct * scale * evoMult * groupMult;
           }
         }
       }
@@ -283,7 +244,7 @@ class TuSi extends Model {
       ne = 0.30;
     }
 
-    maxHp = Math.floor(maxHp * (1.0 - phatHp) * 10);
+    maxHp = Math.floor((maxHp * (1.0 - phatHp) * 10) / 3);
     maxMp = Math.floor(maxMp * (1.0 - phatMp));
     vatCong = Math.floor(vatCong * (1.0 - phatVatCong));
     phapCong = Math.floor(phapCong * (1.0 - phatPhapCong));
@@ -300,7 +261,8 @@ class TuSi extends Model {
       crit_rate: Math.max(0.0, critRate),
       crit_dmg: Math.max(1.0, critDmg),
       ne: Math.max(0.0, ne),
-      lifesteal: Math.max(0.0, lifesteal)
+      lifesteal: Math.max(0.0, lifesteal),
+      speed: Math.max(1, Math.floor(speed))
     };
   }
 
