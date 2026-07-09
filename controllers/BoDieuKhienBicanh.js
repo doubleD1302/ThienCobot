@@ -233,7 +233,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             const evoMult = Math.pow(1.1, totalEvolves);
 
             if (template.species === 'to_long') {
-              const dmg = Math.floor(stats.phap_cong * 1.5 * evoMult);
+              const dmg = Math.floor(stats.phap_cong * 1.2 * evoMult);
               monsterHp = Math.max(0, monsterHp - dmg);
               toLongBuffActive = true;
               playerLifestealRounds = (activePet.tienHoa >= 6) ? 3 : 2;
@@ -255,7 +255,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
               battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh, đồng thời phun chất độc gây \`${poisonDmgInitial.toLocaleString()}\` sát thương độc lực đầu mỗi lượt (kéo dài 3 hiệp, cộng dồn tối đa 3 lần). Khi kẻ địch bạo kích, tu sĩ giảm \`${Math.floor(critDmgRedPct * 100)}%\` sát thương gánh chịu và phản lại 25% sát thương gánh chịu!`);
             } else if (template.species === 'bach_ho') {
-              const dmg = Math.floor(stats.vat_cong * 1.5 * evoMult);
+              const dmg = Math.floor(stats.vat_cong * 1.2 * evoMult);
               monsterHp = Math.max(0, monsterHp - dmg);
               bachHoBuffActive = true;
               
@@ -460,7 +460,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                 if (petSkillCooldownLeft === 0 && Math.random() <= 0.20) {
                   petSkillCooldownLeft = 5;
                   if (template.species === 'to_long') {
-                    const petDmg = Math.floor(stats.phap_cong * 1.5 * evoMult);
+                    const petDmg = Math.floor(stats.phap_cong * 1.2 * evoMult);
                     monsterHp = Math.max(0, monsterHp - petDmg);
                     toLongBuffActive = true;
                     playerLifestealRounds = (activePet.tienHoa >= 6) ? 3 : 2;
@@ -489,7 +489,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                       break;
                     }
                   } else if (template.species === 'bach_ho') {
-                    const petDmg = Math.floor(stats.vat_cong * 1.5 * evoMult);
+                    const petDmg = Math.floor(stats.vat_cong * 1.2 * evoMult);
                     monsterHp = Math.max(0, monsterHp - petDmg);
                     
                     bossWeakenRounds = 2;

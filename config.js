@@ -932,8 +932,8 @@ export const PET_TEMPLATES_SEED = [
   { id: 'to_long_1', name: 'Hỗn Thiên Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'phap_cong', statValue: 0.30, desc: 'Chủ động: Phước lành chân long. Hộ thể: +30% Pháp Công & +10% Bạo kích' },
   { id: 'to_long_2', name: 'Thượng Cổ Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'phap_cong', statValue: 0.30, desc: 'Chủ động: Phước lành chân long. Hộ thể: +30% Pháp Công & +10% Bạo kích' },
 
-  { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618377662484>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +25% HP, +100% Bạo thương & +20% Song công' },
-  { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618377662484>', group: 'than_thu', species: 'phuong_hoang', statType: 'max_hp', statValue: 0.28, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +28% HP, +100% Bạo thương & +20% Song công' },
+  { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618377662484>', group: 'than_thu', species: 'phuong_hoang', statType: 'crit_dmg', statValue: 0.35, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +35% Bạo thương & +20% Song công' },
+  { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618377662484>', group: 'than_thu', species: 'phuong_hoang', statType: 'crit_dmg', statValue: 0.38, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +38% Bạo thương & +20% Song công' },
 
   { id: 'ky_lan_1', name: 'Bạch Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'song_cong', statValue: 0.30, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +30% Song Công & +10% Tốc độ' },
   { id: 'ky_lan_2', name: 'Thiên Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'song_cong', statValue: 0.30, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +30% Song Công & +10% Tốc độ' },
@@ -997,9 +997,7 @@ export function getPetDefaultBaseStats(type) {
     stats.phap_cong = 0.30;
     stats.crit_rate = 0.10;
   } else if (type.startsWith('phuong_hoang_')) {
-    const hpVal = type === 'phuong_hoang_1' ? 0.25 : 0.28;
-    stats.max_hp = hpVal;
-    stats.crit_dmg = 1.00;
+    stats.crit_dmg = 0.35;
     stats.song_cong = 0.20;
   } else if (type.startsWith('ky_lan_')) {
     stats.song_cong = 0.30;

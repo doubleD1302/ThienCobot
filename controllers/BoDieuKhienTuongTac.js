@@ -1146,7 +1146,7 @@ async function _simCombat(tuSiA, tuSiB) {
       const evoMult = Math.pow(1.1, totalEvolves);
 
       if (template.species === 'to_long') {
-        const dmg = Math.floor(statsA.phap_cong * 1.5 * evoMult);
+        const dmg = Math.floor(statsA.phap_cong * 1.2 * evoMult);
         hpB = Math.max(0, hpB - dmg);
         toLongBuffActiveA = true;
         playerLifestealRoundsA = (petA.tienHoa >= 6) ? 3 : 2;
@@ -1168,7 +1168,7 @@ async function _simCombat(tuSiA, tuSiB) {
 
         battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${petA.name}** của **${tuSiA.ten}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh, đồng thời phun chất độc gây \`${poisonDmgInitial.toLocaleString()}\` sát thương độc lực đầu mỗi lượt lên **${tuSiB.ten}**. Khi đối phương bạo kích, chủ nhân giảm \`${Math.floor(critDmgRedPctA * 100)}%\` sát thương gánh chịu và phản lại 25% sát thương gánh chịu!`);
       } else if (template.species === 'bach_ho') {
-        const dmg = Math.floor(statsA.vat_cong * 1.5 * evoMult);
+        const dmg = Math.floor(statsA.vat_cong * 1.2 * evoMult);
         hpB = Math.max(0, hpB - dmg);
         bachHoBuffActiveA = true;
         
@@ -1205,7 +1205,7 @@ async function _simCombat(tuSiA, tuSiB) {
       const evoMult = Math.pow(1.1, totalEvolves);
 
       if (template.species === 'to_long') {
-        const dmg = Math.floor(statsB.phap_cong * 1.5 * evoMult);
+        const dmg = Math.floor(statsB.phap_cong * 1.2 * evoMult);
         hpA = Math.max(0, hpA - dmg);
         toLongBuffActiveB = true;
         playerLifestealRoundsB = (petB.tienHoa >= 6) ? 3 : 2;
@@ -1227,7 +1227,7 @@ async function _simCombat(tuSiA, tuSiB) {
 
         battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${petB.name}** của **${tuSiB.ten}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh, đồng thời phun chất độc gây \`${poisonDmgInitial.toLocaleString()}\` sát thương độc lực đầu mỗi lượt lên **${tuSiA.ten}**. Khi đối phương bạo kích, chủ nhân giảm \`${Math.floor(critDmgRedPctB * 100)}%\` sát thương gánh chịu và phản lại 25% sát thương gánh chịu!`);
       } else if (template.species === 'bach_ho') {
-        const dmg = Math.floor(statsB.vat_cong * 1.5 * evoMult);
+        const dmg = Math.floor(statsB.vat_cong * 1.2 * evoMult);
         hpA = Math.max(0, hpA - dmg);
         bachHoBuffActiveB = true;
         
@@ -1440,7 +1440,7 @@ async function _simCombat(tuSiA, tuSiB) {
               if (petSkillCooldownLeftA === 0 && Math.random() <= 0.20) {
                 petSkillCooldownLeftA = 5;
                 if (template.species === 'to_long') {
-                  const petDmg = Math.floor(statsA.phap_cong * 1.5 * evoMult);
+                  const petDmg = Math.floor(statsA.phap_cong * 1.2 * evoMult);
                   hpB = Math.max(0, hpB - petDmg);
                   toLongBuffActiveA = true;
                   playerLifestealRoundsA = (petA.tienHoa >= 6) ? 3 : 2;
@@ -1469,7 +1469,7 @@ async function _simCombat(tuSiA, tuSiB) {
                     break;
                   }
                 } else if (template.species === 'bach_ho') {
-                  const petDmg = Math.floor(statsA.vat_cong * 1.5 * evoMult);
+                  const petDmg = Math.floor(statsA.vat_cong * 1.2 * evoMult);
                   hpB = Math.max(0, hpB - petDmg);
                   
                   weakenRoundsB = 2;
@@ -1677,7 +1677,7 @@ async function _simCombat(tuSiA, tuSiB) {
               if (petSkillCooldownLeftB === 0 && Math.random() <= 0.20) {
                 petSkillCooldownLeftB = 5;
                 if (template.species === 'to_long') {
-                  const petDmg = Math.floor(statsB.phap_cong * 1.5 * evoMult);
+                  const petDmg = Math.floor(statsB.phap_cong * 1.2 * evoMult);
                   hpA = Math.max(0, hpA - petDmg);
                   toLongBuffActiveB = true;
                   playerLifestealRoundsB = (petB.tienHoa >= 6) ? 3 : 2;
@@ -1706,7 +1706,7 @@ async function _simCombat(tuSiA, tuSiB) {
                     break;
                   }
                 } else if (template.species === 'bach_ho') {
-                  const petDmg = Math.floor(statsB.vat_cong * 1.5 * evoMult);
+                  const petDmg = Math.floor(statsB.vat_cong * 1.2 * evoMult);
                   hpA = Math.max(0, hpA - petDmg);
                   
                   weakenRoundsA = 2;

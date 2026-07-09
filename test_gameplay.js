@@ -3859,11 +3859,11 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const stats = await player.layChiSoDayDu();
 
     // 1. Assert passive stats additions
-    // Base crit_dmg for Phap Tu: 1.50.
-    // template.species === 'phuong_hoang' adds +100% bạo thương (1.00 * scalePct * evoMult * groupMult).
-    // scalePct = 1.0 (level 1, tuChat 100), evoMult = 1.0, groupMult = 1.0 -> should add +1.0 crit_dmg.
-    // Total crit_dmg should be baseline + 1.00 = 3.10.
-    assert.strictEqual(stats.crit_dmg, 3.10);
+    // Base crit_dmg for Phap Tu: 1.60.
+    // template.species === 'phuong_hoang' adds +35% bạo thương (0.35 * scalePct * evoMult * groupMult).
+    // scalePct = 1.0 (level 1, tuChat 100), evoMult = 1.0, groupMult = 1.5 -> should add +0.525 crit_dmg.
+    // Total crit_dmg should be baseline + 0.525 = 2.125.
+    assert.strictEqual(stats.crit_dmg, 2.125);
 
     // HuongTu is Phap Tu, so phap_cong should get +20% base phap_cong.
     // Base phap_cong = 20.
@@ -3885,9 +3885,9 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     }
     totalPetDmg = Math.floor(totalPetDmg);
 
-    // Verify hits calculation: 3.10 / 0.8 is 3, so total hits is 4
-    assert.strictEqual(totalHits, 4);
-    assert.ok(totalPetDmg > baseDmg * 4); // because of 20% compound growth
+    // Verify hits calculation: 2.125 / 0.8 is 2, so total hits is 3
+    assert.strictEqual(totalHits, 3);
+    assert.ok(totalPetDmg > baseDmg * 3); // because of 20% compound growth
 
     // Clean up
     await player.destroy();

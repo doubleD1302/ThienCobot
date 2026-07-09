@@ -714,7 +714,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           const evoMult = Math.pow(1.1, totalEvolves);
 
           if (template.species === 'to_long') {
-            const dmg = Math.floor(stats.phap_cong * 1.5 * evoMult);
+            const dmg = Math.floor(stats.phap_cong * 1.2 * evoMult);
             monsterHp = Math.max(0, monsterHp - dmg);
             totalDmgDealt += dmg;
             toLongBuffActive = true;
@@ -738,7 +738,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
             battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh, đồng thời phun chất độc gây \`${poisonDmgInitial.toLocaleString()}\` sát thương độc lực đầu mỗi lượt (kéo dài 3 hiệp, cộng dồn tối đa 3 lần). Khi kẻ địch bạo kích, tu sĩ giảm \`${Math.floor(critDmgRedPct * 100)}%\` sát thương gánh chịu và phản lại 25% sát thương gánh chịu!`);
           } else if (template.species === 'bach_ho') {
-            const dmg = Math.floor(stats.vat_cong * 1.5 * evoMult);
+            const dmg = Math.floor(stats.vat_cong * 1.2 * evoMult);
             monsterHp = Math.max(0, monsterHp - dmg);
             totalDmgDealt += dmg;
             bachHoBuffActive = true;
@@ -796,7 +796,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       }
 
       // Tính toán sát thương gây ra
-      const isPhysical = tuSi.huongTu === 'Thể Tu';
+      const isPhysical = tuSi.huongTu === 'The Tu' || tuSi.huongTu === 'Thể Tu';
       const bossDef = isPhysical ? boss.vatPhong : boss.phapPhong;
 
       // Tải kỹ năng đã học để dùng khi đánh Boss
@@ -824,6 +824,10 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
       let playerActionCount = 0;
       let combatRound = 1;
+      const petTemplate = activePet ? config.PET_TEMPLATES[activePet.type] : null;
+      const isKyLanActive = petTemplate && petTemplate.species === 'ky_lan';
+      const isHuyenVuActive = petTemplate && petTemplate.species === 'huyen_vu';
+      const originalMaxHp = stats.max_hp;
 
       while (monsterHp > 0 && playerHp > 0 && playerActionCount < 15) {
         if (avPlayer <= avBoss) {
@@ -837,6 +841,14 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             playerHp = Math.min(stats.max_hp, playerHp + regenAmt);
             battleLogs.push(`<:phung:1522635618377662484> **Phượng Hoàng Hộ Thể**: Hồi phục \`+${regenAmt}\` HP từ hiệu ứng Niết Bàn (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
             phoenixRegenRounds--;
+          }
+
+          if (isHuyenVuActive) {
+            const healAmt = Math.floor(stats.max_hp * 0.05);
+            playerHp = Math.min(stats.max_hp, playerHp + healAmt);
+            const maxHpBuff = Math.floor(originalMaxHp * 0.05);
+            stats.max_hp += maxHpBuff;
+            battleLogs.push(`🐢 **Huyền Vũ Hồi Phục**: Hồi phục \`+${healAmt.toLocaleString()}\` HP và gia tăng giới hạn HP tối đa thêm \`+${maxHpBuff.toLocaleString()}\` (HP hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
           }
 
           // Sát thương độc lực của Huyền Vũ (đầu lượt)
@@ -855,6 +867,10 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           let currentRoundAtkMult = playerAtkMult;
           if (toLongBuffActive) {
             currentRoundAtkMult += 0.10;
+          }
+          if (isHuyenVuActive) {
+            const huyenVuBuff = playerActionCount * 0.02;
+            currentRoundAtkMult += huyenVuBuff;
           }
           const currentRoundPlayerAtk = Math.floor((isPhysical ? stats.vat_cong : stats.phap_cong) * currentRoundAtkMult);
 
@@ -891,6 +907,25 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           monsterHp = Math.max(0, monsterHp - pDmg);
           totalDmgDealt += pDmg;
           battleLogs.push(`💥 **Hiệp ${combatRound}** (Lượt ${playerActionCount + 1}, AV: ${elapsed.toFixed(0)}): **${tuSi.ten}** ${castMsg} gây \`${pDmg.toLocaleString()}\` sát thương lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).` + (isCrit ? ` (BẠO KÍCH! 💥)` : ''));
+
+          // Kỳ Lân Liên Kích
+          if (isKyLanActive && monsterHp > 0) {
+            const lkChance = Math.min(1.0, 0.20 + playerSpeed / 3000);
+            if (Math.random() <= lkChance) {
+              const tienHoa = activePet ? (activePet.tienHoa || 0) : 0;
+              let lkDmgMult = 0.50;
+              for (let i = 1; i <= tienHoa; i++) {
+                if (lkDmgMult < 1.0) {
+                  lkDmgMult = lkDmgMult * 1.10;
+                  if (lkDmgMult > 1.0) lkDmgMult = 1.0;
+                }
+              }
+              const lkDmg = Math.max(10, Math.floor(currentRoundPlayerAtk * lkDmgMult) - bossDef);
+              monsterHp = Math.max(0, monsterHp - lkDmg);
+              totalDmgDealt += lkDmg;
+              battleLogs.push(`   ➔ 🐆 **Kỳ Lân Liên Kích**: Tung thêm đòn đánh phụ nhanh như chớp (Dame x${Math.floor(lkDmgMult * 100)}%) gây \`+${lkDmg.toLocaleString()}\` sát thương lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+            }
+          }
 
           // Hút máu nếu có
           let roundLifesteal = stats.lifesteal;
@@ -941,7 +976,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                 if (petSkillCooldownLeft === 0 && Math.random() <= 0.10) {
                   petSkillCooldownLeft = 5;
                   if (template.species === 'to_long') {
-                    const petDmg = Math.floor(stats.phap_cong * 1.5 * evoMult);
+                    const petDmg = Math.floor(stats.phap_cong * 1.2 * evoMult);
                     monsterHp = Math.max(0, monsterHp - petDmg);
                     totalDmgDealt += petDmg;
                     toLongBuffActive = true;
@@ -965,7 +1000,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                     battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lá chắn \`${petShield.toLocaleString()}\` HP bảo vệ, và giải độc lực gây \`${poisonDmgTotal.toLocaleString()}\` sát thương độc mỗi lượt (cộng dồn lớp độc thứ \`${bossPoisonStacks}\`).`);
                     if (monsterHp <= 0) break;
                   } else if (template.species === 'bach_ho') {
-                    const petDmg = Math.floor(stats.vat_cong * 1.5 * evoMult);
+                    const petDmg = Math.floor(stats.vat_cong * 1.2 * evoMult);
                     monsterHp = Math.max(0, monsterHp - petDmg);
                     totalDmgDealt += petDmg;
                     

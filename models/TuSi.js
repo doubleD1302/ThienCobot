@@ -202,29 +202,44 @@ class TuSi extends Model {
         const isThan = template.group === 'than_thu';
         const groupMult = isThan ? 1.5 : 1.0;
 
+        let extraEvoStatsBuff = 1.0;
+        if (template.species === 'ky_lan') {
+          const tienHoa = activePet.tienHoa || 0;
+          let lkDmgMult = 0.50;
+          for (let i = 1; i <= tienHoa; i++) {
+            if (lkDmgMult < 1.0) {
+              lkDmgMult = lkDmgMult * 1.10;
+              if (lkDmgMult > 1.0) lkDmgMult = 1.0;
+            } else {
+              extraEvoStatsBuff += 0.05;
+            }
+          }
+        }
+
         const petStats = config.getPetCurrentStats(activePet);
         for (const [key, val] of Object.entries(petStats)) {
+          const finalVal = val * extraEvoStatsBuff;
           if (key === 'vat_cong') {
-            vatCong += baseVatCongVal * val * scale * evoMult * groupMult;
+            vatCong += baseVatCongVal * finalVal * scale * evoMult * groupMult;
           } else if (key === 'phap_cong') {
-            phapCong += basePhapCongVal * val * scale * evoMult * groupMult;
+            phapCong += basePhapCongVal * finalVal * scale * evoMult * groupMult;
           } else if (key === 'max_hp') {
-            maxHp += baseHpVal * val * scale * evoMult * groupMult;
+            maxHp += baseHpVal * finalVal * scale * evoMult * groupMult;
           } else if (key === 'giap') {
-            giap += baseStats.giap * val * scale * evoMult * groupMult;
+            giap += baseStats.giap * finalVal * scale * evoMult * groupMult;
           } else if (key === 'ne') {
-            ne += val * scalePct * evoMult * groupMult;
+            ne += finalVal * scalePct * evoMult * groupMult;
           } else if (key === 'crit_rate') {
-            critRate += val * scalePct * evoMult * groupMult;
+            critRate += finalVal * scalePct * evoMult * groupMult;
           } else if (key === 'crit_dmg') {
-            critDmg += val * scalePct * evoMult * groupMult;
+            critDmg += finalVal * scalePct * evoMult * groupMult;
           } else if (key === 'speed') {
-            speed += baseSpeedVal * val * scale * evoMult * groupMult;
+            speed += baseSpeedVal * finalVal * scale * evoMult * groupMult;
           } else if (key === 'song_cong') {
             if (this.huongTu === 'The Tu') {
-              vatCong += baseVatCongVal * val * scale * evoMult * groupMult;
+              vatCong += baseVatCongVal * finalVal * scale * evoMult * groupMult;
             } else {
-              phapCong += basePhapCongVal * val * scale * evoMult * groupMult;
+              phapCong += basePhapCongVal * finalVal * scale * evoMult * groupMult;
             }
           }
         }

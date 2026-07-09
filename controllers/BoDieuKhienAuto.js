@@ -375,7 +375,7 @@ async function autoDiBiCanh(tuSi) {
         const evoMult = Math.pow(1.1, totalEvolves);
 
         if (template.species === 'to_long') {
-          const dmg = Math.floor(stats.phap_cong * 1.5 * evoMult);
+          const dmg = Math.floor(stats.phap_cong * 1.2 * evoMult);
           monsterHp = Math.max(0, monsterHp - dmg);
           toLongBuffActive = true;
           playerLifestealRounds = (activePet.tienHoa >= 6) ? 3 : 2;
@@ -393,7 +393,7 @@ async function autoDiBiCanh(tuSi) {
           bossPoisonDmgPerStack = Math.floor(stats.max_hp * Math.min(0.10, 0.05 + (activePet.tienHoa || 0) * 0.005));
           petSkillCooldownLeft = 5;
         } else if (template.species === 'bach_ho') {
-          const dmg = Math.floor(stats.vat_cong * 1.5 * evoMult);
+          const dmg = Math.floor(stats.vat_cong * 1.2 * evoMult);
           monsterHp = Math.max(0, monsterHp - dmg);
           bachHoBuffActive = true;
           
@@ -597,7 +597,7 @@ async function autoDiBiCanh(tuSi) {
                 if (petSkillCooldownLeft === 0 && Math.random() <= 0.20) {
                   petSkillCooldownLeft = 5;
                   if (template.species === 'to_long') {
-                    const petDmg = Math.floor(stats.phap_cong * 1.5 * evoMult);
+                    const petDmg = Math.floor(stats.phap_cong * 1.2 * evoMult);
                     monsterHp = Math.max(0, monsterHp - petDmg);
                     toLongBuffActive = true;
                     playerLifestealRounds = (activePet.tienHoa >= 6) ? 3 : 2;
@@ -626,7 +626,7 @@ async function autoDiBiCanh(tuSi) {
                       break;
                     }
                   } else if (template.species === 'bach_ho') {
-                    const petDmg = Math.floor(stats.vat_cong * 1.5 * evoMult);
+                    const petDmg = Math.floor(stats.vat_cong * 1.2 * evoMult);
                     monsterHp = Math.max(0, monsterHp - petDmg);
                     
                     bossWeakenRounds = 2;

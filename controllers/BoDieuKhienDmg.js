@@ -163,9 +163,17 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
       let critCount = 0;
       let skillCastCount = 0;
       const battleLogs = [];
-      const isPhysical = tuSi.huongTu === 'Thể Tu';
+      const isPhysical = tuSi.huongTu === 'The Tu' || tuSi.huongTu === 'Thể Tu';
       const basePlayerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
       const targetDef = isPhysical ? dummy.vatPhong : dummy.phapPhong;
+
+      const petTemplate = activePet ? config.PET_TEMPLATES[activePet.type] : null;
+      const isKyLanActive = petTemplate && petTemplate.species === 'ky_lan';
+      const isHuyenVuActive = petTemplate && petTemplate.species === 'huyen_vu';
+
+      if (isHuyenVuActive) {
+        battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bảo vệ tích lũy 🐢**: Tăng \`+2%\` Công mỗi hiệp đấu trôi qua.`);
+      }
 
       if (pbLogs.length > 0) {
         battleLogs.push(pbLogs.join('\n'));
@@ -177,6 +185,10 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
           if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
             roundAtkMult += buff.triGia / 100;
           }
+        }
+        if (isHuyenVuActive) {
+          const huyenVuBuff = (round - 1) * 0.02;
+          roundAtkMult += huyenVuBuff;
         }
         const currentRoundPlayerAtk = Math.floor(basePlayerAtk * roundAtkMult);
 
@@ -231,6 +243,22 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
           let logMsg = `🗡️ **Hiệp ${round}**: Đạo hữu ${castMsg} gây \`${roundFinalDmg.toLocaleString()}\`${isCrit ? ' 💥 (Bạo!)' : ''} sát thương lên **${dummy.ten}**.`;
           if (cbProcs.length > 0) {
             logMsg += `\n   ➔ ` + cbProcs.join('\n   ➔ ');
+          }
+          if (isKyLanActive) {
+            const lkChance = Math.min(1.0, 0.20 + (stats.speed || 100) / 3000);
+            if (Math.random() <= lkChance) {
+              const tienHoa = activePet ? (activePet.tienHoa || 0) : 0;
+              let lkDmgMult = 0.50;
+              for (let i = 1; i <= tienHoa; i++) {
+                if (lkDmgMult < 1.0) {
+                  lkDmgMult = lkDmgMult * 1.10;
+                  if (lkDmgMult > 1.0) lkDmgMult = 1.0;
+                }
+              }
+              const lkDmg = Math.max(1, Math.floor(currentRoundPlayerAtk * lkDmgMult) - targetDef);
+              totalDmg += lkDmg;
+              logMsg += `\n   ➔ 🐆 **Kỳ Lân Liên Kích**: Tung thêm đòn đánh phụ nhanh như chớp (Dame x${Math.floor(lkDmgMult * 100)}%) gây \`+${lkDmg.toLocaleString()}\` sát thương!`;
+            }
           }
           battleLogs.push(logMsg);
         }
