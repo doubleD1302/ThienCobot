@@ -690,9 +690,9 @@ class BoDieuKhienAdmin {
           // Gift quantity buttons
           const actionRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('edit_gift_x1').setLabel('Tặng x1').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToGift),
-            new ButtonBuilder().setCustomId('edit_gift_x5').setLabel('Tặng x5').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToGift),
             new ButtonBuilder().setCustomId('edit_gift_x10').setLabel('Tặng x10').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToGift),
-            new ButtonBuilder().setCustomId('edit_gift_x50').setLabel('Tặng x50').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToGift),
+            new ButtonBuilder().setCustomId('edit_gift_x100').setLabel('Tặng x100').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToGift),
+            new ButtonBuilder().setCustomId('edit_gift_custom').setLabel('✏️ Nhập Số Lượng').setStyle(ButtonStyle.Primary).setDisabled(!selectedItemToGift),
             new ButtonBuilder().setCustomId('edit_gift_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
           );
           rows.push(actionRow);
@@ -1084,6 +1084,71 @@ class BoDieuKhienAdmin {
           giftItemPage = 0;
         } else if (customId === 'edit_gift_item_select') {
           selectedItemToGift = i.values[0];
+        } else if (customId === 'edit_gift_custom') {
+          // Mở modal để nhập số lượng tùy chọn
+          if (!selectedItemToGift) {
+            statusMessage = `❌ Hãy chọn vật phẩm trước khi nhập số lượng.`;
+          } else {
+            const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+            const configItem = config.ITEMS.find(item => item.id === selectedItemToGift);
+            const nameText = configItem ? configItem.ten : selectedItemToGift;
+
+            const modal = new ModalBuilder()
+              .setCustomId(`modal_gift_custom_${interaction.user.id}`)
+              .setTitle(`🎁 Tặng Vật Phẩm: ${nameText.substring(0, 40)}`);
+
+            const qtyInput = new TextInputBuilder()
+              .setCustomId('gift_qty_input')
+              .setLabel('Số lượng cần tặng (vd: 100, 1k, 5m)')
+              .setStyle(TextInputStyle.Short)
+              .setRequired(true)
+              .setPlaceholder('Nhập số lượng... (vd: 50, 500, 1000)');
+
+            modal.addComponents(new ActionRowBuilder().addComponents(qtyInput));
+
+            try {
+              await i.showModal(modal);
+
+              const submitted = await i.awaitModalSubmit({
+                filter: sub => sub.customId === `modal_gift_custom_${interaction.user.id}` && sub.user.id === interaction.user.id,
+                time: 60000
+              });
+
+              await submitted.deferUpdate();
+
+              const rawVal = submitted.fields.getTextInputValue('gift_qty_input');
+              // Parse số thuần dương, hỗ trợ k/m/b suffix
+              const match = rawVal.trim().toLowerCase().match(/^([\d.]+)\s*([kmb]?)$/);
+              if (!match) {
+                statusMessage = `❌ Định dạng số lượng không hợp lệ: "${rawVal}"`;
+              } else {
+                const numPart = parseFloat(match[1]);
+                const suffix = match[2];
+                let multiplier = 1;
+                if (suffix === 'k') multiplier = 1000;
+                else if (suffix === 'm') multiplier = 1000000;
+                else if (suffix === 'b') multiplier = 1000000000;
+                const qty = Math.floor(numPart * multiplier);
+
+                if (isNaN(qty) || qty <= 0) {
+                  statusMessage = `❌ Số lượng phải là số dương hợp lệ.`;
+                } else {
+                  for (const tuSi of tuSiList) {
+                    await Inventory.addVatPham(tuSi.idNguoiDung, selectedItemToGift, qty);
+                  }
+                  statusMessage = `🎁 Đã tặng thành công **x${qty.toLocaleString()} ${nameText}** cho tất cả!`;
+                  await sendPublicLog(`Tặng x${qty.toLocaleString()} ${nameText}`);
+                  selectedItemToGift = null;
+                }
+              }
+
+              const nextPayload = await buildPayload();
+              await interaction.editReply(nextPayload);
+            } catch (err) {
+              // modal submit timeout/cancel
+            }
+            return;
+          }
         } else if (customId.startsWith('edit_gift_x')) {
           const qty = parseInt(customId.replace('edit_gift_x', ''), 10);
           if (selectedItemToGift) {
