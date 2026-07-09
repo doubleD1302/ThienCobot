@@ -102,6 +102,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     let selectedFusePetId = null; // Sủng vật nguyên liệu được chọn để dung hợp
     let selectedFodderIds = [];   // Phôi sủng vật được chọn để tiến hóa
     let foodPage = 0;             // Trang phân trang menu thức ăn sủng vật
+    let petPage = 0;              // Trang phân trang danh sách sủng vật
+    let fusionPage = 0;           // Trang phân trang sủng vật dung hợp
     let actionMessage = null;     // Lưu thông báo kết quả hành động
     let releaseFilterSpecies = 'all';
     let releaseFilterBloodline = 'all';
@@ -280,13 +282,19 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       // ══════════════════════════════════════════════════════════════
       else if (menu === 'PETS') {
         const myPets = await Pet.findAll({ where: { userId: tuSi.idNguoiDung } });
-        const desc = myPets.map((p, idx) => {
+        const PET_PAGE_SIZE = 10;
+        const totalPetPages = myPets.length > 0 ? Math.ceil(myPets.length / PET_PAGE_SIZE) : 1;
+        if (petPage >= totalPetPages) petPage = Math.max(0, totalPetPages - 1);
+        const petsThisPage = myPets.slice(petPage * PET_PAGE_SIZE, (petPage + 1) * PET_PAGE_SIZE);
+
+        const desc = petsThisPage.map((p, idx) => {
           const activeTag = p.isActive ? ' 🟢 **[Xuất Chiến]**' : '';
           const rarityTag = ` · ${getPetRarityText(p.rarity)}`;
           const template = config.PET_TEMPLATES[p.type];
           const speciesName = template ? template.name : p.type;
           const effectDesc = template ? template.desc : '';
-          return `**${idx + 1}.** **${p.name}**${rarityTag}${activeTag}\n` +
+          const globalIdx = petPage * PET_PAGE_SIZE + idx;
+          return `**${globalIdx + 1}.** **${p.name}**${rarityTag}${activeTag}\n` +
             `   *Loài:* ${speciesName} · *Cấp:* \`${p.level}\` · *Tư chất:* \`${p.tuChat} / 250\`\n` +
             `   *Hiệu ứng:* ${effectDesc}`;
         }).join('\n\n') || '_Đạo hữu chưa nuôi dưỡng sủng vật nào. Hãy khám phá bí cảnh để tìm kiếm trứng linh thú!_';
@@ -294,7 +302,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         const embed = new EmbedBuilder()
           .setTitle(`🐅 Thú Xá Sủng Vật: ${tuSi.ten}`)
           .setColor(0xe67e22)
-          .setDescription(desc);
+          .setDescription(desc)
+          .setFooter({ text: `Trang ${petPage + 1}/${totalPetPages} · Tổng số sủng vật: ${myPets.length}` });
         embeds.push(embed);
       }
 
@@ -865,16 +874,38 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       // 6. SỦNG VẬT (PETS)
       // ══════════════════════════════════════════════════════════════
       else if (menu === 'PETS') {
-        if (myPets.length > 0) {
+        const PET_PAGE_SIZE = 10;
+        const totalPetPages = myPets.length > 0 ? Math.ceil(myPets.length / PET_PAGE_SIZE) : 1;
+        if (petPage >= totalPetPages) petPage = Math.max(0, totalPetPages - 1);
+        const petsThisPage = myPets.slice(petPage * PET_PAGE_SIZE, (petPage + 1) * PET_PAGE_SIZE);
+
+        if (petsThisPage.length > 0) {
           rows.push(
             new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId('pet_select')
-                .setPlaceholder('🐾 Chọn sủng vật để chăm sóc/lệnh xuất chiến...')
-                .addOptions(myPets.map(p => ({
+                .setPlaceholder(`🐾 Chọn sủng vật để chăm sóc/lệnh xuất chiến... (Trang ${petPage + 1}/${totalPetPages})`)
+                .addOptions(petsThisPage.map(p => ({
                   label: p.name,
                   value: String(p.id)
                 })))
+            )
+          );
+        }
+
+        if (totalPetPages > 1) {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('pet_page_prev')
+                .setLabel('◀ Trang Trước')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(petPage === 0),
+              new ButtonBuilder()
+                .setCustomId('pet_page_next')
+                .setLabel('Trang Sau ▶')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(petPage >= totalPetPages - 1)
             )
           );
         }
@@ -1165,16 +1196,21 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       // ══════════════════════════════════════════════════════════════
       else if (menu === 'PET_FUSION_SELECT') {
         const otherPets = myPets.filter(p => String(p.id) !== String(selectedPetId));
-        if (otherPets.length > 0) {
+        const FUSION_PAGE_SIZE = 15;
+        const totalFusionPages = otherPets.length > 0 ? Math.ceil(otherPets.length / FUSION_PAGE_SIZE) : 1;
+        if (fusionPage >= totalFusionPages) fusionPage = Math.max(0, totalFusionPages - 1);
+        const fusionPetsThisPage = otherPets.slice(fusionPage * FUSION_PAGE_SIZE, (fusionPage + 1) * FUSION_PAGE_SIZE);
+
+        if (fusionPetsThisPage.length > 0) {
           rows.push(
             new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId('pet_fusion_target_select')
-                .setPlaceholder('🐾 Chọn Linh Thú nguyên liệu...')
-                .addOptions(otherPets.map(p => ({
+                .setPlaceholder(`🐾 Chọn Linh Thú nguyên liệu... (Trang ${fusionPage + 1}/${totalFusionPages})`)
+                .addOptions(fusionPetsThisPage.map(p => ({
                   label: p.name,
                   value: String(p.id),
-                  description: `Cấp ${p.level} · ${config.PET_TEMPLATES[p.type]?.name || p.type}`
+                  description: `Cấp ${p.level} · ${config.PET_TEMPLATES[p.type]?.name || p.type}`.substring(0, 100)
                 })))
             )
           );
@@ -1189,6 +1225,24 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             )
           );
         }
+
+        if (totalFusionPages > 1) {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('pet_fusion_page_prev')
+                .setLabel('◀ Trang Trước')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(fusionPage === 0),
+              new ButtonBuilder()
+                .setCustomId('pet_fusion_page_next')
+                .setLabel('Trang Sau ▶')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(fusionPage >= totalFusionPages - 1)
+            )
+          );
+        }
+
         rows.push(
           new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -1416,6 +1470,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           menuStack.push('FORGE');
         } else if (i.customId === 'btn_pets') {
           menuStack.push('PETS');
+          petPage = 0;
         } else if (i.customId === 'btn_stone_smash') {
           menuStack.push('STONE_SMASH');
         } else if (i.customId === 'main_close') {
@@ -1546,6 +1601,12 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           selectedPetId = parseInt(i.values[0], 10);
           foodPage = 0; // Reset trang thức ăn khi chọn sủng vật mới
           menuStack.push('PET_DETAIL');
+        } else if (i.customId === 'pet_page_prev') {
+          petPage = Math.max(0, petPage - 1);
+        } else if (i.customId === 'pet_page_next') {
+          const PET_PAGE_SIZE = 10;
+          const maxPage = Math.ceil(myPets.length / PET_PAGE_SIZE) - 1;
+          petPage = Math.min(maxPage, petPage + 1);
         } else if (i.customId === 'pet_quick_release_menu') {
           menuStack.push('PET_QUICK_RELEASE');
           releaseFilterSpecies = 'all';
@@ -1855,6 +1916,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', 'Không thể dung hợp Linh Thú đang xuất chiến. Hãy cho sủng vật nghỉ ngơi trước.');
             } else {
               menuStack.push('PET_FUSION_SELECT');
+              fusionPage = 0;
             }
           } else if (i.customId === 'pet_action_enhance') {
             if (tuSi.linhThach >= 500 && pet.tuChat < 250) {
@@ -2134,6 +2196,13 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           } else {
             menuStack.push('PET_FUSION_CONFIRM');
           }
+        } else if (i.customId === 'pet_fusion_page_prev') {
+          fusionPage = Math.max(0, fusionPage - 1);
+        } else if (i.customId === 'pet_fusion_page_next') {
+          const otherPets = myPets.filter(p => String(p.id) !== String(selectedPetId));
+          const FUSION_PAGE_SIZE = 15;
+          const maxPage = Math.ceil(otherPets.length / FUSION_PAGE_SIZE) - 1;
+          fusionPage = Math.min(maxPage, fusionPage + 1);
         }
       }
 

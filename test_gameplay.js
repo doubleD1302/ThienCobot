@@ -4258,5 +4258,109 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Pet Pagination and Navigation verification', async () => {
+    const { boDieuKhienDongPhu } = await import('./controllers/BoDieuKhienDongPhu.js');
+    const { Pet } = await import('./models/Pet.js');
+    const { TuSi } = await import('./models/TuSi.js');
+
+    const testUserId = '777777111230';
+    const tuSi = await TuSi.create({
+      idNguoiDung: testUserId,
+      ten: 'PagTuSi',
+      gioiTinh: 'Nam',
+      huongTu: 'Phap Tu',
+      linhCan: 'Hỏa Linh Căn',
+      canhGioi: 'Luyện Khí Kỳ',
+      capDo: 1,
+      tuVi: 0,
+      theLucMax: 200,
+      theLuc: 200,
+      linhThach: 1000
+    });
+
+    // Create 12 pets to have 2 pages (10 items per page)
+    const pets = [];
+    for (let i = 0; i < 12; i++) {
+      pets.push(await Pet.create({
+        userId: testUserId,
+        name: `PetPag_${i}`,
+        type: 'ma_lang_1',
+        rarity: 'LT_1',
+        level: 1,
+        tuChat: 100,
+        isActive: false
+      }));
+    }
+
+    let editReplyPayload = null;
+    let collectHandler = null;
+
+    const mockInteraction = {
+      user: { id: testUserId },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        editReplyPayload = payload;
+        return {
+          createMessageComponentCollector: () => ({
+            on: (event, handler) => {
+              if (event === 'collect') {
+                collectHandler = handler;
+              }
+            }
+          })
+        };
+      }
+    };
+
+    // Open /pet command
+    await boDieuKhienDongPhu.lenhPet.execute(mockInteraction);
+
+    // Verify first page embed and components
+    assert.ok(editReplyPayload);
+    let desc = editReplyPayload.embeds[0].data.description;
+    assert.ok(desc.includes('PetPag_0'));
+    assert.ok(desc.includes('PetPag_9'));
+    assert.ok(!desc.includes('PetPag_10')); // On page 2
+    assert.strictEqual(editReplyPayload.embeds[0].data.footer.text, 'Trang 1/2 · Tổng số sủng vật: 12');
+
+    // Click next page
+    await collectHandler({
+      customId: 'pet_page_next',
+      user: { id: testUserId },
+      deferUpdate: async () => {},
+      editReply: async (payload) => {
+        editReplyPayload = payload;
+      }
+    });
+
+    // Verify second page embed
+    desc = editReplyPayload.embeds[0].data.description;
+    assert.ok(!desc.includes('PetPag_0'));
+    assert.ok(desc.includes('PetPag_10'));
+    assert.ok(desc.includes('PetPag_11'));
+    assert.strictEqual(editReplyPayload.embeds[0].data.footer.text, 'Trang 2/2 · Tổng số sủng vật: 12');
+
+    // Click prev page
+    await collectHandler({
+      customId: 'pet_page_prev',
+      user: { id: testUserId },
+      deferUpdate: async () => {},
+      editReply: async (payload) => {
+        editReplyPayload = payload;
+      }
+    });
+
+    // Verify back to page 1
+    desc = editReplyPayload.embeds[0].data.description;
+    assert.ok(desc.includes('PetPag_0'));
+    assert.strictEqual(editReplyPayload.embeds[0].data.footer.text, 'Trang 1/2 · Tổng số sủng vật: 12');
+
+    // Clean up
+    for (const p of pets) {
+      await p.destroy();
+    }
+    await tuSi.destroy();
+  });
+
 });
 
