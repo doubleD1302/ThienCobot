@@ -157,7 +157,8 @@ export class BoTaoEmbed {
     // Chỉ số tấn công/phòng ngự
     let combatStatsText = `• **Vật công**: \`${chiSo.vat_cong}\` | **Pháp công**: \`${chiSo.phap_cong}\`\n` +
       `• **Bạo kích**: \`${Math.floor(chiSo.crit_rate * 100)}%\` | **Bạo thương**: \`${Math.floor(chiSo.crit_dmg * 100)}%\`\n` +
-      `• **Né tránh**: \`${Math.floor((chiSo.ne || 0) * 100)}%\` | **Hút máu**: \`${Math.floor((chiSo.lifesteal || 0) * 100)}%\``;
+      `• **Né tránh**: \`${Math.floor((chiSo.ne || 0) * 100)}%\` | **Hút máu**: \`${Math.floor((chiSo.lifesteal || 0) * 100)}%\`\n` +
+      `• **Tốc độ**: \`${Math.floor(chiSo.speed || 100)}\``;
 
     embed.addFields(
       {
@@ -355,9 +356,12 @@ export class BoTaoEmbed {
   static _formatDongChiSo(dongChiSoJson) {
     if (!dongChiSoJson) return '';
     try {
-      const lines = JSON.parse(dongChiSoJson);
-      if (!Array.isArray(lines) || lines.length === 0) return '';
-      const colorEmojis = { cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
+      const parsed = JSON.parse(dongChiSoJson);
+      if (!Array.isArray(parsed) || parsed.length === 0) return '';
+      // Lọc bỏ dòng metadata (phẩm chất trang bị)
+      const lines = parsed.filter(l => l && !l.metadata);
+      if (lines.length === 0) return '';
+      const colorEmojis = { do: '🔴', cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
       const formattedParts = lines.map(line => {
         const emoji = colorEmojis[line.mau] || '⚪';
         const sign = line.phanTram >= 0 ? '+' : '';
@@ -377,12 +381,41 @@ export class BoTaoEmbed {
       const equipText = isEquipped ? ' 🛡️ **[Đang mặc]**' : '';
       const lockText = khoa ? ' 🔒' : '';
 
+      const qualityEmojis = { 'Thần Thoại': '🟠', 'Sử Thi': '🟣', 'Hiếm': '🔵', 'Thường': '🟢', 'Phế Phẩm': '⚪' };
+
+      // Phẩm chất trang bị Kim Đan+ (lưu trong metadata dòng đầu)
+      let equipQualityText = '';
+      if (item.yeuCauCanhGioi >= 13 && dongChiSoJson) {
+        try {
+          const parsed = JSON.parse(dongChiSoJson);
+          if (Array.isArray(parsed)) {
+            const meta = parsed.find(x => x && x.metadata);
+            if (meta && meta.phamChatTrangBi) {
+              const qEmoji = qualityEmojis[meta.phamChatTrangBi] || '';
+              equipQualityText = ` [${qEmoji} ${meta.phamChatTrangBi}]`;
+            }
+          }
+        } catch (e) {}
+      }
+
       let pillQualityText = '';
       if (item.id.startsWith('dan_dot_pha_') && dongChiSoJson) {
         try {
           const pillData = JSON.parse(dongChiSoJson);
           if (pillData && pillData.phamChat) {
             pillQualityText = ` (${pillData.phamChat} +${pillData.phanTramHoTro}%)`;
+          }
+        } catch (e) {}
+      }
+
+      // Phẩm chất nguyên liệu
+      let matQualityText = '';
+      if (item.loai === 'Nguyên liệu' && dongChiSoJson) {
+        try {
+          const matData = JSON.parse(dongChiSoJson);
+          if (matData && matData.phamChat) {
+            const qEmoji = qualityEmojis[matData.phamChat] || '';
+            matQualityText = ` [${qEmoji} ${matData.phamChat}]`;
           }
         } catch (e) {}
       }
@@ -419,7 +452,7 @@ export class BoTaoEmbed {
         const tenSach = item.ten.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '').trim();
         tenHienThi = `${item.emoji} ${tenSach}`;
       }
-      const formattedLine = `• **${tenHienThi}**${pillQualityText}${cardExpiryText}${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
+      const formattedLine = `• **${tenHienThi}**${equipQualityText}${matQualityText}${pillQualityText}${cardExpiryText}${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
 
       if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
       else if (['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai)) coBaoPhapBao.push(formattedLine);
@@ -664,6 +697,19 @@ export class BoTaoEmbed {
       .setDescription(item.moTa || '*Không có mô tả chi tiết cho linh bảo này.*')
       .setTimestamp();
 
+    const qualityEmojis = { 'Thần Thoại': '🟠', 'Sử Thi': '🟣', 'Hiếm': '🔵', 'Thường': '🟢', 'Phế Phẩm': '⚪' };
+    let equipMeta = null;
+    let dynamicLines = [];
+    if (dongChiSoJson) {
+      try {
+        const parsed = JSON.parse(dongChiSoJson);
+        if (Array.isArray(parsed)) {
+          equipMeta = parsed.find(x => x && x.metadata) || null;
+          dynamicLines = parsed.filter(x => x && !x.metadata);
+        }
+      } catch (e) {}
+    }
+
     const basicInfo = [
       `• **Phân loại**: \`${item.loai}\``,
       `• **Độ hiếm**: \`${item.doHiem}\``
@@ -671,6 +717,11 @@ export class BoTaoEmbed {
     if (item.yeuCauCanhGioi > 1) {
       const cgReq = config.layThongTinCanhGioi(item.yeuCauCanhGioi);
       basicInfo.push(`• **Cảnh giới yêu cầu**: \`${cgReq.realmName} - ${cgReq.stageName}\``);
+    }
+    if (equipMeta && equipMeta.phamChatTrangBi) {
+      const qEmoji = qualityEmojis[equipMeta.phamChatTrangBi] || '';
+      const mult = equipMeta.chiSoChinhMult !== undefined ? `(Chỉ số chính x${equipMeta.chiSoChinhMult.toFixed(3)})` : '';
+      basicInfo.push(`• **Phẩm chất**: ${qEmoji} \`${equipMeta.phamChatTrangBi}\` ${mult}`);
     }
     embed.addFields({ name: 'ℹ️ Thông Tin Cơ Bản', value: basicInfo.join('\n'), inline: true });
 
@@ -688,6 +739,13 @@ export class BoTaoEmbed {
         if (stats.mp) parts.push(`• Pháp lực (MP): \`+${stats.mp}\``);
         if (stats.hp_hoi) parts.push(`• Hồi HP: \`+${stats.hp_hoi * 10}\``);
         if (stats.mp_hoi) parts.push(`• Hồi MP: \`+${stats.mp_hoi}\``);
+        if (stats.speed) parts.push(`• Tốc độ: \`+${stats.speed}\``);
+        if (stats.crit_rate) parts.push(`• Tỷ lệ bạo kích: \`+${Math.floor(stats.crit_rate * 100)}%\``);
+        if (stats.xuyen_giap) parts.push(`• Xuyên Giáp: \`+${stats.xuyen_giap}%\``);
+        if (stats.ne) parts.push(`• Né tránh: \`+${Math.floor(stats.ne * 100)}%\``);
+        if (stats.dmg_red) parts.push(`• Giảm sát thương: \`+${Math.floor(stats.dmg_red * 100)}%\``);
+        if (stats.giam_hoi_chieu) parts.push(`• Giảm Hồi Chiêu: \`+${Math.floor(stats.giam_hoi_chieu * 100)}%\``);
+        if (stats.khang_khong_che) parts.push(`• Kháng khống chế: \`+${Math.floor(stats.khang_khong_che * 100)}%\``);
         if (stats.exp_bonus) parts.push(`• Linh lực nhận thêm: \`+${stats.exp_bonus}\``);
         baseStatsTxt = parts.join('\n');
       } catch (e) {}
@@ -695,19 +753,14 @@ export class BoTaoEmbed {
     embed.addFields({ name: '📊 Chỉ Số Bản Thân', value: baseStatsTxt || '• *Không có chỉ số.*', inline: true });
 
     // Chỉ số ẩn / dòng linh khí
-    if (dongChiSoJson) {
-      try {
-        const lines = JSON.parse(dongChiSoJson);
-        if (Array.isArray(lines) && lines.length > 0) {
-          const colorEmojis = { do: '🔴', cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
-          const linesTxt = lines.map(line => {
-            const emoji = colorEmojis[line.mau] || '⚪';
-            const sign = line.phanTram >= 0 ? '+' : '';
-            return `${emoji} **${line.ten}**: \`${sign}${line.phanTram}%\``;
-          }).join('\n');
-          embed.addFields({ name: '🔮 Dòng Chỉ Số Linh Khí', value: linesTxt, inline: false });
-        }
-      } catch (e) {}
+    if (dynamicLines.length > 0) {
+      const colorEmojis = { do: '🔴', cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
+      const linesTxt = dynamicLines.map(line => {
+        const emoji = colorEmojis[line.mau] || '⚪';
+        const sign = line.phanTram >= 0 ? '+' : '';
+        return `${emoji} **${line.ten}**: \`${sign}${line.phanTram}%\``;
+      }).join('\n');
+      embed.addFields({ name: '🔮 Dòng Chỉ Số Linh Khí', value: linesTxt, inline: false });
     }
 
     return embed;
@@ -774,6 +827,13 @@ export class BoTaoEmbed {
         if (stats.mp)         parts.push(`• Pháp lực (MP): \`+${stats.mp}\``);
         if (stats.hp_hoi)     parts.push(`• Hồi HP: \`+${stats.hp_hoi * 10}\``);
         if (stats.mp_hoi)     parts.push(`• Hồi MP: \`+${stats.mp_hoi}\``);
+        if (stats.speed)       parts.push(`• Tốc độ: \`+${stats.speed}\``);
+        if (stats.crit_rate)   parts.push(`• Tỷ lệ bạo kích: \`+${Math.floor(stats.crit_rate * 100)}%\``);
+        if (stats.xuyen_giap)  parts.push(`• Xuyên Giáp: \`+${stats.xuyen_giap}%\``);
+        if (stats.ne)          parts.push(`• Né tránh: \`+${Math.floor(stats.ne * 100)}%\``);
+        if (stats.dmg_red)     parts.push(`• Giảm sát thương: \`+${Math.floor(stats.dmg_red * 100)}%\``);
+        if (stats.giam_hoi_chieu) parts.push(`• Giảm Hồi Chiêu: \`+${Math.floor(stats.giam_hoi_chieu * 100)}%\``);
+        if (stats.khang_khong_che) parts.push(`• Kháng khống chế: \`+${Math.floor(stats.khang_khong_che * 100)}%\``);
         if (stats.exp_bonus)  parts.push(`• Linh lực nhận thêm: \`+${stats.exp_bonus}\``);
         baseStatsTxt = parts.join('\n');
       } catch (e) {}

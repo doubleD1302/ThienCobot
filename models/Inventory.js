@@ -95,19 +95,55 @@ class Inventory extends Model {
 
     const isEquipable = !isSkin && ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
     const isBreakthroughPill = !isSkin && item.id.startsWith('dan_dot_pha_');
+    const isMaterial = !isSkin && item.loai === 'Nguyên liệu';
 
     if (isEquipable) {
       // Mỗi trang bị chiếm 1 dòng duy nhất, sinh chỉ số ngẫu nhiên
       const records = [];
       for (let i = 0; i < soLuong; i++) {
-        const chiSoNgauNhien = rollDynamicStats(item);
+        let metaObj = null;
+        if (item.yeuCauCanhGioi >= 13) {
+          let q = options.quality;
+          if (!q) {
+            const r = Math.random() * 100;
+            if (r < 0.5) q = 'Thần Thoại';
+            else if (r < 5.0) q = 'Sử Thi';
+            else if (r < 20.0) q = 'Hiếm';
+            else if (r < 60.0) q = 'Thường';
+            else q = 'Phế Phẩm';
+          }
+          let p = 0;
+          if (q === 'Phế Phẩm') p = -5 + Math.random() * 5;
+          else if (q === 'Thường') p = Math.random() * 5;
+          else if (q === 'Hiếm') p = 5 + Math.random() * 5;
+          else if (q === 'Sử Thi') p = 10 + Math.random() * 5;
+          else if (q === 'Thần Thoại') p = 15 + Math.random() * 5;
+
+          const chiSoChinhMult = parseFloat((1.0 + p / 100).toFixed(3));
+          metaObj = { metadata: true, phamChatTrangBi: q, chiSoChinhMult };
+        }
+
+        let finalStats;
+        if (options.dongChiSoOverride) {
+          // Sử dụng chỉ số được truyền vào (ví dụ từ boss drop)
+          finalStats = Array.isArray(options.dongChiSoOverride) ? [...options.dongChiSoOverride] : options.dongChiSoOverride;
+          if (metaObj) {
+            finalStats = [metaObj, ...finalStats.filter(x => x && !x.metadata)];
+          }
+        } else {
+          finalStats = rollDynamicStats(item, { phamChatTrangBi: metaObj ? metaObj.phamChatTrangBi : null });
+          if (metaObj) {
+            finalStats.unshift(metaObj);
+          }
+        }
+
         const record = await Inventory.create({
           idNguoiDung,
           itemId,
           soLuong: 1,
           trangBi: false,
           nangCapSao: 0,
-          dongChiSoJson: JSON.stringify(chiSoNgauNhien)
+          dongChiSoJson: JSON.stringify(finalStats)
         });
         records.push(record);
       }
@@ -116,6 +152,21 @@ class Inventory extends Model {
       // Đan đột phá cộng dồn theo phẩm chất (dongChiSoJson)
       const qualityObj = options.quality || rollPillQuality();
       const dongChiSoJson = JSON.stringify(qualityObj);
+
+      const [record, created] = await Inventory.findOrCreate({
+        where: { idNguoiDung, itemId, trangBi: false, dongChiSoJson },
+        defaults: { soLuong, nangCapSao: 0, dongChiSoJson }
+      });
+      if (!created) {
+        record.soLuong += soLuong;
+        await record.save();
+      }
+      return record;
+    } else if (isMaterial) {
+      // Nguyên liệu cộng dồn theo phẩm chất
+      const { rollMaterialQuality } = await import('../config.js');
+      const matQuality = options.quality || rollMaterialQuality();
+      const dongChiSoJson = JSON.stringify({ phamChat: matQuality });
 
       const [record, created] = await Inventory.findOrCreate({
         where: { idNguoiDung, itemId, trangBi: false, dongChiSoJson },

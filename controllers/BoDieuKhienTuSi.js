@@ -809,16 +809,16 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
           const POOLS = {
             ["Vũ khí".normalize('NFC')]: ["vat_cong", "phap_cong", "crit_rate", "crit_dmg", "xuyen_giap"],
             ["Giáp".normalize('NFC')]: ["vat_phong", "phap_phong", "max_mp", "max_hp"],
-            ["Ngọc Bội".normalize('NFC')]: ["max_hp", "max_mp", "ne", "lifesteal"],
-            ["Cổ Bảo Chủ Động".normalize('NFC')]: ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal"],
+            ["Ngọc Bội".normalize('NFC')]: ["max_hp", "max_mp", "ne", "lifesteal", "speed"],
+            ["Cổ Bảo Chủ Động".normalize('NFC')]: ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal", "speed"],
             ["Pháp Bảo".normalize('NFC')]: [
               "vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal",
-              "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb"
+              "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb", "speed"
             ]
           };
 
-          const pool = [...(POOLS[loaiNormalized] || ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal"])];
-          const generalStats = ["max_hp", "max_mp", "ne", "lifesteal", "vat_phong", "phap_phong"];
+          const pool = [...(POOLS[loaiNormalized] || ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal", "speed"])];
+          const generalStats = ["max_hp", "max_mp", "ne", "lifesteal", "vat_phong", "phap_phong", "speed"];
           for (const g of generalStats) {
             if (pool.length >= 5) break;
             if (!pool.includes(g)) pool.push(g);
@@ -843,7 +843,8 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
             "crit_dmg_pb": "Bạo thương Pháp bảo",
             "sat_thuong_pb": "Sát thương Pháp bảo",
             "phap_thuong_pb": "Pháp thương Pháp bảo",
-            "khien_pb": "Hộ tẫn Hấp thụ Pháp bảo"
+            "khien_pb": "Hộ tẫn Hấp thụ Pháp bảo",
+            "speed": "Tốc độ"
           };
 
           const customLines = [];

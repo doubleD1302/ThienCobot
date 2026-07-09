@@ -339,7 +339,7 @@ async function autoDiBiCanh(tuSi) {
 
     const activeBuffs = [];
     for (const eq of dharmaTreasures) {
-      const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
+      const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId, stats);
       if (activeSkill) {
         if (activeSkill.loai === 'tan_cong') {
           monsterHp = Math.max(0, monsterHp - activeSkill.triGia);
@@ -347,6 +347,10 @@ async function autoDiBiCanh(tuSi) {
           const healAmt = Math.floor(stats.max_hp * (activeSkill.triGia / 100));
           playerHp = Math.min(stats.max_hp, playerHp + healAmt);
         } else if (activeSkill.loai === 'tang_cong_pct') {
+          if (activeSkill.ten.includes("Cuồng Hóa Chiến Ý")) {
+            const hpSacrifice = Math.floor(playerHp * 0.10);
+            playerHp = Math.max(1, playerHp - hpSacrifice);
+          }
           activeBuffs.push({
             ten: activeSkill.ten,
             pbTen: eq.item.ten,
@@ -705,6 +709,9 @@ async function autoDiBiCanh(tuSi) {
             const mAtk = Math.max(monster.vatCong, monster.phapCong);
             const pDef = monster.vatCong > monster.phapCong ? stats.vat_phong : stats.phap_phong;
             let mDmg = Math.max(1, mAtk - pDef);
+            if (stats.dmg_red) {
+              mDmg = Math.floor(mDmg * (1 - stats.dmg_red));
+            }
 
             if (bossWeakenRounds > 0) {
               mDmg = Math.floor(mDmg * (1 - bossWeakenPct));

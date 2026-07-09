@@ -1243,8 +1243,135 @@ class BoDieuKhienAdmin {
       });
     }
   };
+
+  lenhTb = {
+    data: new SlashCommandBuilder()
+      .setName('tb')
+      .setDescription('Gửi thông báo đến kênh 📢┃ᴛʜôɴɢ-ʙáᴏ (Chỉ dành cho wiine5100)'),
+
+    execute: async (interaction) => {
+      if (interaction.user.username !== 'wiine5100') {
+        return interaction.reply({
+          content: '❌ **Vô pháp vô thiên!** Quyền hạn bất túc để sử dụng thiên đạo lệnh này!',
+          ephemeral: true
+        });
+      }
+
+      const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
+
+      const modal = new ModalBuilder()
+        .setCustomId('tb_modal')
+        .setTitle('Gửi Thông Báo Tiên Giới');
+
+      const contentInput = new TextInputBuilder()
+        .setCustomId('tb_content')
+        .setLabel('Nội dung thông báo')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Nhập nội dung thông báo tại đây...')
+        .setRequired(true);
+
+      const firstActionRow = new ActionRowBuilder().addComponents(contentInput);
+      modal.addComponents(firstActionRow);
+
+      await interaction.showModal(modal);
+    }
+  };
+
+  async handleTbModalSubmit(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+
+    if (interaction.user.username !== 'wiine5100') {
+      return interaction.editReply({
+        content: '❌ **Vô pháp vô thiên!** Quyền hạn bất túc để sử dụng thiên đạo lệnh này!'
+      });
+    }
+
+    const content = interaction.fields.getTextInputValue('tb_content');
+    if (!content) {
+      return interaction.editReply({
+        content: '❌ Nội dung thông báo không được để trống!'
+      });
+    }
+
+    const guild = interaction.guild;
+    if (!guild) {
+      return interaction.editReply({
+        content: '❌ Lệnh này chỉ có thể thực hiện trong máy chủ!'
+      });
+    }
+
+    const channels = await guild.channels.fetch().catch(() => null);
+    if (!channels) {
+      return interaction.editReply({
+        content: '❌ Không thể truy xuất danh sách kênh của máy chủ!'
+      });
+    }
+
+    const tbChannel = channels.find(ch => {
+      if (!ch || !ch.isTextBased() || !ch.name) return false;
+      const name = ch.name.toLowerCase();
+      const normalized = name
+        .replace(/ᴛ/g, 't')
+        .replace(/ʜ/g, 'h')
+        .replace(/ô/g, 'o')
+        .replace(/n/g, 'n') // Đề phòng
+        .replace(/ɴ/g, 'n')
+        .replace(/ɢ/g, 'g')
+        .replace(/ʙ/g, 'b')
+        .replace(/á/g, 'a')
+        .replace(/ᴏ/g, 'o')
+        .replace(/[^a-z0-9]/g, '');
+      return normalized === 'thongbao' || name.includes('thong-bao') || name.includes('thông-báo') || name === '📢┃ᴛʜôɴɢ-ʙáᴏ';
+    });
+
+    if (!tbChannel) {
+      return interaction.editReply({
+        content: '❌ Không tìm thấy kênh thông báo `📢┃ᴛʜôɴɢ-ʙáᴏ`!'
+      });
+    }
+
+    const MAX_LENGTH = 1900;
+    const chunks = [];
+    
+    if (content.length <= MAX_LENGTH) {
+      chunks.push(content);
+    } else {
+      let temp = content;
+      while (temp.length > 0) {
+        if (temp.length <= MAX_LENGTH) {
+          chunks.push(temp);
+          break;
+        }
+        
+        let cutIndex = temp.lastIndexOf('\n', MAX_LENGTH);
+        if (cutIndex === -1 || cutIndex < MAX_LENGTH * 0.7) {
+          cutIndex = temp.lastIndexOf(' ', MAX_LENGTH);
+        }
+        if (cutIndex === -1 || cutIndex < MAX_LENGTH * 0.7) {
+          cutIndex = MAX_LENGTH;
+        }
+
+        chunks.push(temp.substring(0, cutIndex).trim());
+        temp = temp.substring(cutIndex).trim();
+      }
+    }
+
+    try {
+      for (const chunk of chunks) {
+        await tbChannel.send(chunk);
+      }
+      return interaction.editReply({
+        content: `✅ Đã gửi thông báo thành công lên kênh ${tbChannel} (${chunks.length} tin nhắn).`
+      });
+    } catch (err) {
+      console.error('Lỗi khi gửi thông báo:', err);
+      return interaction.editReply({
+        content: `❌ Lỗi khi gửi thông báo lên kênh: ${err.message}`
+      });
+    }
+  }
 }
 
 const controller = new BoDieuKhienAdmin();
-export const danhSachLenhAdmin = [controller.lenhAdmin, controller.lenhEdit];
+export const danhSachLenhAdmin = [controller.lenhAdmin, controller.lenhEdit, controller.lenhTb];
 export { controller as boDieuKhienAdmin };

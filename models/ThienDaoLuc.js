@@ -70,8 +70,13 @@ class ThienDaoLuc extends Model {
 
               const files = [];
               if (loai === 'Supreme') {
-                embed.setThumbnail('attachment://binh_tinh_hai.png');
-                files.push(new AttachmentBuilder('public/image/chi_bao/binh_tinh_hai.png'));
+                if (suKien.includes('Càn Khôn Đỉnh')) {
+                  embed.setThumbnail('attachment://can_khon_dinh.png');
+                  files.push(new AttachmentBuilder('public/image/chi_bao/can_khon_dinh.png'));
+                } else {
+                  embed.setThumbnail('attachment://binh_tinh_hai.png');
+                  files.push(new AttachmentBuilder('public/image/chi_bao/binh_tinh_hai.png'));
+                }
               }
 
               await targetChannel.send({

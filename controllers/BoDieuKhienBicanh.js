@@ -13,6 +13,32 @@ import { Inventory } from '../models/Inventory.js';
 import { Item } from '../models/Item.js';
 import * as config from '../config.js';
 
+function getNguyenLieuLuyenKhiTheoCapDo(capDo, loai, itemId) {
+  if (capDo >= 19) return 'nguyen_lieu_hoa_than';
+  if (capDo >= 16) return 'nguyen_lieu_nguyen_anh';
+  if (capDo >= 13) {
+    if (loai === 'Vũ khí') return 'huyen_thiet_van_nam';
+    if (loai === 'Giáp') return 'Thien_Tam_Linh_ty';
+    if (loai === 'Ngọc Bội') return 'hon_tinh_huyet_nguyet';
+    const pbMats = [
+      'cuc_duong_hoa_thach',
+      'loi_tri_bang_tinh',
+      'Hau_tho_chi_loi',
+      'u_minh_te_truc',
+      'sinh_sinh_tao_hoa_dich',
+      'tinh_khong_luu_sa'
+    ];
+    let sum = 0;
+    const str = itemId || '';
+    for (let c = 0; c < str.length; c++) {
+      sum += str.charCodeAt(c);
+    }
+    return pbMats[sum % pbMats.length];
+  }
+  if (capDo >= 10) return 'nguyen_lieu_truc_co';
+  return 'nguyen_lieu_luyen_khi';
+}
+
 class BoDieuKhienBicanh extends BoDieuKhienGoc {
   constructor() {
     super();
@@ -181,6 +207,17 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let kyLanBuffActive = false;
         let huyenVuBuffActive = false;
 
+        let bossPoisonRounds = 0;
+        let bossPoisonStacks = 0;
+        let bossPoisonDmgPerStack = 0;
+        let bossStunnedRounds = 0;
+        let playerLifestealRounds = 0;
+        let critDmgRedPct = 0;
+        let huyenVuCritActive = false;
+        let bossWeakenRounds = 0;
+        let bossWeakenPct = 0;
+        let playerImmuneRounds = 0;
+
         const isPhysical = tuSi.huongTu === 'The Tu';
         const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
         const monsterDef = isPhysical ? monster.vatPhong : monster.phapPhong;
@@ -192,7 +229,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         // Kích hoạt kỹ năng chủ động của Pháp Bảo khi vào chiến đấu
         const activeBuffs = [];
         for (const eq of dharmaTreasures) {
-          const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
+          const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId, stats);
           if (activeSkill) {
             if (activeSkill.loai === 'tan_cong') {
               monsterHp = Math.max(0, monsterHp - activeSkill.triGia);
@@ -202,6 +239,11 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
               playerHp = Math.min(stats.max_hp, playerHp + healAmt);
               battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, hồi phục \`+${healAmt}\` HP (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
             } else if (activeSkill.loai === 'tang_cong_pct') {
+              if (activeSkill.ten.includes("Cuồng Hóa Chiến Ý")) {
+                const hpSacrifice = Math.floor(playerHp * 0.10);
+                playerHp = Math.max(1, playerHp - hpSacrifice);
+                battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, tiêu hao \`-${hpSacrifice}\` HP.`);
+              }
               activeBuffs.push({
                 ten: activeSkill.ten,
                 pbTen: eq.item.ten,
@@ -570,6 +612,9 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             const mAtk = Math.max(monster.vatCong, monster.phapCong);
             const pDef = monster.vatCong > monster.phapCong ? stats.vat_phong : stats.phap_phong;
             let mDmg = Math.max(1, mAtk - pDef);
+            if (stats.dmg_red) {
+              mDmg = Math.floor(mDmg * (1 - stats.dmg_red));
+            }
 
             if (bossWeakenRounds > 0) {
               mDmg = Math.floor(mDmg * (1 - bossWeakenPct));
@@ -661,9 +706,20 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                 if (itemDetail.doHiem === 'Huyền thoại' || itemDetail.doHiem === 'Thần cấp' || targetId === 'trung_than_thu') {
                   // Chặn không rơi
                 } else {
-                  droppedItem = itemDetail;
-                  await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
-                  break;
+                  const isEquip = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(itemDetail.loai);
+                  if (isEquip) {
+                    const matId = getNguyenLieuLuyenKhiTheoCapDo(itemDetail.yeuCauCanhGioi || tuSi.capDo, itemDetail.loai, itemDetail.id);
+                    const matDetail = await Item.findByPk(matId);
+                    if (matDetail) {
+                      droppedItem = matDetail;
+                      await Inventory.addVatPham(tuSi.idNguoiDung, matId, 1);
+                      break;
+                    }
+                  } else {
+                    droppedItem = itemDetail;
+                    await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+                    break;
+                  }
                 }
               }
             }

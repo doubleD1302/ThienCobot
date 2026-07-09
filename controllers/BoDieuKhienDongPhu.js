@@ -54,6 +54,28 @@ const QUALITY_EMOJIS = {
   'do': '🔴 Tiên phẩm'
 };
 
+// Tỉ lệ luyện chế theo phẩm chất nguyên liệu (phải khớp với config.js rollForgedQuality)
+const FORGE_RATE_TABLE = {
+  'Phế Phẩm': { fail: 50, thuong: 30, hiem: 20, suThi: 0, thanThoai: 0 },
+  'Thường':   { fail: 10, thuong: 50, hiem: 40, suThi: 0, thanThoai: 0 },
+  'Hiếm':     { fail:  0, thuong: 40, hiem: 55, suThi: 5, thanThoai: 0 },
+  'Sử Thi':   { fail:  0, thuong: 30, hiem: 55, suThi:10, thanThoai: 5 },
+  'Thần Thoại':{ fail: 0, thuong:  0, hiem: 55, suThi:35, thanThoai:10 }
+};
+
+function getForgeRateText(matQuality) {
+  const r = FORGE_RATE_TABLE[matQuality];
+  if (!r) return '*Không rõ phẩm chất nguyên liệu.*';
+  const lines = [];
+  if (r.fail   > 0) lines.push(`• 💥 Thất bại: \`${r.fail}%\``);
+  if (r.thuong > 0) lines.push(`• 🟢 Thường: \`${r.thuong}%\``);
+  if (r.hiem   > 0) lines.push(`• 🔵 Hiếm: \`${r.hiem}%\``);
+  if (r.suThi  > 0) lines.push(`• 🟣 Sử Thi: \`${r.suThi}%\``);
+  if (r.thanThoai>0)lines.push(`• 🟠 Thần Thoại: \`${r.thanThoai}%\``);
+  if (r.fail === 0)  lines.unshift(`• 💥 Thất bại: \`0%\` ✅`);
+  return lines.join('\n');
+}
+
 class BoDieuKhienDongPhu extends BoDieuKhienGoc {
   constructor() {
     super();
@@ -104,6 +126,10 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     let foodPage = 0;             // Trang phân trang menu thức ăn sủng vật
     let petPage = 0;              // Trang phân trang danh sách sủng vật
     let fusionPage = 0;           // Trang phân trang sủng vật dung hợp
+    let gardenPage = 0;           // Trang phân trang ô đất dược viên
+    let seedPage = 0;             // Trang phân trang hạt giống
+    let herbPage = 0;             // Trang phân trang linh thảo luyện đan
+    let pillPage = 0;             // Trang phân trang đan dược tiêu thụ
     let actionMessage = null;     // Lưu thông báo kết quả hành động
     let releaseFilterSpecies = 'all';
     let releaseFilterBloodline = 'all';
@@ -266,16 +292,50 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       // 5. LUYỆN KHÍ (FORGE)
       // ══════════════════════════════════════════════════════════════
       else if (menu === 'FORGE') {
+        // Đọc nguyên liệu tốt nhất người chơi đang có để hiển thị tỉ lệ
+        const qualityOrder = { 'Thần Thoại': 5, 'Sử Thi': 4, 'Hiếm': 3, 'Thường': 2, 'Phế Phẩm': 1 };
+        let bestMatQuality = null;
+        try {
+          // Bước 1: lấy danh sách itemId thuộc loại Nguyên liệu
+          const matItems = await Item.findAll({ where: { loai: 'Nguyên liệu' } });
+          const matItemIds = matItems.map(it => it.id);
+          if (matItemIds.length > 0) {
+            // Bước 2: tìm trong balo người chơi
+            const { Op } = await import('sequelize');
+            const allMats = await Inventory.findAll({
+              where: { idNguoiDung: tuSi.idNguoiDung, itemId: { [Op.in]: matItemIds } }
+            });
+            for (const m of allMats) {
+              if (!m.dongChiSoJson) continue;
+              let q = null;
+              try { q = JSON.parse(m.dongChiSoJson).phamChat || null; } catch(e) {}
+              if (q && (bestMatQuality === null || (qualityOrder[q] || 0) > (qualityOrder[bestMatQuality] || 0))) {
+                bestMatQuality = q;
+              }
+            }
+          }
+        } catch(e) {}
+
+        const rateEmoji = { 'Phế Phẩm': '⚪', 'Thường': '🟢', 'Hiếm': '🔵', 'Sử Thi': '🟣', 'Thần Thoại': '🟠' };
+        let rateSection = '';
+        if (bestMatQuality) {
+          rateSection = `\n\n📊 **Tỉ Lệ Luyện Chế** *(nguyên liệu tốt nhất: ${rateEmoji[bestMatQuality] || ''} ${bestMatQuality})*:\n${getForgeRateText(bestMatQuality)}`;
+        } else {
+          rateSection = `\n\n📊 **Tỉ Lệ Luyện Chế**: *Đạo hữu chưa có nguyên liệu nào trong balo.*`;
+        }
+
         const embed = new EmbedBuilder()
           .setTitle(`🔨 Rèn Đúc Linh Khí: ${tuSi.ten}`)
           .setColor(0x34495e)
           .setDescription(
             `Dùng trang bị cũ trong balo kết hợp với linh thảo từ dược viên làm chất xúc tác để đúc tiên binh phẩm chất cao.\n` +
-            `• **Quy luật đúc khí**: Trang bị phẩm chất cao hơn có chỉ số gốc tăng **120%** và nhân đôi cơ hội nhận các dòng phụ tố màu cam 🟠.\n\n` +
+            `• **Quy luật đúc khí**: Phẩm chất trang bị luyện ra phụ thuộc vào **phẩm chất nguyên liệu** bỏ vào.\n` +
+            `• Sử dụng nguyên liệu phẩm chất cao hơn để tăng cơ hội nhận trang bị chất lượng cao.${rateSection}\n\n` +
             `*Chọn một công thức đúc khí từ danh sách bên dưới.*`
           );
         embeds.push(embed);
       }
+
 
       // ══════════════════════════════════════════════════════════════
       // 6. SỦNG VẬT (PETS)
@@ -667,13 +727,18 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         const plots = await GardenPlot.findAll({ where: { userId: tuSi.idNguoiDung } });
         const countPlots = plots.length;
 
-        // Dropdown chọn ô đất
+        // Dropdown chọn ô đất (phân trang, tối đa 23 ô/trang để còn chỗ cho nút điều hướng)
+        const GARDEN_PAGE_SIZE = 23;
+        const totalGardenPages = Math.ceil(plots.length / GARDEN_PAGE_SIZE) || 1;
+        if (gardenPage >= totalGardenPages) gardenPage = Math.max(0, totalGardenPages - 1);
+        const plotsThisPage = plots.slice(gardenPage * GARDEN_PAGE_SIZE, (gardenPage + 1) * GARDEN_PAGE_SIZE);
+
         rows.push(
           new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
               .setCustomId('garden_slot_select')
-              .setPlaceholder('🌾 Chọn ô đất muốn thao tác...')
-              .addOptions(plots.map(p => {
+              .setPlaceholder(`🌾 Chọn ô đất muốn thao tác... (Trang ${gardenPage + 1}/${totalGardenPages})`)
+              .addOptions(plotsThisPage.map(p => {
                 const statusText = p.status === 'EMPTY' ? 'Đất Trống' : 'Có cây';
                 return {
                   label: `Ô Đất Số ${p.slotIndex + 1} (${statusText})`,
@@ -682,6 +747,23 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               }))
           )
         );
+
+        if (totalGardenPages > 1) {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('garden_page_prev')
+                .setLabel('◀ Trang Trước')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(gardenPage === 0),
+              new ButtonBuilder()
+                .setCustomId('garden_page_next')
+                .setLabel('Trang Sau ▶')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(gardenPage >= totalGardenPages - 1)
+            )
+          );
+        }
 
         // Nút tưới nước & Mở ô đất
         const slotCost = 10000 * Math.pow(10, countPlots - 2);
@@ -733,17 +815,39 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               )
             );
           } else {
+            const SEED_PAGE_SIZE = 22;
+            const totalSeedPages = Math.ceil(seeds.length / SEED_PAGE_SIZE) || 1;
+            if (seedPage >= totalSeedPages) seedPage = Math.max(0, totalSeedPages - 1);
+            const seedsThisPage = seeds.slice(seedPage * SEED_PAGE_SIZE, (seedPage + 1) * SEED_PAGE_SIZE);
+
             rows.push(
               new ActionRowBuilder().addComponents(
                 new StringSelectMenuBuilder()
                   .setCustomId('garden_plant_seed')
-                  .setPlaceholder('🌱 Chọn hạt giống để gieo vào ô đất...')
-                  .addOptions(seeds.map(s => ({
+                  .setPlaceholder(`🌱 Chọn hạt giống để gieo... (Trang ${seedPage + 1}/${totalSeedPages})`)
+                  .addOptions(seedsThisPage.map(s => ({
                     label: `${s.item.ten} (Có: ${s.soLuong})`,
                     value: s.item.id
                   })))
               )
             );
+
+            if (totalSeedPages > 1) {
+              rows.push(
+                new ActionRowBuilder().addComponents(
+                  new ButtonBuilder()
+                    .setCustomId('seed_page_prev')
+                    .setLabel('◀ Trang Trước')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(seedPage === 0),
+                  new ButtonBuilder()
+                    .setCustomId('seed_page_next')
+                    .setLabel('Trang Sau ▶')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(seedPage >= totalSeedPages - 1)
+                )
+              );
+            }
           }
         } else {
           // Nút thu hoạch
@@ -785,33 +889,77 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             )
           );
         } else {
+          const HERB_PAGE_SIZE = 22;
+          const totalHerbPages = Math.ceil(herbs.length / HERB_PAGE_SIZE) || 1;
+          if (herbPage >= totalHerbPages) herbPage = Math.max(0, totalHerbPages - 1);
+          const herbsThisPage = herbs.slice(herbPage * HERB_PAGE_SIZE, (herbPage + 1) * HERB_PAGE_SIZE);
+
           rows.push(
             new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId('alchemy_craft_pills')
-                .setPlaceholder('🔮 Chọn linh thảo chế luyện Đan Tu Vi (Tốn 50 Linh thạch)...')
-                .addOptions(herbs.map(h => ({
+                .setPlaceholder(`🔮 Chọn linh thảo chế luyện Đan Tu Vi... (Trang ${herbPage + 1}/${totalHerbPages})`)
+                .addOptions(herbsThisPage.map(h => ({
                   label: `${h.item.ten} (Có: ${h.soLuong})`,
                   value: h.item.id
                 })))
             )
           );
+
+          if (totalHerbPages > 1) {
+            rows.push(
+              new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                  .setCustomId('herb_page_prev')
+                  .setLabel('◀ Linh Thảo Trước')
+                  .setStyle(ButtonStyle.Secondary)
+                  .setDisabled(herbPage === 0),
+                new ButtonBuilder()
+                  .setCustomId('herb_page_next')
+                  .setLabel('Linh Thảo Sau ▶')
+                  .setStyle(ButtonStyle.Secondary)
+                  .setDisabled(herbPage >= totalHerbPages - 1)
+              )
+            );
+          }
         }
 
         // Lọc ra các đan dược Tu Vi trong balo để ăn
         const pills = sellableList.filter(e => e.item.id.startsWith('dan_tu_vi_'));
         if (pills.length > 0) {
+          const PILL_PAGE_SIZE = 22;
+          const totalPillPages = Math.ceil(pills.length / PILL_PAGE_SIZE) || 1;
+          if (pillPage >= totalPillPages) pillPage = Math.max(0, totalPillPages - 1);
+          const pillsThisPage = pills.slice(pillPage * PILL_PAGE_SIZE, (pillPage + 1) * PILL_PAGE_SIZE);
+
           rows.push(
             new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId('alchemy_consume_pill')
-                .setPlaceholder('💊 Ăn Đan Dược gia tăng Tu Vi...')
-                .addOptions(pills.map(p => ({
+                .setPlaceholder(`💊 Ăn Đan Dược gia tăng Tu Vi... (Trang ${pillPage + 1}/${totalPillPages})`)
+                .addOptions(pillsThisPage.map(p => ({
                   label: `${p.item.ten} (Có: ${p.soLuong})`,
                   value: p.item.id
                 })))
             )
           );
+
+          if (totalPillPages > 1) {
+            rows.push(
+              new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                  .setCustomId('pill_page_prev')
+                  .setLabel('◀ Đan Dược Trước')
+                  .setStyle(ButtonStyle.Secondary)
+                  .setDisabled(pillPage === 0),
+                new ButtonBuilder()
+                  .setCustomId('pill_page_next')
+                  .setLabel('Đan Dược Sau ▶')
+                  .setStyle(ButtonStyle.Secondary)
+                  .setDisabled(pillPage >= totalPillPages - 1)
+              )
+            );
+          }
         }
 
         rows.push(
@@ -830,25 +978,40 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       else if (menu === 'FORGE') {
         // Công thức rèn đúc
         const recipes = [
-          { label: '🗡️ Tiên Kiếm Tân Thủ (Kiếm Gỗ + 5 Luyện Khí Thạch + 200 LT)', value: 'kiem_go::kiem_tien_tan_thu' },
-          { label: '🎋 Linh Trượng Tân Thủ (Mộc Trượng + 5 Luyện Khí Thạch + 200 LT)', value: 'truong_go::truong_tien_tan_thu' },
-          { label: '🥋 Tiên Giáp Tân Thủ (Đạo Bào Vải + 5 Luyện Khí Thạch + 200 LT)', value: 'ao_vai::giap_tien_tan_thu' },
+          { label: '🗡️ Tiên Kiếm Tân Thủ (5 Luyện Khí Thạch + 2000 LT)', value: 'kiem_go::kiem_tien_tan_thu' },
+          { label: '🎋 Linh Trượng Tân Thủ (5 Luyện Khí Thạch + 2000 LT)', value: 'truong_go::truong_tien_tan_thu' },
+          { label: '🥋 Tiên Giáp Tân Thủ (5 Luyện Khí Thạch + 2000 LT)', value: 'ao_vai::giap_tien_tan_thu' },
 
-          { label: '⚔️ Thiết Kiếm (Trọng Thiết Thiết Kiếm + 5 Huyền Thiết Thạch + 200 LT)', value: 'kiem_sat_nang::kiem_sat' },
-          { label: '🎋 Trúc Trượng (Phàm Trúc Trượng + 5 Huyền Thiết Thạch + 200 LT)', value: 'truong_truc_thuong::truong_truc' },
-          { label: '🛡️ Thú Bì Giáp (Đạo Bào Vải Dày + 5 Huyền Thiết Thạch + 200 LT)', value: 'ao_vai_day::ao_da' },
+          { label: '⚔️ Thiết Kiếm (5 Huyền Thiết Thạch + 2000 LT)', value: 'kiem_sat_nang::kiem_sat' },
+          { label: '🎋 Trúc Trượng (5 Huyền Thiết Thạch + 2000 LT)', value: 'truong_truc_thuong::truong_truc' },
+          { label: '🛡️ Thú Bì Giáp (5 Huyền Thiết Thạch + 2000 LT)', value: 'ao_vai_day::ao_da' },
 
-          { label: '⚔️ Kim Đan Chân Kiếm (Đan Hỏa Thiết Kiếm + 5 Kim Đan Linh Sa + 200 LT)', value: 'kiem_kim_dan_thuong::kiem_kim_dan' },
-          { label: '🎋 Đan Linh Pháp Trượng (Kim Đan Tiên Trượng + 5 Kim Đan Linh Sa + 200 LT)', value: 'truong_kim_dan_thuong::truong_kim_dan' },
-          { label: '🛡️ Kim Đan Pháp Y (Đan Vân Bào + 5 Kim Đan Linh Sa + 200 LT)', value: 'ao_kim_dan_thuong::ao_kim_dan' },
+          { label: 'Bát Hoang Cự Chùy (5 Vạn Năm Huyền Thiết + 2000 LT)', value: 'kiem_kim_dan_thuong::kiem_kim_dan', emoji: { id: '1524821321651982407' } },
+          { label: 'Thái Hư Phi Kiếm (5 Vạn Năm Huyền Thiết + 2000 LT)', value: 'truong_kim_dan_thuong::truong_kim_dan', emoji: { id: '1524815980134531223' } },
+          { label: 'Cửu Long Bá Thể Giáp (5 Thiên Tàm Linh Ty + 2000 LT)', value: 'ao_kim_dan_thuong::ao_kim_dan', emoji: { id: '1524821316845174824' } },
+          { label: 'Lưu Ly Pháp Bào (5 Thiên Tàm Linh Ty + 2000 LT)', value: 'ao_kim_dan_thuong::ao_kim_dan_phap', emoji: { id: '1524815977685057586' } },
+          { label: 'Huyết Ngọc Tủy (5 Hồn Tinh Huyết Nguyệt + 2000 LT)', value: 'ngoc_boi_linh_ngoc::ngoc_boi_kim_dan_the', emoji: { id: '1524821295785574591' } },
+          { label: 'Tụ Linh Ngọc (5 Hồn Tinh Huyết Nguyệt + 2000 LT)', value: 'ngoc_boi_linh_ngoc::ngoc_boi_kim_dan_phap', emoji: { id: '1524815970739290302' } },
+          { label: 'Diệt Ma Châm (5 Cực Dương Hỏa Thạch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_diet_ma_cham', emoji: { id: '1524815973251682335' } },
+          { label: 'Ngũ Lôi Châu (5 Lôi Trì Băng Tinh + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_ngu_loi_chau', emoji: { id: '1524815975457886290' } },
+          { label: 'Bát Quái Kính (5 Hậu Thổ Chi Lõi + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_bat_quai_kinh', emoji: { id: '1524815987986272317' } },
+          { label: 'Khổn Tiên Tố (5 U Minh Tế Trúc + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_khon_tien_to', emoji: { id: '1524815966905569504' } },
+          { label: 'Cam Lộ Bình (5 Sinh Sinh Tạo Hóa Dịch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_cam_lo_binh', emoji: { id: '1524815985066901595' } },
+          { label: 'Thất Tinh Đăng (5 Tinh Không Lưu Sa + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_that_tinh_dang', emoji: { id: '1524815982881669342' } },
+          { label: 'Chấn Sơn Ấn (5 Cực Dương Hỏa Thạch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_chan_son_an', emoji: { id: '1524821300747436142' } },
+          { label: 'Phần Thiên Đỉnh (5 Lôi Trì Băng Tinh + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_phan_thien_dinh', emoji: { id: '1524821303012622507' } },
+          { label: 'Huyền Vũ Thuẫn (5 Hậu Thổ Chi Lõi + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_huyen_vu_thuan', emoji: { id: '1524821312000757942' } },
+          { label: 'Tỏa Hồn Liên (5 U Minh Tế Trúc + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_toa_hon_lien', emoji: { id: '1524821308440055899' } },
+          { label: 'Huyết Bồ Đề (5 Sinh Sinh Tạo Hóa Dịch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_huyet_bo_de', emoji: { id: '1524821298729979998' } },
+          { label: 'Man Hoang Cổ (5 Tinh Không Lưu Sa + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_man_hoang_co', emoji: { id: '1524821305613094942' } },
 
-          { label: '⚔️ Nguyên Anh Phá Thiên Kiếm (Sơn Hà Trọng Kiếm + 5 Nguyên Anh Hỏa Tinh + 200 LT)', value: 'kiem_nguyen_anh_thuong::kiem_nguyen_anh' },
-          { label: '⚡ Nguyên Thần Tiên Trượng (Dục Hỏa Linh Trượng + 5 Nguyên Anh Hỏa Tinh + 200 LT)', value: 'truong_nguyen_anh_thuong::truong_nguyen_anh' },
-          { label: '🛡️ Nguyên Anh Hộ Thể Giáp (Tiêu Dao Linh Bào + 5 Nguyên Anh Hỏa Tinh + 200 LT)', value: 'ao_nguyen_anh_thuong::ao_nguyen_anh' },
+          { label: '⚔️ Nguyên Anh Phá Thiên Kiếm (5 Nguyên Anh Hỏa Tinh + 2000 LT)', value: 'kiem_nguyen_anh_thuong::kiem_nguyen_anh' },
+          { label: '⚡ Nguyên Thần Tiên Trượng (5 Nguyên Anh Hỏa Tinh + 2000 LT)', value: 'truong_nguyen_anh_thuong::truong_nguyen_anh' },
+          { label: '🛡️ Nguyên Anh Hộ Thể Giáp (5 Nguyên Anh Hỏa Tinh + 2000 LT)', value: 'ao_nguyen_anh_thuong::ao_nguyen_anh' },
 
-          { label: '🗡️ Huyền Thiết Trọng Kiếm (Cổ Thiết Trọng Binh + 5 Thần Ma Chi Tinh + 200 LT)', value: 'kiem_sat_co_khi::kiem_huyen_thiet' },
-          { label: '🔮 Huyền Môn Ngọc Bội (Cổ Mộc Lôi Trượng + 5 Thần Ma Chi Tinh + 200 LT)', value: 'truong_go_co_loi::phap_bao_huyen_mon' },
-          { label: '🥋 Huyền Thiết Linh Giáp (Cổ Lân Thú Giáp + 5 Thần Ma Chi Tinh + 200 LT)', value: 'ao_da_co_lan::giap_huyen_thiet' }
+          { label: '🗡️ Huyền Thiết Trọng Kiếm (5 Thần Ma Chi Tinh + 2000 LT)', value: 'kiem_sat_co_khi::kiem_huyen_thiet' },
+          { label: '🔮 Huyền Môn Ngọc Bội (5 Thần Ma Chi Tinh + 2000 LT)', value: 'truong_go_co_loi::phap_bao_huyen_mon' },
+          { label: '🥋 Huyền Thiết Linh Giáp (5 Thần Ma Chi Tinh + 2000 LT)', value: 'ao_da_co_lan::giap_huyen_thiet' }
         ];
 
         rows.push(
@@ -1483,7 +1646,12 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       else if (currentMenu === 'GARDEN') {
         if (i.customId === 'garden_slot_select') {
           selectedSlotIndex = parseInt(i.values[0], 10);
+          seedPage = 0; // Reset trang hạt giống khi vào ô mới
           menuStack.push('GARDEN_SLOT');
+        } else if (i.customId === 'garden_page_prev') {
+          gardenPage = Math.max(0, gardenPage - 1);
+        } else if (i.customId === 'garden_page_next') {
+          gardenPage += 1;
         } else if (i.customId === 'garden_water') {
           const waterCount = abode.waterCount || 0;
           const waterCost = WATERING_COST_BASE * Math.pow(10, waterCount - 3);
@@ -1535,7 +1703,11 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       else if (currentMenu === 'GARDEN_SLOT') {
         const plot = await GardenPlot.findOne({ where: { userId: tuSi.idNguoiDung, slotIndex: selectedSlotIndex } });
 
-        if (i.customId === 'garden_plant_seed') {
+        if (i.customId === 'seed_page_prev') {
+          seedPage = Math.max(0, seedPage - 1);
+        } else if (i.customId === 'seed_page_next') {
+          seedPage += 1;
+        } else if (i.customId === 'garden_plant_seed') {
           const seedId = i.values[0];
           const inv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: seedId } });
           if (inv && inv.soLuong > 0) {
@@ -1574,7 +1746,15 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
 
       // ── XỬ LÝ LUYỆN ĐAN (ALCHEMY) ─────────────────────────────────────────
       else if (currentMenu === 'ALCHEMY') {
-        if (i.customId === 'alchemy_craft_pills') {
+        if (i.customId === 'herb_page_prev') {
+          herbPage = Math.max(0, herbPage - 1);
+        } else if (i.customId === 'herb_page_next') {
+          herbPage += 1;
+        } else if (i.customId === 'pill_page_prev') {
+          pillPage = Math.max(0, pillPage - 1);
+        } else if (i.customId === 'pill_page_next') {
+          pillPage += 1;
+        } else if (i.customId === 'alchemy_craft_pills') {
           const herbId = i.values[0];
           const result = await this._processAlchemy(tuSi, herbId);
           actionResultEmbed(result);
@@ -2537,13 +2717,6 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
   //  PRIVATE HELPER: XỬ LÝ LUYỆN KHÍ
   // ─────────────────────────────────────────────────────────────────────────
   async _processForge(tuSi, oldId, newId) {
-    // 1. Kiểm tra phế khí trong balo (phải chưa trang bị)
-    const invOld = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: oldId, trangBi: false } });
-    if (!invOld) {
-      const oldItem = config.ITEMS.find(e => e.id === oldId);
-      return { ok: false, msg: `Thiếu phế khí trong túi! Đạo hữu cần 1 chiếc **${oldItem?.ten ?? oldId}** chưa mặc.` };
-    }
-
     // Bản đồ nguyên liệu cho từng dòng trang bị nâng cấp
     const FORGE_MATERIALS = {
       // Luyện Khí
@@ -2557,9 +2730,24 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       'ao_da': { materialId: 'nguyen_lieu_truc_co', count: 5, matName: 'Huyền Thiết Thạch 🪙' },
 
       // Kim Đan
-      'kiem_kim_dan': { materialId: 'nguyen_lieu_kim_dan', count: 5, matName: 'Kim Đan Linh Sa 🪨' },
-      'truong_kim_dan': { materialId: 'nguyen_lieu_kim_dan', count: 5, matName: 'Kim Đan Linh Sa 🪨' },
-      'ao_kim_dan': { materialId: 'nguyen_lieu_kim_dan', count: 5, matName: 'Kim Đan Linh Sa 🪨' },
+      'kiem_kim_dan': { materialId: 'huyen_thiet_van_nam', count: 5, matName: 'Vạn Năm Huyền Thiết <:Huyen_thiet_van_nam:1524812777347092560>' },
+      'truong_kim_dan': { materialId: 'huyen_thiet_van_nam', count: 5, matName: 'Vạn Năm Huyền Thiết <:Huyen_thiet_van_nam:1524812777347092560>' },
+      'ao_kim_dan': { materialId: 'Thien_Tam_Linh_ty', count: 5, matName: 'Thiên Tàm Linh Ty <:Thien_Tam_Linh_ty:1524812779503226950>' },
+      'ao_kim_dan_phap': { materialId: 'Thien_Tam_Linh_ty', count: 5, matName: 'Thiên Tàm Linh Ty <:Thien_Tam_Linh_ty:1524812779503226950>' },
+      'ngoc_boi_kim_dan_the': { materialId: 'hon_tinh_huyet_nguyet', count: 5, matName: 'Hồn Tinh Huyết Nguyệt <:hon_tinh_huyet_nguyet:1524812781730140190>' },
+      'ngoc_boi_kim_dan_phap': { materialId: 'hon_tinh_huyet_nguyet', count: 5, matName: 'Hồn Tinh Huyết Nguyệt <:hon_tinh_huyet_nguyet:1524812781730140190>' },
+      'pb_kd_diet_ma_cham': { materialId: 'cuc_duong_hoa_thach', count: 5, matName: 'Cực Dương Hỏa Thạch <:cuc_duong_hoa_thach:1524812775325434139>' },
+      'pb_kd_chan_son_an': { materialId: 'cuc_duong_hoa_thach', count: 5, matName: 'Cực Dương Hỏa Thạch <:cuc_duong_hoa_thach:1524812775325434139>' },
+      'pb_kd_ngu_loi_chau': { materialId: 'loi_tri_bang_tinh', count: 5, matName: 'Lôi Trì Băng Tinh <:loi_tri_bang_tinh:1524812766144364677>' },
+      'pb_kd_phan_thien_dinh': { materialId: 'loi_tri_bang_tinh', count: 5, matName: 'Lôi Trì Băng Tinh <:loi_tri_bang_tinh:1524812766144364677>' },
+      'pb_kd_bat_quai_kinh': { materialId: 'Hau_tho_chi_loi', count: 5, matName: 'Hậu Thổ Chi Lõi <:Hau_tho_chi_loi:1524812773077422332>' },
+      'pb_kd_huyen_vu_thuan': { materialId: 'Hau_tho_chi_loi', count: 5, matName: 'Hậu Thổ Chi Lõi <:Hau_tho_chi_loi:1524812773077422332>' },
+      'pb_kd_khon_tien_to': { materialId: 'u_minh_te_truc', count: 5, matName: 'U Minh Tế Trúc <:u_minh_te_truc:1524812770569228418>' },
+      'pb_kd_toa_hon_lien': { materialId: 'u_minh_te_truc', count: 5, matName: 'U Minh Tế Trúc <:u_minh_te_truc:1524812770569228418>' },
+      'pb_kd_cam_lo_binh': { materialId: 'sinh_sinh_tao_hoa_dich', count: 5, matName: 'Sinh Sinh Tạo Hóa Dịch <:sinh_sinh_tao_hoa_dich:1524812768191189012>' },
+      'pb_kd_huyet_bo_de': { materialId: 'sinh_sinh_tao_hoa_dich', count: 5, matName: 'Sinh Sinh Tạo Hóa Dịch <:sinh_sinh_tao_hoa_dich:1524812768191189012>' },
+      'pb_kd_that_tinh_dang': { materialId: 'tinh_khong_luu_sa', count: 5, matName: 'Tinh Không Lưu Sa <:tinh_khong_luu_sa:1524812764076572882>' },
+      'pb_kd_man_hoang_co': { materialId: 'tinh_khong_luu_sa', count: 5, matName: 'Tinh Không Lưu Sa <:tinh_khong_luu_sa:1524812764076572882>' },
 
       // Nguyên Anh
       'kiem_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
@@ -2574,37 +2762,67 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
 
     const reqMat = FORGE_MATERIALS[newId];
     let invMat = null;
+    let matQuality = 'Thường';
+
     if (reqMat) {
-      invMat = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: reqMat.materialId } });
-      if (!invMat || invMat.soLuong < reqMat.count) {
-        return { ok: false, msg: `Thiếu nguyên liệu rèn! Đạo hữu cần có thêm **${reqMat.count}** chiếc **${reqMat.matName}**.` };
+      const mats = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: reqMat.materialId } });
+      const possibleMats = mats.filter(m => m.soLuong >= reqMat.count);
+      if (possibleMats.length === 0) {
+        return { ok: false, msg: `Thiếu nguyên liệu rèn! Đạo hữu cần có ít nhất **${reqMat.count}** chiếc **${reqMat.matName}** cùng phẩm chất.` };
       }
+
+      const qualityOrder = { 'Thần Thoại': 5, 'Sử Thi': 4, 'Hiếm': 3, 'Thường': 2, 'Phế Phẩm': 1 };
+      possibleMats.sort((a, b) => {
+        let qA = 'Thường';
+        let qB = 'Thường';
+        try {
+          if (a.dongChiSoJson) qA = JSON.parse(a.dongChiSoJson).phamChat || 'Thường';
+          if (b.dongChiSoJson) qB = JSON.parse(b.dongChiSoJson).phamChat || 'Thường';
+        } catch (e) {}
+        return (qualityOrder[qB] || 0) - (qualityOrder[qA] || 0);
+      });
+
+      invMat = possibleMats[0];
+      try {
+        if (invMat.dongChiSoJson) {
+          const parsed = JSON.parse(invMat.dongChiSoJson);
+          if (parsed && parsed.phamChat) {
+            matQuality = parsed.phamChat;
+          }
+        }
+      } catch (e) {}
     }
 
-    if (tuSi.linhThach < 200) {
-      return { ok: false, msg: 'Linh thạch bất túc! Cần 200 Linh thạch để đốt lò đúc khí.' };
+    if (tuSi.linhThach < 2000) {
+      return { ok: false, msg: 'Linh thạch bất túc! Cần 2000 Linh thạch để đốt lò đúc khí.' };
     }
 
-    // Tiêu hao phế khí
-    await invOld.destroy();
-
-    // Tiêu hao nguyên liệu luyện khí
     if (reqMat && invMat) {
       invMat.soLuong -= reqMat.count;
       if (invMat.soLuong <= 0) await invMat.destroy();
       else await invMat.save();
     }
 
-    tuSi.linhThach -= 200;
+    tuSi.linhThach -= 2000;
     await tuSi.save();
 
-    // 2. Chế tạo trang bị mới
-    const record = await Inventory.addVatPham(tuSi.idNguoiDung, newId, 1);
+    const eqQuality = config.rollForgedQuality(matQuality);
+    if (eqQuality === 'fail') {
+      return {
+        ok: false,
+        msg: `💥 **Luyện Chế Thất Bại!** Linh hỏa bộc phát không ổn định làm nguyên liệu **${reqMat?.matName || 'rèn'}** hóa thành tro bụi... Đạo hữu tổn thất 2000 Linh thạch.`
+      };
+    }
+
+    const record = await Inventory.addVatPham(tuSi.idNguoiDung, newId, 1, { quality: eqQuality });
     const newItem = config.ITEMS.find(e => e.id === newId);
+
+    const qualityEmojis = { 'Thần Thoại': '🟠', 'Sử Thi': '🟣', 'Hiếm': '🔵', 'Thường': '🟢', 'Phế Phẩm': '⚪' };
+    const qEmoji = qualityEmojis[eqQuality] || '';
 
     return {
       ok: true,
-      msg: `Luyện Khí Thành Công! Bạn đã tiêu hao nguyên liệu và luyện đúc thành công **${newItem?.ten ?? newId}** (Mã: #${record.id})!`
+      msg: `Luyện Khí Thành Công! Bạn đã tiêu hao nguyên liệu và luyện đúc thành công **${newItem?.ten ?? newId}** [${qEmoji} ${eqQuality}] (Mã: #${record.id})!`
     };
   }
 

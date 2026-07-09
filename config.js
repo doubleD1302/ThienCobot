@@ -255,6 +255,15 @@ export const ITEMS = [
   { id: 'nguyen_lieu_luyen_khi', ten: 'Luyện Khí Thạch 💎', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh thạch sơ cấp chứa ít linh khí dùng để rèn đúc trang bị Luyện Khí.', emoji: '💎', food: 0 },
   { id: 'nguyen_lieu_truc_co', ten: 'Huyền Thiết Thạch 🪙', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Quặng huyền thiết thô ráp, cứng cáp dẻo dai dùng để rèn đúc trang bị Trúc Cơ.', emoji: '🪙', food: 0 },
   { id: 'nguyen_lieu_kim_dan', ten: 'Kim Đan Linh Sa 🪨', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Linh sa huyền ảo hội tụ đan hỏa linh khí dùng để rèn đúc trang bị Kim Đan.', emoji: '🪨', food: 0 },
+  { id: 'huyen_thiet_van_nam', ten: 'Vạn Năm Huyền Thiết', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Quặng sắt sinh ra từ tâm Trái Đất, vô cùng cứng rắn, hấp thụ được cả linh khí lẫn sức mạnh thể chất.', emoji: '<:Huyen_thiet_van_nam:1524812777347092560>', food: 0 },
+  { id: 'Thien_Tam_Linh_ty', ten: 'Thiên Tàm Linh Ty', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Tơ của nhện chúa ngàn năm, cực kỳ dẻo dai, dùng để dệt pháp bào hoặc bọc ngoài áo giáp nặng.', emoji: '<:Thien_Tam_Linh_ty:1524812779503226950>', food: 0 },
+  { id: 'hon_tinh_huyet_nguyet', ten: 'Hồn Tinh Huyết Nguyệt', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Đá quý hấp thụ ánh trăng huyết, có khả năng nuôi dưỡng tinh thần và khí huyết.', emoji: '<:hon_tinh_huyet_nguyet:1524812781730140190>', food: 0 },
+  { id: 'cuc_duong_hoa_thach', ten: 'Cực Dương Hỏa Thạch', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Đá chứa nhiệt lượng cực cao, tăng cường tính bạo phá.', emoji: '<:cuc_duong_hoa_thach:1524812775325434139>', food: 0 },
+  { id: 'loi_tri_bang_tinh', ten: 'Lôi Trì Băng Tinh', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Kết tinh từ vùng đất sét đánh vạn năm, mang sức mạnh lan truyền.', emoji: '<:loi_tri_bang_tinh:1524812766144364677>', food: 0 },
+  { id: 'Hau_tho_chi_loi', ten: 'Hậu Thổ Chi Lõi', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Trái tim của nguyên tố Đất, đại diện cho sự kiên cố.', emoji: '<:Hau_tho_chi_loi:1524812773077422332>', food: 0 },
+  { id: 'u_minh_te_truc', ten: 'U Minh Tế Trúc', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Loài trúc mọc ở vùng giáp ranh âm dương, có tính chất dẻo dai, giam giữ linh hồn/thể xác.', emoji: '<:u_minh_te_truc:1524812770569228418>', food: 0 },
+  { id: 'sinh_sinh_tao_hoa_dich', ten: 'Sinh Sinh Tạo Hóa Dịch', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Giọt sương ngưng tụ sinh khí tinh khiết, mang đặc tính tái tạo sinh mệnh.', emoji: '<:sinh_sinh_tao_hoa_dich:1524812768191189012>', food: 0 },
+  { id: 'tinh_khong_luu_sa', ten: 'Tinh Không Lưu Sa', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Cát chảy từ tinh tú, chứa sức mạnh nguyên thủy giúp bộc phát tiềm năng.', emoji: '<:tinh_khong_luu_sa:1524812764076572882>', food: 0 },
   { id: 'nguyen_lieu_nguyen_anh', ten: 'Nguyên Anh Hỏa Tinh ☄️', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 750, chiSoJson: '{}', yeuCauCanhGioi: 16, moTa: 'Hỏa linh thể ngưng kết chứa linh quang ấm áp dùng để rèn đúc trang bị Nguyên Anh.', emoji: '☄️', food: 0 },
   { id: 'nguyen_lieu_hoa_than', ten: 'Thần Ma Chi Tinh ✨', loai: 'Nguyên liệu', doHiem: 'Cực hiếm', giaCoSo: 1250, chiSoJson: '{}', yeuCauCanhGioi: 19, moTa: 'Tinh hạch rực rỡ mang sức mạnh chuyển đổi hỗn độn dùng để rèn đúc trang bị Hóa Thần.', emoji: '✨', food: 0 },
   { id: 'chuyen_sinh_dan', ten: 'Chuyển Sinh Đan 🌀', loai: 'Đan dược', doHiem: 'Huyền thoại', giaCoSo: 9999999, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược chí tôn thượng cổ. Khi sử dụng sẽ khởi động LUÂN HỒI CHUYỂN SINH, xóa bỏ hoàn toàn tất cả dữ liệu tu tiên từ trước tới nay của đạo hữu (Nhân vật, túi đồ, sủng vật, động phủ...) để bắt đầu một kiếp sống mới! Cần CỰC KỲ CÂN NHẮC trước khi dùng.', emoji: '🌀', food: 0 },
@@ -282,16 +291,35 @@ export const ITEMS = [
 
   // ==================== CẢNH GIỚI: KIM ĐAN (YÊU CẦU CẤP 13) ====================
   // Vũ khí Thể Tu
-  { id: 'kiem_kim_dan_thuong', ten: 'Đan Hỏa Thiết Kiếm 🗡️', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{"vat_cong":40}', yeuCauCanhGioi: 13, moTa: 'Thanh kiếm đúc từ sắt thường tẩm đan hỏa lực.', emoji: '<:kiem:1522610147569041419>', food: 0 },
-  { id: 'kiem_kim_dan', ten: 'Kim Đan Chân Kiếm 🗡️', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"vat_cong":55}', yeuCauCanhGioi: 13, moTa: 'Kiếm linh chứa đan khí cuồn cuộn.', emoji: '<:kiem:1522610147569041419>', food: 0 },
+  { id: 'kiem_kim_dan_thuong', ten: 'Phàm Thiết Trọng Chùy 🔨', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{"vat_cong":250,"crit_rate":0.08,"xuyen_giap":5}', yeuCauCanhGioi: 13, moTa: 'Chùy nặng rèn thô tẩm đan hỏa lực sơ khai.', emoji: '🔨', food: 0 },
+  { id: 'kiem_kim_dan', ten: 'Bát Hoang Cự Chùy', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"vat_cong":500,"crit_rate":0.15,"xuyen_giap":10}', yeuCauCanhGioi: 13, moTa: 'Cự chùy uy chấn bát hoang, nện đá vỡ vụn.', emoji: '<:Bat_hoang_cu_chuy:1524821321651982407>', food: 0 },
 
   // Vũ khí Pháp Tu
-  { id: 'truong_kim_dan_thuong', ten: 'Kim Đan Tiên Trượng 🎋', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{"phap_cong":40}', yeuCauCanhGioi: 13, moTa: 'Linh trượng làm từ trúc già ngấm dược khí.', emoji: '<:truong_phep:1522629314653458472>', food: 0 },
-  { id: 'truong_kim_dan', ten: 'Đan Linh Pháp Trượng 🎋', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"phap_cong":55}', yeuCauCanhGioi: 13, moTa: 'Pháp trượng ngưng tụ đan vân pháp bảo.', emoji: '<:truong_phep:1522629314653458472>', food: 0 },
+  { id: 'truong_kim_dan_thuong', ten: 'Phàm Thiên Phi Kiếm 🗡️', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{"phap_cong":250,"speed":8,"xuyen_giap":5}', yeuCauCanhGioi: 13, moTa: 'Phi kiếm sắt mỏng hỗ trợ ngự khí phi hành.', emoji: '🗡️', food: 0 },
+  { id: 'truong_kim_dan', ten: 'Thái Hư Phi Kiếm', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"phap_cong":500,"speed":15,"xuyen_giap":10}', yeuCauCanhGioi: 13, moTa: 'Thái Hư kiếm khí bay lượn ngưng thần vô biên.', emoji: '<:thai_hu_phi_kiem:1524815980134531223>', food: 0 },
 
   // Giáp
-  { id: 'ao_kim_dan_thuong', ten: 'Đan Vân Bào 🥋', loai: 'Giáp', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{"vat_phong":20,"phap_phong":20,"hp":200}', yeuCauCanhGioi: 13, moTa: 'Y phục đơn giản tơ lụa thêu hoa văn đan vân.', emoji: '<:ao:1522624070741524530>', food: 0 },
-  { id: 'ao_kim_dan', ten: 'Kim Đan Pháp Y 🥋', loai: 'Giáp', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"vat_phong":30,"phap_phong":30,"hp":300}', yeuCauCanhGioi: 13, moTa: 'Pháp y hộ thân hộ mệnh khí hải.', emoji: '<:ao:1522624070741524530>', food: 0 },
+  { id: 'ao_kim_dan_thuong', ten: 'Đan Vân Bào 🥋', loai: 'Giáp', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{"vat_phong":150,"phap_phong":150,"hp":500}', yeuCauCanhGioi: 13, moTa: 'Y phục tơ lụa thêu hoa văn đan vân.', emoji: '<:ao:1522624070741524530>', food: 0 },
+  { id: 'ao_kim_dan', ten: 'Cửu Long Bá Thể Giáp', loai: 'Giáp', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"vat_phong":300,"hp":1000,"dmg_red":0.05}', yeuCauCanhGioi: 13, moTa: 'Bá thể giáp mang chiến lực dũng mãnh, phòng ngự cực đại.', emoji: '<:cuu_long_ba_the_giap:1524821316845174824>', food: 0 },
+  { id: 'ao_kim_dan_phap', ten: 'Lưu Ly Pháp Bào', loai: 'Giáp', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"phap_phong":300,"mp":10000,"ne":0.05}', yeuCauCanhGioi: 13, moTa: 'Pháp bào dệt bằng linh ty tơ tằm, hộ mệnh khí hải.', emoji: '<:Luu_ly_phap_bao:1524815977685057586>', food: 0 },
+
+  // Ngọc Bội
+  { id: 'ngoc_boi_kim_dan_phap', ten: 'Tụ Linh Ngọc', loai: 'Ngọc Bội', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"mp_hoi":5000,"giam_hoi_chieu":0.10,"speed":10}', yeuCauCanhGioi: 13, moTa: 'Tụ Linh Ngọc bổ trợ chân khí pháp lực.', emoji: '<:tu_linh_ngoc:1524815970739290302>', food: 0 },
+  { id: 'ngoc_boi_kim_dan_the', ten: 'Huyết Ngọc Tủy', loai: 'Ngọc Bội', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"hp_hoi":500,"khang_khong_che":0.10,"speed":10}', yeuCauCanhGioi: 13, moTa: 'Huyết Ngọc Tủy tăng sinh khí huyết lực.', emoji: '<:huyet_ngoc_tuy:1524821295785574591>', food: 0 },
+
+  // Pháp Bảo
+  { id: 'pb_kd_diet_ma_cham', ten: 'Diệt Ma Châm', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"phap_cong":80}', yeuCauCanhGioi: 13, moTa: 'Pháp bảo hệ Kim công kích cực mạnh.', emoji: '<:diet_ma_cham:1524815973251682335>', food: 0 },
+  { id: 'pb_kd_ngu_loi_chau', ten: 'Ngũ Lôi Châu', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"phap_cong":80}', yeuCauCanhGioi: 13, moTa: 'Pháp bảo tích tụ ngũ lôi công sát diện rộng.', emoji: '<:ngu_loi_chau:1524815975457886290>', food: 0 },
+  { id: 'pb_kd_bat_quai_kinh', ten: 'Bát Quái Kính', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"phap_phong":60}', yeuCauCanhGioi: 13, moTa: 'Kính bát quái hộ thể chân linh.', emoji: '<:Bat_quai_kinh:1524815987986272317>', food: 0 },
+  { id: 'pb_kd_khon_tien_to', ten: 'Khổn Tiên Tố', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"phap_phong":60}', yeuCauCanhGioi: 13, moTa: 'Sợi dây trói buộc thần thức đối phương.', emoji: '<:khon_tien_to:1524815966905569504>', food: 0 },
+  { id: 'pb_kd_cam_lo_binh', ten: 'Cam Lộ Bình', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"mp":1000}', yeuCauCanhGioi: 13, moTa: 'Bình chứa cam lộ linh dịch tẩy trần hồi phục.', emoji: '<:cam_lo_binh:1524815985066901595>', food: 0 },
+  { id: 'pb_kd_that_tinh_dang', ten: 'Thất Tinh Đăng', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"phap_cong":80}', yeuCauCanhGioi: 13, moTa: 'Đèn thất tinh tụ khí định thần.', emoji: '<:that_tinh_dang:1524815982881669342>', food: 0 },
+  { id: 'pb_kd_chan_son_an', ten: 'Chấn Sơn Ấn', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"vat_cong":80}', yeuCauCanhGioi: 13, moTa: 'Trọng ấn càn khôn áp đảo sơn hà.', emoji: '<:Chan_son_an:1524821300747436142>', food: 0 },
+  { id: 'pb_kd_phan_thien_dinh', ten: 'Phần Thiên Đỉnh', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"vat_cong":80}', yeuCauCanhGioi: 13, moTa: 'Đỉnh linh chứa thiên hỏa thiêu đốt địch.', emoji: '<:Phan_thien_dinh:1524821303012622507>', food: 0 },
+  { id: 'pb_kd_huyen_vu_thuan', ten: 'Huyền Vũ Thuẫn', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"vat_phong":60}', yeuCauCanhGioi: 13, moTa: 'Khiên phòng ngự khắc họa linh văn Huyền Vũ.', emoji: '<:huyen_vu_thuan:1524821312000757942>', food: 0 },
+  { id: 'pb_kd_toa_hon_lien', ten: 'Tỏa Hồn Liên', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"vat_phong":60}', yeuCauCanhGioi: 13, moTa: 'Xích sắt giam cầm nhục thân yêu ma.', emoji: '<:toa_hon_lien:1524821308440055899>', food: 0 },
+  { id: 'pb_kd_huyet_bo_de', ten: 'Huyết Bồ Đề', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"hp":500}', yeuCauCanhGioi: 13, moTa: 'Hạt bồ đề ngấm tinh huyết phục hồi mạch tượng.', emoji: '<:huyet_bo_de:1524821298729979998>', food: 0 },
+  { id: 'pb_kd_man_hoang_co', ten: 'Man Hoang Cổ', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{"vat_cong":80}', yeuCauCanhGioi: 13, moTa: 'Trống man hoang kích phát chiến ý.', emoji: '<:Man_hoang_co:1524821305613094942>', food: 0 },
 
   // ==================== CẢNH GIỚI: NGUYÊN ANH (YÊU CẦU CẤP 16) ====================
   // Vũ khí Thể Tu
@@ -381,6 +409,7 @@ export const ITEMS = [
   // Gacha & Chí Bảo — food: 0
   { id: 'co_duyen_lenh', ten: 'Cơ Duyên Lệnh 🎫', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tấm thẻ ẩn chứa cơ duyên thiên địa, dùng để quay Hồ Tạo Hóa.', food: 0 },
   { id: 'binh_tinh_hai', ten: 'Bình Tinh Hải', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Chí bảo thượng cổ, mỗi ngày có thể trích xuất sinh cơ để ngưng tụ 2 viên Đan Thần Phẩm.', emoji: '<:binh_tinh_hai:1523244204333994016>', food: 0 },
+  { id: 'can_khon_dinh', ten: 'Càn Khôn Đỉnh', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Chí bảo thượng cổ, mỗi ngày có thể dùng 2 lần để tái lập linh văn (chỉ số phụ) của trang bị đang mặc.', emoji: '<:can_khon_dinh:1523249412950855850>', food: 0 },
   { id: 'the_vinh_vien', ten: 'Thẻ Vĩnh Viễn', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ vĩnh viễn chí bảo, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh và 1 Tu Vi Đan (Siêu).', emoji: '<:the_vinh_vien:1524432820892733650>', food: 0 },
   { id: 'the_quy', ten: 'Thẻ Quý', loai: 'Chí bảo', doHiem: 'Cực hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ quý chí bảo thời hạn 90 ngày, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh.', emoji: '<:the_quy:1524432824042520659>', food: 0 },
   { id: 'the_thang', ten: 'Thẻ Tháng', loai: 'Chí bảo', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ tháng chí bảo thời hạn 30 ngày, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh.', emoji: '<:the_thang:1524432822608068720>', food: 0 },
@@ -626,16 +655,67 @@ export const KYNANG_TRANGBI = {
 // ==========================================
 // HÀM SINH DÒNG CHỈ SỐ ĐỘNG NGẪU NHIÊN
 // ==========================================
-export function rollDynamicStats(item) {
+// Helper: Cuộn ngẫu nhiên phẩm chất nguyên liệu
+export function rollMaterialQuality() {
+  const roll = Math.random() * 100;
+  if (roll <= 1) return 'Thần Thoại';
+  if (roll <= 6) return 'Sử Thi';
+  if (roll <= 20) return 'Hiếm';
+  if (roll <= 50) return 'Thường';
+  return 'Phế Phẩm';
+}
+
+// Helper: Cuộn phẩm chất trang bị sau khi luyện chế dựa trên nguyên liệu tiêu hao
+export function rollForgedQuality(materialQuality) {
+  const roll = Math.random() * 100;
+  if (materialQuality === 'Phế Phẩm') {
+    // 50% fail | 30% Thường | 20% Hiếm
+    if (roll < 50) return 'fail';
+    if (roll < 80) return 'Thường';
+    return 'Hiếm';
+  }
+  if (materialQuality === 'Thường') {
+    // 10% fail | 50% Thường | 40% Hiếm (user spec: 30%, 10% dư → Hiếm)
+    if (roll < 10) return 'fail';
+    if (roll < 60) return 'Thường';
+    return 'Hiếm';
+  }
+  if (materialQuality === 'Hiếm') {
+    // 0% fail | 40% Thường | 55% Hiếm | 5% Sử Thi
+    if (roll < 40) return 'Thường';
+    if (roll < 95) return 'Hiếm';
+    return 'Sử Thi';
+  }
+  if (materialQuality === 'Sử Thi') {
+    // 0% fail | 30% Thường | 55% Hiếm | 10% Sử Thi | 5% Thần Thoại
+    if (roll < 30) return 'Thường';
+    if (roll < 85) return 'Hiếm';
+    if (roll < 95) return 'Sử Thi';
+    return 'Thần Thoại';
+  }
+  if (materialQuality === 'Thần Thoại') {
+    // 0% fail | 0% Thường | 55% Hiếm | 35% Sử Thi | 10% Thần Thoại
+    if (roll < 55) return 'Hiếm';
+    if (roll < 90) return 'Sử Thi';
+    return 'Thần Thoại';
+  }
+  return 'Thường';
+}
+
+
+// ==========================================
+// HÀM SINH DÒNG CHỈ SỐ ĐỘNG NGẪU NHIÊN
+// ==========================================
+export function rollDynamicStats(item, options = {}) {
   const loai = item.loai;
   const POOLS = {
     "Vũ khí": ["vat_cong", "phap_cong", "crit_rate", "crit_dmg", "xuyen_giap"],
     "Giáp": ["vat_phong", "phap_phong", "max_mp", "max_hp"],
-    "Ngọc Bội": ["max_hp", "max_mp", "ne", "lifesteal"],
-    "Cổ Bảo Chủ Động": ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal"],
+    "Ngọc Bội": ["max_hp", "max_mp", "ne", "lifesteal", "speed"],
+    "Cổ Bảo Chủ Động": ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal", "speed"],
     "Pháp Bảo": [
       "vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal",
-      "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb"
+      "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb", "speed"
     ]
   };
 
@@ -662,47 +742,53 @@ export function rollDynamicStats(item) {
     "crit_dmg_pb": "Bạo thương Pháp bảo",
     "sat_thuong_pb": "Sát thương Pháp bảo",
     "phap_thuong_pb": "Pháp thương Pháp bảo",
-    "khien_pb": "Hộẫn Hấp thụ Pháp bảo"
+    "khien_pb": "Hộẫn Hấp thụ Pháp bảo",
+    "speed": "Tốc độ"
   };
+
+  const QUALITIES = [
+    { name: "Phế Phẩm", color: "trang", min: -5, max: 0 },
+    { name: "Thường", color: "luc", min: 0, max: 5 },
+    { name: "Hiếm", color: "xanh", min: 5, max: 10 },
+    { name: "Sử Thi", color: "tim", min: 10, max: 15 },
+    { name: "Thần Thoại", color: "cam", min: 15, max: 20 }
+  ];
+
+  let maxQualityName = 'Thần Thoại';
+  if (item.yeuCauCanhGioi >= 13) {
+    const eqQ = options.phamChatTrangBi || 'Thường';
+    if (eqQ === 'Phế Phẩm') maxQualityName = 'Thường';
+    else if (eqQ === 'Thường') maxQualityName = 'Hiếm';
+    else if (eqQ === 'Hiếm') maxQualityName = 'Sử Thi';
+    else if (eqQ === 'Sử Thi') maxQualityName = 'Thần Thoại';
+    else if (eqQ === 'Thần Thoại') maxQualityName = 'Thần Thoại';
+  }
+
+  const maxQIdx = QUALITIES.findIndex(q => q.name === maxQualityName);
 
   const lines = [];
   for (const stat of selectedStats) {
     const rand = Math.random();
-    let quality, color, minPercent, maxPercent;
+    let qIdx = 0;
 
-    if (rand < 0.05) {
-      quality = "Thần Thoại";
-      color = "cam";
-      minPercent = 15;
-      maxPercent = 20;
-    } else if (rand < 0.20) {
-      quality = "Sử Thi";
-      color = "tim";
-      minPercent = 10;
-      maxPercent = 15;
-    } else if (rand < 0.50) {
-      quality = "Hiếm";
-      color = "xanh";
-      minPercent = 5;
-      maxPercent = 10;
-    } else if (rand < 0.85) {
-      quality = "Thường";
-      color = "luc";
-      minPercent = 0;
-      maxPercent = 5;
-    } else {
-      quality = "Phế Phẩm";
-      color = "trang";
-      minPercent = -5;
-      maxPercent = 0;
+    if (rand < 0.05) qIdx = 4;
+    else if (rand < 0.20) qIdx = 3;
+    else if (rand < 0.50) qIdx = 2;
+    else if (rand < 0.85) qIdx = 1;
+    else qIdx = 0;
+
+    // Giới hạn phẩm chất dòng phụ theo phẩm chất của trang bị
+    if (qIdx > maxQIdx && maxQIdx !== -1) {
+      qIdx = maxQIdx;
     }
 
-    const value = parseFloat((minPercent + Math.random() * (maxPercent - minPercent)).toFixed(1));
+    const q = QUALITIES[qIdx];
+    const value = parseFloat((q.min + Math.random() * (q.max - q.min)).toFixed(1));
     lines.push({
       thuocTinh: stat,
       ten: NAME_MAP[stat] || stat,
-      mau: color,
-      phamChat: quality,
+      mau: q.color,
+      phamChat: q.name,
       phanTram: value
     });
   }
@@ -714,10 +800,96 @@ export function rollDynamicStats(item) {
 export const KYNANG_PHAPBAO_ACTIVE = {
   phap_bao_ho_than: { ten: "Phù Vân Hộ Thể 🛡️", loai: "khien", triGia: 120, duration: 0, moTa: "Ngưng tụ sương mù khiên hộ thể, chặn 120 sát thương kế tiếp." },
   phap_bao_cong_kich: { ten: "Hỏa Long Chủy 🔱", loai: "tan_cong", triGia: 320, duration: 0, moTa: "Phóng thần lao lửa oanh tạc địch nhân, gây 320 sát thương pháp bảo." },
-  phap_bao_hon_ton: { ten: "Hỗn Độn Phá Thiên 🔔", loai: "hon_hop", triGia: 550, triGiaKhien: 250, duration: 0, moTa: "Chuông vàng gõ vang gây 550 sát thương pháp bảo và tạo khiên 250 phòng ngự." }
+  phap_bao_hon_ton: { ten: "Hỗn Độn Phá Thiên 🔔", loai: "hon_hop", triGia: 550, triGiaKhien: 250, duration: 0, moTa: "Chuông vàng gõ vang gây 550 sát thương pháp bảo và tạo khiên 250 phòng ngự." },
+
+  // --- KỸ NĂNG CHỦ ĐỘNG PHÁP BẢO KIM ĐAN ---
+  pb_kd_diet_ma_cham: {
+    ten: "Xuyên Tâm Châm 🪡",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.phap_cong || 300) * 1.5),
+    duration: 0,
+    moTa: "Gây sát thương phép khổng lồ lên 1 kẻ địch, bỏ qua 20% Pháp phòng."
+  },
+  pb_kd_chan_son_an: {
+    ten: "Toái Đỉnh Đích ☄️",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.vat_cong || 300) * 1.5),
+    duration: 0,
+    moTa: "Nhảy lên ném ấn nện xuống, gây sát thương vật lý cực mạnh."
+  },
+  pb_kd_ngu_loi_chau: {
+    ten: "Lôi Động Cửu Thiên ⚡",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.phap_cong || 300) * 1.0),
+    duration: 0,
+    moTa: "Triệu hồi thiên lôi oanh tạc toàn bộ mục tiêu, gây sát thương phép."
+  },
+  pb_kd_phan_thien_dinh: {
+    ten: "Hỏa Long Hàng Thế 🔥",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.vat_cong || 300) * 1.0),
+    duration: 0,
+    moTa: "Phóng hỏa kình lan rộng, gây sát thương vật lý diện rộng."
+  },
+  pb_kd_bat_quai_kinh: {
+    ten: "Linh Khí Hộ Thể 🛡️",
+    loai: "khien",
+    tinhScale: (stats) => Math.floor((stats?.max_mp || 1000) * 0.30),
+    duration: 0,
+    moTa: "Tạo lớp lá chắn hấp thụ sát thương dựa trên 30% Chân Khí tối đa."
+  },
+  pb_kd_huyen_vu_thuan: {
+    ten: "Bất Diệt Kim Thân 🛡️",
+    loai: "khien",
+    tinhScale: (stats) => Math.floor((stats?.vat_phong || 150) * 3.0),
+    duration: 0,
+    moTa: "Tạo lớp khiên bảo vệ dựa trên 300% Vật phòng."
+  },
+  pb_kd_khon_tien_to: {
+    ten: "Trói Buộc Nguyên Thần 🎗️",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.phap_cong || 300) * 0.5),
+    duration: 0,
+    moTa: "Khóa chặt mục tiêu gây sát thương nhẹ."
+  },
+  pb_kd_toa_hon_lien: {
+    ten: "Trấn Áp Nhục Thân ⛓️",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.vat_cong || 300) * 0.5),
+    duration: 0,
+    moTa: "Trói buộc giảm tốc của đối phương gây sát thương vật lý nhẹ."
+  },
+  pb_kd_cam_lo_binh: {
+    ten: "Mộc Lĩnh Sinh Cơ 💧",
+    loai: "hoi_mau_pct",
+    tinhScale: () => 30,
+    duration: 0,
+    moTa: "Phục hồi 30% HP tối đa."
+  },
+  pb_kd_huyet_bo_de: {
+    ten: "Huyết Mạch Sôi Sục 🩸",
+    loai: "hoi_mau_pct",
+    tinhScale: () => 30,
+    duration: 0,
+    moTa: "Phục hồi lập tức 30% HP tối đa."
+  },
+  pb_kd_that_tinh_dang: {
+    ten: "Tụ Tinh Dẫn Khí ✨",
+    loai: "tang_cong_pct",
+    tinhScale: () => 50,
+    duration: 5,
+    moTa: "Tăng 50% Pháp Công trong 5 hiệp."
+  },
+  pb_kd_man_hoang_co: {
+    ten: "Cuồng Hóa Chiến Ý 🥁",
+    loai: "tang_cong_pct",
+    tinhScale: () => 50,
+    duration: 5,
+    moTa: "Tăng 50% Vật Công trong 5 hiệp."
+  }
 };
 
-export function layKyNangPhapBaoActive(itemOrId) {
+export function layKyNangPhapBaoActive(itemOrId, stats = null) {
   const itemId = typeof itemOrId === 'string' ? itemOrId : (itemOrId?.id || '');
   const dbActiveSkill = typeof itemOrId === 'object' ? itemOrId?.activeSkill : null;
 
@@ -725,8 +897,16 @@ export function layKyNangPhapBaoActive(itemOrId) {
     return dbActiveSkill;
   }
 
-  if (KYNANG_PHAPBAO_ACTIVE[itemId]) {
-    return KYNANG_PHAPBAO_ACTIVE[itemId];
+  const baseConfig = KYNANG_PHAPBAO_ACTIVE[itemId];
+  if (baseConfig) {
+    const finalSkill = { ...baseConfig };
+    if (typeof baseConfig.tinhScale === 'function') {
+      finalSkill.triGia = baseConfig.tinhScale(stats);
+      if (finalSkill.loai === 'hon_hop') {
+        finalSkill.triGiaKhien = Math.floor(finalSkill.triGia / 2);
+      }
+    }
+    return finalSkill;
   }
 
   // Phân tích mã ID của 100 Pháp bảo mới: pb_[lk/tc/kd/na]_[num]
@@ -1071,6 +1251,155 @@ export async function layLuongDuyen(userId1, userId2) {
     where: { userIdA: id1, userIdB: id2 }
   });
   return record ? record.points : 0;
+}
+
+export function taiLapChiSoPhu(dongChiSoJson, itemDetail) {
+  const loai = itemDetail.loai;
+  const POOLS = {
+    "Vũ khí": ["vat_cong", "phap_cong", "crit_rate", "crit_dmg", "xuyen_giap"],
+    "Giáp": ["vat_phong", "phap_phong", "max_mp", "max_hp"],
+    "Ngọc Bội": ["max_hp", "max_mp", "ne", "lifesteal", "speed"],
+    "Cổ Bảo Chủ Động": ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal", "speed"],
+    "Pháp Bảo": [
+      "vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal",
+      "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb", "speed"
+    ]
+  };
+
+  const pool = POOLS[loai];
+  if (!pool) return null;
+
+  let currentLines = [];
+  let phamChatTrangBi = null;
+  let chiSoChinhMult = 1.0;
+
+  try {
+    if (dongChiSoJson) {
+      const parsed = JSON.parse(dongChiSoJson);
+      if (Array.isArray(parsed)) {
+        const meta = parsed.find(x => x && x.metadata);
+        if (meta) {
+          phamChatTrangBi = meta.phamChatTrangBi;
+          chiSoChinhMult = meta.chiSoChinhMult;
+        }
+        currentLines = parsed.filter(x => x && !x.metadata);
+      }
+    }
+  } catch (e) {}
+
+  if (!Array.isArray(currentLines)) {
+    currentLines = [];
+  }
+
+  // 1. Giữ nguyên số dòng phụ và có 10% khả năng tăng thêm dòng phụ (tối đa 5 dòng)
+  let targetCount = currentLines.length;
+  if (targetCount < 5 && Math.random() <= 0.10) {
+    targetCount += 1;
+  }
+  if (targetCount === 0) targetCount = 1;
+
+  // 2. Xác định phẩm chất cuối cùng cho từng dòng phụ
+  const QUALITIES = [
+    { name: "Phế Phẩm", color: "trang", min: -5, max: 0 },
+    { name: "Thường", color: "luc", min: 0, max: 5 },
+    { name: "Hiếm", color: "xanh", min: 5, max: 10 },
+    { name: "Sử Thi", color: "tim", min: 10, max: 15 },
+    { name: "Thần Thoại", color: "cam", min: 15, max: 20 },
+    { name: "Nghịch Thiên", color: "do", min: 20, max: 25 }
+  ];
+
+  const getQualityIndex = (name) => {
+    return QUALITIES.findIndex(q => q.name.toLowerCase() === name.toLowerCase());
+  };
+
+  let maxQualityName = 'Thần Thoại';
+  if (itemDetail.yeuCauCanhGioi >= 13) {
+    const eqQ = phamChatTrangBi || 'Thường';
+    if (eqQ === 'Phế Phẩm') maxQualityName = 'Thường';
+    else if (eqQ === 'Thường') maxQualityName = 'Hiếm';
+    else if (eqQ === 'Hiếm') maxQualityName = 'Sử Thi';
+    else if (eqQ === 'Sử Thi') maxQualityName = 'Thần Thoại';
+    else if (eqQ === 'Thần Thoại') maxQualityName = 'Nghịch Thiên';
+  }
+  const maxQIdx = getQualityIndex(maxQualityName);
+
+  const finalQualities = [];
+  for (let i = 0; i < targetCount; i++) {
+    let qIdx = 0;
+    if (i < currentLines.length) {
+      const currentQName = currentLines[i].phamChat || "Phế Phẩm";
+      qIdx = getQualityIndex(currentQName);
+      if (qIdx === -1) qIdx = 0;
+
+      if (qIdx < maxQIdx && maxQIdx !== -1) {
+        if (qIdx === 4) {
+          if (Math.random() <= 0.01) {
+            qIdx = 5;
+          }
+        } else {
+          if (Math.random() <= 0.10) {
+            qIdx += 1;
+          }
+        }
+      }
+    } else {
+      const rand = Math.random();
+      if (rand < 0.05) qIdx = 4;
+      else if (rand < 0.20) qIdx = 3;
+      else if (rand < 0.50) qIdx = 2;
+      else if (rand < 0.85) qIdx = 1;
+      else qIdx = 0;
+
+      if (qIdx > maxQIdx && maxQIdx !== -1) {
+        qIdx = maxQIdx;
+      }
+    }
+    finalQualities.push(QUALITIES[qIdx]);
+  }
+
+  // 3. Tái lập ngẫu nhiên thuộc tính
+  const shuffled = [...pool].sort(() => 0.5 - Math.random());
+  const selectedStats = shuffled.slice(0, Math.min(targetCount, pool.length));
+
+  const NAME_MAP = {
+    "vat_cong": "Sát thương Vật lý",
+    "phap_cong": "Sát thương Pháp thuật",
+    "crit_rate": "Tỷ lệ Bạo kích",
+    "crit_dmg": "Sát thương Bạo kích",
+    "xuyen_giap": "Xuyên giáp hộ thể",
+    "vat_phong": "Vật phòng nhục thân",
+    "phap_phong": "Pháp phòng khí hải",
+    "max_mp": "Chân nguyên linh khí (MP)",
+    "max_hp": "Khí huyết cơ bản (HP)",
+    "ne": "Né tránh yêu pháp",
+    "lifesteal": "Hút máu sinh cơ",
+    "crit_rate_pb": "Bạo kích Pháp bảo",
+    "crit_dmg_pb": "Bạo thương Pháp bảo",
+    "sat_thuong_pb": "Sát thương Pháp bảo",
+    "phap_thuong_pb": "Pháp thương Pháp bảo",
+    "khien_pb": "Hộẫn Hấp thụ Pháp bảo",
+    "speed": "Tốc độ"
+  };
+
+  const newLines = [];
+  if (phamChatTrangBi) {
+    newLines.push({ metadata: true, phamChatTrangBi, chiSoChinhMult });
+  }
+
+  for (let i = 0; i < selectedStats.length; i++) {
+    const stat = selectedStats[i];
+    const q = finalQualities[i];
+    const value = parseFloat((q.min + Math.random() * (q.max - q.min)).toFixed(1));
+    newLines.push({
+      thuocTinh: stat,
+      ten: NAME_MAP[stat] || stat,
+      mau: q.color,
+      phamChat: q.name,
+      phanTram: value
+    });
+  }
+
+  return newLines;
 }
 
 

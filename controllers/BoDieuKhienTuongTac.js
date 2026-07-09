@@ -1025,7 +1025,7 @@ async function _simCombat(tuSiA, tuSiB) {
   // Pháp bảo chủ động A
   const dharmaA = eqA.inv.filter(x => x.item.loai === 'Pháp Bảo');
   for (const eq of dharmaA) {
-    const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
+    const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId, statsA);
     if (activeSkill) {
       if (activeSkill.loai === 'tan_cong') {
         hpB = Math.max(0, hpB - activeSkill.triGia);
@@ -1035,6 +1035,11 @@ async function _simCombat(tuSiA, tuSiB) {
         hpA = Math.min(statsA.max_hp, hpA + healAmt);
         battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, hồi phục \`+${healAmt}\` HP (Hiện tại: \`${hpA}/${statsA.max_hp}\`).`);
       } else if (activeSkill.loai === 'tang_cong_pct') {
+        if (activeSkill.ten.includes("Cuồng Hóa Chiến Ý")) {
+          const hpSacrifice = Math.floor(hpA * 0.10);
+          hpA = Math.max(1, hpA - hpSacrifice);
+          battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, tiêu hao \`-${hpSacrifice}\` HP.`);
+        }
         activeBuffsA.push({
           ten: activeSkill.ten,
           pbTen: eq.item.ten,
@@ -1057,7 +1062,7 @@ async function _simCombat(tuSiA, tuSiB) {
   // Pháp bảo chủ động B
   const dharmaB = eqB.inv.filter(x => x.item.loai === 'Pháp Bảo');
   for (const eq of dharmaB) {
-    const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
+    const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId, statsB);
     if (activeSkill) {
       if (activeSkill.loai === 'tan_cong') {
         hpA = Math.max(0, hpA - activeSkill.triGia);
@@ -1067,6 +1072,11 @@ async function _simCombat(tuSiA, tuSiB) {
         hpB = Math.min(statsB.max_hp, hpB + healAmt);
         battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, hồi phục \`+${healAmt}\` HP (Hiện tại: \`${hpB}/${statsB.max_hp}\`).`);
       } else if (activeSkill.loai === 'tang_cong_pct') {
+        if (activeSkill.ten.includes("Cuồng Hóa Chiến Ý")) {
+          const hpSacrifice = Math.floor(hpB * 0.10);
+          hpB = Math.max(1, hpB - hpSacrifice);
+          battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, tiêu hao \`-${hpSacrifice}\` HP.`);
+        }
         activeBuffsB.push({
           ten: activeSkill.ten,
           pbTen: eq.item.ten,

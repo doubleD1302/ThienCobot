@@ -81,7 +81,7 @@ class TuSi extends Model {
     let critDmg = baseStats.crit_dmg + growth.crit_dmg * lvlDiff;
     let ne = 0.0; // Né tránh mặc định
     let lifesteal = 0.0; // Hút máu mặc định
-    let speed = Math.floor(100 * (1.10 ** lvlDiff));
+    let speed = 100;
 
     // Lưu chỉ số nền của tu sĩ để tính phần trăm gia tăng từ các dòng chỉ số ngẫu nhiên
     const baseHpVal = maxHp;
@@ -108,7 +108,22 @@ class TuSi extends Model {
         staticStats = item.chiSo;
       }
       
-      const starMult = 1.0 + (eq.nangCapSao || 0) * 0.10;
+      let equipQualityMult = 1.0;
+      let dynamicStats = [];
+      if (eq.dongChiSoJson) {
+        try {
+          const parsed = JSON.parse(eq.dongChiSoJson);
+          if (Array.isArray(parsed)) {
+            const meta = parsed.find(x => x && x.metadata);
+            if (meta && meta.chiSoChinhMult !== undefined) {
+              equipQualityMult = meta.chiSoChinhMult;
+            }
+            dynamicStats = parsed.filter(x => x && !x.metadata);
+          }
+        } catch (e) {}
+      }
+
+      const starMult = (1.0 + (eq.nangCapSao || 0) * 0.10) * equipQualityMult;
       if (staticStats.hp) maxHp += staticStats.hp * starMult * 10;
       if (staticStats.mp) maxMp += staticStats.mp * starMult;
       if (staticStats.vat_cong) vatCong += staticStats.vat_cong * starMult;
@@ -119,14 +134,7 @@ class TuSi extends Model {
       if (staticStats.xuyen_giap) xuyenGiap += staticStats.xuyen_giap * starMult;
       if (staticStats.crit_rate) critRate += staticStats.crit_rate * starMult;
       if (staticStats.crit_dmg) critDmg += staticStats.crit_dmg * starMult;
-
-      // Chỉ số dòng phụ ngẫu nhiên
-      let dynamicStats = [];
-      if (eq.dongChiSoJson) {
-        try {
-          dynamicStats = JSON.parse(eq.dongChiSoJson);
-        } catch (e) {}
-      }
+      if (staticStats.speed) speed += staticStats.speed * starMult;
       
       for (const line of dynamicStats) {
         const multVal = line.phanTram / 100;
@@ -163,6 +171,9 @@ class TuSi extends Model {
             break;
           case 'lifesteal':
             lifesteal += multVal;
+            break;
+          case 'speed':
+            speed += baseSpeedVal * multVal;
             break;
           default:
             break;
@@ -526,6 +537,17 @@ TuSi.init({
     type: DataTypes.DATEONLY,
     allowNull: true,
     field: 'last_use_binh_tinh_hai'
+  },
+  lastUseCanKhonDinh: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    field: 'last_use_can_khon_dinh'
+  },
+  canKhonDinhCount: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    field: 'can_khon_dinh_count'
   },
   idTongMon: {
     type: DataTypes.INTEGER,

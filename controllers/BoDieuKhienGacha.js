@@ -41,6 +41,10 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
         });
       }
 
+      let ownsBinhTinhHai = await Inventory.findOne({
+        where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'binh_tinh_hai' }
+      });
+
       const getCoDuyenLenhCount = async () => {
         const invRecord = await Inventory.findOne({
           where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'co_duyen_lenh' }
@@ -48,13 +52,16 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
         return invRecord ? invRecord.soLuong : 0;
       };
 
-      const buildMainPayload = (coDuyenLenhCount) => {
+      const buildMainPayload = (coDuyenLenhCount, hasBTH) => {
         const bannerFile = new AttachmentBuilder('public/image/gacha_banner/basic_gacha.png');
+        const supremeText = hasBTH
+          ? 'Chí Bảo Thượng Cổ **Càn Khôn Đỉnh <:can_khon_dinh:1523249412950855850>**'
+          : 'Chí Bảo Thượng Cổ **Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>**';
         const embed = new EmbedBuilder()
           .setTitle('🔮 Tạo Hóa Chi Hồ - Gacha 🔮')
           .setDescription(
             `Chào mừng đạo hữu đến với **Tạo Hóa Chi Hồ** chốn thượng giới!\n` +
-            `Nơi đây dung hợp cơ duyên thiên địa, có thể quay ra các đạo cụ quý hiếm, Linh Thạch, VND và đặc biệt là Chí Bảo Thượng Cổ **Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>**.\n\n` +
+            `Nơi đây dung hợp cơ duyên thiên địa, có thể quay ra các đạo cụ quý hiếm, Linh Thạch, VND và đặc biệt là ${supremeText}.\n\n` +
             `• **Vật phẩm tiêu hao**: **Cơ Duyên Lệnh 🎫** (1 Cơ Duyên Lệnh = 1 lượt quay)\n` +
             `• **Cơ Duyên Lệnh hiện có**: \`${coDuyenLenhCount.toLocaleString()}\` 🎫\n\n` +
             `Đạo hữu hãy chọn số lượt quay bên dưới:`
@@ -85,7 +92,7 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
       };
 
       let currentCount = await getCoDuyenLenhCount();
-      const payload = buildMainPayload(currentCount);
+      const payload = buildMainPayload(currentCount, !!ownsBinhTinhHai);
 
       const msg = await interaction.editReply(payload);
 
@@ -147,6 +154,15 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
         // Generate Results
         const rolledResults = [];
         let hitSupreme = false;
+        let hitSupremeId = 'binh_tinh_hai';
+        let hitSupremeName = 'Bình Tinh Hải';
+
+        // Check ownership again before rolling to be dynamic
+        ownsBinhTinhHai = await Inventory.findOne({
+          where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'binh_tinh_hai' }
+        });
+        const targetSupremeId = ownsBinhTinhHai ? 'can_khon_dinh' : 'binh_tinh_hai';
+        const targetSupremeName = ownsBinhTinhHai ? 'Càn Khôn Đỉnh' : 'Bình Tinh Hải';
 
         for (let r = 0; r < rollCount; r++) {
           if (Math.random() <= 0.01) {
@@ -155,8 +171,10 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
           }
           const category = rollFromWeights(GACHA_POOL_WEIGHTS);
           if (category === 'supreme') {
-            rolledResults.push({ type: 'supreme', itemId: 'binh_tinh_hai', ten: 'Bình Tinh Hải' });
+            rolledResults.push({ type: 'supreme', itemId: targetSupremeId, ten: targetSupremeName });
             hitSupreme = true;
+            hitSupremeId = targetSupremeId;
+            hitSupremeName = targetSupremeName;
           } else if (category === 'stones') {
             const amount = rollStonesAmount();
             rolledResults.push({ type: 'stones', amount });
@@ -188,8 +206,8 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
         const rewardLines = [];
         for (const res of rolledResults) {
           if (res.type === 'supreme') {
-            await Inventory.addVatPham(tuSi.idNguoiDung, 'binh_tinh_hai', 1);
-            rewardLines.push(`🏺 **Chí Bảo**: **Bình Tinh Hải** x1 *(Đặc Biệt!)*`);
+            await Inventory.addVatPham(tuSi.idNguoiDung, res.itemId, 1);
+            rewardLines.push(`🏺 **Chí Bảo**: **${res.ten}** x1 *(Đặc Biệt!)*`);
           } else if (res.type === 'stones') {
             tuSi.linhThach += res.amount;
             rewardLines.push(`🪙 **Linh Thạch**: \`+${res.amount.toLocaleString()}\` viên`);
@@ -215,25 +233,35 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
         let responseEmbed;
         let filesToSend = [];
         if (hitSupreme) {
+          const isBTH = (hitSupremeId === 'binh_tinh_hai');
+          const supremeDisplay = isBTH
+            ? `**<:binh_tinh_hai:1523244204333994016> BÌNH TINH HẢI <:binh_tinh_hai:1523244204333994016>**\n*(Mỗi ngày sử dụng để tạo hoá  2 viên Đan Thần Phẩm 🔴 cộng lượng lớn tu vi)*\n\n`
+            : `**<:can_khon_dinh:1523249412950855850> CÀN KHÔN ĐỈNH <:can_khon_dinh:1523249412950855850>**\n*(Mỗi ngày sử dụng 2 lần để tái lập linh văn (chỉ số phụ) của trang bị đang mặc)*\n\n`;
+          const thumbnailFile = isBTH ? 'binh_tinh_hai.png' : 'can_khon_dinh.png';
+          const imagePath = isBTH ? 'public/image/chi_bao/binh_tinh_hai.png' : 'public/image/chi_bao/can_khon_dinh.png';
+
           responseEmbed = new EmbedBuilder()
             .setTitle('🏺 THIÊN ĐẠO DIỆU QUANG — TRÚNG CHÍ BẢO 🏺')
             .setColor(0xe74c3c)
             .setDescription(
               `🎉 **Chúc mừng đạo hữu ${tuSi.ten} đã xoay chuyển càn khôn, nhận được Chí Bảo Thượng Cổ:**\n\n` +
-              `**<:binh_tinh_hai:1523244204333994016> BÌNH TINH HẢI <:binh_tinh_hai:1523244204333994016>**\n` +
-              `*(Mỗi ngày sử dụng để tạo hoá  2 viên Đan Thần Phẩm 🔴 cộng lượng lớn tu vi)*\n\n` +
+              supremeDisplay +
               `**Danh sách quà nhận được**:\n` +
               rewardLines.join('\n')
             )
-            .setThumbnail('attachment://binh_tinh_hai.png')
+            .setThumbnail(`attachment://${thumbnailFile}`)
             .setTimestamp();
 
-          filesToSend.push(new AttachmentBuilder('public/image/chi_bao/binh_tinh_hai.png'));
+          filesToSend.push(new AttachmentBuilder(imagePath));
 
           // Broadcast to Thien Dao Luc with tag @everyone
-          const announceMsg = `🌌 **Thiên Địa Dị Tượng - Chí Bảo Xuất Thế** 🌌\n\n` +
-            `Vào **Đạo Niên thứ ${daoNien}**, tại **Tạo Hóa Chi Hồ**, đạo hữu **${tuSi.ten}** vận khí ngút trời, dẫn động thiên địa dị tượng, thành công nhận được **Chí Bảo Thượng Cổ: Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>**! \n` +
-            `Linh quang vạn trượng chấn động bát hoang, chư vị đạo hữu hãy mau đến chiêm bái!`;
+          const announceMsg = isBTH
+            ? `🌌 **Thiên Địa Dị Tượng - Chí Bảo Xuất Thế** 🌌\n\n` +
+              `Vào **Đạo Niên thứ ${daoNien}**, tại **Tạo Hóa Chi Hồ**, đạo hữu **${tuSi.ten}** vận khí ngút trời, dẫn động thiên địa dị tượng, thành công nhận được **Chí Bảo Thượng Cổ: Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>**! \n` +
+              `Linh quang vạn trượng chấn động bát hoang, chư vị đạo hữu hãy mau đến chiêm bái!`
+            : `🌌 **Thiên Địa Dị Tượng - Chí Bảo Xuất Thế** 🌌\n\n` +
+              `Vào **Đạo Niên thứ ${daoNien}**, tại **Tạo Hóa Chi Hồ**, đạo hữu **${tuSi.ten}** vận khí ngút trời, dẫn động thiên địa dị tượng, thành công nhận được **Chí Bảo Thượng Cổ: Càn Khôn Đỉnh <:can_khon_dinh:1523249412950855850>**! \n` +
+              `Linh quang vạn trượng chấn động bát hoang, chư vị đạo hữu hãy mau đến chiêm bái!`;
           await ThienDaoLuc.ghiLuc(announceMsg, 'Supreme');
         } else {
           responseEmbed = new EmbedBuilder()
@@ -248,28 +276,16 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
 
         // Show buttons again for further rolls
         const nextCount = await getCoDuyenLenhCount();
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('gacha_roll_1')
-            .setLabel('🔮 Quay x1')
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(nextCount < 1),
-          new ButtonBuilder()
-            .setCustomId('gacha_roll_10')
-            .setLabel('🔮 Quay x10')
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(nextCount < 10),
-          new ButtonBuilder()
-            .setCustomId('gacha_close')
-            .setLabel('❌ Đóng')
-            .setStyle(ButtonStyle.Danger)
-        );
+        ownsBinhTinhHai = await Inventory.findOne({
+          where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'binh_tinh_hai' }
+        });
+        const nextPayload = buildMainPayload(nextCount, !!ownsBinhTinhHai);
 
         // Edit reply, clearing content text and passing filesToSend array
         await interaction.editReply({
           content: null,
           embeds: [responseEmbed],
-          components: [row],
+          components: nextPayload.components,
           files: filesToSend
         });
       });

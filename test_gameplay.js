@@ -1974,11 +1974,25 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       theLuc: 10
     });
 
-    // Make sure we have items at level 10
-    const items = await Item.findAll({ where: { yeuCauCanhGioi: 10 } });
-    if (items.length === 0) {
-      await Item.create({
-        id: 'test_boss_item',
+    // Ensure there's a Nguyên liệu at level 10 for boss to drop
+    await Item.findOrCreate({
+      where: { id: 'nguyen_lieu_truc_co' },
+      defaults: {
+        ten: 'Huyền Thiết Thạch 🪙',
+        loai: 'Nguyên liệu',
+        doHiem: 'Hiếm',
+        giaCoSo: 250,
+        chiSoJson: '{}',
+        yeuCauCanhGioi: 10,
+        moTa: 'Quặng huyền thiết.'
+      }
+    });
+
+    // Also ensure equip exists for 10% drop chance test
+    await Item.findOrCreate({
+      where: { id: 'test_boss_equip' },
+      defaults: {
+        id: 'test_boss_equip',
         ten: 'Boss Test Sword',
         loai: 'Vũ khí',
         doHiem: 'Hiếm',
@@ -1986,8 +2000,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
         chiSoJson: '{"vat_cong":30}',
         yeuCauCanhGioi: 10,
         moTa: 'Test sword.'
-      });
-    }
+      }
+    });
 
     // Mock a Boss object
     const mockBoss = {
@@ -2008,30 +2022,43 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Fetch the drops from the DB
     const drops = await Inventory.findAll({ where: { idNguoiDung: "999888777666" } });
     
-    // There should be items awarded (last hitter is guaranteed to get 1, top 1 is guaranteed to get 1, so 2 drops)
+    // There should be items awarded (at least materials)
     assert.ok(drops.length >= 1);
     
+    // Categorize drops
+    const materialDrops = [];
+    const equipDrops = [];
     for (const drop of drops) {
-      assert.ok(drop.dongChiSoJson);
-      const parsedStats = JSON.parse(drop.dongChiSoJson);
-      assert.ok(Array.isArray(parsedStats) && parsedStats.length > 0);
-
-      for (const line of parsedStats) {
-        assert.ok(line.mau === 'cam' || line.mau === 'do');
-        if (line.mau === 'do') {
-          assert.strictEqual(line.phamChat, 'Truyền Thuyết');
-          assert.ok(line.phanTram >= 30 && line.phanTram <= 50);
-        } else {
-          assert.strictEqual(line.phamChat, 'Tiên Phẩm');
-          assert.ok(line.phanTram >= 15 && line.phanTram <= 20);
-        }
+      const dropItem = await Item.findByPk(drop.itemId);
+      if (!dropItem) continue;
+      if (dropItem.loai === 'Nguyên liệu') {
+        materialDrops.push({ drop, item: dropItem });
+        // Material must have quality JSON
+        assert.ok(drop.dongChiSoJson, 'Nguyên liệu phải có phẩm chất JSON');
+        const matData = JSON.parse(drop.dongChiSoJson);
+        assert.ok(
+          matData.phamChat === 'Sử Thi' || matData.phamChat === 'Thần Thoại',
+          `Phẩm chất nguyên liệu phải là Sử Thi hoặc Thần Thoại, got: ${matData.phamChat}`
+        );
+      } else if (['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(dropItem.loai)) {
+        equipDrops.push({ drop, item: dropItem });
+        // Equipment drops must have at least 1 Thần Thoại secondary stat line
+        assert.ok(drop.dongChiSoJson, 'Trang bị phải có chỉ số phụ');
+        const parsedStats = JSON.parse(drop.dongChiSoJson);
+        const statLines = Array.isArray(parsedStats) ? parsedStats.filter(x => x && !x.metadata) : [];
+        const hasThanThoai = statLines.some(l => l.phamChat === 'Thần Thoại');
+        assert.ok(hasThanThoai, 'Trang bị boss drop phải có ít nhất 1 dòng Thần Thoại');
       }
     }
+
+    // Boss always drops materials for Last Hitter + Top 1 (same player here)
+    assert.ok(materialDrops.length >= 1, 'Boss phải rớt ít nhất 1 nguyên liệu Sử Thi/Thần Thoại');
 
     // Clean up
     await Inventory.destroy({ where: { idNguoiDung: "999888777666" } });
     await tuSi.destroy();
   });
+
 
   test('World Boss Doubled Rewards Verification', async () => {
     const { phanBoPhanThuongBoss } = await import('./controllers/BoDieuKhienBoss.js');
@@ -2695,18 +2722,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       capDo: 10,
       hp: 12000,
       mp: 100,
-      linhThach: 1000
+      linhThach: 10000
     });
 
-    // 1. Forge without phế khí
-    const res1 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
-    assert.strictEqual(res1.ok, false);
-    assert.ok(res1.msg.includes("Thiếu phế khí"));
-
-    // Add phế khí to inventory
-    const oldInv = await Inventory.create({ idNguoiDung: userId, itemId: 'kiem_sat_nang', soLuong: 1, trangBi: false });
-
-    // 2. Forge without material
+    // 1. Forge without material
     const res2 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
     assert.strictEqual(res2.ok, false);
     assert.ok(res2.msg.includes("Thiếu nguyên liệu rèn"));
@@ -2714,7 +2733,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Add material to inventory (only 4)
     const matInv = await Inventory.create({ idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co', soLuong: 4, trangBi: false });
 
-    // 3. Forge with insufficient materials
+    // 2. Forge with insufficient materials
     const res3 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
     assert.strictEqual(res3.ok, false);
     assert.ok(res3.msg.includes("Thiếu nguyên liệu rèn"));
@@ -2723,7 +2742,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     matInv.soLuong = 5;
     await matInv.save();
 
-    // 4. Forge successfully
+    // 3. Forge successfully
     const res4 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
     assert.strictEqual(res4.ok, true);
     assert.ok(res4.msg.includes("Luyện Khí Thành Công"));
@@ -2731,7 +2750,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Check inventory and ling thach
     const newInv = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'kiem_sat' } });
     assert.ok(newInv);
-    assert.strictEqual(tuSi.linhThach, 800);
+    assert.strictEqual(tuSi.linhThach, 8000); // 10000 - 2000 = 8000
 
     const checkedMat = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co' } });
     assert.strictEqual(checkedMat, null);
@@ -4461,6 +4480,419 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await guildConfig.destroy();
     await tuSi.destroy();
     await Inventory.destroy({ where: { idNguoiDung } });
+  });
+
+  test('Bí Cảnh Dungeon equipment drops conversion to materials verification', async () => {
+    const { Dungeon } = await import('./models/Dungeon.js');
+    const { Item } = await import('./models/Item.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { boDieuKhienBicanh } = await import('./controllers/BoDieuKhienBicanh.js');
+
+    const idNguoiDung = '999222333';
+    await TuSi.destroy({ where: { idNguoiDung } });
+    const tuSi = await TuSi.create({
+      idNguoiDung,
+      ten: 'DungeonLootTester',
+      gioiTinh: 'Nam',
+      huongTu: 'Phap Tu',
+      linhCan: 'Kim Linh Căn',
+      capDo: 1, // Luyện Khí
+      linhLuc: 0,
+      linhThach: 100,
+      vnd: 0,
+      theLuc: 10
+    });
+
+    // Make sure we have the items:
+    // kiem_go (Vũ khí, yeuCauCanhGioi: 1)
+    // nguyen_lieu_luyen_khi (Nguyên liệu, yeuCauCanhGioi: 1)
+    await Item.upsert({
+      id: 'kiem_go',
+      ten: 'Kiếm Gỗ',
+      loai: 'Vũ khí',
+      doHiem: 'Thường',
+      giaCoSo: 10,
+      yeuCauCanhGioi: 1
+    });
+
+    await Item.upsert({
+      id: 'nguyen_lieu_luyen_khi',
+      ten: 'Luyện Khí Thạch 💎',
+      loai: 'Nguyên liệu',
+      doHiem: 'Thường',
+      giaCoSo: 100,
+      yeuCauCanhGioi: 1
+    });
+
+    // Clear old test dungeons
+    await Dungeon.destroy({ where: { id: 'test_loot_dungeon' } });
+    const dungeon = await Dungeon.create({
+      id: 'test_loot_dungeon',
+      ten: 'Bí Cảnh Rơi Đồ Test',
+      capDoYeuCau: 1,
+      canhGioiYeuCauText: 'Luyện Khí',
+      quaiVatJson: '{"ten":"Yêu Thú Test","hp":10,"vatCong":1,"phapCong":0,"vatPhong":1,"phapPhong":1}',
+      thuongJson: '{"expMin":10,"expMax":20,"stonesMin":1,"stonesMax":5}',
+      dropsJson: '[{"itemId":"kiem_go","tile":1.0}]' // 100% tile drop
+    });
+
+    // Clean inventory
+    await Inventory.destroy({ where: { idNguoiDung } });
+
+    // Mock collector interaction to choose the dungeon and simulate win
+    let replyPayload = null;
+    let collectorCallbacks = {};
+    const interactionMock = {
+      user: { id: idNguoiDung },
+      options: { getSubcommand: () => 'khieu_chien', getString: () => 'test_loot_dungeon' },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        replyPayload = payload;
+        return {
+          createMessageComponentCollector: () => ({
+            on: (event, cb) => {
+              collectorCallbacks[event] = cb;
+            },
+            stop: () => {}
+          })
+        };
+      }
+    };
+
+    await boDieuKhienBicanh.lenhBicanh.execute(interactionMock);
+    
+    // Trigger collect button click
+    assert.ok(collectorCallbacks['collect']);
+    
+    const mockButtonInteraction = {
+      customId: 'dg_play_test_loot_dungeon',
+      user: { id: idNguoiDung },
+      deferUpdate: async () => {},
+      editReply: async (payload) => {
+        replyPayload = payload;
+      }
+    };
+    
+    await collectorCallbacks['collect'](mockButtonInteraction);
+
+    // Verify inventory - should NOT have kiem_go, but instead have nguyen_lieu_luyen_khi
+    const hasKiemGo = await Inventory.findOne({ where: { idNguoiDung, itemId: 'kiem_go' } });
+    assert.strictEqual(hasKiemGo, null);
+
+    const hasMaterial = await Inventory.findOne({ where: { idNguoiDung, itemId: 'nguyen_lieu_luyen_khi' } });
+    assert.ok(hasMaterial);
+    assert.strictEqual(hasMaterial.soLuong, 1);
+
+    // Clean up
+    await dungeon.destroy();
+    await tuSi.destroy();
+    await Inventory.destroy({ where: { idNguoiDung } });
+  });
+
+  test('Kim Đan Realm Materials and Forge/Dungeon conversion verification', async () => {
+    const { Item } = await import('./models/Item.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { Dungeon } = await import('./models/Dungeon.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { boDieuKhienDongPhu } = await import('./controllers/BoDieuKhienDongPhu.js');
+    const { boDieuKhienBicanh } = await import('./controllers/BoDieuKhienBicanh.js');
+
+    // Seed the materials manually from config.ITEMS for this test
+    const config = await import('./config.js');
+    for (const itemId of ['huyen_thiet_van_nam', 'Thien_Tam_Linh_ty', 'hon_tinh_huyet_nguyet', 'cuc_duong_hoa_thach']) {
+      const it = config.ITEMS.find(x => x.id === itemId);
+      await Item.upsert({
+        id: it.id,
+        ten: it.ten,
+        loai: it.loai,
+        doHiem: it.doHiem,
+        giaCoSo: it.giaCoSo,
+        chiSoJson: it.chiSoJson,
+        yeuCauCanhGioi: it.yeuCauCanhGioi || 1,
+        moTa: it.moTa,
+        emoji: it.emoji || null,
+        food: it.food !== undefined ? it.food : 1
+      });
+    }
+
+    // 1. Verify items exist in the database
+    const mt1 = await Item.findByPk('huyen_thiet_van_nam');
+    assert.ok(mt1);
+    assert.strictEqual(mt1.ten, 'Vạn Năm Huyền Thiết');
+    assert.strictEqual(mt1.emoji, '<:Huyen_thiet_van_nam:1524812777347092560>');
+
+    const mt2 = await Item.findByPk('Thien_Tam_Linh_ty');
+    assert.ok(mt2);
+    assert.strictEqual(mt2.ten, 'Thiên Tàm Linh Ty');
+
+    const mt3 = await Item.findByPk('hon_tinh_huyet_nguyet');
+    assert.ok(mt3);
+
+    const mt4 = await Item.findByPk('cuc_duong_hoa_thach');
+    assert.ok(mt4);
+
+    // 2. Verify forge requirements
+    const idNguoiDung = '999333444';
+    await TuSi.destroy({ where: { idNguoiDung } });
+    const tuSi = await TuSi.create({
+      idNguoiDung,
+      ten: 'ForgeTester',
+      gioiTinh: 'Nam',
+      huongTu: 'The Tu',
+      linhCan: 'Kim Linh Căn',
+      capDo: 13,
+      linhLuc: 0,
+      linhThach: 10000,
+      vnd: 0
+    });
+
+    // Seed weapon and armor to upgrade
+    await Item.upsert({ id: 'kiem_kim_dan_thuong', ten: 'Đan Hỏa Thiết Kiếm', loai: 'Vũ khí', doHiem: 'Thường', yeuCauCanhGioi: 13 });
+    await Item.upsert({ id: 'kiem_kim_dan', ten: 'Kim Đan Chân Kiếm', loai: 'Vũ khí', doHiem: 'Hiếm', yeuCauCanhGioi: 13 });
+    await Inventory.addVatPham(idNguoiDung, 'kiem_kim_dan_thuong', 1);
+
+    // Attempt forge (should fail because of missing Vạn Năm Huyền Thiết)
+    const forgeRes1 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_kim_dan_thuong', 'kiem_kim_dan');
+    assert.strictEqual(forgeRes1.ok, false);
+    assert.ok(forgeRes1.msg.includes('Vạn Năm Huyền Thiết'));
+
+    // 3. Verify Dungeon loot conversion for Kim Đan
+    await Dungeon.destroy({ where: { id: 'test_kd_dungeon' } });
+    const dungeon = await Dungeon.create({
+      id: 'test_kd_dungeon',
+      ten: 'Bí Cảnh Kim Đan Test',
+      capDoYeuCau: 13,
+      canhGioiYeuCauText: 'Kim Đan',
+      quaiVatJson: '{"ten":"Cự Thú","hp":10,"vatCong":1,"phapCong":0,"vatPhong":1,"phapPhong":1}',
+      thuongJson: '{"expMin":10,"expMax":20,"stonesMin":1,"stonesMax":5}',
+      dropsJson: '[{"itemId":"kiem_kim_dan_thuong","tile":1.0}]' // 100% weapon drop
+    });
+
+    // Clean inventory
+    await Inventory.destroy({ where: { idNguoiDung } });
+    tuSi.theLuc = 10;
+    tuSi.hp = 1000;
+    await tuSi.save();
+
+    // Mock collector interaction
+    let replyPayload = null;
+    let collectorCallbacks = {};
+    const interactionMock = {
+      user: { id: idNguoiDung },
+      options: { getSubcommand: () => 'khieu_chien', getString: () => 'test_kd_dungeon' },
+      deferReply: async () => {},
+      editReply: async (payload) => {
+        replyPayload = payload;
+        return {
+          createMessageComponentCollector: () => ({
+            on: (event, cb) => {
+              collectorCallbacks[event] = cb;
+            },
+            stop: () => {}
+          })
+        };
+      }
+    };
+
+    await boDieuKhienBicanh.lenhBicanh.execute(interactionMock);
+    assert.ok(collectorCallbacks['collect']);
+
+    const mockButtonInteraction = {
+      customId: 'dg_play_test_kd_dungeon',
+      user: { id: idNguoiDung },
+      deferUpdate: async () => {},
+      editReply: async (payload) => {
+        replyPayload = payload;
+      }
+    };
+
+    await collectorCallbacks['collect'](mockButtonInteraction);
+
+    // Verify player inventory: should not have kiem_kim_dan_thuong, but instead have huyen_thiet_van_nam
+    const hasWeapon = await Inventory.findOne({ where: { idNguoiDung, itemId: 'kiem_kim_dan_thuong' } });
+    assert.strictEqual(hasWeapon, null);
+
+    const hasHuyenThiet = await Inventory.findOne({ where: { idNguoiDung, itemId: 'huyen_thiet_van_nam' } });
+    assert.ok(hasHuyenThiet);
+    assert.strictEqual(hasHuyenThiet.soLuong, 1);
+
+    // Clean up
+    await dungeon.destroy();
+    await tuSi.destroy();
+    await Inventory.destroy({ where: { idNguoiDung } });
+  });
+
+  test('Active Treasures Scaling and Cavern Recipe Verification', async () => {
+    const { Item } = await import('./models/Item.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { boDieuKhienDongPhu } = await import('./controllers/BoDieuKhienDongPhu.js');
+    const config = await import('./config.js');
+
+    const idNguoiDung = '999333555';
+    await TuSi.destroy({ where: { idNguoiDung } });
+    const tuSi = await TuSi.create({
+      idNguoiDung,
+      ten: 'TreasureForgeTester',
+      gioiTinh: 'Nam',
+      huongTu: 'Phap Tu',
+      linhCan: 'Thủy Linh Căn',
+      capDo: 13,
+      linhLuc: 0,
+      linhThach: 10000,
+      vnd: 0
+    });
+
+    const stats = {
+      phap_cong: 1000,
+      vat_cong: 800,
+      max_mp: 5000,
+      vat_phong: 200
+    };
+
+    // 1. Verify scaling logic for new active treasures
+    const dietMaChamSkill = config.layKyNangPhapBaoActive('pb_kd_diet_ma_cham', stats);
+    assert.strictEqual(dietMaChamSkill.ten, 'Xuyên Tâm Châm 🪡');
+    assert.strictEqual(dietMaChamSkill.triGia, 1500); // 1.5 * phap_cong (1000) = 1500
+
+    const chanSonAnSkill = config.layKyNangPhapBaoActive('pb_kd_chan_son_an', stats);
+    assert.strictEqual(chanSonAnSkill.ten, 'Toái Đỉnh Đích ☄️');
+    assert.strictEqual(chanSonAnSkill.triGia, 1200); // 1.5 * vat_cong (800) = 1200
+
+    const batQuaiKinhSkill = config.layKyNangPhapBaoActive('pb_kd_bat_quai_kinh', stats);
+    assert.strictEqual(batQuaiKinhSkill.ten, 'Linh Khí Hộ Thể 🛡️');
+    assert.strictEqual(batQuaiKinhSkill.triGia, 1500); // 30% max_mp (5000) = 1500
+
+    const huyenVuThuanSkill = config.layKyNangPhapBaoActive('pb_kd_huyen_vu_thuan', stats);
+    assert.strictEqual(huyenVuThuanSkill.ten, 'Bất Diệt Kim Thân 🛡️');
+    assert.strictEqual(huyenVuThuanSkill.triGia, 600); // 300% vat_phong (200) = 600
+
+    // 2. Verify cavern recipe and forge process for Diệt Ma Châm
+    await Item.upsert({ id: 'phap_bao_ho_than', ten: 'Phù Vân Phiên 🏳️', loai: 'Pháp Bảo', doHiem: 'Hiếm', yeuCauCanhGioi: 1 });
+    await Item.upsert({ id: 'pb_kd_diet_ma_cham', ten: 'Diệt Ma Châm 🔮', loai: 'Pháp Bảo', doHiem: 'Hiếm', yeuCauCanhGioi: 13 });
+    await Item.upsert({ id: 'cuc_duong_hoa_thach', ten: 'Cực Dương Hỏa Thạch', loai: 'Nguyên liệu', doHiem: 'Hiếm', yeuCauCanhGioi: 13 });
+
+    // Seed phôi and material (dùng phẩm chất Hiếm để tránh thất bại luyện chế)
+    await Inventory.addVatPham(idNguoiDung, 'phap_bao_ho_than', 1);
+    await Inventory.addVatPham(idNguoiDung, 'cuc_duong_hoa_thach', 5, { quality: 'Hi\u1ebfm' });
+
+    // Run forge
+    const forgeResult = await boDieuKhienDongPhu._processForge(tuSi, 'phap_bao_ho_than', 'pb_kd_diet_ma_cham');
+    assert.strictEqual(forgeResult.ok, true);
+    assert.ok(forgeResult.msg.includes('Diệt Ma Châm'));
+
+    // Check inventory
+    const hasBase = await Inventory.findOne({ where: { idNguoiDung, itemId: 'phap_bao_ho_than' } });
+    assert.ok(hasBase); // should not be destroyed
+    assert.strictEqual(tuSi.linhThach, 8000); // 10000 - 2000 = 8000
+    const hasTarget = await Inventory.findOne({ where: { idNguoiDung, itemId: 'pb_kd_diet_ma_cham' } });
+    assert.ok(hasTarget);
+    assert.strictEqual(hasTarget.soLuong, 1);
+
+    // Clean up
+    await tuSi.destroy();
+    await Inventory.destroy({ where: { idNguoiDung } });
+  });
+
+  test('Can Khon Dinh Supreme Treasure and Re-roll Mechanics', async () => {
+    const { Item } = await import('./models/Item.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+    const config = await import('./config.js');
+
+    // Seed Càn Khôn Đỉnh
+    const ckd = config.ITEMS.find(x => x.id === 'can_khon_dinh');
+    assert.ok(ckd, "Càn Khôn Đỉnh phải tồn tại trong config.js");
+    await Item.upsert({
+      id: ckd.id,
+      ten: ckd.ten,
+      loai: ckd.loai,
+      doHiem: ckd.doHiem,
+      giaCoSo: ckd.giaCoSo,
+      chiSoJson: ckd.chiSoJson,
+      yeuCauCanhGioi: ckd.yeuCauCanhGioi || 1,
+      moTa: ckd.moTa
+    });
+
+    const tuSi = await TuSi.create({
+      idNguoiDung: "777888999",
+      ten: "RefineTester",
+      gioiTinh: "Nam",
+      huongTu: "The Tu",
+      linhCan: "Mộc Linh Căn",
+      capDo: 1,
+      linhThach: 10000,
+      vnd: 100000
+    });
+
+    // 1. Re-rolling rules validation
+    const mockDetail = { loai: 'Ngọc Bội' };
+    const oldStats = [
+      { thuocTinh: 'vat_cong', ten: 'Sát thương Vật lý', mau: 'luc', phamChat: 'Thường', phanTram: 3.5 }
+    ];
+    // Test multiple rolls of taiLapChiSoPhu
+    let speedFound = false;
+    for (let i = 0; i < 150; i++) {
+      const rolled = config.taiLapChiSoPhu(JSON.stringify(oldStats), mockDetail);
+      assert.ok(Array.isArray(rolled));
+      assert.ok(rolled.length >= 1 && rolled.length <= 2, "Số dòng phụ phải được giữ nguyên hoặc tăng thêm tối đa 1 dòng");
+      for (const line of rolled) {
+        assert.ok(['Phế Phẩm', 'Thường', 'Hiếm', 'Sử Thi', 'Thần Thoại', 'Nghịch Thiên'].includes(line.phamChat));
+        if (line.thuocTinh === 'speed') {
+          speedFound = true;
+          assert.strictEqual(line.ten, 'Tốc độ');
+          // Check range boundaries
+          if (line.phamChat === 'Phế Phẩm') {
+            assert.ok(line.phanTram >= -5 && line.phanTram <= 0);
+          } else if (line.phamChat === 'Thường') {
+            assert.ok(line.phanTram >= 0 && line.phanTram <= 5);
+          } else if (line.phamChat === 'Hiếm') {
+            assert.ok(line.phanTram >= 5 && line.phanTram <= 10);
+          } else if (line.phamChat === 'Sử Thi') {
+            assert.ok(line.phanTram >= 10 && line.phanTram <= 15);
+          } else if (line.phamChat === 'Thần Thoại') {
+            assert.ok(line.phanTram >= 15 && line.phanTram <= 20);
+          } else if (line.phamChat === 'Nghịch Thiên') {
+            assert.ok(line.phanTram >= 20 && line.phanTram <= 25);
+            assert.strictEqual(line.mau, 'do');
+          }
+        }
+      }
+    }
+    assert.ok(speedFound, "Tốc độ phải xuất hiện như một dòng chỉ số phụ ngẫu nhiên");
+
+    // 2. Use Can Khon Dinh without equipped items should return interactionNeeded: false or error msg
+    const invDinh = await Inventory.addVatPham(tuSi.idNguoiDung, 'can_khon_dinh', 1);
+    const useResNoEquip = await boDieuKhienVatPham._thucHienDungItem(tuSi, invDinh, 'can_khon_dinh');
+    assert.strictEqual(useResNoEquip.ok, false);
+    assert.ok(useResNoEquip.msg.includes('không có trang bị nào đang mặc'));
+
+    // Add equipped item
+    await Item.upsert({ id: 'kiem_sat_nang', ten: 'Thiết Kiếm', loai: 'Vũ khí', doHiem: 'Thường', yeuCauCanhGioi: 1 });
+    const invKiem = await Inventory.addVatPham(tuSi.idNguoiDung, 'kiem_sat_nang', 1);
+    invKiem.trangBi = true;
+    invKiem.dongChiSoJson = JSON.stringify(oldStats);
+    await invKiem.save();
+
+    // Use Can Khon Dinh with equipped item should return interactionNeeded: true
+    const useResWithEquip = await boDieuKhienVatPham._thucHienDungItem(tuSi, invDinh, 'can_khon_dinh');
+    assert.strictEqual(useResWithEquip.interactionNeeded, true);
+    assert.ok(useResWithEquip.components.length > 0);
+
+    // 3. Verify daily usage limit
+    const today = new Date().toISOString().split('T')[0];
+    tuSi.lastUseCanKhonDinh = today;
+    tuSi.canKhonDinhCount = 2;
+    await tuSi.save();
+
+    const useResLimit = await boDieuKhienVatPham._thucHienDungItem(tuSi, invDinh, 'can_khon_dinh');
+    assert.strictEqual(useResLimit.ok, false);
+    assert.ok(useResLimit.msg.includes('đã tôi luyện trang bị đủ 2 lần'));
+
+    // Clean up
+    await tuSi.destroy();
+    await Inventory.destroy({ where: { idNguoiDung: "777888999" } });
   });
 
 });

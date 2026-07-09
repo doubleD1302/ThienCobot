@@ -483,7 +483,8 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
           const { embed } = await buildQuickSellEmbed();
           return {
             embeds: [embed],
-            components: buildQuickSellComponents(disabled)
+            components: buildQuickSellComponents(disabled),
+            files: []
           };
         }
 
@@ -515,7 +516,8 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
           return {
             embeds,
-            components: rows
+            components: rows,
+            files: []
           };
         }
 
@@ -533,7 +535,8 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
         return {
           embeds,
-          components: buildAllComponents(disabled)
+          components: buildAllComponents(disabled),
+          files: []
         };
       };
 
@@ -736,6 +739,14 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
           const result = await this._xuLyDungItemByInvId(tuSi, decoded.invId, decoded.itemId);
           await refreshInventory();
+          if (result.interactionNeeded) {
+            await i.editReply({
+              embeds: result.embeds,
+              components: result.components,
+              files: []
+            });
+            return;
+          }
           await i.editReply({
             embeds: [
               result.ok
@@ -776,6 +787,100 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
               sheets[sheetIdx].pages[pageIdx]
             ],
             components: buildAllComponents()
+          });
+          return;
+        }
+        else if (i.customId === 'can_khon_dinh_cancel') {
+          await i.editReply(await buildPayload());
+          return;
+        }
+        else if (i.customId === 'can_khon_dinh_select') {
+          const targetInvId = i.values[0];
+          const eqRecord = await Inventory.findOne({
+            where: { id: targetInvId, idNguoiDung: tuSi.idNguoiDung, trangBi: true }
+          });
+          if (!eqRecord) {
+            await i.editReply({
+              embeds: [BoTaoEmbed.loi('Không tìm thấy trang bị đang mặc này.'), sheets[sheetIdx].pages[pageIdx]],
+              components: buildAllComponents(),
+              files: []
+            });
+            return;
+          }
+
+          const eqItem = await Item.findByPk(eqRecord.itemId);
+          if (!eqItem) {
+            await i.editReply({
+              embeds: [BoTaoEmbed.loi('Không tìm thấy dữ liệu trang bị.'), sheets[sheetIdx].pages[pageIdx]],
+              components: buildAllComponents(),
+              files: []
+            });
+            return;
+          }
+
+          const today = new Date().toISOString().split('T')[0];
+          if (tuSi.lastUseCanKhonDinh === today && tuSi.canKhonDinhCount >= 2) {
+            await i.editReply({
+              embeds: [BoTaoEmbed.loi('Hôm nay đạo hữu đã tôi luyện trang bị đủ 2 lần rồi. Hãy đợi ngày mai!'), sheets[sheetIdx].pages[pageIdx]],
+              components: buildAllComponents(),
+              files: []
+            });
+            return;
+          }
+
+          const oldLines = eqRecord.dongChiSoJson ? JSON.parse(eqRecord.dongChiSoJson) : [];
+          const oldLinesFormatted = oldLines.map(l => {
+            const emojis = { do: '🔴', cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
+            const emoji = emojis[l.mau] || '⚪';
+            return `${emoji} **${l.ten}** \`+${l.phanTram}%\``;
+          }).join('\n');
+
+          const newLines = config.taiLapChiSoPhu(eqRecord.dongChiSoJson, eqItem);
+          if (!newLines) {
+            await i.editReply({
+              embeds: [BoTaoEmbed.loi('Tái lập linh văn thất bại! Vui lòng thử lại.'), sheets[sheetIdx].pages[pageIdx]],
+              components: buildAllComponents(),
+              files: []
+            });
+            return;
+          }
+
+          eqRecord.dongChiSoJson = JSON.stringify(newLines);
+          await eqRecord.save();
+
+          if (tuSi.lastUseCanKhonDinh === today) {
+            tuSi.canKhonDinhCount += 1;
+          } else {
+            tuSi.lastUseCanKhonDinh = today;
+            tuSi.canKhonDinhCount = 1;
+          }
+          await tuSi.save();
+
+          await refreshInventory();
+
+          const newLinesFormatted = newLines.map(l => {
+            const emojis = { do: '🔴', cam: '🟠', tim: '🟣', xanh: '🔵', luc: '🟢', trang: '⚪' };
+            const emoji = emojis[l.mau] || '⚪';
+            return `${emoji} **${l.ten}** \`+${l.phanTram}%\``;
+          }).join('\n');
+
+          const filesToSend = [new AttachmentBuilder('public/image/chi_bao/can_khon_dinh.png')];
+          const embed = new EmbedBuilder()
+            .setTitle('🔥 Tôi Luyện Thành Công 🔥')
+            .setDescription(
+              `Đạo hữu **${tuSi.ten}** đã khống chế **Càn Khôn Đỉnh <:can_khon_dinh:1523249412950855850>** để tái lập linh văn cho **${eqItem.ten}**!\n\n` +
+              `📜 **Linh văn cũ**:\n${oldLinesFormatted || '*(Không có)*'}\n\n` +
+              `✨ **Linh văn mới**:\n${newLinesFormatted}\n\n` +
+              `*Càn Khôn Đỉnh không bị tiêu hao. Lượt sử dụng hôm nay: **${tuSi.canKhonDinhCount}/2**.*`
+            )
+            .setImage('attachment://can_khon_dinh.png')
+            .setColor(0xe67e22)
+            .setTimestamp();
+
+          await i.editReply({
+            embeds: [embed, sheets[sheetIdx].pages[pageIdx]],
+            components: buildAllComponents(),
+            files: filesToSend
           });
           return;
         }
@@ -981,6 +1086,58 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       return {
         ok: true,
         msg: `Đạo hữu **${tuSi.ten}** đã sử dụng **Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>** để trích xuất ra **2 viên Đan Thần Phẩm 🔴**! Bình Tinh Hải không bị tiêu hao.`
+      };
+    }
+
+    // Xử lý Càn Khôn Đỉnh
+    if (itemDetail.id === 'can_khon_dinh') {
+      const today = new Date().toISOString().split('T')[0];
+      if (tuSi.lastUseCanKhonDinh === today && tuSi.canKhonDinhCount >= 2) {
+        return { ok: false, msg: `Hôm nay đạo hữu đã tôi luyện trang bị đủ 2 lần rồi. Hãy đợi ngày mai!` };
+      }
+
+      const equippedFull = await loadEquippedFull(tuSi.idNguoiDung);
+      const refinable = equippedFull.filter(x => {
+        return ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(x.item.loai);
+      });
+      if (refinable.length === 0) {
+        return { ok: false, msg: 'Đạo hữu không có trang bị nào đang mặc có chỉ số phụ để tôi luyện!' };
+      }
+
+      const options = refinable.map(x => {
+        const lines = x.inv.dongChiSoJson ? JSON.parse(x.inv.dongChiSoJson) : [];
+        const linesText = lines.map(l => `${l.ten} (${l.phanTram}%)`).join(', ');
+        const desc = linesText ? linesText.substring(0, 95) : 'Không có chỉ số phụ';
+        const cleanName = x.item.ten.replace(/<:[a-zA-Z0-9_]+:[0-9]+>/g, '').replace(/[\r\n\t]+/g, ' ').trim();
+        return {
+          label: `[${x.item.loai}] ${cleanName}`.substring(0, 100),
+          value: `${x.inv.id}`,
+          description: desc
+        };
+      });
+
+      return {
+        interactionNeeded: true,
+        embeds: [
+          new EmbedBuilder()
+            .setTitle('🏺 Càn Khôn Đỉnh — Tôi Luyện Linh Văn 🏺')
+            .setDescription('Càn Khôn Đỉnh chấn động, linh khí cuộn trào. Hãy chọn trang bị đang mặc mà đạo hữu muốn tôi luyện lại chỉ số phụ (linh văn).\n\n*Lưu ý: Mỗi ngày có thể sử dụng tối đa 2 lần. Chỉ có thể tôi luyện trang bị đang mặc.*')
+            .setColor(0xe67e22)
+        ],
+        components: [
+          new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('can_khon_dinh_select')
+              .setPlaceholder('Chọn trang bị đang mặc để tôi luyện...')
+              .addOptions(options)
+          ),
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('can_khon_dinh_cancel')
+              .setLabel('Hủy Bỏ')
+              .setStyle(ButtonStyle.Secondary)
+          )
+        ]
       };
     }
 

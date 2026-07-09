@@ -200,6 +200,17 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
+  // Xử lý modal thông báo gửi tin nhắn
+  if (interaction.isModalSubmit() && interaction.customId === 'tb_modal') {
+    try {
+      const { boDieuKhienAdmin } = await import('./controllers/BoDieuKhienAdmin.js');
+      await boDieuKhienAdmin.handleTbModalSubmit(interaction);
+    } catch (err) {
+      console.error('Lỗi khi xử lý modal thông báo:', err);
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const lenh = client.commands.get(interaction.commandName);

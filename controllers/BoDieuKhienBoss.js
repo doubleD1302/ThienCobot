@@ -32,17 +32,17 @@ function layRealmNameTuCapDo(capDo) {
   return realmName;
 }
 
-// Helper: Sinh dòng linh khí (chỉ số ẩn) chất lượng cao cho Boss drops (90% Cam Thần Thoại 15-20%, 10% Đỏ Thần Cấp 30-50%)
-function rollBossDropStats(item, isRed) {
+// Helper: Sinh dòng linh khí (chỉ số ẩn) chất lượng cao cho Boss drops (Đảm bảo 100% dòng xanh dương trở lên với ít nhất 1 dòng vàng/cam)
+function rollBossDropStats(item) {
   const loai = item.loai ? item.loai.normalize('NFC') : '';
   const POOLS = {
     ["Vũ khí".normalize('NFC')]: ["vat_cong", "phap_cong", "crit_rate", "crit_dmg", "xuyen_giap"],
     ["Giáp".normalize('NFC')]: ["vat_phong", "phap_phong", "max_mp", "max_hp"],
-    ["Ngọc Bội".normalize('NFC')]: ["max_hp", "max_mp", "ne", "lifesteal"],
-    ["Cổ Bảo Chủ Động".normalize('NFC')]: ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal"],
+    ["Ngọc Bội".normalize('NFC')]: ["max_hp", "max_mp", "ne", "lifesteal", "speed"],
+    ["Cổ Bảo Chủ Động".normalize('NFC')]: ["vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal", "speed"],
     ["Pháp Bảo".normalize('NFC')]: [
       "vat_cong", "phap_cong", "vat_phong", "phap_phong", "max_hp", "max_mp", "ne", "lifesteal",
-      "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb"
+      "crit_rate_pb", "crit_dmg_pb", "sat_thuong_pb", "phap_thuong_pb", "khien_pb", "speed"
     ]
   };
 
@@ -69,22 +69,42 @@ function rollBossDropStats(item, isRed) {
     "crit_dmg_pb": "Bạo thương Pháp bảo",
     "sat_thuong_pb": "Sát thương Pháp bảo",
     "phap_thuong_pb": "Pháp thương Pháp bảo",
-    "khien_pb": "Hộ tẫn Hấp thụ Pháp bảo"
+    "khien_pb": "Hộ tẫn Hấp thụ Pháp bảo",
+    "speed": "Tốc độ"
   };
 
   const lines = [];
-  for (const stat of selectedStats) {
+  const orangeIndex = Math.floor(Math.random() * selectedStats.length);
+
+  for (let i = 0; i < selectedStats.length; i++) {
+    const stat = selectedStats[i];
     let quality, color, minPercent, maxPercent;
-    if (isRed) {
-      quality = "Truyền Thuyết";
-      color = "do";
-      minPercent = 30;
-      maxPercent = 50;
-    } else {
-      quality = "Tiên Phẩm";
+
+    if (i === orangeIndex) {
+      // 1 dòng vàng (cam) bắt buộc
+      quality = "Thần Thoại";
       color = "cam";
       minPercent = 15;
       maxPercent = 20;
+    } else {
+      // 100% dòng xanh dương trở lên (xanh: 40%, tím: 40%, cam: 20%)
+      const rand = Math.random();
+      if (rand < 0.40) {
+        quality = "Hiếm";
+        color = "xanh";
+        minPercent = 5;
+        maxPercent = 10;
+      } else if (rand < 0.80) {
+        quality = "Sử Thi";
+        color = "tim";
+        minPercent = 10;
+        maxPercent = 15;
+      } else {
+        quality = "Thần Thoại";
+        color = "cam";
+        minPercent = 15;
+        maxPercent = 20;
+      }
     }
 
     const value = parseFloat((minPercent + Math.random() * (maxPercent - minPercent)).toFixed(1));
@@ -116,35 +136,54 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
   const sorted = ids.map(id => ({ id, dmg: dealers[id] }))
     .sort((a, b) => b.dmg - a.dmg);
 
-  const getGiftItemForPlayer = async (playerCapDo) => {
+  // Lấy nguyên liệu phù hợp cảnh giới người chơi (Sử Thi phẩm trở lên)
+  const getMaterialForPlayer = async (playerCapDo) => {
     const realmInfo = config.layThongTinCanhGioi(playerCapDo);
     const realmObj = config.CANH_GIOI_LIST.find(r => r.name === realmInfo.realmName) || config.CANH_GIOI_LIST[0];
     const minLvl = realmObj.min_level;
     const maxLvl = realmObj.max_level;
 
-    const candidateItems = await Item.findAll({
+    const candidates = await Item.findAll({
       where: {
-        yeuCauCanhGioi: {
-          [Op.between]: [minLvl, maxLvl]
-        },
-        loai: {
-          [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo']
-        }
+        yeuCauCanhGioi: { [Op.between]: [minLvl, maxLvl] },
+        loai: 'Nguyên liệu'
       }
     });
 
-    if (candidateItems.length > 0) {
-      return candidateItems[Math.floor(Math.random() * candidateItems.length)];
+    if (candidates.length > 0) {
+      return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
-    const fallbackItems = await Item.findAll({
+    // Fallback: any material
+    const fallback = await Item.findAll({ where: { loai: 'Nguyên liệu' } });
+    if (fallback.length > 0) return fallback[Math.floor(Math.random() * fallback.length)];
+    return null;
+  };
+
+  // Lấy trang bị Thần Thoại cảnh giới người chơi (10% drop)
+  const getThanThoaiEquipForPlayer = async (playerCapDo) => {
+    const realmInfo = config.layThongTinCanhGioi(playerCapDo);
+    const realmObj = config.CANH_GIOI_LIST.find(r => r.name === realmInfo.realmName) || config.CANH_GIOI_LIST[0];
+    const minLvl = realmObj.min_level;
+    const maxLvl = realmObj.max_level;
+
+    const candidates = await Item.findAll({
       where: {
-        loai: {
-          [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo']
-        }
+        yeuCauCanhGioi: { [Op.between]: [minLvl, maxLvl] },
+        loai: { [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'] }
       }
     });
-    return fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
+
+    if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
+    const fallback = await Item.findAll({
+      where: { loai: { [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'] } }
+    });
+    return fallback.length > 0 ? fallback[Math.floor(Math.random() * fallback.length)] : null;
+  };
+
+  // Chất lượng nguyên liệu rơi từ boss: Sử Thi (60%) hoặc Thần Thoại (40%)
+  const rollBossMaterialQuality = () => {
+    return Math.random() < 0.40 ? 'Thần Thoại' : 'Sử Thi';
   };
 
   const { TuSi } = await import('../models/TuSi.js');
@@ -157,27 +196,40 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
       const extraStones = boss.level * 10000;
       lhTuSi.linhThach = Math.min(2_000_000_000, lhTuSi.linhThach + extraStones);
 
-      const gift = await getGiftItemForPlayer(lhTuSi.capDo);
       let giftName = '';
-      if (gift) {
-        const isRed = Math.random() <= 0.10;
-        const normLoai = gift.loai ? gift.loai.normalize('NFC') : '';
-        const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);
-        let dongChiSoJson = null;
-        if (isEquipable) {
-          const stats = rollBossDropStats(gift, isRed);
-          dongChiSoJson = JSON.stringify(stats);
-        }
 
-        await Inventory.create({
-          idNguoiDung: lastHitterId,
-          itemId: gift.id,
-          soLuong: 1,
-          trangBi: false,
-          dongChiSoJson: dongChiSoJson
-        });
-        const rarityText = isRed ? 'Truyền Thuyết 🔴' : 'Tiên Phẩm 🟠';
-        giftName = ` & nhận **${gift.ten}** (${rarityText})`;
+      // Nguyên liệu Sử Thi/Thần Thoại cho người kích sát
+      const mat = await getMaterialForPlayer(lhTuSi.capDo);
+      if (mat) {
+        const matQ = rollBossMaterialQuality();
+        await Inventory.addVatPham(lhTuSi.idNguoiDung, mat.id, 3, { quality: matQ });
+        giftName += ` 💎 Nhận được: **${mat.ten}** [${matQ}] x3`;
+      }
+
+      // 10% rớt trang bị Thần Thoại
+      if (Math.random() < 0.10) {
+        const eqItem = await getThanThoaiEquipForPlayer(lhTuSi.capDo);
+        if (eqItem) {
+          const normLoai = eqItem.loai ? eqItem.loai.normalize('NFC') : '';
+          const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);
+          if (isEquipable) {
+            const stats = rollBossDropStats(eqItem);
+            // Đảm bảo có ít nhất 1 dòng Thần Thoại trong chỉ số phụ
+            if (stats && stats.length > 0) {
+              const hasThanThoai = stats.some(s => s.phamChat === 'Thần Thoại');
+              if (!hasThanThoai) {
+                const idx = Math.floor(Math.random() * stats.length);
+                stats[idx].phamChat = 'Thần Thoại';
+                stats[idx].mau = 'cam';
+                stats[idx].phanTram = parseFloat((15 + Math.random() * 5).toFixed(1));
+              }
+            }
+            // Trang bị cấp Kim Đan+ sẽ có quality Thần Thoại
+            const quality = eqItem.yeuCauCanhGioi >= 13 ? 'Thần Thoại' : undefined;
+            await Inventory.addVatPham(lhTuSi.idNguoiDung, eqItem.id, 1, { quality, dongChiSoOverride: stats });
+            giftName += ` 🟠 Nhận được: **${eqItem.ten}** [Thần Thoại]`;
+          }
+        }
       }
 
       await lhTuSi.save();
@@ -215,54 +267,61 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
     tuSi.linhLuc += gainedExp;
 
     let giftMsg = '';
-    // Top 1 được chắc chắn nhận 1 trang bị ngẫu nhiên của Cảnh Giới hiện tại của họ
-    // Các vị trí khác có tỉ lệ (Top 2: 50%, Top 3: 30%, khác: 5%)
-    let dropChance = 0.20;
-    if (index === 0) dropChance = 1.0;
-    else if (index === 1) dropChance = 0.50;
-    else if (index === 2) dropChance = 0.30;
 
-    // Tăng gấp đôi lượng trang bị nhận được (chạy 2 lần roll độc lập để nhận gấp đôi lượng đồ)
-    for (let dropIdx = 0; dropIdx < 2; dropIdx++) {
-      if (Math.random() <= dropChance) {
-        const gift = await getGiftItemForPlayer(tuSi.capDo);
-        if (gift) {
-          const isRed = Math.random() <= 0.10;
-          const normLoai = gift.loai ? gift.loai.normalize('NFC') : '';
-          const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);
-          let dongChiSoJson = null;
-          if (isEquipable) {
-            const stats = rollBossDropStats(gift, isRed);
-            dongChiSoJson = JSON.stringify(stats);
+    // Số lần roll nguyên liệu theo thứ hạng
+    let matRolls = 1;
+    if (index === 0) matRolls = 3;
+    else if (index === 1) matRolls = 2;
+    else if (index === 2) matRolls = 2;
+
+    for (let i = 0; i < matRolls; i++) {
+      const mat = await getMaterialForPlayer(tuSi.capDo);
+      if (mat) {
+        const matQ = rollBossMaterialQuality();
+        await Inventory.addVatPham(tuSi.idNguoiDung, mat.id, 1, { quality: matQ });
+        giftMsg += ` 💎 **${mat.ten}** [${matQ}]`;
+      }
+    }
+
+    // 10% rớt thêm trang bị cấp Thần Thoại (đảm bảo có ít nhất 1 dòng Thần Thoại)
+    if (Math.random() < 0.10) {
+      const eqItem = await getThanThoaiEquipForPlayer(tuSi.capDo);
+      if (eqItem) {
+        const normLoai = eqItem.loai ? eqItem.loai.normalize('NFC') : '';
+        const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);
+        if (isEquipable) {
+          const stats = rollBossDropStats(eqItem);
+          if (stats && stats.length > 0) {
+            const hasThanThoai = stats.some(s => s.phamChat === 'Thần Thoại');
+            if (!hasThanThoai) {
+              const idx = Math.floor(Math.random() * stats.length);
+              stats[idx].phamChat = 'Thần Thoại';
+              stats[idx].mau = 'cam';
+              stats[idx].phanTram = parseFloat((15 + Math.random() * 5).toFixed(1));
+            }
           }
-
-          await Inventory.create({
-            idNguoiDung: tuSi.idNguoiDung,
-            itemId: gift.id,
-            soLuong: 1,
-            trangBi: false,
-            dongChiSoJson: dongChiSoJson
-          });
-          const rarityText = isRed ? 'Truyền Thuyết 🔴' : 'Thần Thoại 🟠';
-          giftMsg += ` 🎁 Nhận được: **${gift.ten}** (${rarityText})`;
+          const quality = eqItem.yeuCauCanhGioi >= 13 ? 'Thần Thoại' : undefined;
+          await Inventory.addVatPham(tuSi.idNguoiDung, eqItem.id, 1, { quality, dongChiSoOverride: stats });
+          giftMsg += ` 🟠 **${eqItem.ten}** [Thần Thoại]`;
         }
       }
     }
 
     if (Math.random() <= 0.01) {
       await Inventory.addVatPham(tuSi.idNguoiDung, 'trung_linh_thu_than', 1);
-      giftMsg += ` 🥚 Nhận được: **Trứng Linh Thú (Thần) 🥚** *(May Mắn)*`;
+      giftMsg += ` 🥚 **Trứng Linh Thú (Thần)** *(May Mắn)*`;
     }
 
     await tuSi.save();
 
     const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🔹';
     report += `${rankEmoji} **Top ${index + 1}**: <@${entry.id}> gây \`${entry.dmg.toLocaleString()}\` sát thương.\n`;
-    report += `   → Nhận \`+${gainedStones.toLocaleString()}\` 🪙 Linh thạch, \`+${gainedExp.toLocaleString()}\` ⚡ Linh lực.${giftMsg}\n\n`;
+    report += `   → Nhận \`+${gainedStones.toLocaleString()}\` 🪙 Linh thạch, \`+${gainedExp.toLocaleString()}\` ⚡ Linh lực.${giftMsg ? '\n   → ' + giftMsg.trim() : ''}\n\n`;
   }
 
   return report.trim();
 }
+
 
 // Helper: Xây dựng Embed trạng thái boss hiện tại
 function buildBossEmbed(boss) {
@@ -777,7 +836,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       }
 
       for (const eq of dharmaTreasures) {
-        const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId);
+        const activeSkill = config.layKyNangPhapBaoActive(eq.item || eq.itemId, stats);
         if (activeSkill) {
           if (activeSkill.loai === 'tan_cong') {
             monsterHp = Math.max(0, monsterHp - activeSkill.triGia);
@@ -788,6 +847,11 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             playerHp = Math.min(stats.max_hp, playerHp + healAmt);
             pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Hồi phục \`+${healAmt}\` HP (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
           } else if (activeSkill.loai === 'tang_cong_pct') {
+            if (activeSkill.ten.includes("Cuồng Hóa Chiến Ý")) {
+              const hpSacrifice = Math.floor(playerHp * 0.10);
+              playerHp = Math.max(1, playerHp - hpSacrifice);
+              pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Tiêu hao \`-${hpSacrifice}\` HP.`);
+            }
             playerAtkMult += activeSkill.triGia / 100;
             pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gia tăng \`+${activeSkill.triGia}%\` Công kích.`);
           } else if (activeSkill.loai === 'khien') {
