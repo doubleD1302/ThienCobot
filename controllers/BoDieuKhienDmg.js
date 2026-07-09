@@ -251,7 +251,7 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
               let lkDmgMult = 0.50;
               for (let i = 1; i <= tienHoa; i++) {
                 if (lkDmgMult < 1.0) {
-                  lkDmgMult = lkDmgMult * 1.10;
+                  lkDmgMult = lkDmgMult * 1.05;
                   if (lkDmgMult > 1.0) lkDmgMult = 1.0;
                 }
               }

@@ -348,13 +348,13 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           const nextLvlExp = pet.level * 100;
           const totalEvolves = config.getPetTotalEvolves(pet);
 
-          const hoTheMult = Math.pow(1.1, totalEvolves);
+          const hoTheMult = Math.pow(1.05, totalEvolves);
           const hoTheBonusPct = ((hoTheMult - 1) * 100).toFixed(1);
           let evoTxt = ` (+${hoTheBonusPct}% Hộ Thể)`;
 
           const isThan = template && template.group === 'than_thu';
           if (isThan) {
-            const skillMult = Math.pow(1.1, totalEvolves);
+            const skillMult = Math.pow(1.05, totalEvolves);
             const skillBonusPct = ((skillMult - 1) * 100).toFixed(1);
             evoTxt = ` (+${hoTheBonusPct}% Hộ Thể & +${skillBonusPct}% Kỹ Năng)`;
           }

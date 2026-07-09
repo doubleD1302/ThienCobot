@@ -166,6 +166,9 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let monsterHp = monster.hp;
         let playerHp = tuSi.hp;
         let playerShield = 0;
+        const originalMaxHp = stats.max_hp;
+        const petTemplate = activePet ? config.PET_TEMPLATES[activePet.type] : null;
+        const isHuyenVuActive = petTemplate && petTemplate.species === 'huyen_vu';
         const battleLogs = [];
         let isWin = false;
         let round = 1;
@@ -230,7 +233,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           const template = config.PET_TEMPLATES[activePet.type];
           if (template && template.group === 'than_thu') {
             const totalEvolves = config.getPetTotalEvolves(activePet);
-            const evoMult = Math.pow(1.1, totalEvolves);
+            const evoMult = Math.pow(1.05, totalEvolves);
 
             if (template.species === 'to_long') {
               const dmg = Math.floor(stats.phap_cong * 1.2 * evoMult);
@@ -328,6 +331,14 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             phoenixRegenRounds--;
           }
 
+          if (isHuyenVuActive) {
+            const healAmt = Math.floor(stats.max_hp * 0.05);
+            playerHp = Math.min(stats.max_hp, playerHp + healAmt);
+            const maxHpBuff = Math.floor(originalMaxHp * 0.05);
+            stats.max_hp += maxHpBuff;
+            battleLogs.push(`🐢 **Huyền Vũ Hồi Phục**: Hồi phục \`+${healAmt.toLocaleString()}\` HP và gia tăng giới hạn HP tối đa thêm \`+${maxHpBuff.toLocaleString()}\` (HP hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+          }
+
           // Sát thương độc lực của Huyền Vũ (đầu lượt)
           if (bossPoisonRounds > 0 && bossPoisonStacks > 0) {
             const poisonDmgTotal = bossPoisonDmgPerStack * bossPoisonStacks;
@@ -351,6 +362,10 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           }
           if (toLongBuffActive) {
             roundAtkMult += 0.10;
+          }
+          if (isHuyenVuActive) {
+            const huyenVuBuff = playerActionCount * 0.02;
+            roundAtkMult += huyenVuBuff;
           }
           const currentRoundPlayerAtk = Math.floor(playerAtk * roundAtkMult);
 
@@ -433,7 +448,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             const template = config.PET_TEMPLATES[activePet.type];
             if (template && template.group === 'than_thu') {
               const totalEvolves = config.getPetTotalEvolves(activePet);
-              const evoMult = Math.pow(1.1, totalEvolves);
+              const evoMult = Math.pow(1.05, totalEvolves);
 
               if (template.species === 'ky_lan') {
                 const pct = Math.min(0.30, 0.25 + (activePet.tienHoa || 0) * 0.005);

@@ -1138,12 +1138,19 @@ async function _simCombat(tuSiA, tuSiB) {
   let phoenixTriggeredB = false;
   let phoenixRegenRoundsB = 0;
 
+  const originalMaxHpA = statsA.max_hp;
+  const originalMaxHpB = statsB.max_hp;
+  const petTemplateA = petA ? config.PET_TEMPLATES[petA.type] : null;
+  const petTemplateB = petB ? config.PET_TEMPLATES[petB.type] : null;
+  const isHuyenVuActiveA = petTemplateA && petTemplateA.species === 'huyen_vu';
+  const isHuyenVuActiveB = petTemplateB && petTemplateB.species === 'huyen_vu';
+
   // Kích hoạt Thần thú A khi vào trận
   if (petA && hpB > 0) {
     const template = config.PET_TEMPLATES[petA.type];
     if (template && template.group === 'than_thu') {
       const totalEvolves = config.getPetTotalEvolves(petA);
-      const evoMult = Math.pow(1.1, totalEvolves);
+      const evoMult = Math.pow(1.05, totalEvolves);
 
       if (template.species === 'to_long') {
         const dmg = Math.floor(statsA.phap_cong * 1.2 * evoMult);
@@ -1202,7 +1209,7 @@ async function _simCombat(tuSiA, tuSiB) {
     const template = config.PET_TEMPLATES[petB.type];
     if (template && template.group === 'than_thu') {
       const totalEvolves = config.getPetTotalEvolves(petB);
-      const evoMult = Math.pow(1.1, totalEvolves);
+      const evoMult = Math.pow(1.05, totalEvolves);
 
       if (template.species === 'to_long') {
         const dmg = Math.floor(statsB.phap_cong * 1.2 * evoMult);
@@ -1300,6 +1307,14 @@ async function _simCombat(tuSiA, tuSiB) {
         phoenixRegenRoundsA--;
       }
 
+      if (isHuyenVuActiveA) {
+        const healAmt = Math.floor(statsA.max_hp * 0.05);
+        hpA = Math.min(statsA.max_hp, hpA + healAmt);
+        const maxHpBuff = Math.floor(originalMaxHpA * 0.05);
+        statsA.max_hp += maxHpBuff;
+        battleLogs.push(`🐢 **Huyền Vũ Hồi Phục**: **${tuSiA.ten}** hồi phục \`+${healAmt.toLocaleString()}\` HP và gia tăng giới hạn HP tối đa thêm \`+${maxHpBuff.toLocaleString()}\` (HP hiện tại: \`${hpA}/${statsA.max_hp}\`).`);
+      }
+
       // Độc lực của Huyền Vũ tác dụng lên A (nếu B xài Huyền Vũ)
       if (poisonRoundsA > 0 && poisonStacksA > 0) {
         const poisonDmg = poisonDmgPerStackA * poisonStacksA;
@@ -1325,6 +1340,10 @@ async function _simCombat(tuSiA, tuSiB) {
           }
         }
         if (toLongBuffActiveA) roundAtkAMult += 0.10;
+        if (isHuyenVuActiveA) {
+          const huyenVuBuffA = actionCountA * 0.02;
+          roundAtkAMult += huyenVuBuffA;
+        }
         let currentRoundAtkA = Math.floor(atkA * roundAtkAMult);
 
         // Suy yếu của B giảm công của A
@@ -1413,7 +1432,7 @@ async function _simCombat(tuSiA, tuSiB) {
           const template = config.PET_TEMPLATES[petA.type];
           if (template && template.group === 'than_thu') {
             const totalEvolves = config.getPetTotalEvolves(petA);
-            const evoMult = Math.pow(1.1, totalEvolves);
+            const evoMult = Math.pow(1.05, totalEvolves);
 
             if (template.species === 'ky_lan') {
               const pct = Math.min(0.30, 0.25 + (petA.tienHoa || 0) * 0.005);
@@ -1537,6 +1556,14 @@ async function _simCombat(tuSiA, tuSiB) {
         phoenixRegenRoundsB--;
       }
 
+      if (isHuyenVuActiveB) {
+        const healAmt = Math.floor(statsB.max_hp * 0.05);
+        hpB = Math.min(statsB.max_hp, hpB + healAmt);
+        const maxHpBuff = Math.floor(originalMaxHpB * 0.05);
+        statsB.max_hp += maxHpBuff;
+        battleLogs.push(`🐢 **Huyền Vũ Hồi Phục**: **${tuSiB.ten}** hồi phục \`+${healAmt.toLocaleString()}\` HP và gia tăng giới hạn HP tối đa thêm \`+${maxHpBuff.toLocaleString()}\` (HP hiện tại: \`${hpB}/${statsB.max_hp}\`).`);
+      }
+
       // Độc lực của Huyền Vũ tác dụng lên B (nếu A xài Huyền Vũ)
       if (poisonRoundsB > 0 && poisonStacksB > 0) {
         const poisonDmg = poisonDmgPerStackB * poisonStacksB;
@@ -1562,6 +1589,10 @@ async function _simCombat(tuSiA, tuSiB) {
           }
         }
         if (toLongBuffActiveB) roundAtkBMult += 0.10;
+        if (isHuyenVuActiveB) {
+          const huyenVuBuffB = actionCountB * 0.02;
+          roundAtkBMult += huyenVuBuffB;
+        }
         let currentRoundAtkB = Math.floor(atkB * roundAtkBMult);
 
         // Suy yếu của A giảm công của B
@@ -1650,7 +1681,7 @@ async function _simCombat(tuSiA, tuSiB) {
           const template = config.PET_TEMPLATES[petB.type];
           if (template && template.group === 'than_thu') {
             const totalEvolves = config.getPetTotalEvolves(petB);
-            const evoMult = Math.pow(1.1, totalEvolves);
+            const evoMult = Math.pow(1.05, totalEvolves);
 
             if (template.species === 'ky_lan') {
               const pct = Math.min(0.30, 0.25 + (petB.tienHoa || 0) * 0.005);

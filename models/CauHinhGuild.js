@@ -46,6 +46,12 @@ CauHinhGuild.init({
     type: DataTypes.DATE,
     allowNull: true,
     field: 'boss_last_spawn_at'
+  },
+  bossRewardsEnabled: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+    field: 'boss_rewards_enabled'
   }
 }, {
   sequelize,

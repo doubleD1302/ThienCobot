@@ -520,6 +520,14 @@ async function start() {
           allowNull: true
         });
       }
+      if (!guildSettingsDesc.boss_rewards_enabled) {
+        console.log('Thêm cột boss_rewards_enabled vào bảng guild_settings...');
+        await queryInterface.addColumn('guild_settings', 'boss_rewards_enabled', {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: true
+        });
+      }
 
       // Dọn dẹp cấu hình guild lỗi (nếu có)
       const { CauHinhGuild } = await import('./models/CauHinhGuild.js');

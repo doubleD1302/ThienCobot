@@ -198,7 +198,7 @@ class TuSi extends Model {
         const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
         const scalePct = 1.0 + (scale - 1.0) * 0.01;
         const totalEvolves = config.getPetTotalEvolves(activePet);
-        const evoMult = Math.pow(1.1, totalEvolves);
+        const evoMult = Math.pow(1.05, totalEvolves);
         const isThan = template.group === 'than_thu';
         const groupMult = isThan ? 1.5 : 1.0;
 
@@ -208,7 +208,7 @@ class TuSi extends Model {
           let lkDmgMult = 0.50;
           for (let i = 1; i <= tienHoa; i++) {
             if (lkDmgMult < 1.0) {
-              lkDmgMult = lkDmgMult * 1.10;
+              lkDmgMult = lkDmgMult * 1.05;
               if (lkDmgMult > 1.0) lkDmgMult = 1.0;
             } else {
               extraEvoStatsBuff += 0.05;
@@ -336,7 +336,7 @@ class TuSi extends Model {
           const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
           const scalePct = 1.0 + (scale - 1.0) * 0.01;
           const totalEvolves = config.getPetTotalEvolves(activePet);
-          const evoMult = Math.pow(1.1, totalEvolves);
+          const evoMult = Math.pow(1.05, totalEvolves);
           const groupMult = template.group === 'than_thu' ? 1.5 : 1.0;
           mult *= (1.0 + tuTocVal * scalePct * evoMult * groupMult);
         }

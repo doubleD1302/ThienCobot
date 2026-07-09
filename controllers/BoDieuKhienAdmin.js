@@ -533,23 +533,29 @@ class BoDieuKhienAdmin {
 
           const spawnTypeDisplay = guildConfig.bossSpawnType === 'chu_ky' ? 'Chu kỳ (phút)' : 'Mốc giờ cố định';
           const spawnValDisplay = guildConfig.bossSpawnType === 'chu_ky' ? `Mỗi ${guildConfig.bossSpawnValue} phút` : guildConfig.bossSpawnValue;
+          const rewardsDisplay = guildConfig.bossRewardsEnabled !== false ? '🟢 ĐANG BẬT' : '🔴 ĐANG TẮT';
 
           embed.setTitle(`👹 Cài Đặt Triệu Hồi Cự Thú 👹`)
             .setColor(0xe74c3c);
           let desc = `*Cấu hình tần suất hoặc thời gian tự động xuất hiện của Boss thế giới tại Server này.*\n\n` +
                      `• **Kiểu triệu hồi**: \`${spawnTypeDisplay}\`\n` +
                      `• **Giá trị cấu hình**: \`${spawnValDisplay}\`\n` +
-                     `• **Lần triệu hồi cuối**: \`${lastSpawnStr}\`\n\n`;
+                     `• **Lần triệu hồi cuối**: \`${lastSpawnStr}\`\n` +
+                     `• **Phần thưởng Boss**: \`${rewardsDisplay}\`\n\n`;
 
           if (statusMessage) {
             desc = `🔔 **Thiên Đạo Báo**: ${statusMessage}\n\n` + desc;
           }
           embed.setDescription(desc);
 
+          const rewardsBtnLabel = guildConfig.bossRewardsEnabled !== false ? '🎁 Quà Boss: BẬT' : '🎁 Quà Boss: TẮT';
+          const rewardsBtnStyle = guildConfig.bossRewardsEnabled !== false ? ButtonStyle.Success : ButtonStyle.Danger;
+
           const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('edit_boss_set_cycle').setLabel('⏳ Cài Đặt Chu Kỳ').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('edit_boss_set_hours').setLabel('⏰ Cài Đặt Mốc Giờ').setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId('edit_boss_spawn_now').setLabel('👹 Triệu Hồi Ngay').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId('edit_boss_set_cycle').setLabel('⏳ Chu Kỳ').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_boss_set_hours').setLabel('⏰ Mốc Giờ').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('edit_boss_toggle_rewards').setLabel(rewardsBtnLabel).setStyle(rewardsBtnStyle),
+            new ButtonBuilder().setCustomId('edit_boss_spawn_now').setLabel('👹 Gọi Boss').setStyle(ButtonStyle.Danger),
             new ButtonBuilder().setCustomId('edit_boss_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
           );
           rows.push(row);
@@ -1088,6 +1094,20 @@ class BoDieuKhienAdmin {
         } else if (customId === 'edit_btn_boss') {
           currentMenu = 'BOSS_SETTINGS';
           statusMessage = null;
+        } else if (customId === 'edit_boss_toggle_rewards') {
+          try {
+            const { CauHinhGuild } = await import('../models/CauHinhGuild.js');
+            let guildConfig = await CauHinhGuild.findByPk(interaction.guildId);
+            if (!guildConfig) {
+              guildConfig = await CauHinhGuild.create({ idGuild: interaction.guildId });
+            }
+            guildConfig.bossRewardsEnabled = guildConfig.bossRewardsEnabled === false;
+            await guildConfig.save();
+            statusMessage = `✅ Đã ${guildConfig.bossRewardsEnabled ? 'BẬT' : 'TẮT'} phần thưởng Cự Thú thế giới cho Server này!`;
+          } catch (err) {
+            console.error('[Admin Edit] Lỗi toggle boss rewards:', err);
+            statusMessage = `❌ Lỗi khi thay đổi cấu hình phần thưởng Boss.`;
+          }
         } else if (customId === 'edit_boss_spawn_now') {
           try {
             const { boDieuKhienBoss } = await import('./BoDieuKhienBoss.js');

@@ -2413,9 +2413,9 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const stats = tuSi.layChiSo([], pet);
     // Tho Linh Can: +10% max HP -> 220 HP.
     // Than Vien base protect: +15% HP, scale = (level 1 * tuChat 100)/100 = 1.0.
-    // evoMult = Math.pow(1.1, 1) = 1.10.
-    // Total HP should be (220 + 33) * 10 / 3 = 843.
-    assert.strictEqual(stats.max_hp, 843);
+    // evoMult = Math.pow(1.05, 1) = 1.05.
+    // Total HP should be (220 + 31.5) * 10 / 3 = 838.
+    assert.strictEqual(stats.max_hp, 838);
 
     // Clean up
     await pet.destroy();
@@ -4360,6 +4360,107 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       await p.destroy();
     }
     await tuSi.destroy();
+  });
+
+  test('World Boss 20x HP and 2x DMG verification', async () => {
+    const { WorldBoss } = await import('./models/WorldBoss.js');
+    const { boDieuKhienBoss } = await import('./controllers/BoDieuKhienBoss.js');
+    
+    // Clear old bosses
+    await WorldBoss.destroy({ where: { idGuild: '112233445566' } });
+    
+    // Mock client / guild objects
+    const mockClient = {
+      channels: {
+        fetch: async () => ({
+          send: async () => ({})
+        })
+      }
+    };
+    const mockGuild = {
+      channels: {
+        cache: {
+          find: () => ({ id: '778899', send: async () => ({}) })
+        }
+      },
+      members: {
+        me: {
+          permissionsIn: () => ({ has: () => true })
+        }
+      }
+    };
+
+    // Trigger summon
+    await boDieuKhienBoss.trieuHoiWorldBossTuDong(mockClient, '112233445566', mockGuild);
+    
+    const boss = await WorldBoss.findOne({ where: { idGuild: '112233445566', active: true } });
+    assert.ok(boss);
+    
+    // Verify level 1 base HP = Math.ceil((1 * 50000 + 50000)/1000)*5*100*3*20 = 100 * 5 * 100 * 3 * 20 = 3,000,000 HP
+    assert.strictEqual(boss.maxHp, 3000000);
+    // Verify level 1 base DMG = Math.ceil((1 * 300 + 100)/1000)*10*100*2*2 = 1 * 10 * 100 * 2 * 2 = 4000 DMG
+    assert.strictEqual(boss.vatCong, 4000);
+    assert.strictEqual(boss.phapCong, 4000);
+    
+    await boss.destroy();
+  });
+
+  test('Boss rewards toggle enabled/disabled verification', async () => {
+    const { phanBoPhanThuongBoss } = await import('./controllers/BoDieuKhienBoss.js');
+    const { CauHinhGuild } = await import('./models/CauHinhGuild.js');
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    
+    const idNguoiDung = '999111222';
+    await TuSi.destroy({ where: { idNguoiDung } });
+    const tuSi = await TuSi.create({
+      idNguoiDung,
+      ten: 'ToggleTester',
+      gioiTinh: 'Nam',
+      huongTu: 'Phap Tu',
+      linhCan: 'Kim Linh Căn',
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100,
+      vnd: 0
+    });
+    
+    const mockBoss = {
+      idGuild: '1234567890',
+      level: 1,
+      ten: 'Thạch Cự Nhân',
+      maxHp: 10000,
+      damageDealers: {
+        '999111222': 5000
+      }
+    };
+    
+    // 1. Rewards disabled
+    const guildConfig = await CauHinhGuild.create({
+      idGuild: '1234567890',
+      bossRewardsEnabled: false
+    });
+    
+    await Inventory.destroy({ where: { idNguoiDung } });
+    const resMsgDisable = await phanBoPhanThuongBoss(null, mockBoss, null, idNguoiDung);
+    assert.ok(resMsgDisable.includes('đã bị Admin tắt'));
+    
+    const dropsDisable = await Inventory.findAll({ where: { idNguoiDung } });
+    assert.strictEqual(dropsDisable.length, 0);
+    
+    // 2. Rewards enabled
+    guildConfig.bossRewardsEnabled = true;
+    await guildConfig.save();
+    
+    const resMsgEnable = await phanBoPhanThuongBoss(null, mockBoss, null, idNguoiDung);
+    assert.ok(resMsgEnable.includes('Bảng Vàng'));
+    
+    const dropsEnable = await Inventory.findAll({ where: { idNguoiDung } });
+    assert.ok(dropsEnable.length >= 1);
+    
+    await guildConfig.destroy();
+    await tuSi.destroy();
+    await Inventory.destroy({ where: { idNguoiDung } });
   });
 
 });

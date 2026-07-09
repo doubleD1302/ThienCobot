@@ -102,6 +102,12 @@ function rollBossDropStats(item, isRed) {
 
 // Helper: Phân bổ phần thưởng khi boss bị tiêu diệt
 async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
+  const { CauHinhGuild } = await import('../models/CauHinhGuild.js');
+  const guildConfig = await CauHinhGuild.findByPk(boss.idGuild);
+  if (guildConfig && guildConfig.bossRewardsEnabled === false) {
+    return '❌ **Thiên Đạo Thông Báo**: Phần thưởng Cự Thú tại Server này đã bị Admin tắt, không phân bổ phần thưởng lần này.';
+  }
+
   const dealers = boss.damageDealers;
   const ids = Object.keys(dealers);
   if (ids.length === 0) return 'Không có tu sĩ nào tham gia khiêu chiến.';
@@ -449,9 +455,9 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       // Chọn ngẫu nhiên một loài Boss
       const tpl = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
 
-      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 5 * 100 * 3;
-      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2;
-      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2;
+      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 5 * 100 * 3 * 20;
+      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2 * 2;
+      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2 * 2;
       const vatPhong = bossLevel * 100 + 50;
       const phapPhong = bossLevel * 100 + 50;
       const giap = bossLevel * 10 + 20;
@@ -682,6 +688,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       let round = 1;
       let totalDmgDealt = 0;
       const battleLogs = [];
+      const petPrepLogs = [];
       let phoenixTriggered = false;
       let phoenixRegenRounds = 0;
       let petSkillCooldownLeft = 0;
@@ -711,7 +718,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         const template = config.PET_TEMPLATES[activePet.type];
         if (template && template.group === 'than_thu') {
           const totalEvolves = config.getPetTotalEvolves(activePet);
-          const evoMult = Math.pow(1.1, totalEvolves);
+          const evoMult = Math.pow(1.05, totalEvolves);
 
           if (template.species === 'to_long') {
             const dmg = Math.floor(stats.phap_cong * 1.2 * evoMult);
@@ -721,7 +728,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             playerLifestealRounds = (activePet.tienHoa >= 6) ? 3 : 2;
             bossStunnedRounds = 2;
             petSkillCooldownLeft = 5;
-            battleLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Phước lành chân long 🐉**, gây \`${dmg.toLocaleString()}\` sát thương pháp thuật lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Khiến yêu thú bị **Choáng trong 2 lượt** và tăng **50% hút máu** cho tu sĩ trong \`${playerLifestealRounds}\` lượt!`);
+            petPrepLogs.push(`🐉 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Phước lành chân long 🐉**, gây \`${dmg.toLocaleString()}\` sát thương pháp thuật lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Khiến yêu thú bị **Choáng trong 2 lượt** và tăng **50% hút máu** cho tu sĩ trong \`${playerLifestealRounds}\` lượt!`);
           } else if (template.species === 'huyen_vu') {
             const shieldAmt = Math.floor(stats.max_hp * 0.25 * evoMult);
             playerShield = (playerShield || 0) + shieldAmt;
@@ -736,7 +743,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             const poisonDmgInitial = bossPoisonDmgPerStack * bossPoisonStacks;
             petSkillCooldownLeft = 5;
 
-            battleLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh, đồng thời phun chất độc gây \`${poisonDmgInitial.toLocaleString()}\` sát thương độc lực đầu mỗi lượt (kéo dài 3 hiệp, cộng dồn tối đa 3 lần). Khi kẻ địch bạo kích, tu sĩ giảm \`${Math.floor(critDmgRedPct * 100)}%\` sát thương gánh chịu và phản lại 25% sát thương gánh chịu!`);
+            petPrepLogs.push(`🐢 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Cự Thần Hồng Hoang 🐢**, tạo lớp lá chắn kiên cố \`${shieldAmt.toLocaleString()}\` HP hộ mệnh, đồng thời phun chất độc gây \`${poisonDmgInitial.toLocaleString()}\` sát thương độc lực đầu mỗi lượt (kéo dài 3 hiệp, cộng dồn tối đa 3 lần). Khi kẻ địch bạo kích, tu sĩ giảm \`${Math.floor(critDmgRedPct * 100)}%\` sát thương gánh chịu và phản lại 25% sát thương gánh chịu!`);
           } else if (template.species === 'bach_ho') {
             const dmg = Math.floor(stats.vat_cong * 1.2 * evoMult);
             monsterHp = Math.max(0, monsterHp - dmg);
@@ -747,7 +754,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             bossWeakenPct = Math.min(0.50, 0.20 + (activePet.tienHoa || 0) * 0.03);
             playerImmuneRounds = 2;
             petSkillCooldownLeft = 5;
-            battleLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${dmg.toLocaleString()}\` sát thương vật lý lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Khiến Boss bị **Suy yếu giảm ${Math.floor(bossWeakenPct * 100)}% song công** trong 2 lượt, tu sĩ giải trừ và kháng toàn bộ hiệu ứng bất lợi trong 2 lượt!`);
+            petPrepLogs.push(`🐅 **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Bạch Hổ Sát Chiêu 🐅**, trảo kích gây \`${dmg.toLocaleString()}\` sát thương vật lý lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`). Khiến Boss bị **Suy yếu giảm ${Math.floor(bossWeakenPct * 100)}% song công** trong 2 lượt, tu sĩ giải trừ và kháng toàn bộ hiệu ứng bất lợi trong 2 lượt!`);
           } else if (template.species === 'phuong_hoang') {
             const baseDmg = (stats.vat_cong + stats.phap_cong) * evoMult;
             const addHits = Math.floor(stats.crit_dmg / 0.8);
@@ -762,7 +769,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             monsterHp = Math.max(0, monsterHp - totalPetDmg);
             totalDmgDealt += totalPetDmg;
             petSkillCooldownLeft = 5;
-            battleLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+            petPrepLogs.push(`<:phung:1522635618377662484> **Thần Thú Kích Hoạt**: **${activePet.name}** thi triển **Hỏa Phượng Liệt Diễm**, liên hoàn oanh kích **${totalHits} lần** (sát thương song công tăng tiến 20% mỗi lần), gây tổng cộng \`${totalPetDmg.toLocaleString()}\` sát thương lên **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
           } else if (template.species === 'ky_lan') {
             petSkillCooldownLeft = 0;
           }
@@ -916,7 +923,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               let lkDmgMult = 0.50;
               for (let i = 1; i <= tienHoa; i++) {
                 if (lkDmgMult < 1.0) {
-                  lkDmgMult = lkDmgMult * 1.10;
+                  lkDmgMult = lkDmgMult * 1.05;
                   if (lkDmgMult > 1.0) lkDmgMult = 1.0;
                 }
               }
@@ -950,7 +957,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             const template = config.PET_TEMPLATES[activePet.type];
             if (template && template.group === 'than_thu') {
               const totalEvolves = config.getPetTotalEvolves(activePet);
-              const evoMult = Math.pow(1.1, totalEvolves);
+              const evoMult = Math.pow(1.05, totalEvolves);
 
               if (template.species === 'ky_lan') {
                 const pct = Math.min(0.30, 0.25 + (activePet.tienHoa || 0) * 0.005);
@@ -1192,6 +1199,9 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       const logs = [];
       if (pbLogs.length > 0) {
         logs.push(pbLogs.join('\n'));
+      }
+      if (petPrepLogs.length > 0) {
+        logs.push(petPrepLogs.join('\n'));
       }
 
       // Giới hạn hiển thị 10 hiệp cuối cùng nếu battleLogs quá dài để tránh vượt quá giới hạn ký tự Discord

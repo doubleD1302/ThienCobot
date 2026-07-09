@@ -330,6 +330,10 @@ async function autoDiBiCanh(tuSi) {
       if (!check.allowed) activePet = null;
     }
 
+    const originalMaxHp = stats.max_hp;
+    const petTemplate = activePet ? config.PET_TEMPLATES[activePet.type] : null;
+    const isHuyenVuActive = petTemplate && petTemplate.species === 'huyen_vu';
+
     const activeTreasures = equippedItems.filter(x => x.item.loai === 'Cổ Bảo Chủ Động');
     const dharmaTreasures = equippedItems.filter(x => x.item.loai === 'Pháp Bảo');
 
@@ -372,7 +376,7 @@ async function autoDiBiCanh(tuSi) {
       const template = config.PET_TEMPLATES[activePet.type];
       if (template && template.group === 'than_thu') {
         const totalEvolves = config.getPetTotalEvolves(activePet);
-        const evoMult = Math.pow(1.1, totalEvolves);
+        const evoMult = Math.pow(1.05, totalEvolves);
 
         if (template.species === 'to_long') {
           const dmg = Math.floor(stats.phap_cong * 1.2 * evoMult);
@@ -465,6 +469,14 @@ async function autoDiBiCanh(tuSi) {
             phoenixRegenRounds--;
           }
 
+          if (isHuyenVuActive) {
+            const healAmt = Math.floor(stats.max_hp * 0.05);
+            playerHp = Math.min(stats.max_hp, playerHp + healAmt);
+            const maxHpBuff = Math.floor(originalMaxHp * 0.05);
+            stats.max_hp += maxHpBuff;
+            battleLogs.push(`🐢 **Huyền Vũ Hồi Phục**: Hồi phục \`+${healAmt.toLocaleString()}\` HP và gia tăng giới hạn HP tối đa thêm \`+${maxHpBuff.toLocaleString()}\` (HP hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+          }
+
           // Sát thương độc lực của Huyền Vũ (đầu lượt)
           if (bossPoisonRounds > 0 && bossPoisonStacks > 0) {
             const poisonDmgTotal = bossPoisonDmgPerStack * bossPoisonStacks;
@@ -488,6 +500,10 @@ async function autoDiBiCanh(tuSi) {
           }
           if (toLongBuffActive) {
             roundAtkMult += 0.10;
+          }
+          if (isHuyenVuActive) {
+            const huyenVuBuff = playerActionCount * 0.02;
+            roundAtkMult += huyenVuBuff;
           }
           const currentRoundPlayerAtk = Math.floor(playerAtk * roundAtkMult);
 
@@ -570,7 +586,7 @@ async function autoDiBiCanh(tuSi) {
             const template = config.PET_TEMPLATES[activePet.type];
             if (template && template.group === 'than_thu') {
               const totalEvolves = config.getPetTotalEvolves(activePet);
-              const evoMult = Math.pow(1.1, totalEvolves);
+              const evoMult = Math.pow(1.05, totalEvolves);
 
               if (template.species === 'ky_lan') {
                 const pct = Math.min(0.30, 0.25 + (activePet.tienHoa || 0) * 0.005);
