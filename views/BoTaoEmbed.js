@@ -225,20 +225,26 @@ export class BoTaoEmbed {
     // Thuộc tính linh căn sở hữu
     const elements = tuSi.linhCanList || [];
     const descList = [];
+    // Tạo chuỗi tên linh căn với emoji
+    const linhCanDisplay = elements.map(el => {
+      const info = config.NGUON_LINH_CAN[el];
+      return info ? `${info.emoji || ''} **${info.name}**` : '';
+    }).filter(Boolean).join(' / ') || `**${tuSi.linhCan}**`;
+
     for (const el of elements) {
       const elInfo = config.NGUON_LINH_CAN[el];
       if (elInfo) {
-        descList.push(`• ${elInfo.emoji || ''} **${elInfo.name}**: ${elInfo.desc}`);
+        descList.push(`${elInfo.emoji || ''} ${elInfo.desc}`);
       }
     }
-    const elementsDesc = descList.length > 0 ? descList.join('\n') : "• Không có linh căn thụ động.";
+    const elementsDesc = descList.length > 0 ? descList.join('\n') : '• Không có linh căn thụ động.';
 
-    const pathInfo = config.HUONG_DI[tuSi.huongTu] || { name: "Chưa rõ", desc: "" };
+    const pathInfo = config.HUONG_DI[tuSi.huongTu] || { name: 'Chưa rõ', desc: '' };
     const absorptionCoef = tuSi.layHeSoTuLuyen() * (1 + lvDongPhu);
     embed.addFields(
       {
-        name: "🌱 Linh Căn Bản Mệnh",
-        value: `**${tuSi.linhCan}**\n${elementsDesc}`,
+        name: '🌱 Linh Căn Bản Mệnh',
+        value: `${linhCanDisplay}\n${elementsDesc}`,
         inline: false
       }
     );

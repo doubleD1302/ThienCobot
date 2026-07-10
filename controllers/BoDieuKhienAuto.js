@@ -1286,15 +1286,6 @@ async function autoDiBiCanh(tuSi) {
     tuSi.theLuc = Math.max(0, tuSi.theLuc - 1);
     await tuSi.save();
 
-    if (droppedItem && (droppedItem.doHiem === 'Hiếm' || droppedItem.doHiem === 'Cực hiếm' || droppedItem.doHiem === 'Huyền thoại')) {
-      try {
-        await ThienDaoLuc.ghiLuc(
-          `🎁 **Cơ Duyên Xảo Hợp [AUTO]**: Đạo hữu **${tuSi.ten}** tự động thám hiểm **${dungeon.ten}** may mắn nhặt được bảo vật **${droppedItem.ten}** (\`${droppedItem.doHiem}\`)!`,
-          'Drop'
-        );
-      } catch (err) {}
-    }
-
     // Set cooldown
     const expiresAt = new Date(Date.now() + 30 * 1000);
     await controller.datThoiGianCho(tuSi.idNguoiDung, 'dungeon', expiresAt);
@@ -1345,12 +1336,6 @@ async function autoDiLichLuyen(tuSi) {
       const itemDropped = eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
       if (itemDropped) {
         itemsMap[itemDropped.id] = (itemsMap[itemDropped.id] || 0) + 1;
-        if (effects.thienDaoLuc && effects.thienDaoLucMsg) {
-          const formattedMsg = effects.thienDaoLucMsg
-            .replace('{name}', `**${tuSi.ten}**`)
-            .replace('{itemName}', `**${itemDropped.ten}**`);
-          await ThienDaoLuc.ghiLuc(formattedMsg, 'Explore');
-        }
       }
     }
     if (effects.itemRandom) {
@@ -1398,11 +1383,6 @@ async function autoDiLichLuyen(tuSi) {
       if (itemDetail) {
         itemsMap[targetId] = (itemsMap[targetId] || 0) + 1;
       }
-    }
-
-    if (effects.thienDaoLuc && effects.thienDaoLucMsg && !effects.itemRandomEligible) {
-      const formattedMsg = effects.thienDaoLucMsg.replace('{name}', `**${tuSi.ten}**`);
-      await ThienDaoLuc.ghiLuc(formattedMsg, 'Explore');
     }
 
     statsObj.items = itemsMap;

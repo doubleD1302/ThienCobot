@@ -87,13 +87,6 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
         if (itemDropped) {
           await Inventory.addVatPham(tuSi.idNguoiDung, itemDropped.id, 1);
           rewardText += `• **Vật phẩm nhận được**: **${itemDropped.ten}** 🎁\n`;
-          
-          if (effects.thienDaoLuc && sqlMessageCheck(effects.thienDaoLucMsg)) {
-            const formattedMsg = effects.thienDaoLucMsg
-              .replace('{name}', `**${tuSi.ten}**`)
-              .replace('{itemName}', `**${itemDropped.ten}**`);
-            await ThienDaoLuc.ghiLuc(formattedMsg, 'Explore');
-          }
         }
       }
       if (effects.itemRandom) {
@@ -156,15 +149,6 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
           await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
           rewardText += `• **Phá cảnh phẩm**: Nhận được **${itemDetail.ten}** (${typeStr}) 🔮\n`;
         }
-      }
-
-      // Xử lý Thiên Đạo Lục đối với các đại cơ duyên chung không phụ thuộc vào rơi đồ
-      function sqlMessageCheck(msg) {
-        return msg && typeof msg === 'string';
-      }
-      if (effects.thienDaoLuc && sqlMessageCheck(effects.thienDaoLucMsg) && !effects.itemRandomEligible) {
-        const formattedMsg = effects.thienDaoLucMsg.replace('{name}', `**${tuSi.ten}**`);
-        await ThienDaoLuc.ghiLuc(formattedMsg, 'Explore');
       }
 
       if (thienDao && (thienDao.expMult > 1.0 || thienDao.stoneMult > 1.0)) {

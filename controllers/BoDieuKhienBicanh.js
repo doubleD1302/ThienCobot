@@ -1283,17 +1283,6 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
         await tuSi.save();
 
-        // Ghi nhận thiên đạo lục nếu nhặt được đồ hiếm
-        if (droppedItem && (droppedItem.doHiem === 'Hiếm' || droppedItem.doHiem === 'Cực hiếm' || droppedItem.doHiem === 'Huyền thoại')) {
-          try {
-            const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
-            await ThienDaoLuc.ghiLuc(
-              `🎁 **Cơ Duyên Xảo Hợp**: Đạo hữu **${tuSi.ten}** khám phá **${dungeon.ten}** may mắn phát hiện đại cơ duyên, nhặt được bảo vật **${droppedItem.ten}** (\`${droppedItem.doHiem}\`)!`,
-              'Drop'
-            );
-          } catch (err) { }
-        }
-
         // Đặt thời gian chờ khiêu chiến mới
         const expiresAt = new Date(Date.now() + 30 * 1000);
         await this.datThoiGianCho(tuSi.idNguoiDung, 'dungeon', expiresAt);
