@@ -1286,15 +1286,15 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         );
 
         if (pet) {
+          const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
           actionRow3.addComponents(
             new ButtonBuilder()
               .setCustomId('pet_action_fuse')
               .setLabel('🧬 Dung Hợp')
               .setStyle(ButtonStyle.Primary)
-              .setDisabled(myPets.length <= 1)
+              .setDisabled(myPets.length <= 1 || isThan)
           );
 
-          const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
           const q = config.getPetQualityIndex(pet.rarity);
           const p = pet.tienHoa;
           const nextLvl = (q * 110) + (p + 1) * 10;
@@ -1358,7 +1358,10 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       // 7.1. CHỌN LINH THÚ DUNG HỢP (PET_FUSION_SELECT)
       // ══════════════════════════════════════════════════════════════
       else if (menu === 'PET_FUSION_SELECT') {
-        const otherPets = myPets.filter(p => String(p.id) !== String(selectedPetId));
+        const otherPets = myPets.filter(p => {
+          const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(p.type);
+          return String(p.id) !== String(selectedPetId) && !p.isActive && !isThan;
+        });
         const FUSION_PAGE_SIZE = 15;
         const totalFusionPages = otherPets.length > 0 ? Math.ceil(otherPets.length / FUSION_PAGE_SIZE) : 1;
         if (fusionPage >= totalFusionPages) fusionPage = Math.max(0, totalFusionPages - 1);
@@ -2092,7 +2095,10 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               }
             }
           } else if (i.customId === 'pet_action_fuse') {
-            if (pet.isActive) {
+            const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
+            if (isThan) {
+              actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', 'Thần Thú thượng cổ có huyết mạch tối cao, không thể tiến hành dung hợp!');
+            } else if (pet.isActive) {
               actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', 'Không thể dung hợp Linh Thú đang xuất chiến. Hãy cho sủng vật nghỉ ngơi trước.');
             } else {
               menuStack.push('PET_FUSION_SELECT');
@@ -2403,12 +2409,16 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           } else {
             const isThanA = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petA.type);
             const isThanB = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(petB.type);
-            const cost = (isThanA || isThanB) ? 100000 : 5000;
 
-            if (tuSi.linhThach < cost) {
-              actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', `Không đủ linh thạch (Cần ${cost.toLocaleString()} Linh Thạch).`);
+            if (isThanA || isThanB) {
+              actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', 'Thần Thú thượng cổ có huyết mạch tối cao, không thể tiến hành dung hợp!');
+              menuStack = ['MAIN', 'PETS'];
+              selectedPetId = null;
+              selectedFusePetId = null;
+            } else if (tuSi.linhThach < 5000) {
+              actionMessage = BoTaoEmbed.thatBai('🧬 Dung Hợp Thất Bại', 'Không đủ linh thạch (Cần 5,000 Linh Thạch).');
             } else {
-              tuSi.linhThach -= cost;
+              tuSi.linhThach -= 5000;
               await tuSi.save();
 
               const statsA = config.getPetCurrentStats(petA);

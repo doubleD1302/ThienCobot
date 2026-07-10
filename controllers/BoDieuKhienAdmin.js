@@ -953,7 +953,7 @@ class BoDieuKhienAdmin {
 
           const input = new TextInputBuilder()
             .setCustomId('hours_input')
-            .setLabel('Danh sách mốc giờ (tối đa 10, vd: 06:00,12:00)')
+            .setLabel('Mốc giờ (tối đa 10, vd: 06:00,12:00)')
             .setStyle(TextInputStyle.Short)
             .setRequired(true)
             .setPlaceholder('Nhập tối đa 10 mốc giờ, cách nhau bằng dấu phẩy');

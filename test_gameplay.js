@@ -152,13 +152,11 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     const [statDamaged, penaltyPct] = tuSi.nhanPhatDotPhaThatBai();
     
-    // Kiểm tra giảm cấp độ
-    assert.strictEqual(tuSi.capDo, 4);
-    assert.ok(penaltyPct >= 5 && penaltyPct <= 10, "Hình phạt căn cơ phải dao động từ 5% đến 10%");
+    // Kiểm tra không giảm cấp độ
+    assert.strictEqual(tuSi.capDo, 5);
+    assert.strictEqual(penaltyPct, 0);
 
     const statsAfter = tuSi.layChiSo();
-    const penaltyFieldName = `phat${statDamaged.charAt(0).toUpperCase() + statDamaged.slice(1)}`;
-    assert.ok(tuSi[penaltyFieldName] > 0, "Trường phạt tương ứng phải được ghi nhận trị số lớn hơn 0");
 
     // Kiểm tra HP/MP bị cắn trả về 10%
     assert.strictEqual(tuSi.hp, Math.max(1, Math.floor(statsAfter.max_hp * 0.10)));

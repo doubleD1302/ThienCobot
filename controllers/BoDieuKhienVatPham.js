@@ -4,7 +4,8 @@ import {
   StringSelectMenuBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder
+  EmbedBuilder,
+  AttachmentBuilder
 } from 'discord.js';
 
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';

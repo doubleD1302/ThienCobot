@@ -188,7 +188,8 @@ class BoDieuKhienGacha extends BoDieuKhienGoc {
             const { Op } = await import('sequelize');
             const eligibleItems = await Item.findAll({
               where: {
-                doHiem: { [Op.in]: dbRarities }
+                doHiem: { [Op.in]: dbRarities },
+                loai: { [Op.notIn]: ['Skin', 'skin', 'Aura', 'aura', 'Background', 'background'] }
               }
             });
             const selectedItem = eligibleItems.length > 0

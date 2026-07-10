@@ -170,10 +170,8 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 
         desc += 
           `⚠️ **THIÊN PHẠT THẤT BẠI (Nếu thất bại)**:\n` +
-          `• 💥 **Kinh mạch đứt gãy**: Phạt ngẫu nhiên 5%-10% thuộc tính vĩnh viễn (HP/MP/Vật Công/Pháp Công).\n` +
-          `• 📉 **Thối lui tu vi**: Hạ \`1\` tiểu tầng cảnh giới.\n` +
-          `• 🌪️ **Linh lực tán loạn**: Khấu trừ \`30%\` linh lực tích lũy hiện có.\n` +
-          `• ⏳ **Tâm ma quấn thân**: Thần trí bất ổn, phạt tĩnh dưỡng \`1 Đạo Niên\` (15 phút) không thể đột phá.\n\n` +
+          `• 🌪️ **Linh lực tán loạn**: Khấu trừ \`30%\` linh lực tích lũy của cảnh hiện tại.\n` +
+          `• ⏳ **Tâm ma quấn thân**: Thần trí bất ổn, phạt tĩnh dưỡng \`2 Đạo Niên\` (30 phút) không thể đột phá.\n\n` +
           `*Đạo hữu có muốn sử dụng Đan Đột Phá hỗ trợ để gia tăng tỉ lệ thành công không?*`;
 
         return new EmbedBuilder()
@@ -284,14 +282,18 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 
           const [statDamaged, penaltyPct] = tuSi.nhanPhatDotPhaThatBai();
 
-          // Khấu trừ linh lực tích lũy (mất 30%) và linh thạch (mất 50% chi phí thăng cảnh giới nếu có)
-          tuSi.linhLuc = Math.floor(tuSi.linhLuc * 0.70);
+          // Khấu trừ linh lực tích lũy (chỉ trừ 30% tu vi của cảnh hiện tại)
+          const baseLinhLuc = tuSi.capDo > 1 ? config.layLinhLucYeuCau(tuSi.capDo - 1) : 0;
+          const currentRealmExp = Math.max(0, tuSi.linhLuc - baseLinhLuc);
+          const penaltyExp = Math.floor(currentRealmExp * 0.30);
+          tuSi.linhLuc -= penaltyExp;
+
           if (isMajor) {
             tuSi.linhThach -= Math.floor(stoneCost * 0.50);
           }
 
-          // Tạo khóa thời gian chờ vết thương: 1 Đạo Niên (config.DAO_NIEN_SECONDS)
-          const expiresAt = new Date(Date.now() + config.DAO_NIEN_SECONDS * 1000);
+          // Tạo khóa thời gian chờ vết thương: 2 Đạo Niên (2 * config.DAO_NIEN_SECONDS)
+          const expiresAt = new Date(Date.now() + 2 * config.DAO_NIEN_SECONDS * 1000);
           await this.datThoiGianCho(tuSi.idNguoiDung, 'breakthrough_lock', expiresAt);
           await tuSi.save();
 
@@ -299,7 +301,7 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
             const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
             if (isMajor) {
               await ThienDaoLuc.ghiLuc(
-                `💥 **Thiên Kiếp Giáng Thế**: Đạo hữu **${tuSi.ten}** khi đột phá đại cảnh giới **${currentRealmName}** đã bị tâm ma cắn trả, đứt gãy kinh mạch, căn cơ bị tổn hao nặng nề!`,
+                `💥 **Thiên Kiếp Giáng Thế**: Đạo hữu **${tuSi.ten}** khi đột phá đại cảnh giới **${currentRealmName}** đã bị thiên kiếp cản trở thất bại, nhưng nhờ hộ thân kịp thời nên căn cơ vẫn nguyên vẹn!`,
                 'BreakthroughFail'
               );
             }
@@ -307,18 +309,15 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
             console.error('Lỗi Thiên Đạo Lục đột phá thất bại:', err);
           }
 
-          let penaltyStatName = 'Khí Huyết';
-          if (statDamaged === 'mp') penaltyStatName = 'Pháp Lực';
-          else if (statDamaged === 'vatCong') penaltyStatName = 'Vật Công';
-          else if (statDamaged === 'phapCong') penaltyStatName = 'Pháp Công';
+          const timeText = config.DAO_NIEN_SECONDS === 15 ? '30 giây' : '30 phút';
 
           const failEmbed = BoTaoEmbed.loi(
             `💥 **Đột Phá Thất Bại!** 💥\n\n` +
-            `Đạo hữu **${tuSi.ten}** đã thất bại khi cố gắng đột phá đại kiếp cảnh giới!\n` +
-            `• **Cảnh giới bị thối lui**: \`${currentRealmName} - ${currentRealmInfo.stageName}\` -> \`${config.layThongTinCanhGioi(tuSi.capDo).realmName} - ${config.layThongTinCanhGioi(tuSi.capDo).stageName}\`\n` +
-            `• **Thiên phạt kinh mạch**: Giảm vĩnh viễn \`-${penaltyPct}%\` thuộc tính **${penaltyStatName}**.\n` +
-            `• **Hệ quả**: Mất \`30%\` linh lực tích lũy, HP/MP kiệt quệ.${consumedPillText}\n` +
-            `• **Trạng thái**: Căn cơ tổn hao! Cần dưỡng thương trong \`15 phút\` (1 Đạo Niên) để phục hồi.`
+            `Đạo hữu **${tuSi.ten}** đã thất bại khi cố gắng đột phá cảnh giới!\n` +
+            `• **Cảnh giới hiện tại**: \`${currentRealmName} - ${currentRealmInfo.stageName}\` (Không bị thối lui cảnh giới)\n` +
+            `• **Căn cơ bảo toàn**: Không bị tổn hại thuộc tính vĩnh viễn.\n` +
+            `• **Hệ quả**: Khấu trừ \`-${penaltyExp.toLocaleString()}\` Linh lực (30% linh lực tích lũy của cảnh hiện tại), HP/MP kiệt quệ.${consumedPillText}\n` +
+            `• **Trạng thái**: Kinh mạch chấn động! Cần tĩnh dưỡng trong \`${timeText}\` (2 Đạo Niên) để có thể tiếp tục đột phá.`
           );
 
           return { ok: true, embed: failEmbed };

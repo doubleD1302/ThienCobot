@@ -375,32 +375,12 @@ class TuSi extends Model {
   }
 
   nhanPhatDotPhaThatBai() {
-    const penalty = 0.05 + Math.random() * 0.05; // 5% - 10%
-    const statsToPenalize = ['hp', 'mp', 'vatCong', 'phapCong'];
-    const statToPenalize = statsToPenalize[Math.floor(Math.random() * statsToPenalize.length)];
-
-    if (statToPenalize === 'hp') {
-      this.phatHp = Math.min(0.50, (this.phatHp || 0.0) + penalty);
-    } else if (statToPenalize === 'mp') {
-      this.phatMp = Math.min(0.50, (this.phatMp || 0.0) + penalty);
-    } else if (statToPenalize === 'vatCong') {
-      this.phatVatCong = Math.min(0.50, (this.phatVatCong || 0.0) + penalty);
-    } else if (statToPenalize === 'phapCong') {
-      this.phatPhapCong = Math.min(0.50, (this.phatPhapCong || 0.0) + penalty);
-    }
-
-    // Hạ 1 tiểu cấp nếu lớn hơn Luyện Khí tầng 1
-    if (this.capDo > 1) {
-      this.capDo -= 1;
-      this.dongBoCanhGioi();
-    }
-
-    // Trọng thương (HP/MP về 10% giới hạn mới)
+    // Trọng thương (HP/MP về 10% giới hạn hiện tại)
     const stats = this.layChiSo();
     this.hp = Math.max(1, Math.floor(stats.max_hp * 0.10));
     this.mp = Math.max(1, Math.floor(stats.max_mp * 0.10));
 
-    return [statToPenalize, Math.floor(penalty * 100)];
+    return [null, 0];
   }
 
   capNhatTheLucDaily() {
