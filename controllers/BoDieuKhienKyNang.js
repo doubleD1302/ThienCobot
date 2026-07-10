@@ -88,9 +88,12 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
       return { ok: false, msg: `Căn cơ bất túc! Yêu cầu cảnh giới tối thiểu: **${stageName}** (Cấp ${skillDetail.yeuCauCanhGioi}).` };
     }
 
-    // Tính toán phí Linh Thạch: 1/100 tu vi cần của cảnh giới đó, max 100m
+    // Tính toán phí Linh Thạch: 1/100 tu vi cần của cảnh giới đó, max 100m, riêng Kim Đan là 100k
     const reqExp = config.layLinhLucYeuCau(skillDetail.yeuCauCanhGioi);
-    const cost = Math.min(100000000, Math.floor(reqExp / 100));
+    let cost = Math.min(100000000, Math.floor(reqExp / 100));
+    if (skillDetail.yeuCauCanhGioi === 13) {
+      cost = 100000;
+    }
 
     if (tuSi.linhThach < cost) {
       return { ok: false, msg: `Đạo hữu không đủ Linh Thạch! Lĩnh hội chiêu thức này cần **${cost.toLocaleString()}** Linh Thạch (thiếu **${(cost - tuSi.linhThach).toLocaleString()}** Linh Thạch).` };
@@ -165,7 +168,7 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
       let guideRealmIndex = realmsList.indexOf(currentRealm);
       if (guideRealmIndex === -1) guideRealmIndex = 0;
 
-      let viewMode = 'main'; // 'main', 'guide', hoặc 'equip'
+      let viewMode = 'main'; // 'main', 'guide', 'equip', hoặc 'upgrade'
 
       const buildComponents = (availableSkills, disabled = false) => {
         const rowMenu = new ActionRowBuilder();
@@ -187,7 +190,10 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
                 const { layThongTinCanhGioi, layLinhLucYeuCau } = config;
                 const { stageName } = layThongTinCanhGioi(sk.yeuCauCanhGioi);
                 const reqExp = layLinhLucYeuCau(sk.yeuCauCanhGioi);
-                const cost = Math.min(100000000, Math.floor(reqExp / 100));
+                let cost = Math.min(100000000, Math.floor(reqExp / 100));
+                if (sk.yeuCauCanhGioi === 13) {
+                  cost = 100000;
+                }
                 return {
                   label: `Lĩnh hội: ${sk.ten}`.slice(0, 100),
                   value: sk.id,
@@ -201,17 +207,22 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
         const rowButtons = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId('skill_equip_mode')
-            .setLabel('⚔️ Trang Bị Chiêu Thức')
+            .setLabel('⚔️ Trang Bị')
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(disabled),
+          new ButtonBuilder()
+            .setCustomId('skill_upgrade_mode')
+            .setLabel('⚡ Nâng Cấp')
             .setStyle(ButtonStyle.Success)
             .setDisabled(disabled),
           new ButtonBuilder()
             .setCustomId('skill_all_guide')
-            .setLabel('📚 Tất Cả Kỹ Năng')
+            .setLabel('📚 Tất Cả')
             .setStyle(ButtonStyle.Primary)
             .setDisabled(disabled),
           new ButtonBuilder()
             .setCustomId('skill_close')
-            .setLabel('❌ Đóng Tàng Kinh Các')
+            .setLabel('❌ Đóng')
             .setStyle(ButtonStyle.Danger)
             .setDisabled(disabled)
         );
@@ -293,6 +304,54 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
         return [rowMenu, rowButtons];
       };
 
+      const buildUpgradeComponents = (playerSkillsList, disabled = false) => {
+        const rowMenu = new ActionRowBuilder();
+        if (playerSkillsList.length === 0) {
+          rowMenu.addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('skill_upgrade_select')
+              .setPlaceholder('⚠️ Chưa lĩnh hội kỹ năng nào để nâng cấp')
+              .setDisabled(true)
+              .addOptions([{ label: '(Trống)', value: '__empty__' }])
+          );
+        } else {
+          rowMenu.addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('skill_upgrade_select')
+              .setPlaceholder('🔽 Chọn một chiêu thức để Nâng Cấp (+1% hiệu quả)...')
+              .setDisabled(disabled)
+              .addOptions(playerSkillsList.slice(0, 25).map(psk => {
+                const isLuyenKhi = ['tu_khi_thuat', 'linh_phao_thuat', 'huyet_khi_phun_trao', 'bang_son_quyen'].includes(psk.id);
+                const baseCost = isLuyenKhi ? 1000 : 5000;
+                const nextCost = Math.floor(baseCost * Math.pow(1.20, psk.capDo - 1));
+                const labelStr = psk.capDo >= 50 ? `[MAX] ${psk.ten}` : `Nâng cấp: ${psk.ten} (Cấp ${psk.capDo} ➔ ${psk.capDo + 1})`;
+                const descStr = psk.capDo >= 50 ? 'Đã đạt cấp tối đa +50' : `Tốn ${nextCost.toLocaleString()} Linh Thạch`;
+                return {
+                  label: labelStr.slice(0, 100),
+                  value: psk.id,
+                  emoji: '⚡',
+                  description: descStr.slice(0, 100)
+                };
+              }))
+          );
+        }
+
+        const rowButtons = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('skill_upgrade_back')
+            .setLabel('↩️ Quay Lại')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled),
+          new ButtonBuilder()
+            .setCustomId('skill_close')
+            .setLabel('❌ Đóng')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled)
+        );
+
+        return [rowMenu, rowButtons];
+      };
+
       const renderInterface = async () => {
         if (viewMode === 'main') {
           const { playerSkillsList, availableSkills } = await this.layDanhSachKyNangData(tuSi);
@@ -331,6 +390,31 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
             embeds: [embed],
             components: buildEquipComponents(playerSkillsList)
           });
+        } else if (viewMode === 'upgrade') {
+          const { playerSkillsList } = await this.layDanhSachKyNangData(tuSi);
+          
+          const embed = new EmbedBuilder()
+            .setTitle(`⚡ Nâng Cấp Chiêu Thức: ${tuSi.ten}`)
+            .setDescription(
+              `Hãy chọn một chiêu thức đã học từ danh mục bên dưới để nâng cấp tăng hiệu quả.\n\n` +
+              `• **Giới hạn cấp tối đa**: \`+50\`\n` +
+              `• **Hiệu quả mỗi cấp**: \`+1% hiệu quả\` *(Riêng kỹ năng Kim Đan)*\n\n` +
+              `**Danh sách chiêu thức đã học**:\n` +
+              (playerSkillsList.map(psk => {
+                const isLuyenKhi = ['tu_khi_thuat', 'linh_phao_thuat', 'huyet_khi_phun_trao', 'bang_son_quyen'].includes(psk.id);
+                const baseCost = isLuyenKhi ? 1000 : 5000;
+                const nextCost = Math.floor(baseCost * Math.pow(1.20, psk.capDo - 1));
+                const costStr = psk.capDo >= 50 ? 'Đã đạt cấp tối đa' : `Tốn ${nextCost.toLocaleString()} Linh Thạch`;
+                return `• **${psk.ten} (Cấp ${psk.capDo}/50)** — *${costStr}*`;
+              }).join('\n') || '_Chưa học chiêu thức nào._')
+            )
+            .setColor(0xe67e22)
+            .setTimestamp();
+
+          await interaction.editReply({
+            embeds: [embed],
+            components: buildUpgradeComponents(playerSkillsList)
+          });
         }
       };
 
@@ -358,7 +442,7 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
           return;
         }
 
-        if (i.customId === 'skill_guide_back' || i.customId === 'skill_equip_back') {
+        if (i.customId === 'skill_guide_back' || i.customId === 'skill_equip_back' || i.customId === 'skill_upgrade_back') {
           viewMode = 'main';
           await renderInterface();
           return;
@@ -366,6 +450,12 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
 
         if (i.customId === 'skill_equip_mode') {
           viewMode = 'equip';
+          await renderInterface();
+          return;
+        }
+
+        if (i.customId === 'skill_upgrade_mode') {
+          viewMode = 'upgrade';
           await renderInterface();
           return;
         }
@@ -442,6 +532,55 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
 
           await renderInterface();
         }
+
+        if (i.customId === 'skill_upgrade_select') {
+          const skillId = i.values[0];
+          if (!skillId || skillId === '__empty__') return;
+
+          const pskRecord = await PlayerSkill.findOne({
+            where: { idNguoiDung: tuSi.idNguoiDung, skillId: skillId }
+          });
+          if (!pskRecord) {
+            await i.followUp({
+              embeds: [BoTaoEmbed.loi('Không tìm thấy bản ghi kỹ năng đã học.')],
+              ephemeral: true
+            });
+            return;
+          }
+
+          if (pskRecord.capDo >= 50) {
+            await i.followUp({
+              embeds: [BoTaoEmbed.loi('Chiêu thức này đã đạt cấp độ tối đa +50.')],
+              ephemeral: true
+            });
+            return;
+          }
+
+          const isLuyenKhi = ['tu_khi_thuat', 'linh_phao_thuat', 'huyet_khi_phun_trao', 'bang_son_quyen'].includes(pskRecord.skillId);
+          const baseCost = isLuyenKhi ? 1000 : 5000;
+          const cost = Math.floor(baseCost * Math.pow(1.20, pskRecord.capDo - 1));
+          if (tuSi.linhThach < cost) {
+            await i.followUp({
+              embeds: [BoTaoEmbed.loi(`Không đủ linh thạch để nâng cấp! Cần **${cost.toLocaleString()}** Linh Thạch.`)],
+              ephemeral: true
+            });
+            return;
+          }
+
+          tuSi.linhThach -= cost;
+          await tuSi.save();
+
+          pskRecord.capDo += 1;
+          await pskRecord.save();
+
+          const skillDetail = await Skill.findByPk(skillId);
+          await i.followUp({
+            embeds: [BoTaoEmbed.thanhCong('⚡ Nâng Cấp Chiêu Thức Thành Công', `Đạo hữu đã nâng cấp chiêu thức **${skillDetail?.ten || skillId}** lên Cấp **${pskRecord.capDo}**!\nKhấu trừ **${cost.toLocaleString()}** Linh Thạch.`)],
+            ephemeral: true
+          });
+
+          await renderInterface();
+        }
       });
 
       collector.on('end', async (_, reason) => {
@@ -471,6 +610,11 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
               const current = await this.layDanhSachKyNangData(tuSi);
               await interaction.editReply({
                 components: buildEquipComponents(current.playerSkillsList, true)
+              });
+            } else if (viewMode === 'upgrade') {
+              const current = await this.layDanhSachKyNangData(tuSi);
+              await interaction.editReply({
+                components: buildUpgradeComponents(current.playerSkillsList, true)
               });
             }
           }

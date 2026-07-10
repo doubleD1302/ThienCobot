@@ -978,48 +978,76 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       else if (menu === 'FORGE') {
         // Công thức rèn đúc
         const recipes = [
-          { label: '🗡️ Tiên Kiếm Tân Thủ (5 Luyện Khí Thạch + 2000 LT)', value: 'kiem_go::kiem_tien_tan_thu' },
-          { label: '🎋 Linh Trượng Tân Thủ (5 Luyện Khí Thạch + 2000 LT)', value: 'truong_go::truong_tien_tan_thu' },
-          { label: '🥋 Tiên Giáp Tân Thủ (5 Luyện Khí Thạch + 2000 LT)', value: 'ao_vai::giap_tien_tan_thu' },
+          // Luyện Khí - Pháp Tu
+          { label: '🗡️ Thanh Phong Kiếm (5 Sơ Cấp Thiết Quặng + 2000 LT)', value: 'thanh_phong_kiem::thanh_phong_kiem', capDoMin: 1, capDoMax: 9, heTu: 'Phap Tu' },
+          { label: '🥋 Đạo Bào Thanh Vân (5 Thô Linh Đàn Ty + 2000 LT)', value: 'dao_bao_thanh_van::dao_bao_thanh_van', capDoMin: 1, capDoMax: 9, heTu: 'Phap Tu' },
+          { label: '🔮 Thủy Linh Bội (5 Linh Khí Toái Thạch + 2000 LT)', value: 'thuy_linh_boi::thuy_linh_boi', capDoMin: 1, capDoMax: 9, heTu: 'Phap Tu' },
+          { label: '🪡 Linh Phong Châm (5 Nham Hỏa Tinh Hoa + 2000 LT)', value: 'pb_lk_linh_phong_cham::pb_lk_linh_phong_cham', capDoMin: 1, capDoMax: 9, heTu: 'Phap Tu' },
+          { label: '⚡ Dẫn Lôi Phù (5 Sét Đánh Mộc + 2000 LT)', value: 'pb_lk_dan_loi_phu::pb_lk_dan_loi_phu', capDoMin: 1, capDoMax: 9, heTu: 'Phap Tu' },
+          { label: '🛡️ Hộ Thân Kính (5 Kiên Thạch Tâm + 2000 LT)', value: 'pb_lk_ho_than_kinh::pb_lk_ho_than_kinh', capDoMin: 1, capDoMax: 9, heTu: 'Phap Tu' },
+          { label: '🌀 Định Thân Phù (5 Thiết Đằng Man + 2000 LT)', value: 'pb_lk_dinh_than_phu::pb_lk_dinh_than_phu', capDoMin: 1, capDoMax: 9, heTu: 'Phap Tu' },
+          { label: '💧 Thanh Linh Bình (5 Linh Tuyền Thủy + 2000 LT)', value: 'pb_lk_thanh_linh_binh::pb_lk_thanh_linh_binh', capDoMin: 1, capDoMax: 9, heTu: 'Phap Tu' },
+          { label: '🚩 Tụ Khí Kỳ (5 Yêu Thú Huyết + 2000 LT)', value: 'pb_lk_tu_khi_ky::pb_lk_tu_khi_ky', capDoMin: 1, capDoMax: 9, heTu: 'Phap Tu' },
 
-          { label: '⚔️ Thiết Kiếm (5 Huyền Thiết Thạch + 2000 LT)', value: 'kiem_sat_nang::kiem_sat' },
-          { label: '🎋 Trúc Trượng (5 Huyền Thiết Thạch + 2000 LT)', value: 'truong_truc_thuong::truong_truc' },
-          { label: '🛡️ Thú Bì Giáp (5 Huyền Thiết Thạch + 2000 LT)', value: 'ao_vai_day::ao_da' },
+          // Luyện Khí - Thể Tu
+          { label: '🗡️ Thiết Cốt Đao (5 Sơ Cấp Thiết Quặng + 2000 LT)', value: 'thiet_cot_dao::thiet_cot_dao', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
+          { label: '🥋 Thô Bố Trực Cư (5 Thô Linh Đàn Ty + 2000 LT)', value: 'tho_bo_thuc_cu::tho_bo_thuc_cu', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
+          { label: '🔮 Khương Thạch Bội (5 Linh Khí Toái Thạch + 2000 LT)', value: 'khuong_thach_boi::khuong_thach_boi', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
+          { label: '🔨 Toái Thạch Ấn (5 Nham Hỏa Tinh Hoa + 2000 LT)', value: 'pb_lk_toai_thach_an::pb_lk_toai_thach_an', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
+          { label: '🔥 Hỏa Tinh Đỉnh (5 Sét Đánh Mộc + 2000 LT)', value: 'pb_lk_hoa_tinh_dinh::pb_lk_hoa_tinh_dinh', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
+          { label: '🛡️ Thạch Phù Thuẫn (5 Kiên Thạch Tâm + 2000 LT)', value: 'pb_lk_thach_phu_thuan::pb_lk_thach_phu_thuan', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
+          { label: '⛓️ U Thiết Liên (5 Thiết Đằng Man + 2000 LT)', value: 'pb_lk_u_thiet_lien::pb_lk_u_thiet_lien', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
+          { label: '🥕 Dã Sơn Sâm (5 Linh Tuyền Thủy + 2000 LT)', value: 'pb_lk_da_son_sam::pb_lk_da_son_sam', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
+          { label: '🥁 Chiến Cổ (5 Yêu Thú Huyết + 2000 LT)', value: 'pb_lk_chien_co::pb_lk_chien_co', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
 
-          { label: 'Bát Hoang Cự Chùy (5 Vạn Năm Huyền Thiết + 2000 LT)', value: 'kiem_kim_dan_thuong::kiem_kim_dan', emoji: { id: '1524821321651982407' } },
-          { label: 'Thái Hư Phi Kiếm (5 Vạn Năm Huyền Thiết + 2000 LT)', value: 'truong_kim_dan_thuong::truong_kim_dan', emoji: { id: '1524815980134531223' } },
-          { label: 'Cửu Long Bá Thể Giáp (5 Thiên Tàm Linh Ty + 2000 LT)', value: 'ao_kim_dan_thuong::ao_kim_dan', emoji: { id: '1524821316845174824' } },
-          { label: 'Lưu Ly Pháp Bào (5 Thiên Tàm Linh Ty + 2000 LT)', value: 'ao_kim_dan_thuong::ao_kim_dan_phap', emoji: { id: '1524815977685057586' } },
-          { label: 'Huyết Ngọc Tủy (5 Hồn Tinh Huyết Nguyệt + 2000 LT)', value: 'ngoc_boi_linh_ngoc::ngoc_boi_kim_dan_the', emoji: { id: '1524821295785574591' } },
-          { label: 'Tụ Linh Ngọc (5 Hồn Tinh Huyết Nguyệt + 2000 LT)', value: 'ngoc_boi_linh_ngoc::ngoc_boi_kim_dan_phap', emoji: { id: '1524815970739290302' } },
-          { label: 'Diệt Ma Châm (5 Cực Dương Hỏa Thạch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_diet_ma_cham', emoji: { id: '1524815973251682335' } },
-          { label: 'Ngũ Lôi Châu (5 Lôi Trì Băng Tinh + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_ngu_loi_chau', emoji: { id: '1524815975457886290' } },
-          { label: 'Bát Quái Kính (5 Hậu Thổ Chi Lõi + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_bat_quai_kinh', emoji: { id: '1524815987986272317' } },
-          { label: 'Khổn Tiên Tố (5 U Minh Tế Trúc + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_khon_tien_to', emoji: { id: '1524815966905569504' } },
-          { label: 'Cam Lộ Bình (5 Sinh Sinh Tạo Hóa Dịch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_cam_lo_binh', emoji: { id: '1524815985066901595' } },
-          { label: 'Thất Tinh Đăng (5 Tinh Không Lưu Sa + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_that_tinh_dang', emoji: { id: '1524815982881669342' } },
-          { label: 'Chấn Sơn Ấn (5 Cực Dương Hỏa Thạch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_chan_son_an', emoji: { id: '1524821300747436142' } },
-          { label: 'Phần Thiên Đỉnh (5 Lôi Trì Băng Tinh + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_phan_thien_dinh', emoji: { id: '1524821303012622507' } },
-          { label: 'Huyền Vũ Thuẫn (5 Hậu Thổ Chi Lõi + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_huyen_vu_thuan', emoji: { id: '1524821312000757942' } },
-          { label: 'Tỏa Hồn Liên (5 U Minh Tế Trúc + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_toa_hon_lien', emoji: { id: '1524821308440055899' } },
-          { label: 'Huyết Bồ Đề (5 Sinh Sinh Tạo Hóa Dịch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_huyet_bo_de', emoji: { id: '1524821298729979998' } },
-          { label: 'Man Hoang Cổ (5 Tinh Không Lưu Sa + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_man_hoang_co', emoji: { id: '1524821305613094942' } },
+          // Trúc Cơ
+          { label: '⚔️ Thiết Kiếm (5 Huyền Thiết Thạch + 2000 LT)', value: 'kiem_sat_nang::kiem_sat', capDoMin: 10, capDoMax: 12 },
+          { label: '🎋 Trúc Trượng (5 Huyền Thiết Thạch + 2000 LT)', value: 'truong_truc_thuong::truong_truc', capDoMin: 10, capDoMax: 12 },
+          { label: '🛡️ Thú Bì Giáp (5 Huyền Thiết Thạch + 2000 LT)', value: 'ao_vai_day::ao_da', capDoMin: 10, capDoMax: 12 },
 
-          { label: '⚔️ Nguyên Anh Phá Thiên Kiếm (5 Nguyên Anh Hỏa Tinh + 2000 LT)', value: 'kiem_nguyen_anh_thuong::kiem_nguyen_anh' },
-          { label: '⚡ Nguyên Thần Tiên Trượng (5 Nguyên Anh Hỏa Tinh + 2000 LT)', value: 'truong_nguyen_anh_thuong::truong_nguyen_anh' },
-          { label: '🛡️ Nguyên Anh Hộ Thể Giáp (5 Nguyên Anh Hỏa Tinh + 2000 LT)', value: 'ao_nguyen_anh_thuong::ao_nguyen_anh' },
+          // Kim Đan
+          { label: 'Bát Hoang Cự Chùy (5 Vạn Năm Huyền Thiết + 2000 LT)', value: 'kiem_kim_dan_thuong::kiem_kim_dan', emoji: { id: '1524821321651982407' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Thái Hư Phi Kiếm (5 Vạn Năm Huyền Thiết + 2000 LT)', value: 'truong_kim_dan_thuong::truong_kim_dan', emoji: { id: '1524815980134531223' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Cửu Long Bá Thể Giáp (5 Thiên Tàm Linh Ty + 2000 LT)', value: 'ao_kim_dan_thuong::ao_kim_dan', emoji: { id: '1524821316845174824' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Lưu Ly Pháp Bào (5 Thiên Tàm Linh Ty + 2000 LT)', value: 'ao_kim_dan_thuong::ao_kim_dan_phap', emoji: { id: '1524815977685057586' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Huyết Ngọc Tủy (5 Hồn Tinh Huyết Nguyệt + 2000 LT)', value: 'ngoc_boi_linh_ngoc::ngoc_boi_kim_dan_the', emoji: { id: '1524821295785574591' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Tụ Linh Ngọc (5 Hồn Tinh Huyết Nguyệt + 2000 LT)', value: 'ngoc_boi_linh_ngoc::ngoc_boi_kim_dan_phap', emoji: { id: '1524815970739290302' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Diệt Ma Châm (5 Cực Dương Hỏa Thạch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_diet_ma_cham', emoji: { id: '1524815973251682335' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Ngũ Lôi Châu (5 Lôi Trì Băng Tinh + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_ngu_loi_chau', emoji: { id: '1524815975457886290' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Bát Quái Kính (5 Hậu Thổ Chi Lõi + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_bat_quai_kinh', emoji: { id: '1524815987986272317' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Khổn Tiên Tố (5 U Minh Tế Trúc + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_khon_tien_to', emoji: { id: '1524815966905569504' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Cam Lộ Bình (5 Sinh Sinh Tạo Hóa Dịch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_cam_lo_binh', emoji: { id: '1524815985066901595' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Thất Tinh Đăng (5 Tinh Không Lưu Sa + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_that_tinh_dang', emoji: { id: '1524815982881669342' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Chấn Sơn Ấn (5 Cực Dương Hỏa Thạch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_chan_son_an', emoji: { id: '1524821300747436142' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Phần Thiên Đỉnh (5 Lôi Trì Băng Tinh + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_phan_thien_dinh', emoji: { id: '1524821303012622507' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Huyền Vũ Thuẫn (5 Hậu Thổ Chi Lõi + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_huyen_vu_thuan', emoji: { id: '1524821312000757942' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Tỏa Hồn Liên (5 U Minh Tế Trúc + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_toa_hon_lien', emoji: { id: '1524821308440055899' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Huyết Bồ Đề (5 Sinh Sinh Tạo Hóa Dịch + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_huyet_bo_de', emoji: { id: '1524821298729979998' }, capDoMin: 13, capDoMax: 15 },
+          { label: 'Man Hoang Cổ (5 Tinh Không Lưu Sa + 2000 LT)', value: 'phap_bao_ho_than::pb_kd_man_hoang_co', emoji: { id: '1524821305613094942' }, capDoMin: 13, capDoMax: 15 },
 
-          { label: '🗡️ Huyền Thiết Trọng Kiếm (5 Thần Ma Chi Tinh + 2000 LT)', value: 'kiem_sat_co_khi::kiem_huyen_thiet' },
-          { label: '🔮 Huyền Môn Ngọc Bội (5 Thần Ma Chi Tinh + 2000 LT)', value: 'truong_go_co_loi::phap_bao_huyen_mon' },
-          { label: '🥋 Huyền Thiết Linh Giáp (5 Thần Ma Chi Tinh + 2000 LT)', value: 'ao_da_co_lan::giap_huyen_thiet' }
+          // Nguyên Anh
+          { label: '⚔️ Nguyên Anh Phá Thiên Kiếm (5 Nguyên Anh Hỏa Tinh + 2000 LT)', value: 'kiem_nguyen_anh_thuong::kiem_nguyen_anh', capDoMin: 16, capDoMax: 18 },
+          { label: '⚡ Nguyên Thần Tiên Trượng (5 Nguyên Anh Hỏa Tinh + 2000 LT)', value: 'truong_nguyen_anh_thuong::truong_nguyen_anh', capDoMin: 16, capDoMax: 18 },
+          { label: '🛡️ Nguyên Anh Hộ Thể Giáp (5 Nguyên Anh Hỏa Tinh + 2000 LT)', value: 'ao_nguyen_anh_thuong::ao_nguyen_anh', capDoMin: 16, capDoMax: 18 },
+
+          // Hóa Thần
+          { label: '🗡️ Huyền Thiết Trọng Kiếm (5 Thần Ma Chi Tinh + 2000 LT)', value: 'kiem_sat_co_khi::kiem_huyen_thiet', capDoMin: 19, capDoMax: 999 },
+          { label: '🔮 Huyền Môn Ngọc Bội (5 Thần Ma Chi Tinh + 2000 LT)', value: 'truong_go_co_loi::phap_bao_huyen_mon', capDoMin: 19, capDoMax: 999 },
+          { label: '🥋 Huyền Thiết Linh Giáp (5 Thần Ma Chi Tinh + 2000 LT)', value: 'ao_da_co_lan::giap_huyen_thiet', capDoMin: 19, capDoMax: 999 }
         ];
+
+        const filteredRecipes = recipes.filter(r => {
+          if (tuSi.capDo < r.capDoMin || tuSi.capDo > r.capDoMax) return false;
+          if (r.heTu && r.heTu !== tuSi.huongTu) return false;
+          return true;
+        });
 
         rows.push(
           new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
               .setCustomId('forge_recipe_select')
               .setPlaceholder('🔨 Chọn công thức rèn đúc tiên binh...')
-              .addOptions(recipes)
+              .addOptions(filteredRecipes)
           )
         );
 
@@ -2729,10 +2757,27 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
   async _processForge(tuSi, oldId, newId) {
     // Bản đồ nguyên liệu cho từng dòng trang bị nâng cấp
     const FORGE_MATERIALS = {
-      // Luyện Khí
-      'kiem_tien_tan_thu': { materialId: 'nguyen_lieu_luyen_khi', count: 5, matName: 'Luyện Khí Thạch 💎' },
-      'truong_tien_tan_thu': { materialId: 'nguyen_lieu_luyen_khi', count: 5, matName: 'Luyện Khí Thạch 💎' },
-      'giap_tien_tan_thu': { materialId: 'nguyen_lieu_luyen_khi', count: 5, matName: 'Luyện Khí Thạch 💎' },
+      // Luyện Khí - Pháp Tu
+      'thanh_phong_kiem': { materialId: 'so_cap_thiet_quang', count: 5, matName: 'Sơ Cấp Thiết Quặng <:so_cap_thiet_quang:1525076114295492679>' },
+      'dao_bao_thanh_van': { materialId: 'tho_linh_dan_ty', count: 5, matName: 'Thô Linh Đàn Ty <:tho_linh_dan_ty:1525076109887148144>' },
+      'thuy_linh_boi': { materialId: 'linh_khi_toai_thach', count: 5, matName: 'Linh Khí Toái Thạch <:linh_khi_toai_thach:1525076112382623754>' },
+      'pb_lk_linh_phong_cham': { materialId: 'nham_hoa_tinh_hoa', count: 5, matName: 'Nham Hỏa Tinh Hoa <:nham_hoa_tinh_hoa:1525076107509108776>' },
+      'pb_lk_dan_loi_phu': { materialId: 'sat_danh_moc', count: 5, matName: 'Sét Đánh Mộc <:sat_danh_moc:1525076096213581945>' },
+      'pb_lk_ho_than_kinh': { materialId: 'kien_thach_tam', count: 5, matName: 'Kiên Thạch Tâm <:kien_thach_tam:1525076100655354038>' },
+      'pb_lk_dinh_than_phu': { materialId: 'thiet_dang_man', count: 5, matName: 'Thiết Đằng Man <:thiet_dang_man:1525076105302773760>' },
+      'pb_lk_thanh_linh_binh': { materialId: 'linh_tuyen_thuy', count: 5, matName: 'Linh Tuyền Thủy <:linh_tuyen_thuy:1525076102870073426>' },
+      'pb_lk_tu_khi_ky': { materialId: 'yeu_thu_huyet', count: 5, matName: 'Yêu Thú Huyết <:yeu_thu_huyet:1525076098302345277>' },
+
+      // Luyện Khí - Thể Tu
+      'thiet_cot_dao': { materialId: 'so_cap_thiet_quang', count: 5, matName: 'Sơ Cấp Thiết Quặng <:so_cap_thiet_quang:1525076114295492679>' },
+      'tho_bo_thuc_cu': { materialId: 'tho_linh_dan_ty', count: 5, matName: 'Thô Linh Đàn Ty <:tho_linh_dan_ty:1525076109887148144>' },
+      'khuong_thach_boi': { materialId: 'linh_khi_toai_thach', count: 5, matName: 'Linh Khí Toái Thạch <:linh_khi_toai_thach:1525076112382623754>' },
+      'pb_lk_toai_thach_an': { materialId: 'nham_hoa_tinh_hoa', count: 5, matName: 'Nham Hỏa Tinh Hoa <:nham_hoa_tinh_hoa:1525076107509108776>' },
+      'pb_lk_hoa_tinh_dinh': { materialId: 'sat_danh_moc', count: 5, matName: 'Sét Đánh Mộc <:sat_danh_moc:1525076096213581945>' },
+      'pb_lk_thach_phu_thuan': { materialId: 'kien_thach_tam', count: 5, matName: 'Kiên Thạch Tâm <:kien_thach_tam:1525076100655354038>' },
+      'pb_lk_u_thiet_lien': { materialId: 'thiet_dang_man', count: 5, matName: 'Thiết Đằng Man <:thiet_dang_man:1525076105302773760>' },
+      'pb_lk_da_son_sam': { materialId: 'linh_tuyen_thuy', count: 5, matName: 'Linh Tuyền Thủy <:linh_tuyen_thuy:1525076102870073426>' },
+      'pb_lk_chien_co': { materialId: 'yeu_thu_huyet', count: 5, matName: 'Yêu Thú Huyết <:yeu_thu_huyet:1525076098302345277>' },
 
       // Trúc Cơ
       'kiem_sat': { materialId: 'nguyen_lieu_truc_co', count: 5, matName: 'Huyền Thiết Thạch 🪙' },

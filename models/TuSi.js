@@ -68,6 +68,9 @@ class TuSi extends Model {
     const capDo = this.capDo || 1;
     const lvlDiff = capDo - 1;
 
+    const classHpMult = 1.0;
+    const classMpMult = 1.0;
+
     // 1. Chỉ số cơ bản + tăng trưởng theo cấp
     let maxHp = baseStats.hp + growth.hp * lvlDiff;
     let maxMp = baseStats.mp + growth.mp * lvlDiff;
@@ -124,7 +127,7 @@ class TuSi extends Model {
       }
 
       const starMult = (1.0 + (eq.nangCapSao || 0) * 0.10) * equipQualityMult;
-      if (staticStats.hp) maxHp += staticStats.hp * starMult * 10;
+      if (staticStats.hp) maxHp += staticStats.hp * starMult;
       if (staticStats.mp) maxMp += staticStats.mp * starMult;
       if (staticStats.vat_cong) vatCong += staticStats.vat_cong * starMult;
       if (staticStats.phap_cong) phapCong += staticStats.phap_cong * starMult;
@@ -152,7 +155,7 @@ class TuSi extends Model {
             phapPhong += basePhapPhongVal * multVal * 2;
             break;
           case 'max_hp':
-            maxHp += baseHpVal * multVal * 10;
+            maxHp += baseHpVal * multVal;
             break;
           case 'max_mp':
             maxMp += baseMpVal * multVal;
@@ -182,24 +185,59 @@ class TuSi extends Model {
     }
 
     // 3. Cộng hệ số linh căn
-    const elements = this.linhCanList;
+    const elements = this.linhCanList || [];
+    for (const el of elements) {
+      const bonus = config.NGUON_LINH_CAN[el];
+      if (bonus) {
+        if (bonus.hp_mult) maxHp *= bonus.hp_mult;
+        if (bonus.mp_mult) maxMp *= bonus.mp_mult;
+        if (bonus.atk_mult) {
+          vatCong *= bonus.atk_mult;
+          phapCong *= bonus.atk_mult;
+        }
+        if (bonus.def_mult) {
+          vatPhong *= bonus.def_mult;
+          phapPhong *= bonus.def_mult;
+        }
+        if (bonus.crit_dmg) critDmg += bonus.crit_dmg;
+        if (bonus.crit_rate) critRate += bonus.crit_rate;
+        if (bonus.speed_mult) speed *= bonus.speed_mult;
+        if (bonus.ne) ne += bonus.ne;
+        if (bonus.lifesteal) lifesteal += bonus.lifesteal;
+      }
+    }
 
-    if (elements.includes('Loi')) {
-      critDmg += config.NGUON_LINH_CAN['Loi'].crit_dmg;
-    }
-    if (elements.includes('Thuy')) {
-      maxHp *= config.NGUON_LINH_CAN['Thuy'].hp_mult;
-      maxMp *= config.NGUON_LINH_CAN['Thuy'].mp_mult;
-    }
-    if (elements.includes('Tho')) {
-      vatPhong *= config.NGUON_LINH_CAN['Tho'].vat_phong_mult;
-      maxHp *= config.NGUON_LINH_CAN['Tho'].hp_mult;
-    }
-    if (elements.includes('Kim')) {
-      vatCong *= config.NGUON_LINH_CAN['Kim'].vat_cong_mult;
-    }
-    if (elements.includes('Hoa')) {
-      critRate += config.NGUON_LINH_CAN['Hoa'].crit_rate;
+    // Cộng hệ số Huyết Mạch
+    const hm = this.huyetMach;
+    if (hm) {
+      if (hm === 'LongToc') {
+        if (huongTu === 'Phap Tu') {
+          maxMp *= 1.10;
+          phapCong *= 1.10;
+        } else {
+          maxHp *= 1.10;
+          vatCong *= 1.10;
+        }
+      } else if (hm === 'MaToc') {
+        if (huongTu === 'Phap Tu') {
+          phapCong *= 1.10;
+        } else {
+          vatCong *= 1.10;
+        }
+        critRate += 0.10;
+      } else if (hm === 'TienToc') {
+        maxHp *= 1.10;
+        vatPhong *= 1.10;
+        phapPhong *= 1.10;
+      } else if (hm === 'NhanToc') {
+        if (huongTu === 'Phap Tu') {
+          maxMp *= 1.20;
+        } else {
+          maxHp *= 1.20;
+        }
+      } else if (hm === 'TinhLinh') {
+        speed *= 1.20;
+      }
     }
 
     // 4. Cộng sủng vật (Pet) nếu có xuất chiến
@@ -270,7 +308,7 @@ class TuSi extends Model {
       ne = 0.30;
     }
 
-    maxHp = Math.floor((maxHp * (1.0 - phatHp) * 10) / 3);
+    maxHp = Math.floor(maxHp * (1.0 - phatHp));
     maxMp = Math.floor(maxMp * (1.0 - phatMp));
     vatCong = Math.floor(vatCong * (1.0 - phatVatCong));
     phapCong = Math.floor(phapCong * (1.0 - phatPhapCong));
@@ -320,11 +358,11 @@ class TuSi extends Model {
     let mult = PHAT_DA_LINH_CAN[count] ?? 0.4375;
 
     // Bonus tốc độ đặc thù của từng linh căn (áp dụng sau hệ số phạt)
-    if (elements.includes('Loi')) {
-      mult *= config.NGUON_LINH_CAN['Loi'].tu_toc;
-    }
-    if (elements.includes('Hoa')) {
-      mult *= config.NGUON_LINH_CAN['Hoa'].tu_toc;
+    for (const el of elements) {
+      const bonus = config.NGUON_LINH_CAN[el];
+      if (bonus && bonus.tu_toc) {
+        mult *= bonus.tu_toc;
+      }
     }
 
     // Tốc độ tu luyện cộng thêm từ sủng vật Lôi Điệp (nếu có và xuất chiến)
@@ -465,6 +503,12 @@ TuSi.init({
     defaultValue: '[]',
     field: 'linh_can_list_json'
   },
+  huyetMach: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: null,
+    field: 'huyet_mach'
+  },
   canhGioi: {
     type: DataTypes.STRING(50),
     allowNull: false,
@@ -492,13 +536,13 @@ TuSi.init({
   hp: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 100,
+    defaultValue: 15000,
     field: 'hp'
   },
   mp: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 100,
+    defaultValue: 15000,
     field: 'mp'
   },
   linhThach: {

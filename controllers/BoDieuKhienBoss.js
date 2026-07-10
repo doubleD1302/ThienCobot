@@ -743,6 +743,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
       let monsterHp = boss.hp;
       let playerHp = tuSi.hp;
+      let playerMp = tuSi.mp;
       let playerShield = 0;
       let round = 1;
       let totalDmgDealt = 0;
@@ -862,6 +863,60 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             totalDmgDealt += activeSkill.triGia;
             playerShield = (playerShield || 0) + activeSkill.triGiaKhien;
             pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gây thêm \`+${activeSkill.triGia}\` sát thương và tạo khiên \`+${activeSkill.triGiaKhien}\` HP.`);
+          } else if (activeSkill.loai === 'khong_che') {
+            if (Math.random() <= activeSkill.chance) {
+              bossStunnedRounds = activeSkill.duration;
+              pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Khiến Boss bị **Đóng Băng (mất lượt) trong ${activeSkill.duration} hiệp**!`);
+            } else {
+              pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}** nhưng bị Boss hóa giải.`);
+            }
+          } else if (activeSkill.loai === 'hoi_hp') {
+            playerHp = Math.min(stats.max_hp, playerHp + activeSkill.triGia);
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Hồi phục lập tức \`+${activeSkill.triGia}\` HP (Hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+          } else if (activeSkill.loai === 'hoi_mp') {
+            playerMp = Math.min(stats.max_mp, playerMp + activeSkill.triGia);
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Hồi phục lập tức \`+${activeSkill.triGia}\` MP (Hiện tại: \`${playerMp}/${stats.max_mp}\`).`);
+          } else if (activeSkill.loai === 'tu_khi_ky') {
+            activeBuffs.push({
+              ten: activeSkill.ten,
+              pbTen: eq.item.ten,
+              loai: 'tu_khi_ky',
+              triGia: activeSkill.triGia,
+              speedBonus: activeSkill.speedBonus,
+              roundsLeft: activeSkill.duration
+            });
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Tăng \`+${activeSkill.triGia}%\` Pháp Công và \`+${activeSkill.speedBonus}\` Tốc độ trong \`${activeSkill.duration}\` hiệp.`);
+          } else if (activeSkill.loai === 'thach_phu_thuan') {
+            playerShield = (playerShield || 0) + activeSkill.triGia;
+            activeBuffs.push({
+              ten: activeSkill.ten,
+              pbTen: eq.item.ten,
+              loai: 'thach_phu_thuan',
+              roundsLeft: activeSkill.duration
+            });
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Tạo khiên \`+${activeSkill.triGia}\` HP và tăng \`+30%\` Phòng thủ trong \`${activeSkill.duration}\` hiệp.`);
+          } else if (activeSkill.loai === 'u_thiet_lien') {
+            const dmg = activeSkill.triGia;
+            monsterHp = Math.max(0, monsterHp - dmg);
+            totalDmgDealt += dmg;
+            bossSlowRounds = activeSkill.duration;
+            bossSlowPctVal = 0.05;
+            activeBuffs.push({
+              ten: activeSkill.ten,
+              pbTen: eq.item.ten,
+              loai: 'u_thiet_lien_debuff',
+              roundsLeft: activeSkill.duration
+            });
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gây \`+${dmg}\` sát thương và giảm \`5\` Tốc độ của Boss trong \`${activeSkill.duration}\` hiệp.`);
+          } else if (activeSkill.loai === 'chien_co') {
+            activeBuffs.push({
+              ten: activeSkill.ten,
+              pbTen: eq.item.ten,
+              loai: 'chien_co',
+              triGia: activeSkill.triGia,
+              roundsLeft: activeSkill.duration
+            });
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Tăng \`+${activeSkill.triGia}%\` Vật Công và \`+5%\` Bạo kích trong \`${activeSkill.duration}\` hiệp.`);
           }
         }
       }
@@ -900,12 +955,36 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       const isHuyenVuActive = petTemplate && petTemplate.species === 'huyen_vu';
       const originalMaxHp = stats.max_hp;
 
+      // Trạng thái hiệu ứng Luyện Khí
+      let tuKhiActive = 0;
+      let chienYStacks = 0;
+      let chienYDuration = 0;
+      let linhPhaoDebuff = 0;
+
       while (monsterHp > 0 && playerHp > 0 && playerActionCount < 15) {
+        // Tính toán tốc độ hành động động của người chơi theo buff
+        let currentPlaySpeed = stats.speed || 100;
+        for (const buff of activeBuffs) {
+          if (buff.loai === 'huyet_mach_cuong_hoa' && buff.roundsLeft > 0) {
+            currentPlaySpeed += buff.speedBonus;
+          }
+          if (buff.loai === 'tu_khi_ky' && buff.roundsLeft > 0) {
+            currentPlaySpeed += buff.speedBonus;
+          }
+        }
+        if (chienYStacks > 0 && chienYDuration > 0) {
+          const skillHKPT = skills.find(s => s.detail.id === 'huyet_khi_phun_trao');
+          const capDoHKPT = skillHKPT ? skillHKPT.capDo : 1;
+          const speedBonusPerStack = Math.floor(2 * (1 + (capDoHKPT - 1) * 0.01));
+          currentPlaySpeed += chienYStacks * speedBonusPerStack;
+        }
+        const dynamicBaseAvPlayer = 10000 / currentPlaySpeed;
+
         if (avPlayer <= avBoss) {
           // Lượt của người chơi
           const elapsed = avPlayer;
           avBoss -= elapsed;
-          avPlayer = baseAvPlayer;
+          avPlayer = dynamicBaseAvPlayer;
 
           if (phoenixRegenRounds > 0) {
             const regenAmt = Math.floor(stats.max_hp * 0.05);
@@ -936,6 +1015,17 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           }
 
           let currentRoundAtkMult = playerAtkMult;
+          for (const buff of activeBuffs) {
+            if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
+              currentRoundAtkMult += buff.triGia / 100;
+            } else if (buff.loai === 'huyet_mach_cuong_hoa' && buff.roundsLeft > 0) {
+              currentRoundAtkMult += buff.triGia;
+            } else if (buff.loai === 'tu_khi_ky' && buff.roundsLeft > 0) {
+              currentRoundAtkMult += buff.triGia / 100;
+            } else if (buff.loai === 'chien_co' && buff.roundsLeft > 0) {
+              currentRoundAtkMult += buff.triGia / 100;
+            }
+          }
           if (toLongBuffActive) {
             currentRoundAtkMult += 0.10;
           }
@@ -952,21 +1042,142 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             roundCritRate = Math.min(1.0, roundCritRate + 0.15);
             roundCritDmg += 0.30;
           }
+          for (const buff of activeBuffs) {
+            if (buff.loai === 'chien_co' && buff.roundsLeft > 0) {
+              roundCritRate += 0.05;
+            }
+          }
           const isCrit = Math.random() <= roundCritRate;
           let castMsg = '';
 
-          const readySkill = skills.find(s => s.nextRoundAvailable <= playerActionCount + 1);
+          // Tìm kỹ năng sẵn sàng và đủ MP
+          const readySkill = skills.find(s => {
+            const cost = config.getSkillMpCost(s.detail);
+            return s.nextRoundAvailable <= playerActionCount + 1 && playerMp >= cost;
+          });
+
           if (readySkill && Math.random() <= 0.60) {
             const skill = readySkill.detail;
             const capDo = readySkill.capDo;
-            const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
+            const cost = config.getSkillMpCost(skill);
+            playerMp = Math.max(0, playerMp - cost);
+
+            const isKimDan = skill.yeuCauCanhGioi === 13;
+            const isLuyenKhi = ['tu_khi_thuat', 'linh_phao_thuat', 'huyet_khi_phun_trao', 'bang_son_quyen'].includes(skill.id);
+            const levelBonus = (isKimDan || isLuyenKhi) ? 0.01 : 0.1;
+            const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * levelBonus);
             let rawDmg = currentRoundPlayerAtk * skillMult;
 
-            if (isCrit) rawDmg = rawDmg * roundCritDmg;
-            pDmg = Math.max(10, Math.floor(rawDmg) - bossDef);
-
             castMsg = `thi triển **${skill.ten} (Cấp ${capDo})**`;
-            readySkill.nextRoundAvailable = playerActionCount + 1 + 3;
+
+            // Combo / Hiệu ứng kỹ năng Luyện Khí
+            if (skill.loai === 'Phép thuật' && tuKhiActive > 0) {
+              const skillTKT = skills.find(s => s.detail.id === 'tu_khi_thuat');
+              const capDoTKT = skillTKT ? skillTKT.capDo : 1;
+              const bonusPct = 0.20 * (1 + (capDoTKT - 1) * 0.01);
+              rawDmg = rawDmg * (1 + bonusPct);
+              
+              if (skill.id === 'linh_phao_thuat') {
+                const slowChance = 0.15 * (1 + (capDo - 1) * 0.01);
+                if (Math.random() <= slowChance) {
+                  linhPhaoDebuff = 2;
+                  battleLogs.push(`💥 **Linh Pháo Kích Nổ**: Kích hoạt combo Tụ Khí, gây thêm 30% sát thương lan và làm giảm \`3\` Tốc độ của Boss trong 2 hiệp!`);
+                } else {
+                  battleLogs.push(`💥 **Linh Pháo Kích Nổ**: Kích hoạt combo Tụ Khí, gây thêm 30% sát thương lan!`);
+                }
+                rawDmg = rawDmg * 1.30;
+              } else {
+                battleLogs.push(`🌀 **Tụ Khí Kích Phát**: Sát thương của chiêu thức phép thuật này tăng thêm \`+${Math.round(bonusPct * 100)}%\`!`);
+              }
+              tuKhiActive = 0; // Tiêu hao trạng thái Tụ Khí
+            }
+
+            if (skill.id === 'bang_son_quyen' && chienYStacks >= 2) {
+              const critBonus = 0.20 * (1 + (capDo - 1) * 0.01);
+              roundCritRate += critBonus;
+              isCrit = Math.random() <= roundCritRate;
+              bossStunnedRounds = 1;
+              chienYStacks = 0;
+              chienYDuration = 0;
+              castMsg = `thi triển **Toái Đỉnh Quyền (Cấp ${capDo})**`;
+              battleLogs.push(`👊 **Toái Đỉnh Quyền**: Tiêu hao toàn bộ tầng Chiến Ý chuyển hóa Băng Sơn Quyền, tăng \`+${Math.round(critBonus * 100)}%\` tỷ lệ bạo kích và khiến Boss bị **[Choáng]** trong 1 hiệp!`);
+            }
+
+            if (isCrit) rawDmg = rawDmg * roundCritDmg;
+
+            let targetDef = bossDef;
+            if (skill.id === 'bat_hoang_toai_thach_kich') {
+              const ignorePct = Math.min(1.0, 0.10 * (1 + (capDo - 1) * 0.01));
+              targetDef = Math.floor(bossDef * (1 - ignorePct));
+            }
+            pDmg = Math.max(10, Math.floor(rawDmg) - targetDef);
+            if (skill.satThuong === 0) pDmg = 0;
+
+            const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
+            readySkill.nextRoundAvailable = playerActionCount + 1 + cooldownRounds;
+
+            // Xử lý hiệu ứng đặc biệt của kỹ năng Luyện Khí
+            if (skill.id === 'tu_khi_thuat') {
+              const mpRecPct = 0.15 * (1 + (capDo - 1) * 0.01);
+              const mpRecAmt = Math.floor(stats.max_mp * mpRecPct);
+              playerMp = Math.min(stats.max_mp, playerMp + mpRecAmt);
+              tuKhiActive = 2;
+              battleLogs.push(`🌀 **${skill.ten}**: Dẫn dắt linh khí hồi phục \`+${mpRecAmt.toLocaleString()}\` MP và nhận trạng thái **[Tụ Khí]** trong 2 hiệp.`);
+            }
+            if (skill.id === 'huyet_khi_phun_trao') {
+              const hpSacrifice = Math.floor(playerHp * 0.10);
+              playerHp = Math.max(1, playerHp - hpSacrifice);
+              chienYStacks = Math.min(3, (chienYStacks || 0) + 1);
+              chienYDuration = 3;
+              battleLogs.push(`🔥 **${skill.ten}**: Thiêu đốt \`-${hpSacrifice.toLocaleString()}\` HP hiện tại, tích lũy 1 tầng **[Chiến Ý]** (Hiện tại: \`${chienYStacks}/3\` tầng, kéo dài 3 hiệp).`);
+            }
+
+            // Xử lý hiệu ứng đặc biệt của kỹ năng Kim Đan
+            if (skill.id === 'cuu_long_ba_the_tran') {
+              const shieldPct = 0.20 * (1 + (capDo - 1) * 0.01);
+              const shieldAmt = Math.floor(stats.max_hp * shieldPct);
+              playerShield = (playerShield || 0) + shieldAmt;
+              battleLogs.push(`🛡️ **${skill.ten}**: Tạo lá chắn vững chắc \`+${shieldAmt.toLocaleString()}\` HP.`);
+            }
+            if (skill.id === 'huyet_mach_cuong_hoa') {
+              const hpSacrifice = Math.floor(playerHp * 0.10);
+              playerHp = Math.max(1, playerHp - hpSacrifice);
+              const atkBonusPct = 0.30 * (1 + (capDo - 1) * 0.01);
+              const speedBonus = Math.floor(20 * (1 + (capDo - 1) * 0.01));
+              activeBuffs.push({
+                ten: skill.ten,
+                pbTen: skill.ten,
+                loai: 'huyet_mach_cuong_hoa',
+                triGia: atkBonusPct,
+                speedBonus: speedBonus,
+                roundsLeft: 3
+              });
+              battleLogs.push(`🔥 **${skill.ten}**: Thiêu đốt \`-${hpSacrifice}\` HP hiện tại, tăng \`+${Math.floor(atkBonusPct * 100)}%\` Vật Công và \`+${speedBonus}\` Tốc độ trong 3 hiệp.`);
+            }
+            if (skill.id === 'thai_hu_van_kiem_quyet') {
+              const speedRedPct = 0.10 * (1 + (capDo - 1) * 0.01);
+              bossSlowRounds = 3;
+              bossSlowPctVal = speedRedPct;
+              battleLogs.push(`❄️ **${skill.ten}**: Làm chậm \`+${Math.floor(speedRedPct * 100)}%\` Tốc độ của đối phương.`);
+            }
+            if (skill.id === 'ngu_loi_oanh_dinh') {
+              const stunChance = 0.20 * (1 + (capDo - 1) * 0.01);
+              if (Math.random() <= stunChance) {
+                bossStunnedRounds = 1;
+                battleLogs.push(`⚡ **${skill.ten}**: Gây trạng thái **Tê Liệt (Choáng)** cho đối phương trong 1 hiệp!`);
+              }
+            }
+            if (skill.id === 'dai_tu_linh_tran') {
+              const mpHealPct = 0.30 * (1 + (capDo - 1) * 0.01);
+              const mpAmt = Math.floor(stats.max_mp * mpHealPct);
+              playerMp = Math.min(stats.max_mp, playerMp + mpAmt);
+              for (const s of skills) {
+                if (s.detail.id !== 'dai_tu_linh_tran') {
+                  s.nextRoundAvailable = Math.max(1, s.nextRoundAvailable - 1);
+                }
+              }
+              battleLogs.push(`✨ **${skill.ten}**: Hồi phục \`+${mpAmt}\` Chân Khí (MP), giảm thời gian hồi chiêu của các kỹ năng khác đi 1 lượt.`);
+            }
           } else {
             let rawDmg = currentRoundPlayerAtk;
             if (isCrit) rawDmg = rawDmg * roundCritDmg;
@@ -1103,6 +1314,24 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             }
           }
 
+          // Giảm buff thời hạn Luyện Khí
+          if (tuKhiActive > 0) {
+            tuKhiActive--;
+            if (tuKhiActive === 0) {
+              battleLogs.push(`✨ Hiệu ứng [Tụ Khí] đã hết tác dụng.`);
+            }
+          }
+          if (chienYDuration > 0) {
+            chienYDuration--;
+            if (chienYDuration === 0) {
+              chienYStacks = 0;
+              battleLogs.push(`✨ Hiệu ứng [Chiến Ý] đã hết tác dụng.`);
+            }
+          }
+          if (linhPhaoDebuff > 0) {
+            linhPhaoDebuff--;
+          }
+
           if (petSkillCooldownLeft > 0) {
             petSkillCooldownLeft--;
           }
@@ -1115,12 +1344,31 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           // Lượt của Boss
           const elapsed = avBoss;
           avPlayer -= elapsed;
-          avBoss = baseAvBoss;
+          
+          let currentBossSpeed = 100;
+          if (bossSlowRounds > 0) {
+            currentBossSpeed = Math.max(10, Math.floor(currentBossSpeed * (1 - bossSlowPctVal)));
+          }
+          if (linhPhaoDebuff > 0) {
+            currentBossSpeed = Math.max(10, currentBossSpeed - 3);
+          }
+          for (const buff of activeBuffs) {
+            if (buff.loai === 'u_thiet_lien_debuff' && buff.roundsLeft > 0) {
+              currentBossSpeed = Math.max(10, currentBossSpeed - 5);
+            }
+          }
+          avBoss = 10000 / currentBossSpeed;
 
           if (bossStunnedRounds > 0) {
             battleLogs.push(`💤 **Choáng**: **${boss.ten}** bị choáng không thể phản công trong hiệp này!`);
           } else {
-            let bossDmg = Math.max(1, Math.floor((boss.vatCong - stats.vat_phong) / 2)) * 2;
+            let pDef = stats.vat_phong;
+            for (const buff of activeBuffs) {
+              if (buff.loai === 'thach_phu_thuan' && buff.roundsLeft > 0) {
+                pDef = Math.floor(pDef * 1.30);
+              }
+            }
+            let bossDmg = Math.max(1, Math.floor((boss.vatCong - pDef) / 2)) * 2;
             
             if (bossWeakenRounds > 0) {
               bossDmg = Math.floor(bossDmg * (1 - bossWeakenPct));
@@ -1174,6 +1422,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
           if (bossStunnedRounds > 0) bossStunnedRounds--;
           if (bossWeakenRounds > 0) bossWeakenRounds--;
+          if (bossSlowRounds > 0) bossSlowRounds--;
 
           combatRound++;
         }
@@ -1181,6 +1430,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
       boss.hp = monsterHp;
       tuSi.hp = playerHp;
+      tuSi.mp = Math.min(stats.max_mp, playerMp);
 
       const dealers = boss.damageDealers;
       dealers[tuSi.idNguoiDung] = (dealers[tuSi.idNguoiDung] || 0) + totalDmgDealt;

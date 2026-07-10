@@ -302,6 +302,27 @@ async function start() {
 
     console.log('Cơ sở dữ liệu được đồng bộ hóa thành công.');
 
+    // Tự động chèn/đồng bộ toàn bộ danh sách kỹ năng từ config.js vào cơ sở dữ liệu
+    try {
+      const { Skill } = await import('./models/Skill.js');
+      const { SKILLS } = await import('./config.js');
+      for (const sk of SKILLS) {
+        await Skill.upsert({
+          id: sk.id,
+          ten: sk.ten,
+          loai: sk.loai,
+          satThuong: sk.satThuong,
+          cooldown: sk.cooldown,
+          yeuCauCanhGioi: sk.yeuCauCanhGioi,
+          congPhapId: sk.congPhapId,
+          moTa: sk.moTa
+        });
+      }
+      console.log(`[Seed] Đã tự động đồng bộ hóa thành công ${SKILLS.length} kỹ năng vào bảng skills.`);
+    } catch (err) {
+      console.error('[Seed] Lỗi khi tự động đồng bộ hóa kỹ năng:', err);
+    }
+
     // Khắc phục lỗi schema cũ (autoIncrement trên primary key) & dọn dẹp các bản ghi rác
     try {
       const { DataTypes } = await import('sequelize');

@@ -35,8 +35,8 @@ export const HUONG_DI = {
     name: "Thể Tu",
     desc: "Thiên về rèn luyện nhục thân, HP cao, Vật công mạnh, Vật phòng lớn, Giáp dày.",
     base_stats: {
-      hp: 200,
-      mp: 50,
+      hp: 15000,
+      mp: 10000,
       vat_cong: 25,
       phap_cong: 5,
       vat_phong: 18,
@@ -47,8 +47,8 @@ export const HUONG_DI = {
       crit_dmg: 1.50,   // 150%
     },
     growth: {
-      hp: 30,
-      mp: 5,
+      hp: 2250,
+      mp: 1000,
       vat_cong: 5,
       phap_cong: 1,
       vat_phong: 4,
@@ -63,8 +63,8 @@ export const HUONG_DI = {
     name: "Pháp Tu",
     desc: "Thiên về nội công pháp thuật, MP dồi dào, Pháp công cực mạnh, Pháp phòng lớn, Xuyên giáp cao.",
     base_stats: {
-      hp: 120,
-      mp: 150,
+      hp: 10000,
+      mp: 15000,
       vat_cong: 5,
       phap_cong: 25,
       vat_phong: 8,
@@ -75,8 +75,8 @@ export const HUONG_DI = {
       crit_dmg: 1.60,   // 160%
     },
     growth: {
-      hp: 15,
-      mp: 25,
+      hp: 1250,
+      mp: 2500,
       vat_cong: 1,
       phap_cong: 6,
       vat_phong: 1,
@@ -90,14 +90,31 @@ export const HUONG_DI = {
 };
 
 // Elements / Linh Can (Nguồn gốc Linh Căn)
+// Elements / Linh Can (Nguồn gốc Linh Căn)
 export const NGUON_LINH_CAN = {
-  Hoa: { name: "Hỏa Linh Căn", desc: "Tu tốc x1.5, bạo kích mạnh", tu_toc: 1.5, crit_rate: 0.05 },
-  Thuy: { name: "Thủy Linh Căn", desc: "HP/MP cao, hồi phục tốt", hp_mult: 1.15, mp_mult: 1.15 },
-  Moc: { name: "Mộc Linh Căn", desc: "Cường hóa đan dược, dược hiệu tăng 30%", dan_duoc_mult: 1.3 },
-  Kim: { name: "Kim Linh Căn", desc: "Sát thương vật lý +20%", vat_cong_mult: 1.20 },
-  Tho: { name: "Thổ Linh Căn", desc: "Phòng thủ tối thượng, HP cao", vat_phong_mult: 1.20, hp_mult: 1.10 },
-  Loi: { name: "Lôi Linh Căn", desc: "Hiếm (1%): kỹ năng lôi hệ mạnh, tu tốc x2.0, bạo thương +30%", tu_toc: 2.0, crit_dmg: 0.30 },
+  Tho: { name: "Thổ Linh Căn", desc: "Tăng 5% HP, 5% Phòng thủ", emoji: "<:LC_Tho:1525066160326840330>", hp_mult: 1.05, def_mult: 1.05 },
+  Hoa: { name: "Hỏa Linh Căn", desc: "Tăng 5% Tấn công, 5% Bạo thương", emoji: "<:LC_Hoa:1525066154081517650>", atk_mult: 1.05, crit_dmg: 0.05 },
+  Thuy: { name: "Thủy Linh Căn", desc: "Tăng 5% HP, 5% MP", emoji: "<:LC_thuy:1525066156522733588>", hp_mult: 1.05, mp_mult: 1.05 },
+  Moc: { name: "Mộc Linh Căn", desc: "Tăng 5% MP, 5% Phòng thủ", emoji: "<:LC_moc:1525067189227356270>", mp_mult: 1.05, def_mult: 1.05 },
+  Kim: { name: "Kim Linh Căn", desc: "Tăng 5% Tấn công, 5% Tốc độ", emoji: "<:LC_kim:1525066151770718289>", atk_mult: 1.05, speed_mult: 1.05 },
+  Phong: { name: "Phong Linh Căn", desc: "Tăng 5% Né tránh, 5% Tốc độ", emoji: "<:LC_phong:1525066162793086986>", ne: 0.05, speed_mult: 1.05 },
+  Quang: { name: "Quang Linh Căn", desc: "Tăng 5% MP, 5% Tốc độ", emoji: "<:LC_Quang:1525067187008569384>", mp_mult: 1.05, speed_mult: 1.05 },
+  Am: { name: "Ám Linh Căn", desc: "Tăng 5% Bạo kích, 5% Hút máu", emoji: "<:LC_am:1525066164454166631>", crit_rate: 0.05, lifesteal: 0.05 }
 };
+
+// Huyết Mạch (Bloodline)
+export const HUYET_MACH = {
+  LongToc: { name: "Long tộc", desc: "Tăng 10% HP (hoặc MP nếu là Pháp Tu) và 10% Tấn công", emoji: "<:long_toc:1525072213420539955>" },
+  MaToc: { name: "Ma tộc", desc: "Tăng 10% Tấn công và 10% Bạo kích", emoji: "<:ma_toc:1525072206185627709>" },
+  TienToc: { name: "Tiên tộc", desc: "Tăng 10% HP và 10% Phòng thủ", emoji: "<:tien_toc:1525072211281576087>" },
+  NhanToc: { name: "Nhân tộc", desc: "Tăng 20% HP (hoặc MP nếu là Pháp Tu)", emoji: "<:nhan_toc:1525072208731570276>" },
+  TinhLinh: { name: "Tinh linh tộc", desc: "Tăng 20% Tốc độ", emoji: "<:tinh_linh:1525072215274422272>" }
+};
+
+export function rollHuyetMach() {
+  const keys = Object.keys(HUYET_MACH);
+  return keys[Math.floor(Math.random() * keys.length)];
+}
 
 // Levels and realms mapping (Danh sách Cảnh Giới)
 export const CANH_GIOI_LIST = [
@@ -153,52 +170,12 @@ export function layTiLeDotPha(level) {
 }
 
 export function rollLinhCan() {
-  const roll = Math.random() * 100.0;
-  const elementPool = ["Hoa", "Thuy", "Moc", "Kim", "Tho"];
-
-  if (roll <= 0.1) {
-    return {
-      elements: [...elementPool],
-      displayName: "Ngũ Linh Căn"
-    };
-  } else if (roll <= 1.1) {
-    return {
-      elements: ["Loi"],
-      displayName: "Lôi Linh Căn"
-    };
-  } else if (roll <= 2.1) {
-    const selected = selectRandom(elementPool, 4);
-    const names = selected.map(el => NGUON_LINH_CAN[el].name.replace(" Linh Căn", ""));
-    return {
-      elements: selected,
-      displayName: `Tứ Linh Căn (${names.join('/')})`
-    };
-  } else if (roll <= 5.1) {
-    const selected = selectRandom(elementPool, 3);
-    const names = selected.map(el => NGUON_LINH_CAN[el].name.replace(" Linh Căn", ""));
-    return {
-      elements: selected,
-      displayName: `Tam Linh Căn (${names.join('/')})`
-    };
-  } else if (roll <= 15.1) {
-    const selected = selectRandom(elementPool, 2);
-    const names = selected.map(el => NGUON_LINH_CAN[el].name.replace(" Linh Căn", ""));
-    return {
-      elements: selected,
-      displayName: `Song Linh Căn (${names.join('/')})`
-    };
-  } else {
-    const selected = [elementPool[Math.floor(Math.random() * elementPool.length)]];
-    return {
-      elements: selected,
-      displayName: NGUON_LINH_CAN[selected[0]].name
-    };
-  }
-}
-
-function selectRandom(array, num) {
-  const shuffled = [...array].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, num);
+  const elementPool = ["Tho", "Hoa", "Thuy", "Moc", "Kim", "Phong", "Quang", "Am"];
+  const selected = elementPool[Math.floor(Math.random() * elementPool.length)];
+  return {
+    elements: [selected],
+    displayName: NGUON_LINH_CAN[selected].name
+  };
 }
 
 // ==========================================
@@ -239,20 +216,43 @@ export const ITEMS = [
   { id: 'dan_dot_pha_8', ten: 'Đại Thừa Phá Cảnh Đan 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 28, moTa: 'Đan dược hỗ trợ đột phá cảnh giới Đại Thừa.', emoji: '<:dan_dotpha:1522644600030756947>', food: 0 },
 
   // ==================== CẢNH GIỚI: LUYỆN KHÍ (YÊU CẦU CẤP 1) ====================
-  // Vũ khí Thể Tu
-  { id: 'kiem_go', ten: 'Kiếm Gỗ 🪵', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{"vat_cong":10}', yeuCauCanhGioi: 1, moTa: 'Thanh kiếm gỗ thô sơ cho tân thủ.', emoji: '<:kiem:1522610147569041419>', food: 0 },
-  { id: 'kiem_tien_tan_thu', ten: 'Tân Thủ Tiên Kiếm 🗡️', loai: 'Vũ khí', doHiem: 'Cực hiếm', giaCoSo: 1000, chiSoJson: '{"vat_cong":35}', yeuCauCanhGioi: 1, moTa: 'Thần binh rớt từ thượng giới dành cho tân thủ Luyện Khí.', emoji: '<:kiem:1522610147569041419>', food: 0 },
+  // --- HỆ PHÁP TU ---
+  { id: 'thanh_phong_kiem', ten: 'Thanh Phong Kiếm', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 500, chiSoJson: '{"phap_cong":500,"crit_rate":0.03}', yeuCauCanhGioi: 1, moTa: 'Kiếm linh hoạt, tụ linh pháp thuật.', emoji: '<:thanh_phong_kiem:1525080282670301314>', food: 0 },
+  { id: 'dao_bao_thanh_van', ten: 'Đạo Bào Thanh Vân', loai: 'Giáp', doHiem: 'Thường', giaCoSo: 500, chiSoJson: '{"phap_phong":100,"vat_phong":200,"mp":1000}', yeuCauCanhGioi: 1, moTa: 'Đạo bào nhẹ nhàng dệt từ mây thanh.', emoji: '<:dao_bao_thanh_van:1525080280644456578>', food: 0 },
+  { id: 'thuy_linh_boi', ten: 'Thủy Linh Bội', loai: 'Ngọc Bội', doHiem: 'Thường', giaCoSo: 500, chiSoJson: '{"speed":5,"crit_dmg":0.12}', yeuCauCanhGioi: 1, moTa: 'Ngọc bội hấp thụ thủy sinh chi linh.', emoji: '<:thuy_linh_boi:1525080277750255636>', food: 0 },
 
-  // Vũ khí Pháp Tu
-  { id: 'truong_go', ten: 'Mộc Trượng 🪵', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{"phap_cong":10}', yeuCauCanhGioi: 1, moTa: 'Khúc gỗ dẫn linh khí thô sơ.', emoji: '<:truong_phep:1522629314653458472>', food: 0 },
-  { id: 'truong_tien_tan_thu', ten: 'Tân Thủ Linh Trượng 🎋', loai: 'Vũ khí', doHiem: 'Cực hiếm', giaCoSo: 1000, chiSoJson: '{"phap_cong":35}', yeuCauCanhGioi: 1, moTa: 'Linh trượng ban tặng cho tân thủ Luyện Khí có tư chất cực tốt.', emoji: '<:truong_phep:1522629314653458472>', food: 0 },
+  // --- HỆ THỂ TU ---
+  { id: 'thiet_cot_dao', ten: 'Thiết Cốt Đao', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 500, chiSoJson: '{"vat_cong":500,"crit_rate":0.03}', yeuCauCanhGioi: 1, moTa: 'Đao đúc bằng cốt sắt thô dũng mãnh.', emoji: '<:thiet_cot_dao:1525083768724000768>', food: 0 },
+  { id: 'tho_bo_thuc_cu', ten: 'Thô Bố Trực Cư', loai: 'Giáp', doHiem: 'Thường', giaCoSo: 500, chiSoJson: '{"vat_phong":100,"phap_phong":200,"hp":1000}', yeuCauCanhGioi: 1, moTa: 'Y phục thô sơ dệt từ sợi gai dại.', emoji: '<:tho_bo_thuc_cu:1525083763074142318>', food: 0 },
+  { id: 'khuong_thach_boi', ten: 'Khương Thạch Bội', loai: 'Ngọc Bội', doHiem: 'Thường', giaCoSo: 500, chiSoJson: '{"speed":4,"crit_dmg":0.12}', yeuCauCanhGioi: 1, moTa: 'Ngọc bội làm từ đá thô cứng cáp.', emoji: '<:khuong_thach_boi:1525083765016363158>', food: 0 },
 
-  // Giáp
-  { id: 'ao_vai', ten: 'Đạo Bào Vải 🥋', loai: 'Giáp', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{"vat_phong":5,"phap_phong":5,"hp":50}', yeuCauCanhGioi: 1, moTa: 'Áo vải đệ tử mặc hàng ngày.', emoji: '<:ao:1522624070741524530>', food: 0 },
-  { id: 'giap_tien_tan_thu', ten: 'Tân Thủ Tiên Giáp 🥋', loai: 'Giáp', doHiem: 'Cực hiếm', giaCoSo: 1000, chiSoJson: '{"vat_phong":20,"phap_phong":20,"hp":200}', yeuCauCanhGioi: 1, moTa: 'Linh giáp phòng ngự hộ thể hoàn mỹ cho tân thủ Luyện Khí.', emoji: '<:ao:1522624070741524530>', food: 0 },
+  // --- HỆ THỐNG PHÁP BẢO CHỦ ĐỘNG ---
+  // Pháp Tu
+  { id: 'pb_lk_linh_phong_cham', ten: 'Linh Phong Châm', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Phi Châm Phá Giáp.', emoji: '<:linh_phong_cham:1525080275430670406>', food: 0 },
+  { id: 'pb_lk_dan_loi_phu', ten: 'Dẫn Lôi Phù', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Sơ Cấp Lôi Trận.', emoji: '<:dan_loi_phu:1525080273287516240>', food: 0 },
+  { id: 'pb_lk_ho_than_kinh', ten: 'Hộ Thân Kính', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Linh Khí Tráo.', emoji: '<:ho_than_kinh:1525080271194427452>', food: 0 },
+  { id: 'pb_lk_dinh_than_phu', ten: 'Định Thân Phù', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Định Thân Thuật.', emoji: '<:dinh_than_phu:1525080269239877692>', food: 0 },
+  { id: 'pb_lk_thanh_linh_binh', ten: 'Thanh Linh Bình', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Cam Lộ Thuật.', emoji: '<:thanh_linh_binh:1525080264995246120>', food: 0 },
+  { id: 'pb_lk_tu_khi_ky', ten: 'Tụ Khí Kỳ', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Linh Lực Bộc Phát.', emoji: '<:tu_khi_ky:1525080267310497875>', food: 0 },
 
-  // Đan dược / Thảo dược
-  { id: 'nguyen_lieu_luyen_khi', ten: 'Luyện Khí Thạch 💎', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh thạch sơ cấp chứa ít linh khí dùng để rèn đúc trang bị Luyện Khí.', emoji: '💎', food: 0 },
+  // Thể Tu
+  { id: 'pb_lk_toai_thach_an', ten: 'Toái Thạch Ấn', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Man Lực Trực Kích.', emoji: '<:toai_thach_an:1525083761237033061>', food: 0 },
+  { id: 'pb_lk_hoa_tinh_dinh', ten: 'Hỏa Tinh Đỉnh', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Liệt Diễm Khí Kình.', emoji: '<:hoa_tinh_dinh:1525083758854930502>', food: 0 },
+  { id: 'pb_lk_thach_phu_thuan', ten: 'Thạch Phù Thuẫn', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Nham Thạch Hộ Thể.', emoji: '<:thach_phu_thuan:1525083756866703551>', food: 0 },
+  { id: 'pb_lk_u_thiet_lien', ten: 'U Thiết Liên', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Thiết Khóa Trầm Trọng.', emoji: '<:u_thiet_lien:1525083754647785472>', food: 0 },
+  { id: 'pb_lk_da_son_sam', ten: 'Dã Sơn Sâm', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Đại Bổ Khí Huyết.', emoji: '<:da_son_sam:1525083752467005440>', food: 0 },
+  { id: 'pb_lk_chien_co', ten: 'Chiến Cổ', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Thú Huyết Sôi Sục.', emoji: '<:chien_co:1525083750281515058>', food: 0 },
+
+  // --- NGUYÊN LIỆU LUYỆN CHẾ SƠ CẤP ---
+  { id: 'so_cap_thiet_quang', ten: 'Sơ Cấp Thiết Quặng', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Mỏ quặng sắt cơ bản, dùng để rèn đao, đúc kiếm.', emoji: '<:so_cap_thiet_quang:1525076114295492679>', food: 0 },
+  { id: 'tho_linh_dan_ty', ten: 'Thô Linh Đàn Ty', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tơ thô của tằm dâu dại, dùng dệt áo thô hoặc may đạo bào.', emoji: '<:tho_linh_dan_ty:1525076109887148144>', food: 0 },
+  { id: 'linh_khi_toai_thach', ten: 'Linh Khí Toái Thạch', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Mảnh vỡ đá linh khí chứa chút gió nhẹ, dùng để chế tạo ngọc bội cộng Tốc Độ.', emoji: '<:linh_khi_toai_thach:1525076112382623754>', food: 0 },
+  { id: 'nham_hoa_tinh_hoa', ten: 'Nham Hỏa Tinh Hoa', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Chút vụn đá nóng từ đá núi lửa, tạo ra pháp bảo tấn công đơn.', emoji: '<:nham_hoa_tinh_hoa:1525076107509108776>', food: 0 },
+  { id: 'sat_danh_moc', ten: 'Sét Đánh Mộc', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Khúc gỗ bị sét đánh trúng, mang điện tính lan truyền.', emoji: '<:sat_danh_moc:1525076096213581945>', food: 0 },
+  { id: 'kien_thach_tam', ten: 'Kiên Thạch Tâm', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Lõi của các tảng đá cứng ngoài tự nhiên, dùng làm khiên bảo hộ.', emoji: '<:kien_thach_tam:1525076100655354038>', food: 0 },
+  { id: 'thiet_dang_man', ten: 'Thiết Đằng Man', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Dây leo làm bằng rễ cây sắt dẻo dai khó đứt, dùng để trói/làm chậm địch.', emoji: '<:thiet_dang_man:1525076105302773760>', food: 0 },
+  { id: 'linh_tuyen_thuy', ten: 'Linh Tuyền Thủy', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nước suối chứa một chút sinh khí tinh khiết, dùng làm bình hồi phục.', emoji: '<:linh_tuyen_thuy:1525076102870073426>', food: 0 },
+  { id: 'yeu_thu_huyet', ten: 'Yêu Thú Huyết', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Máu của các loài thú hoang sơ cấp, dùng để kích thích chiến ý/linh lực.', emoji: '<:yeu_thu_huyet:1525076098302345277>', food: 0 },
   { id: 'nguyen_lieu_truc_co', ten: 'Huyền Thiết Thạch 🪙', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Quặng huyền thiết thô ráp, cứng cáp dẻo dai dùng để rèn đúc trang bị Trúc Cơ.', emoji: '🪙', food: 0 },
   { id: 'nguyen_lieu_kim_dan', ten: 'Kim Đan Linh Sa 🪨', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Linh sa huyền ảo hội tụ đan hỏa linh khí dùng để rèn đúc trang bị Kim Đan.', emoji: '🪨', food: 0 },
   { id: 'huyen_thiet_van_nam', ten: 'Vạn Năm Huyền Thiết', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Quặng sắt sinh ra từ tâm Trái Đất, vô cùng cứng rắn, hấp thụ được cả linh khí lẫn sức mạnh thể chất.', emoji: '<:Huyen_thiet_van_nam:1524812777347092560>', food: 0 },
@@ -433,15 +433,32 @@ export const ITEMS = [
 // ==========================================
 export const SKILLS = [
   // Kỹ năng phái Thể Tu (Vật lý)
-  { id: 'thanh_phong_quyen', ten: 'Thanh Phong Quyền 👊', loai: 'Vật lý', satThuong: 120, cooldown: 6, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Đấm ra một quyền tựa gió mát lướt qua, sát thương bằng 120% Vật công.' },
+  { id: 'huyet_khi_phun_trao', ten: 'Huyết Khí Phun Trào <:huyet_khi_phun_trao:1525086798328369283>', loai: 'Vật lý', satThuong: 0, cooldown: 9, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Đốt cháy một phần khí huyết để kích hoạt tiềm năng nhục thân, khiến cơ bắp tràn trề sức mạnh.' },
+  { id: 'bang_son_quyen', ten: 'Băng Sơn Quyền <:bang_son_quyen:1525086796462162022>', loai: 'Vật lý', satThuong: 100, cooldown: 0, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Dồn toàn lực vào nắm đấm, lao đến nện mạnh xuống khiến mặt đất rung chuyển, hạn chế khả năng di chuyển của địch.' },
   { id: 'ba_vuong_kich', ten: 'Bá Vương Kích 🔱', loai: 'Vật lý', satThuong: 150, cooldown: 12, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Kích ra mạnh mẽ như Bá Vương xuất thế, sát thương bằng 150% Vật công.' },
+  { id: 'bat_hoang_toai_thach_kich', ten: 'Bát Hoang Toái Thạch Kích <:bat_hoang_toai_thach_kich:1525024448137269421>', loai: 'Vật lý', satThuong: 150, cooldown: 9, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật vận dụng toàn bộ sức mạnh cơ bắp, gây sát thương vật lý bằng 150% Vật Công lên một mục tiêu và bỏ qua 10% Vật Phòng của đối phương. - hồi chiêu 3 hiệp' },
+  { id: 'cuu_long_ba_the_tran', ten: 'Cửu Long Bá Thể Trận <:cuu_long_ba_the:1525024450687537233>', loai: 'Vật lý', satThuong: 0, cooldown: 15, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật kích hoạt khí huyết, tạo ra một lớp khiên chắn tương đương 20% HP tối đa và tăng 15% Kháng khống chế trong 3 hiệp. - hồi chiêu 5 hiệp' },
+  { id: 'huyet_mach_cuong_hoa', ten: 'Huyết Mạch Cuồng Hóa <:huyet_mach_cuong_hoa:1525024458547531817>', loai: 'Vật lý', satThuong: 0, cooldown: 15, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật thiêu đốt 10% HP hiện tại để tiến vào trạng thái cuồng nộ, giúp tăng 30% Vật Công và +20 Tốc độ trong 3 hiệp. - hồi chiêu 5 hiệp' },
   { id: 'ham_thien_chuong', ten: 'Hám Thiên Chưởng 💥', loai: 'Vật lý', satThuong: 200, cooldown: 18, yeuCauCanhGioi: 19, congPhapId: null, moTa: 'Tụ lực giáng chưởng chấn động thiên địa, sát thương bằng 200% Vật công.' },
 
   // Kỹ năng phái Pháp Tu (Phép thuật)
-  { id: 'hoa_diem_thuat', ten: 'Hỏa Diễm Thuật 🔥', loai: 'Phép thuật', satThuong: 120, cooldown: 6, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Triệu hồi quả cầu lửa thiêu đốt đối thủ, sát thương bằng 120% Pháp công.' },
+  { id: 'tu_khi_thuat', ten: 'Tụ Khí Thuật <:tu_khi_thuat:1525086802921394176>', loai: 'Phép thuật', satThuong: 0, cooldown: 6, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Tu sĩ vận chuyển chu thiên, dẫn dắt linh khí đất trời vào cơ thể.' },
+  { id: 'linh_phao_thuat', ten: 'Linh Pháo Thuật <:linh_phao_thuat:1525086800635494522>', loai: 'Phép thuật', satThuong: 100, cooldown: 0, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Nén chân khí lại thành một viên pháo năng lượng rồi bắn thẳng vào kẻ địch.' },
   { id: 'ngu_loi_thuat', ten: 'Ngự Lôi Thuật ⚡', loai: 'Phép thuật', satThuong: 150, cooldown: 12, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Dẫn lôi đình giáng xuống đầu kẻ thù, sát thương bằng 150% Pháp công.' },
+  { id: 'thai_hu_van_kiem_quyet', ten: 'Thái Hư Vạn Kiếm Quyết <:thai_hu_van_kiem:1525024456840450088>', loai: 'Phép thuật', satThuong: 100, cooldown: 9, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật tiêu hao chân khí triệu hồi vô số phi kiếm, gây sát thương phép diện rộng bằng 100% Pháp Công lên toàn bộ kẻ địch và làm giảm 10% Tốc độ của chúng. - hồi chiêu 3 hiệp' },
+  { id: 'ngu_loi_oanh_dinh', ten: 'Ngũ Lôi Oanh Đỉnh <:ngu_loi_oanh_dinh:1525024452830826617>', loai: 'Phép thuật', satThuong: 180, cooldown: 9, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật ngưng tụ sấm sét giáng xuống đầu một mục tiêu, gây sát thương phép cực mạnh bằng 180% Pháp Công kèm theo 20% tỷ lệ gây Tê Liệt (mất lượt hành động) trong 1 hiệp. - hồi chiêu 3 hiệp' },
+  { id: 'dai_tu_linh_tran', ten: 'Đại Tụ Linh Trận <:dai_tu_linh_tran:1525024454911070258>', loai: 'Phép thuật', satThuong: 0, cooldown: 15, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật trận pháp hấp thụ linh khí đất trời, ngay lập tức hồi phục 30% Chân Khí (MP) tối đa và giảm thời gian hồi chiêu của tất cả kỹ năng khác đi 1 lượt. - hồi chiêu 5 hiệp' },
   { id: 'bang_vu_thuat', ten: 'Băng Vũ Thuật ❄️', loai: 'Phép thuật', satThuong: 200, cooldown: 18, yeuCauCanhGioi: 19, congPhapId: null, moTa: 'Tạo cơn mưa băng buốt lạnh tàn phá kinh mạch, sát thương bằng 200% Pháp công.' }
 ];
+
+export function getSkillMpCost(skill) {
+  if (skill.id === 'linh_phao_thuat') return 200;
+  if (skill.yeuCauCanhGioi === 13) {
+    if (skill.loai === 'Vật lý') return 25000;
+    if (skill.loai === 'Phép thuật') return 30000;
+  }
+  return 0;
+}
 
 // ==========================================
 // CẤU HÌNH BÍ CẢNH (DUNGEONS)
@@ -469,9 +486,26 @@ export const DUNGEONS = [
     drops: [
       { itemId: 'dan_hp_1', tile: 0.50 },
       { itemId: 'dan_mp_1', tile: 0.50 },
-      { itemId: 'kiem_go', tile: 0.15 },
-      { itemId: 'truong_go', tile: 0.15 },
-      { itemId: 'ao_vai', tile: 0.15 }
+      // Pháp Tu
+      { itemId: 'thanh_phong_kiem', tile: 0.15 },
+      { itemId: 'dao_bao_thanh_van', tile: 0.15 },
+      { itemId: 'thuy_linh_boi', tile: 0.15 },
+      { itemId: 'pb_lk_linh_phong_cham', tile: 0.05 },
+      { itemId: 'pb_lk_dan_loi_phu', tile: 0.05 },
+      { itemId: 'pb_lk_ho_than_kinh', tile: 0.05 },
+      { itemId: 'pb_lk_dinh_than_phu', tile: 0.05 },
+      { itemId: 'pb_lk_thanh_linh_binh', tile: 0.05 },
+      { itemId: 'pb_lk_tu_khi_ky', tile: 0.05 },
+      // Thể Tu
+      { itemId: 'thiet_cot_dao', tile: 0.15 },
+      { itemId: 'tho_bo_thuc_cu', tile: 0.15 },
+      { itemId: 'khuong_thach_boi', tile: 0.15 },
+      { itemId: 'pb_lk_toai_thach_an', tile: 0.05 },
+      { itemId: 'pb_lk_hoa_tinh_dinh', tile: 0.05 },
+      { itemId: 'pb_lk_thach_phu_thuan', tile: 0.05 },
+      { itemId: 'pb_lk_u_thiet_lien', tile: 0.05 },
+      { itemId: 'pb_lk_da_son_sam', tile: 0.05 },
+      { itemId: 'pb_lk_chien_co', tile: 0.05 }
     ]
   },
   {
@@ -798,9 +832,95 @@ export function rollDynamicStats(item, options = {}) {
 
 // Cấu hình Kỹ Năng Chủ Động của Pháp Bảo
 export const KYNANG_PHAPBAO_ACTIVE = {
-  phap_bao_ho_than: { ten: "Phù Vân Hộ Thể 🛡️", loai: "khien", triGia: 120, duration: 0, moTa: "Ngưng tụ sương mù khiên hộ thể, chặn 120 sát thương kế tiếp." },
-  phap_bao_cong_kich: { ten: "Hỏa Long Chủy 🔱", loai: "tan_cong", triGia: 320, duration: 0, moTa: "Phóng thần lao lửa oanh tạc địch nhân, gây 320 sát thương pháp bảo." },
-  phap_bao_hon_ton: { ten: "Hỗn Độn Phá Thiên 🔔", loai: "hon_hop", triGia: 550, triGiaKhien: 250, duration: 0, moTa: "Chuông vàng gõ vang gây 550 sát thương pháp bảo và tạo khiên 250 phòng ngự." },
+  // --- KỸ NĂNG CHỦ ĐỘNG PHÁP BẢO LUYỆN KHÍ ---
+  // Pháp Tu
+  pb_lk_linh_phong_cham: {
+    ten: "Phi Châm Phá Giáp 🪡",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.phap_cong || 100) * 1.50),
+    duration: 0,
+    moTa: "Gây 150% Sát thương phép lên 1 mục tiêu."
+  },
+  pb_lk_dan_loi_phu: {
+    ten: "Sơ Cấp Lôi Trận ⚡",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.phap_cong || 100) * 0.80),
+    duration: 0,
+    moTa: "Gây 80% Sát thương phép lên toàn bộ mục tiêu."
+  },
+  pb_lk_ho_than_kinh: {
+    ten: "Linh Khí Tráo 🛡️",
+    loai: "khien",
+    triGia: 800,
+    duration: 2,
+    moTa: "Tạo khiên chặn 800 sát thương trong 2 hiệp."
+  },
+  pb_lk_dinh_than_phu: {
+    ten: "Định Thân Thuật 🌀",
+    loai: "khong_che",
+    chance: 0.40,
+    duration: 1,
+    moTa: "40% tỷ lệ khiến đối phương bị Đóng Băng (mất lượt) trong 1 hiệp."
+  },
+  pb_lk_thanh_linh_binh: {
+    ten: "Cam Lộ Thuật 💧",
+    loai: "hoi_mp",
+    triGia: 1000,
+    duration: 0,
+    moTa: "Hồi phục lập tức 1000 Chân Khí (MP)."
+  },
+  pb_lk_tu_khi_ky: {
+    ten: "Linh Lực Bộc Phát 🚩",
+    loai: "tu_khi_ky",
+    triGia: 20,
+    speedBonus: 10,
+    duration: 2,
+    moTa: "Tăng 20% Pháp Công và +10 Tốc độ trong 2 hiệp."
+  },
+
+  // Thể Tu
+  pb_lk_toai_thach_an: {
+    ten: "Man Lực Trực Kích 🔨",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.vat_cong || 100) * 1.50),
+    duration: 0,
+    moTa: "Gây 150% Sát thương vật lý lên 1 mục tiêu."
+  },
+  pb_lk_hoa_tinh_dinh: {
+    ten: "Liệt Diễm Khí Kình 🔥",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.vat_cong || 100) * 0.80),
+    duration: 0,
+    moTa: "Gây 80% Sát thương vật lý lên toàn bộ mục tiêu."
+  },
+  pb_lk_thach_phu_thuan: {
+    ten: "Nham Thạch Hộ Thể 🛡️",
+    loai: "thach_phu_thuan",
+    triGia: 150,
+    duration: 2,
+    moTa: "Tăng 30% Thủ, chặn 150 sát thương trong 2 hiệp."
+  },
+  pb_lk_u_thiet_lien: {
+    ten: "Thiết Khóa Trầm Trọng ⛓️",
+    loai: "u_thiet_lien",
+    tinhScale: (stats) => Math.floor((stats?.vat_cong || 100) * 0.80), // Let's say it does 80% physical attack as damage
+    duration: 2,
+    moTa: "Gây sát thương và giảm 5 Tốc độ của mục tiêu trong 2 hiệp."
+  },
+  pb_lk_da_son_sam: {
+    ten: "Đại Bổ Khí Huyết 🥕",
+    loai: "hoi_hp",
+    triGia: 1000,
+    duration: 0,
+    moTa: "Hồi phục lập tức 1000 Khí Huyết (HP)."
+  },
+  pb_lk_chien_co: {
+    ten: "Thú Huyết Sôi Sục 🥁",
+    loai: "chien_co",
+    triGia: 20,
+    duration: 2,
+    moTa: "Tăng 20% Vật Công và +5% Bạo kích trong 2 hiệp."
+  },
 
   // --- KỸ NĂNG CHỦ ĐỘNG PHÁP BẢO KIM ĐAN ---
   pb_kd_diet_ma_cham: {

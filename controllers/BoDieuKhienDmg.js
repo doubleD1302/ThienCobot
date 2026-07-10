@@ -179,12 +179,25 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
         battleLogs.push(pbLogs.join('\n'));
       }
 
+      let simMp = stats.max_mp;
+      let tuKhiActive = 0;
+      let chienYStacks = 0;
+      let chienYDuration = 0;
+
       while (round <= 15) {
         let roundAtkMult = playerAtkMult;
         for (const buff of activeBuffs) {
           if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
             roundAtkMult += buff.triGia / 100;
+          } else if (buff.loai === 'huyet_mach_cuong_hoa' && buff.roundsLeft > 0) {
+            roundAtkMult += buff.triGia;
           }
+        }
+        if (chienYStacks > 0 && chienYDuration > 0) {
+          const skillHKPT = skills.find(s => s.detail.id === 'huyet_khi_phun_trao');
+          const capDoHKPT = skillHKPT ? skillHKPT.capDo : 1;
+          const vatCongBonusPerStack = 0.08 * (1 + (capDoHKPT - 1) * 0.01);
+          roundAtkMult += chienYStacks * vatCongBonusPerStack;
         }
         if (isHuyenVuActive) {
           const huyenVuBuff = (round - 1) * 0.02;
@@ -192,7 +205,10 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
         }
         const currentRoundPlayerAtk = Math.floor(basePlayerAtk * roundAtkMult);
 
-        const readySkill = skills.find(s => s.nextRoundAvailable <= round);
+        const readySkill = skills.find(s => {
+          const cost = config.getSkillMpCost(s.detail);
+          return s.nextRoundAvailable <= round && simMp >= cost;
+        });
         let pDmg = 0;
         let isCrit = Math.random() <= stats.crit_rate;
         if (isCrit) critCount++;
@@ -201,17 +217,99 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
         if (readySkill) {
           const skill = readySkill.detail;
           const capDo = readySkill.capDo;
-          const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * 0.1);
+          const cost = config.getSkillMpCost(skill);
+          simMp = Math.max(0, simMp - cost);
+
+          const isKimDan = skill.yeuCauCanhGioi === 13;
+          const isLuyenKhi = ['tu_khi_thuat', 'linh_phao_thuat', 'huyet_khi_phun_trao', 'bang_son_quyen'].includes(skill.id);
+          const levelBonus = (isKimDan || isLuyenKhi) ? 0.01 : 0.1;
+          const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * levelBonus);
           let rawDmg = currentRoundPlayerAtk * skillMult;
 
+          castMsg = `thi triển **${skill.ten} (Cấp ${capDo})**`;
+
+          // Combo / Hiệu ứng kỹ năng Luyện Khí
+          if (skill.loai === 'Phép thuật' && tuKhiActive > 0) {
+            const skillTKT = skills.find(s => s.detail.id === 'tu_khi_thuat');
+            const capDoTKT = skillTKT ? skillTKT.capDo : 1;
+            const bonusPct = 0.20 * (1 + (capDoTKT - 1) * 0.01);
+            rawDmg = rawDmg * (1 + bonusPct);
+            
+            if (skill.id === 'linh_phao_thuat') {
+              battleLogs.push(`   💥 **Linh Pháo Kích Nổ**: Kích hoạt combo Tụ Khí, gây thêm 30% sát thương lan!`);
+              rawDmg = rawDmg * 1.30;
+            } else {
+              battleLogs.push(`   🌀 **Tụ Khí Kích Phát**: Sát thương của chiêu thức phép thuật này tăng thêm \`+${Math.round(bonusPct * 100)}%\`!`);
+            }
+            tuKhiActive = 0; // Tiêu hao trạng thái Tụ Khí
+          }
+
+          if (skill.id === 'bang_son_quyen' && chienYStacks >= 2) {
+            const critBonus = 0.20 * (1 + (capDo - 1) * 0.01);
+            stats.crit_rate += critBonus;
+            isCrit = Math.random() <= stats.crit_rate;
+            chienYStacks = 0;
+            chienYDuration = 0;
+            castMsg = `thi triển **Toái Đỉnh Quyền (Cấp ${capDo})**`;
+            battleLogs.push(`   👊 **Toái Đỉnh Quyền**: Tiêu hao toàn bộ tầng Chiến Ý chuyển hóa Băng Sơn Quyền, tăng \`+${Math.round(critBonus * 100)}%\` tỷ lệ bạo kích và khiến mục tiêu bị **[Choáng]** trong 1 hiệp!`);
+          }
+
           if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
-          pDmg = Math.max(1, Math.floor(rawDmg) - targetDef);
+
+          let targetDefFinal = targetDef;
+          if (skill.id === 'bat_hoang_toai_thach_kich') {
+            const ignorePct = Math.min(1.0, 0.10 * (1 + (capDo - 1) * 0.01));
+            targetDefFinal = Math.floor(targetDef * (1 - ignorePct));
+          }
+          pDmg = Math.max(1, Math.floor(rawDmg) - targetDefFinal);
+          if (skill.satThuong === 0) pDmg = 0;
 
           const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
           readySkill.nextRoundAvailable = round + cooldownRounds;
 
-          castMsg = `thi triển **${skill.ten} (Cấp ${capDo})**`;
           skillCastCount++;
+
+          // Xử lý hiệu ứng đặc biệt giả lập
+          if (skill.id === 'tu_khi_thuat') {
+            const mpRecPct = 0.15 * (1 + (capDo - 1) * 0.01);
+            const mpRecAmt = Math.floor(stats.max_mp * mpRecPct);
+            simMp = Math.min(stats.max_mp, simMp + mpRecAmt);
+            tuKhiActive = 2;
+            pbLogs.push(`🌀 **${skill.ten}**: Hồi phục \`+${mpRecAmt.toLocaleString()}\` MP và nhận trạng thái **[Tụ Khí]** trong 2 hiệp giả lập.`);
+          }
+          if (skill.id === 'huyet_khi_phun_trao') {
+            chienYStacks = Math.min(3, (chienYStacks || 0) + 1);
+            chienYDuration = 3;
+            pbLogs.push(`🔥 **${skill.ten}**: Tích lũy 1 tầng **[Chiến Ý]** (Hiện tại: \`${chienYStacks}/3\` tầng, kéo dài 3 hiệp giả lập).`);
+          }
+
+          if (skill.id === 'cuu_long_ba_the_tran') {
+            const shieldPct = 0.20 * (1 + (capDo - 1) * 0.01);
+            const shieldAmt = Math.floor(stats.max_hp * shieldPct);
+            pbLogs.push(`🛡️ **${skill.ten}**: Tạo lá chắn \`+${shieldAmt.toLocaleString()}\` HP giả lập.`);
+          }
+          if (skill.id === 'huyet_mach_cuong_hoa') {
+            const atkBonusPct = 0.30 * (1 + (capDo - 1) * 0.01);
+            activeBuffs.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'huyet_mach_cuong_hoa',
+              triGia: atkBonusPct,
+              roundsLeft: 3
+            });
+            pbLogs.push(`🔥 **${skill.ten}**: Tăng \`+${Math.floor(atkBonusPct * 100)}%\` Vật Công trong 3 hiệp giả lập.`);
+          }
+          if (skill.id === 'dai_tu_linh_tran') {
+            const mpHealPct = 0.30 * (1 + (capDo - 1) * 0.01);
+            const mpAmt = Math.floor(stats.max_mp * mpHealPct);
+            simMp = Math.min(stats.max_mp, simMp + mpAmt);
+            for (const s of skills) {
+              if (s.detail.id !== 'dai_tu_linh_tran') {
+                s.nextRoundAvailable = Math.max(1, s.nextRoundAvailable - 1);
+              }
+            }
+            pbLogs.push(`✨ **${skill.ten}**: Hồi \`+${mpAmt}\` MP, giảm hồi chiêu các chiêu khác 1 lượt.`);
+          }
         } else {
           let rawDmg = currentRoundPlayerAtk;
           if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
@@ -261,6 +359,17 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
             }
           }
           battleLogs.push(logMsg);
+        }
+
+        // Giảm buff thời hạn Luyện Khí
+        if (tuKhiActive > 0) {
+          tuKhiActive--;
+        }
+        if (chienYDuration > 0) {
+          chienYDuration--;
+          if (chienYDuration === 0) {
+            chienYStacks = 0;
+          }
         }
 
         for (const buff of activeBuffs) {

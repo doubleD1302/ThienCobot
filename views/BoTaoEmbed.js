@@ -116,6 +116,7 @@ export class BoTaoEmbed {
                (isThienDao ? `• **Danh hiệu**: \`Thiên Đạo\` 🌌\n` : '') +
                `• **Học thuyết**: \`${pathName}\`\n` +
                `• **Linh căn**: \`${tuSi.linhCan}\`\n` +
+               (tuSi.huyetMach ? `• **Huyết mạch**: ${config.HUYET_MACH[tuSi.huyetMach]?.emoji || ''} \`${config.HUYET_MACH[tuSi.huyetMach]?.name}\`\n` : '') +
                `• **Tu luyện tốc độ**: \`+${tocDoTuLuyen.toLocaleString()}\` Linh lực/Đạo Niên ⚡\n` +
                duyenText +
                hieuUngText,
@@ -222,12 +223,12 @@ export class BoTaoEmbed {
     embed.setFooter({ text: "Tu hành vạn载, căn cơ lập bản." });
 
     // Thuộc tính linh căn sở hữu
-    const elements = tuSi.linhCanList;
+    const elements = tuSi.linhCanList || [];
     const descList = [];
     for (const el of elements) {
       const elInfo = config.NGUON_LINH_CAN[el];
       if (elInfo) {
-        descList.push(`• **${elInfo.name}**: ${elInfo.desc}`);
+        descList.push(`• ${elInfo.emoji || ''} **${elInfo.name}**: ${elInfo.desc}`);
       }
     }
     const elementsDesc = descList.length > 0 ? descList.join('\n') : "• Không có linh căn thụ động.";
@@ -239,7 +240,21 @@ export class BoTaoEmbed {
         name: "🌱 Linh Căn Bản Mệnh",
         value: `**${tuSi.linhCan}**\n${elementsDesc}`,
         inline: false
-      },
+      }
+    );
+
+    if (tuSi.huyetMach) {
+      const hmInfo = config.HUYET_MACH[tuSi.huyetMach];
+      if (hmInfo) {
+        embed.addFields({
+          name: "🩸 Huyết Mạch Bản Thể",
+          value: `${hmInfo.emoji || ''} **${hmInfo.name}**: ${hmInfo.desc}`,
+          inline: false
+        });
+      }
+    }
+
+    embed.addFields(
       {
         name: "⚡ Tu Luyện Tinh Hoa",
         value: `• **Hệ số hấp thu**: \`x${absorptionCoef.toFixed(1)}\`\n• **Đạo thống truyền thừa**: \`${pathInfo.name}\` (${pathInfo.desc})`,

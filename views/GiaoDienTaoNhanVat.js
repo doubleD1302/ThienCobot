@@ -37,25 +37,29 @@ export class GiaoDienTaoNhanVat {
       const pathName = config.HUONG_DI[this.path]?.name || '';
       const details = this.rolledLinhCanList.map(el => {
         const info = config.NGUON_LINH_CAN[el];
-        return info ? `• **${info.name}**: ${info.desc}` : '';
+        return info ? `• ${info.emoji || ''} **${info.name}**: ${info.desc}` : '';
       }).filter(Boolean).join('\n');
 
+      const hmInfo = config.HUYET_MACH[this.rolledHuyetMach];
+      const hmText = hmInfo ? `• ${hmInfo.emoji || ''} **${hmInfo.name}**: ${hmInfo.desc}` : '';
+
       const embed = new EmbedBuilder()
-        .setTitle("🌀 Kết Quả Thức Tỉnh Linh Căn")
+        .setTitle("🌀 Kết Quả Thức Tỉnh Linh Căn & Huyết Mạch")
         .setColor(0x9b59b6)
         .addFields(
           { name: "👤 Tên Tu Sĩ", value: `\`${this.name}\``, inline: true },
           { name: "♂️ Giới tính", value: `\`${this.gender}\``, inline: true },
           { name: "🥋 Hướng tu", value: `\`${pathName}\``, inline: true },
           { name: "🌱 Linh Căn Thức Tỉnh", value: `✨ **${this.rolledLinhCan}**`, inline: false },
-          { name: "⚡ Thuộc tính Linh Căn", value: details || '• Không có linh căn thụ động.', inline: false }
+          { name: "⚡ Thuộc tính Linh Căn", value: details || '• Không có linh căn thụ động.', inline: false },
+          { name: "🩸 Huyết Mạch Thức Tỉnh", value: hmText || '• Không có huyết mạch.', inline: false }
         )
-        .setFooter({ text: "Nhấn [Xác nhận] để bước vào thế giới tu tiên, hoặc [Làm lại] để roll lại linh căn." });
+        .setFooter({ text: "Nhấn [Xác nhận] để bước vào thế giới tu tiên, hoặc [Hủy bỏ] để từ bỏ." });
 
       if (this.daoNien !== null) {
-        embed.setDescription(`🌌 **Đạo Niên thứ ${this.daoNien} của Máy Chủ**\n\nLinh hồn của ngươi đã cộng hưởng với thiên địa linh khí và thức tỉnh Linh Căn dưới đây.`);
+        embed.setDescription(`🌌 **Đạo Niên thứ ${this.daoNien} của Máy Chủ**\n\nLinh hồn của ngươi đã cộng hưởng với thiên địa linh khí và thức tỉnh Linh Căn & Huyết Mạch dưới đây.`);
       } else {
-        embed.setDescription("Linh hồn của ngươi đã cộng hưởng với thiên địa linh khí và thức tỉnh Linh Căn dưới đây.");
+        embed.setDescription("Linh hồn của ngươi đã cộng hưởng với thiên địa linh khí và thức tỉnh Linh Căn & Huyết Mạch dưới đây.");
       }
       return embed;
     }
@@ -106,10 +110,6 @@ export class GiaoDienTaoNhanVat {
           .setLabel('Xác Nhận Nhập Thế ✅')
           .setStyle(ButtonStyle.Success),
         new ButtonBuilder()
-          .setCustomId('action_reroll')
-          .setLabel('Làm Lại Lịch Kiếp 🔄')
-          .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
           .setCustomId('action_cancel')
           .setLabel('Hủy Bỏ ❌')
           .setStyle(ButtonStyle.Danger)
@@ -154,10 +154,7 @@ export class GiaoDienTaoNhanVat {
         const roll = config.rollLinhCan();
         this.rolledLinhCan = roll.displayName;
         this.rolledLinhCanList = roll.elements;
-      } else if (i.customId === 'action_reroll') {
-        const roll = config.rollLinhCan();
-        this.rolledLinhCan = roll.displayName;
-        this.rolledLinhCanList = roll.elements;
+        this.rolledHuyetMach = config.rollHuyetMach();
       } else if (i.customId === 'action_cancel') {
         collector.stop('cancelled');
         return;
@@ -189,6 +186,7 @@ export class GiaoDienTaoNhanVat {
             gioiTinh: this.gender,
             huongTu: this.path,
             linhCan: this.rolledLinhCan,
+            huyetMach: this.rolledHuyetMach
           });
           tuSi.linhCanList = this.rolledLinhCanList;
           tuSi.dongBoCanhGioi();
@@ -204,7 +202,7 @@ export class GiaoDienTaoNhanVat {
           try {
             const { ThienDaoLuc } = await import('../models/ThienDaoLuc.js');
             await ThienDaoLuc.ghiLuc(
-              `🌱 **Linh Căn thức tỉnh**: Tu sĩ **${this.name}** (\`${this.rolledLinhCan}\`) vừa chọn hướng tu **${this.path === 'The Tu' ? 'Thể Tu' : 'Pháp Tu'}** và chính thức gia nhập Tiên Giới!`,
+              `🌱 **Linh Căn thức tỉnh**: Tu sĩ **${this.name}** (\`${this.rolledLinhCan}\` | Huyết Mạch: \`${config.HUYET_MACH[this.rolledHuyetMach]?.name}\`) vừa chọn hướng tu **${this.path === 'The Tu' ? 'Thể Tu' : 'Pháp Tu'}** và chính thức gia nhập Tiên Giới!`,
               'Join'
             );
           } catch (err) {
@@ -221,6 +219,7 @@ export class GiaoDienTaoNhanVat {
                 .addFields(
                   { name: "🥋 Hướng tu", value: `\`${pathName}\``, inline: true },
                   { name: "🌱 Linh Căn", value: `\`${this.rolledLinhCan}\``, inline: true },
+                  { name: "🩸 Huyết Mạch", value: `\`${config.HUYET_MACH[this.rolledHuyetMach]?.name}\``, inline: true },
                   { name: "💎 Linh thạch tặng kèm", value: "`500` 💎", inline: true }
                 )
                 .setFooter({ text: "Gõ lệnh /nv để xem hồ sơ tu sĩ." })

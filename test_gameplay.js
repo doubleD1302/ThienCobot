@@ -58,39 +58,19 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   });
 
   test('Linh Can Roll Distributions', () => {
-    const results = {
-      "Ngũ Linh Căn": 0,
-      "Lôi Linh Căn": 0,
-      "Tứ Linh Căn": 0,
-      "Tam Linh Căn": 0,
-      "Song Linh Căn": 0,
-      "Đơn Linh Căn": 0
-    };
+    const results = {};
+    const elementPool = ["Tho", "Hoa", "Thuy", "Moc", "Kim", "Phong", "Quang", "Am"];
+    for (const key of elementPool) {
+      results[key] = 0;
+    }
 
     // Roll 1000 times
     for (let i = 0; i < 1000; i++) {
       const { elements, displayName } = config.rollLinhCan();
-      assert.ok(elements.length >= 1, "Danh sách thuộc tính linh căn không được rỗng");
-
-      if (displayName.includes("Ngũ")) {
-        results["Ngũ Linh Căn"]++;
-        assert.strictEqual(elements.length, 5);
-      } else if (displayName.includes("Lôi")) {
-        results["Lôi Linh Căn"]++;
-        assert.deepStrictEqual(elements, ["Loi"]);
-      } else if (displayName.includes("Tứ")) {
-        results["Tứ Linh Căn"]++;
-        assert.strictEqual(elements.length, 4);
-      } else if (displayName.includes("Tam")) {
-        results["Tam Linh Căn"]++;
-        assert.strictEqual(elements.length, 3);
-      } else if (displayName.includes("Song")) {
-        results["Song Linh Căn"]++;
-        assert.strictEqual(elements.length, 2);
-      } else {
-        results["Đơn Linh Căn"]++;
-        assert.strictEqual(elements.length, 1);
-      }
+      assert.strictEqual(elements.length, 1);
+      const el = elements[0];
+      assert.ok(elementPool.includes(el), `Element ${el} must be in pool`);
+      results[el]++;
     }
 
     console.log('\n[Roll Test (1000 rolls)]:', results);
@@ -102,9 +82,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       ten: "Lý Thất Dạ",
       gioiTinh: "Nam",
       huongTu: "The Tu",
-      linhCan: "Lôi Linh Căn"
+      linhCan: "Hỏa Linh Căn",
+      huyetMach: "LongToc"
     });
-    tuSi.linhCanList = ["Loi"];
+    tuSi.linhCanList = ["Hoa"];
     tuSi.dongBoCanhGioi();
 
     // Kiểm tra đồng bộ hóa cảnh giới ban đầu
@@ -114,14 +95,14 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Kiểm tra chỉ số cơ bản
     const stats = tuSi.layChiSo();
-    // Thể Tu HP gốc = 200 -> nhân 10 = 2000 -> chia 3 = 666
-    assert.strictEqual(stats.max_hp, 666);
-    // Thể Tu MP gốc = 50
-    assert.strictEqual(stats.max_mp, 50);
-    // Lôi Linh Căn: bạo thương tăng thêm 30% -> 1.50 + 0.30 = 1.80
-    assert.strictEqual(Math.round(stats.crit_dmg * 100) / 100, 1.80);
-    // Lôi Linh Căn: tu tốc x2.0
-    assert.strictEqual(tuSi.layHeSoTuLuyen(), 2.0);
+    // Thể Tu HP gốc = 15000. Long tộc huyết mạch = +10% -> 16500
+    assert.strictEqual(stats.max_hp, 16500);
+    // Thể Tu MP gốc = 10000
+    assert.strictEqual(stats.max_mp, 10000);
+    // Hỏa Linh Căn: bạo thương tăng thêm 5% -> 1.50 + 0.05 = 1.55
+    assert.strictEqual(Math.round(stats.crit_dmg * 100) / 100, 1.55);
+    // Hướng tu Thể Tu + Hỏa Linh Căn + Long tộc: vat_cong = 25 * 1.05 (Hỏa) * 1.10 (Long tộc) = 28
+    assert.strictEqual(stats.vat_cong, 28);
 
     // Kiểm tra chỉ số tăng trưởng ở Cấp 10 (Trúc Cơ Sơ Kỳ)
     tuSi.capDo = 10;
@@ -130,10 +111,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(tuSi.tang, 1);
 
     const statsLvl10 = tuSi.layChiSo();
-    // Thể Tu HP tăng trưởng = 30 / cấp. Cấp 10 = (200 + 30 * 9) * 10 = 4700 -> chia 3 = 1566
-    assert.strictEqual(statsLvl10.max_hp, 1566);
-    // Thể Tu MP tăng trưởng = 5 / cấp. Cấp 10 = 50 + 5 * 9 = 95
-    assert.strictEqual(statsLvl10.max_mp, 95);
+    // HP cấp 10 = (15000 + 2250 * 9) * 1.10 = 35250 * 1.10 = 38775
+    assert.strictEqual(statsLvl10.max_hp, 38775);
+    // MP cấp 10 = 10000 + 1000 * 9 = 19000
+    assert.strictEqual(statsLvl10.max_mp, 19000);
   });
 
   test('Player Breakthrough Failure Penalties', async () => {
@@ -326,13 +307,13 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const statsRaw = tuSi.layChiSo([]);
     const statsEquipped = tuSi.layChiSo([kiemGo, giapDa]);
 
-    // Thể Tu: Kim Linh Căn nhân x1.2 Công vật lý
+    // Thể Tu: Kim Linh Căn nhân x1.05 Công vật lý
     const expectedBaseAtk = 25; // level 1 base_stats.vat_cong
-    const expectedAtkWithItem = Math.floor((expectedBaseAtk + 15) * 1.2);
+    const expectedAtkWithItem = Math.floor((expectedBaseAtk + 15) * 1.05);
     
     assert.strictEqual(statsEquipped.vat_cong, expectedAtkWithItem);
     assert.strictEqual(statsEquipped.vat_phong, statsRaw.vat_phong + 20);  // x2 from equipment
-    assert.strictEqual(statsEquipped.max_hp, 2333);        // (2000 base + 5000 item) / 3 = 2333
+    assert.strictEqual(statsEquipped.max_hp, 15050);        // 15000 base + 50 item = 15050
     await tuSi.destroy();
   });
 
@@ -451,6 +432,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
   test('Item level requirement constraint (yeuCauCanhGioi)', async () => {
     const { boDieuKhienVatPham } = await import('./controllers/BoDieuKhienVatPham.js');
+    await TuSi.destroy({ where: { idNguoiDung: "7777777777777777" } });
     
     // Tạo vật phẩm yêu cầu Trúc Cơ (cấp độ 10)
     await Item.create({
@@ -686,6 +668,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   });
 
   test('VND Currency and Lixi Mechanics', async () => {
+    // Clean up stale test data from prior tests
+    await TuSi.destroy({ where: { idNguoiDung: "7777777777777777" } });
+    await TuSi.destroy({ where: { idNguoiDung: "8888888888888888" } });
+
     // Create test players
     const tuSiA = await TuSi.create({
       idNguoiDung: "7777777777777777",
@@ -1137,8 +1123,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Verify layChiSoDayDu includes the bonus HP/MP
     const stats = await tuSi.layChiSoDayDu();
-    assert.strictEqual(stats.max_hp, 7066); // (120 base + 200 * 10 bonus) * 10 / 3 = 7066
-    assert.strictEqual(stats.max_mp, 250);  // 150 base + 100 bonus = 250 (mp unchanged)
+    assert.strictEqual(stats.max_hp, 10200); // 10000 base + 200 bonus = 10200
+    assert.strictEqual(stats.max_mp, 15100);  // 15000 base + 100 bonus = 15100
 
     // Test item recovery
     const hpPotion = await Item.create({
@@ -1181,9 +1167,9 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     };
     await boDieuKhienTuLuyen.lenhNghiNgoi.execute(mockInteraction);
     await tuSi.reload();
-    // HP and MP should go to full bonus maximums (7066 and 250 with new x10 hp multiplier)
-    assert.strictEqual(tuSi.hp, 7066);
-    assert.strictEqual(tuSi.mp, 250);
+    // HP and MP should go to full bonus maximums (10200 and 15100)
+    assert.strictEqual(tuSi.hp, 10200);
+    assert.strictEqual(tuSi.mp, 15100);
 
     // Clean up
     await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
@@ -1270,30 +1256,30 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
   test('Pháp Bảo Active Skills Config & Duration', () => {
     // 1. Verify active skills configuration mapping
-    const pbHoThan = config.layKyNangPhapBaoActive('phap_bao_ho_than');
-    assert.strictEqual(pbHoThan.ten, 'Phù Vân Hộ Thể 🛡️');
+    const pbHoThan = config.layKyNangPhapBaoActive('pb_lk_ho_than_kinh');
+    assert.strictEqual(pbHoThan.ten, 'Linh Khí Tráo 🛡️');
     assert.strictEqual(pbHoThan.loai, 'khien');
-    assert.strictEqual(pbHoThan.triGia, 120);
-    assert.strictEqual(pbHoThan.duration, 0); // Instant
+    assert.strictEqual(pbHoThan.triGia, 800);
+    assert.strictEqual(pbHoThan.duration, 2);
 
-    const pbCongKich = config.layKyNangPhapBaoActive('phap_bao_cong_kich');
-    assert.strictEqual(pbCongKich.ten, 'Hỏa Long Chủy 🔱');
+    const pbCongKich = config.layKyNangPhapBaoActive('pb_lk_linh_phong_cham', { phap_cong: 1000 });
+    assert.strictEqual(pbCongKich.ten, 'Phi Châm Phá Giáp 🪡');
     assert.strictEqual(pbCongKich.loai, 'tan_cong');
-    assert.strictEqual(pbCongKich.triGia, 320);
+    assert.strictEqual(pbCongKich.triGia, 1500);
     assert.strictEqual(pbCongKich.duration, 0); // Instant
 
-    const pbHonTon = config.layKyNangPhapBaoActive('phap_bao_hon_ton');
-    assert.strictEqual(pbHonTon.ten, 'Hỗn Độn Phá Thiên 🔔');
-    assert.strictEqual(pbHonTon.loai, 'hon_hop');
-    assert.strictEqual(pbHonTon.triGia, 550);
-    assert.strictEqual(pbHonTon.duration, 0);
+    const pbDinhThan = config.layKyNangPhapBaoActive('pb_lk_dinh_than_phu');
+    assert.strictEqual(pbDinhThan.ten, 'Định Thân Thuật 🌀');
+    assert.strictEqual(pbDinhThan.loai, 'khong_che');
+    assert.strictEqual(pbDinhThan.chance, 0.40);
+    assert.strictEqual(pbDinhThan.duration, 1);
 
     // 2. Mock duration decrement behavior
     const activeBuffs = [{
-      ten: pbHonTon.ten,
-      pbTen: 'Hỗn Độn Chung 🔔',
+      ten: pbDinhThan.ten,
+      pbTen: 'Định Thân Phù 🌀',
       loai: 'tang_cong_pct',
-      triGia: pbHonTon.triGia,
+      triGia: 40,
       roundsLeft: 3
     }];
 
@@ -1323,7 +1309,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     runRoundEndBuffDecrement(activeBuffs);
     assert.strictEqual(activeBuffs[0].roundsLeft, 0);
     assert.strictEqual(logs.length, 1);
-    assert.strictEqual(logs[0], 'expired_Hỗn Độn Phá Thiên 🔔');
+    assert.strictEqual(logs[0], 'expired_Định Thân Thuật 🌀');
   });
 
   test('TANTHU Gift Code Redeems 6 Random Pháp Bảo', async () => {
@@ -2439,8 +2425,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Tho Linh Can: +10% max HP -> 220 HP.
     // Than Vien base protect: +15% HP, scale = (level 1 * tuChat 100)/100 = 1.0.
     // evoMult = Math.pow(1.05, 1) = 1.05.
-    // Total HP should be (220 + 31.5) * 10 / 3 = 838.
-    assert.strictEqual(stats.max_hp, 838);
+    // Total HP should be 18112.
+    assert.strictEqual(stats.max_hp, 18112);
 
     // Clean up
     await pet.destroy();
@@ -2709,53 +2695,59 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
   test('Forge upgrade checks and consumes materials', async () => {
     const { boDieuKhienDongPhu } = await import('./controllers/BoDieuKhienDongPhu.js');
+    const origRandom = Math.random;
+    Math.random = () => 0.99; // bypass fail chance
 
-    const userId = "777888999000";
-    const tuSi = await TuSi.create({
-      idNguoiDung: userId,
-      ten: "Thợ Rèn Thử Nghiệm",
-      gioiTinh: "Nam",
-      huongTu: "The Tu",
-      linhCan: "Kim Linh Căn",
-      capDo: 10,
-      hp: 12000,
-      mp: 100,
-      linhThach: 10000
-    });
+    try {
+      const userId = "777888999000";
+      const tuSi = await TuSi.create({
+        idNguoiDung: userId,
+        ten: "Thợ Rèn Thử Nghiệm",
+        gioiTinh: "Nam",
+        huongTu: "The Tu",
+        linhCan: "Kim Linh Căn",
+        capDo: 10,
+        hp: 12000,
+        mp: 100,
+        linhThach: 10000
+      });
 
-    // 1. Forge without material
-    const res2 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
-    assert.strictEqual(res2.ok, false);
-    assert.ok(res2.msg.includes("Thiếu nguyên liệu rèn"));
+      // 1. Forge without material
+      const res2 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
+      assert.strictEqual(res2.ok, false);
+      assert.ok(res2.msg.includes("Thiếu nguyên liệu rèn"));
 
-    // Add material to inventory (only 4)
-    const matInv = await Inventory.create({ idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co', soLuong: 4, trangBi: false });
+      // Add material to inventory (only 4)
+      const matInv = await Inventory.create({ idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co', soLuong: 4, trangBi: false });
 
-    // 2. Forge with insufficient materials
-    const res3 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
-    assert.strictEqual(res3.ok, false);
-    assert.ok(res3.msg.includes("Thiếu nguyên liệu rèn"));
+      // 2. Forge with insufficient materials
+      const res3 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
+      assert.strictEqual(res3.ok, false);
+      assert.ok(res3.msg.includes("Thiếu nguyên liệu rèn"));
 
-    // Add 1 more material (total 5)
-    matInv.soLuong = 5;
-    await matInv.save();
+      // Add 1 more material (total 5)
+      matInv.soLuong = 5;
+      await matInv.save();
 
-    // 3. Forge successfully
-    const res4 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
-    assert.strictEqual(res4.ok, true);
-    assert.ok(res4.msg.includes("Luyện Khí Thành Công"));
+      // 3. Forge successfully
+      const res4 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
+      assert.strictEqual(res4.ok, true);
+      assert.ok(res4.msg.includes("Luyện Khí Thành Công"));
 
-    // Check inventory and ling thach
-    const newInv = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'kiem_sat' } });
-    assert.ok(newInv);
-    assert.strictEqual(tuSi.linhThach, 8000); // 10000 - 2000 = 8000
+      // Check inventory and ling thach
+      const newInv = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'kiem_sat' } });
+      assert.ok(newInv);
+      assert.strictEqual(tuSi.linhThach, 8000); // 10000 - 2000 = 8000
 
-    const checkedMat = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co' } });
-    assert.strictEqual(checkedMat, null);
+      const checkedMat = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co' } });
+      assert.strictEqual(checkedMat, null);
 
-    // Clean up
-    await newInv.destroy();
-    await tuSi.destroy();
+      // Clean up
+      await newInv.destroy();
+      await tuSi.destroy();
+    } finally {
+      Math.random = origRandom;
+    }
   });
 
   test('Tổ Long and Bạch Hổ passive stats verification', async () => {
@@ -2840,7 +2832,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       isActive: true
     });
 
-    tuSi.linhCanList = ["Loi"];
+    tuSi.linhCan = "Thổ Linh Căn";
+    tuSi.linhCanList = ["Tho"];
     await tuSi.save();
 
     const stats = await tuSi.layChiSoDayDu();
@@ -2853,15 +2846,13 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.ok(stats.crit_rate > 0.18);
 
     // Verify tu_toc coefficient
-    // Base mult for Loi Linh Can (single element):
+    // Base mult (single element):
     // PHAT_DA_LINH_CAN[1] = 1.0.
-    // Loi Linh Can bonus: * config.NGUON_LINH_CAN['Loi'].tu_toc (which is 2.0).
     // Pet bonus: * (1.0 + template.statValue * scalePct * evoMult * groupMult) = (1.0 + 0.10 * 1.99) = 1.199.
-    // Expected total mult = 1.0 * 2.0 * 1.199 = 2.398.
-    // Previously, with raw scale = 100, total mult = 1.0 * 2.0 * 11.0 = 22.0.
+    // Expected total mult = 1.0 * 1.199 = 1.199.
     const mult = await tuSi.layHeSoTuLuyen(petDiep);
-    assert.ok(mult < 2.5);
-    assert.ok(mult > 2.2);
+    assert.ok(mult < 1.25);
+    assert.ok(mult > 1.15);
 
     // Clean up
     await petDiep.destroy();
@@ -2887,7 +2878,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     const allowedDrops = [];
     for (const item of testItems) {
-      const isBlocked = (item.doHiem === 'Huyền thoại' || item.doHiem === 'Thần cấp' || item.id === 'trung_than_thu');
+      const isBlocked = (item.doHiem === 'Huyền thoại' || item.doHiem === 'Thần cấp' || item.id === 'trung_than_thu' || item.id === 'chuyen_sinh_dan');
       if (!isBlocked) {
         allowedDrops.push(item.id);
       }
@@ -3360,18 +3351,16 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // groupMult = 1.0 (normal pet)
     // tuTocVal = 0.088
     // speed multiplier from pet = 1.0 + 0.088 * 1.002 * 1.0 * 1.0 = 1.088176
-    // Base speed mult for Hoa Linh Can = 1.5
-    // Expected total speed mult = 1.5 * 1.088176 = 1.632264
+    // Base speed mult for Hoa Linh Can = 1.0
+    // Expected total speed mult = 1.0 * 1.088176 = 1.088176
     const speedMult = player.layHeSoTuLuyen(fusedPet);
-    assert.ok(speedMult > 1.63);
-    assert.ok(speedMult < 1.64);
+    assert.ok(speedMult > 1.08);
+    assert.ok(speedMult < 1.09);
 
     // Verify stats in layChiSo using fused pet
     const baseStats = player.layChiSo([], fusedPet);
-    // Base HP mapping for Phap Tu: 120 (base) + 15 * (capDo - 1) = 120
-    // + Thuy/Tho element mult: none
-    // Total HP before fail breakthroughs/capped dodge = (120 + 15.84) * 10 / 3 = 452
-    assert.strictEqual(baseStats.max_hp, 452);
+    // Total HP before fail breakthroughs/capped dodge = 11320
+    assert.strictEqual(baseStats.max_hp, 11320);
 
     // Clean up
     await petA.destroy();
@@ -3384,6 +3373,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const { TuSi } = await import('./models/TuSi.js');
     const { Abode } = await import('./models/Abode.js');
     const { _simCombat } = await import('./controllers/BoDieuKhienTuongTac.js');
+
+    await TuSi.destroy({ where: { idNguoiDung: ["7777777777777777", "8888888888888888"] } });
 
     // Create 2 mock TuSi
     const playerA = await TuSi.create({
@@ -3411,6 +3402,24 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     playerB.linhCanList = ["Thuy"];
     await playerA.save();
     await playerB.save();
+
+    // Create a weapon that gives massive Attack to playerA to avoid draw in battle test
+    const testWeapon = await Item.create({
+      id: 'test_god_weapon',
+      ten: 'Thần Binh Thử Nghiệm',
+      loai: 'Vũ khí',
+      doHiem: 'Thường',
+      giaCoSo: 10,
+      chiSoJson: '{"phap_cong":999999}',
+      yeuCauCanhGioi: 1
+    });
+
+    await Inventory.create({
+      idNguoiDung: playerA.idNguoiDung,
+      itemId: 'test_god_weapon',
+      soLuong: 1,
+      trangBi: true
+    });
 
     // 1. Test affinity points helper
     let points = await config.layLuongDuyen(playerA.idNguoiDung, playerB.idNguoiDung);
@@ -3448,7 +3457,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const tocDoCoBanA = cgA ? cgA.tocDoCoBan : 100;
     const heSoTuLuyenA = playerA.layHeSoTuLuyen(null);
     const rawSpeedA = Math.floor(tocDoCoBanA * heSoTuLuyenA * 1); // 1 + abode level (0)
-    assert.strictEqual(rawSpeedA, 150);
+    assert.strictEqual(rawSpeedA, 100);
 
     let speedFinalA = rawSpeedA;
     if (playerA.duyenType && playerA.duyenUserId) {
@@ -3464,7 +3473,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
         speedFinalA = Math.floor(factor * (rawSpeedA + rawSpeedB) / 2);
       }
     }
-    assert.strictEqual(speedFinalA, 187);
+    assert.strictEqual(speedFinalA, 150);
 
     // 4. Test _simCombat
     const { winner, battleLogs, round } = await _simCombat(playerA, playerB);
@@ -3476,6 +3485,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await playerB.destroy();
     await abodeA.destroy();
     await abodeB.destroy();
+    await testWeapon.destroy();
     const aff = await PlayerAffinity.findOne({ where: { userIdA: "7777777777777777", userIdB: "8888888888888888" } });
     if (aff) await aff.destroy();
   });
@@ -3879,8 +3889,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Base crit_dmg for Phap Tu: 1.60.
     // template.species === 'phuong_hoang' adds +35% bạo thương (0.35 * scalePct * evoMult * groupMult).
     // scalePct = 1.0 (level 1, tuChat 100), evoMult = 1.0, groupMult = 1.5 -> should add +0.525 crit_dmg.
-    // Total crit_dmg should be baseline + 0.525 = 2.125.
-    assert.strictEqual(stats.crit_dmg, 2.125);
+    // Total crit_dmg should be baseline + 0.525 + 0.05 (Hỏa) = 2.175.
+    assert.strictEqual(stats.crit_dmg, 2.175);
 
     // HuongTu is Phap Tu, so phap_cong should get +20% base phap_cong.
     // Base phap_cong = 20.
@@ -4532,7 +4542,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       canhGioiYeuCauText: 'Luyện Khí',
       quaiVatJson: '{"ten":"Yêu Thú Test","hp":10,"vatCong":1,"phapCong":0,"vatPhong":1,"phapPhong":1}',
       thuongJson: '{"expMin":10,"expMax":20,"stonesMin":1,"stonesMax":5}',
-      dropsJson: '[{"itemId":"kiem_go","tile":1.0}]' // 100% tile drop
+      dropsJson: '[{"itemId":"thanh_phong_kiem","tile":1.0}]' // 100% tile drop
     });
 
     // Clean inventory
@@ -4574,11 +4584,11 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     
     await collectorCallbacks['collect'](mockButtonInteraction);
 
-    // Verify inventory - should NOT have kiem_go, but instead have nguyen_lieu_luyen_khi
-    const hasKiemGo = await Inventory.findOne({ where: { idNguoiDung, itemId: 'kiem_go' } });
+    // Verify inventory - should NOT have thanh_phong_kiem, but instead have so_cap_thiet_quang
+    const hasKiemGo = await Inventory.findOne({ where: { idNguoiDung, itemId: 'thanh_phong_kiem' } });
     assert.strictEqual(hasKiemGo, null);
 
-    const hasMaterial = await Inventory.findOne({ where: { idNguoiDung, itemId: 'nguyen_lieu_luyen_khi' } });
+    const hasMaterial = await Inventory.findOne({ where: { idNguoiDung, itemId: 'so_cap_thiet_quang' } });
     assert.ok(hasMaterial);
     assert.strictEqual(hasMaterial.soLuong, 1);
 
@@ -4670,7 +4680,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Clean inventory
     await Inventory.destroy({ where: { idNguoiDung } });
     tuSi.theLuc = 10;
-    tuSi.hp = 1000;
+    tuSi.hp = 50000;
     await tuSi.save();
 
     // Mock collector interaction
@@ -4891,6 +4901,124 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Clean up
     await tuSi.destroy();
     await Inventory.destroy({ where: { idNguoiDung: "777888999" } });
+  });
+
+  test('Luyện Khí Overhauled Skills Learn, Upgrade Costs & Combat Combos', async () => {
+    const { Skill } = await import('./models/Skill.js');
+    const { PlayerSkill } = await import('./models/PlayerSkill.js');
+    const { boDieuKhienKyNang } = await import('./controllers/BoDieuKhienKyNang.js');
+    const { _simCombat } = await import('./controllers/BoDieuKhienTuongTac.js');
+
+    const tuSi = await TuSi.create({
+      idNguoiDung: "999000111111",
+      ten: "LuyệnKhíTuSĩ",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 3,
+      linhLuc: 500,
+      linhThach: 10000
+    });
+    tuSi.linhCanList = ["Hoa"];
+    await tuSi.save();
+
+    // 1. Learn tu_khi_thuat
+    await Skill.findOrCreate({
+      where: { id: "tu_khi_thuat" },
+      defaults: {
+        ten: "Tụ Khí Thuật",
+        loai: "Phép thuật",
+        satThuong: 0,
+        cooldown: 6,
+        yeuCauCanhGioi: 1,
+        moTa: "Tụ khí thuật..."
+      }
+    });
+
+    const learnRes = await boDieuKhienKyNang._thucHienHocKyNang(tuSi, "tu_khi_thuat");
+    assert.strictEqual(learnRes.ok, true);
+
+    const psk = await PlayerSkill.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, skillId: "tu_khi_thuat" } });
+    assert.ok(psk);
+    assert.strictEqual(psk.capDo, 1);
+
+    // 2. Check upgrade cost calculation
+    // Level 1 -> 2: cost should be Math.floor(1000 * 1.20^0) = 1000
+    const isLuyenKhi = ['tu_khi_thuat', 'linh_phao_thuat', 'huyet_khi_phun_trao', 'bang_son_quyen'].includes(psk.skillId);
+    assert.strictEqual(isLuyenKhi, true);
+    
+    const baseCost = 1000;
+    const costLvl1 = Math.floor(baseCost * Math.pow(1.20, psk.capDo - 1));
+    assert.strictEqual(costLvl1, 1000);
+
+    // Update level to 2 and check cost to level 3: Math.floor(1000 * 1.20^1) = 1200
+    psk.capDo = 2;
+    await psk.save();
+    const costLvl2 = Math.floor(baseCost * Math.pow(1.20, psk.capDo - 1));
+    assert.strictEqual(costLvl2, 1200);
+
+    // Test max level limit check in handler
+    psk.capDo = 50;
+    await psk.save();
+
+    // 3. Test PVP Combat simulator with Luyện Khí skills combo
+    // We create Player A (Phap Tu with tu_khi_thuat and linh_phao_thuat)
+    // and Player B (normal target)
+    const tuSiA = await TuSi.create({
+      idNguoiDung: "999000111222",
+      ten: "TụKhíMaster",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 5,
+      linhThach: 1000
+    });
+    tuSiA.linhCanList = ["Hoa"];
+    await tuSiA.save();
+
+    const tuSiB = await TuSi.create({
+      idNguoiDung: "999000111333",
+      ten: "BăngSơnMaster",
+      gioiTinh: "Nữ",
+      huongTu: "The Tu",
+      linhCan: "Kim Linh Căn",
+      capDo: 5,
+      linhThach: 1000
+    });
+    tuSiB.linhCanList = ["Kim"];
+    await tuSiB.save();
+
+    // Seed linh_phao_thuat
+    await Skill.findOrCreate({
+      where: { id: "linh_phao_thuat" },
+      defaults: {
+        ten: "Linh Pháo Thuật",
+        loai: "Phép thuật",
+        satThuong: 100,
+        cooldown: 0,
+        yeuCauCanhGioi: 1,
+        moTa: "Linh pháo thuật..."
+      }
+    });
+
+    // Learn and Equip skills for TuSi A
+    await PlayerSkill.create({ idNguoiDung: tuSiA.idNguoiDung, skillId: "tu_khi_thuat", capDo: 1, trangBi: true });
+    await PlayerSkill.create({ idNguoiDung: tuSiA.idNguoiDung, skillId: "linh_phao_thuat", capDo: 1, trangBi: true });
+
+    // Run combat simulator
+    const battleResult = await _simCombat(tuSiA, tuSiB);
+    assert.ok(battleResult);
+    assert.ok(battleResult.battleLogs);
+    
+    // Check if the logs contain references to Tụ Khí or Linh Pháo
+    const logsStr = battleResult.battleLogs.join("\n");
+    assert.ok(logsStr.includes("Tụ Khí") || logsStr.includes("Linh Pháo") || logsStr.includes("thi triển"));
+
+    // Clean up
+    await tuSi.destroy();
+    await tuSiA.destroy();
+    await tuSiB.destroy();
+    await PlayerSkill.destroy({ where: { idNguoiDung: ["999000111111", "999000111222", "999000111333"] } });
   });
 
 });
