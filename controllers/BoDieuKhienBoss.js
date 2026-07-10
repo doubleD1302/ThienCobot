@@ -951,9 +951,27 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       let playerActionCount = 0;
       let combatRound = 1;
       const petTemplate = activePet ? config.PET_TEMPLATES[activePet.type] : null;
-      const isKyLanActive = petTemplate && petTemplate.species === 'ky_lan';
-      const isHuyenVuActive = petTemplate && petTemplate.species === 'huyen_vu';
+
       const originalMaxHp = stats.max_hp;
+
+      const petState = { cooldown: 0 };
+      let bleed = null;
+      let blind = 0;
+      let slow = 0;
+      let tebut = 0;
+      let nightmare = 0;
+      let hoito = 0;
+      let caitu = 0;
+      
+      let caituTriggered = false;
+      let critImmune = false;
+      let reflect = false;
+
+      let monsterBleed = null;
+      let monsterBlind = 0;
+      let monsterSlow = 0;
+      let monsterTebut = 0;
+      let monsterNightmare = 0;
 
       // Trạng thái hiệu ứng Luyện Khí
       let tuKhiActive = 0;
@@ -985,6 +1003,120 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           const elapsed = avPlayer;
           avBoss -= elapsed;
           avPlayer = dynamicBaseAvPlayer;
+
+          // --- NEW PET SYSTEM PLAYER TURN ---
+          if (bleed && bleed.turns > 0) {
+            const dmg = bleed.dmg;
+            playerHp = Math.max(0, playerHp - dmg);
+            bleed.turns -= 1;
+            battleLogs.push(`🩸 **Chảy Máu**: Bạn mất \`${dmg.toLocaleString()}\` HP từ vết thương chảy máu (HP còn: \`${playerHp.toLocaleString()}\`).`);
+            if (bleed.turns <= 0) bleed = null;
+            if (playerHp <= 0) {
+              if (caitu > 0 && !caituTriggered) {
+                playerHp = Math.floor(stats.max_hp * 0.30);
+                caituTriggered = true;
+                caitu = 0;
+                battleLogs.push(`😇 **CẢI TỬ HOÀN SINH**: Ấn ký bảo mệnh hồi sinh bạn với \`${playerHp.toLocaleString()}\` HP!`);
+              } else {
+                break;
+              }
+            }
+          }
+
+          if (hoito > 0) {
+            hoito -= 1;
+            const heal = Math.floor(stats.max_hp * 0.05);
+            playerHp = Math.min(stats.max_hp, playerHp + heal);
+            battleLogs.push(`🌿 **Hồi Tô**: Bạn tự hồi phục \`${heal.toLocaleString()}\` HP đầu hiệp (HP hiện tại: \`${playerHp.toLocaleString()}\`).`);
+          }
+
+          if (nightmare > 0) {
+            nightmare -= 1;
+            const mpLost = Math.floor(playerMp * 0.10);
+            playerMp = Math.max(0, playerMp - mpLost);
+            battleLogs.push(`💤 **Mộng Yểm**: Bạn bị chìm trong ác mộng, mất lượt hành động và tổn hao \`${mpLost.toLocaleString()}\` MP!`);
+            playerActionCount++;
+            combatRound++;
+            continue;
+          }
+
+          // Active Pet Skill execution
+          if (activePet && playerHp > 0 && monsterHp > 0) {
+            if (petState.cooldown > 0) petState.cooldown -= 1;
+            if (petState.cooldown === 0) {
+              const dummyBossStats = { max_hp: monsterHp, vat_cong: boss.vatCong || 100, phap_cong: boss.vatCong || 100, vat_phong: boss.giap || 10, phap_phong: boss.giap || 10, speed: 100 };
+              const res = config.handlePetCombatSkill(activePet, petState, stats, dummyBossStats, battleLogs, tuSi.ten, boss.ten, monsterBleed);
+              if (res) {
+                battleLogs.push(res.log);
+                if (res.damage > 0) {
+                  let finalDmg = res.damage;
+                  if (res.ignoreDef) {
+                    const targetDef = boss.giap * (1.0 - res.ignoreDef);
+                    finalDmg = Math.max(1, Math.floor(finalDmg - targetDef));
+                  } else {
+                    finalDmg = Math.max(1, Math.floor(finalDmg - boss.giap));
+                  }
+                  
+                  if (res.checkTebutBonus && monsterTebut > 0) {
+                    const bonusTrue = Math.floor(monsterHp * 0.05);
+                    finalDmg += bonusTrue;
+                    battleLogs.push(`❄️ **Tê Buốt Kích Phát**: Sát thương sủng vật tăng thêm \`+${bonusTrue.toLocaleString()}\` sát thương chuẩn!`);
+                  }
+
+                  monsterHp = Math.max(0, monsterHp - finalDmg);
+                  totalDmgDealt += finalDmg;
+                  battleLogs.push(`💥 **Sát thương sủng vật**: **${boss.ten}** nhận \`${finalDmg.toLocaleString()}\` sát thương sủng vật (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+
+                  if (res.execute && monsterHp > 0 && monsterHp < boss.hp * 0.15) {
+                    monsterHp = 0;
+                    battleLogs.push(`💀 **KẾT LIỄU**: Sủng vật lập tức kết liễu **${boss.ten}** dưới 15% HP!`);
+                  }
+                }
+                if (res.healHp > 0) {
+                  playerHp = Math.min(stats.max_hp, playerHp + res.healHp);
+                  battleLogs.push(`💚 **Hồi phục**: Bạn hồi phục \`${res.healHp.toLocaleString()}\` HP.`);
+                }
+                if (res.healMp > 0) {
+                  playerMp = Math.min(stats.max_mp, playerMp + res.healMp);
+                  battleLogs.push(`💙 **Hồi phục**: Bạn hồi phục \`${res.healMp.toLocaleString()}\` MP.`);
+                }
+                if (res.shield > 0) {
+                  playerShield = res.shield;
+                  if (res.critImmune) critImmune = true;
+                  if (res.reflectDmg) reflect = true;
+                }
+                if (res.clearBleed) {
+                  monsterBleed = null;
+                }
+                if (res.applyBleed) monsterBleed = res.applyBleed;
+                if (res.applyBlind) monsterBlind = res.applyBlind.turns;
+                if (res.applySlow) {
+                  bossSlowRounds = res.applySlow.turns;
+                  bossSlowPctVal = 0.15;
+                }
+                if (res.applyTebut) monsterTebut = res.applyTebut.turns;
+                if (res.applyNightmare) monsterNightmare = res.applyNightmare.turns;
+                if (res.applyHoito) hoito = res.applyHoito.turns;
+                if (res.applyCaituhoansinh) caitu = res.applyCaituhoansinh.turns;
+              }
+            }
+          }
+
+          if (blind > 0) blind--;
+          if (slow > 0) slow--;
+          if (tebut > 0) tebut--;
+          if (caitu > 0) caitu--;
+          if (playerShield <= 0) {
+            critImmune = false;
+            reflect = false;
+          }
+
+          if (blind > 0 && Math.random() <= 0.50) {
+            battleLogs.push(`👁️ **Mù mắt**: Bạn đang bị [Mù], chiêu thức chệch hướng hoàn toàn!`);
+            playerActionCount++;
+            combatRound++;
+            continue;
+          }
 
           if (phoenixRegenRounds > 0) {
             const regenAmt = Math.floor(stats.max_hp * 0.05);
@@ -1345,6 +1477,35 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           const elapsed = avBoss;
           avPlayer -= elapsed;
           
+          // --- NEW PET SYSTEM BOSS TURN ---
+          if (monsterBleed && monsterBleed.turns > 0) {
+            const dmg = monsterBleed.dmg;
+            monsterHp = Math.max(0, monsterHp - dmg);
+            totalDmgDealt += dmg;
+            monsterBleed.turns -= 1;
+            battleLogs.push(`🩸 **Chảy Máu**: **${boss.ten}** chịu \`-${dmg.toLocaleString()}\` sát thương chảy máu (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+            if (monsterBleed.turns <= 0) monsterBleed = null;
+            if (monsterHp <= 0) break;
+          }
+
+          if (monsterNightmare > 0) {
+            monsterNightmare -= 1;
+            battleLogs.push(`💤 **Mộng Yểm**: **${boss.ten}** bị chìm trong ác mộng không thể hành động!`);
+            combatRound++;
+            continue;
+          }
+
+          if (monsterBlind > 0 && Math.random() <= 0.50) {
+            battleLogs.push(`👁️ **Mù mắt**: **${boss.ten}** bị [Mù], đòn phản công đánh hụt hoàn toàn!`);
+            monsterBlind--;
+            combatRound++;
+            continue;
+          }
+
+          if (monsterBlind > 0) monsterBlind--;
+          if (monsterSlow > 0) monsterSlow--;
+          if (monsterTebut > 0) monsterTebut--;
+          
           let currentBossSpeed = 100;
           if (bossSlowRounds > 0) {
             currentBossSpeed = Math.max(10, Math.floor(currentBossSpeed * (1 - bossSlowPctVal)));
@@ -1375,7 +1536,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               battleLogs.push(`✨ **Suy yếu**: Yêu thú bị suy yếu, sát thương phản công giảm đi \`-${Math.floor(bossWeakenPct * 100)}%\`.`);
             }
 
-            const isBossCrit = Math.random() <= 0.15;
+            const isBossCrit = critImmune ? false : (Math.random() <= 0.15);
             let bossCritMsg = '';
             if (isBossCrit) {
               bossDmg = Math.floor(bossDmg * 1.5);
@@ -1416,6 +1577,22 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               if (bossDmg > 0) {
                 playerHp = Math.max(0, playerHp - bossDmg);
                 battleLogs.push(`👹 **Cự Thú** (AV: ${elapsed.toFixed(0)}): **${boss.ten}** phản kích gây \`-${bossDmg}\`${bossCritMsg} sát thương lên **${tuSi.ten}** (HP còn: \`${playerHp}\`).`);
+                
+                if (reflect && playerShield > 0) {
+                  const refl = Math.floor(bossDmg * 0.30);
+                  monsterHp = Math.max(0, monsterHp - refl);
+                  totalDmgDealt += refl;
+                  battleLogs.push(`🛡️ **Phản Đòn**: Thần Trận Sơn Thần phản hồi \`+${refl.toLocaleString()}\` sát thương ngược lại **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+                }
+                
+                if (playerHp <= 0) {
+                  if (caitu > 0 && !caituTriggered) {
+                    playerHp = Math.floor(stats.max_hp * 0.30);
+                    caituTriggered = true;
+                    caitu = 0;
+                    battleLogs.push(`😇 **CẢI TỬ HOÀN SINH**: Ấn ký bảo mệnh cứu mạng đạo hữu, hồi sinh lại với \`${playerHp.toLocaleString()}\` HP!`);
+                  }
+                }
               }
             }
           }

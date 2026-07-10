@@ -125,7 +125,7 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
 
       // 20% cơ hội nhặt được hạt giống khi đi lịch luyện
       if (Math.random() <= 0.20) {
-        const seedId = Math.random() < 0.5 ? 'hat_giong_linh_chi' : 'hat_giong_nhan_sam';
+        const seedId = 'hat_giong_tu_linh_thao';
         const seedDetail = await Item.findByPk(seedId);
         if (seedDetail) {
           await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);

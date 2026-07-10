@@ -660,7 +660,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       }
     });
 
-    if (usage) {
+    if (usage && giftCode.code.toUpperCase() !== 'ISEKAI') {
       return { ok: false, msg: "Đạo hữu đã sử dụng mã Gift Code này rồi. Mỗi người chơi chỉ được sử dụng mỗi code 1 lần!" };
     }
 
@@ -876,10 +876,12 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
 
     // Lưu trạng thái nhân vật và ghi nhận lịch sử dùng code
     await tuSi.save();
-    await PlayerGiftCode.create({
-      userId: tuSi.idNguoiDung,
-      code: giftCode.code
-    });
+    if (giftCode.code.toUpperCase() !== 'ISEKAI') {
+      await PlayerGiftCode.create({
+        userId: tuSi.idNguoiDung,
+        code: giftCode.code
+      });
+    }
 
     return { ok: true, code: giftCode.code, rewardDesc };
   }

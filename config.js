@@ -287,7 +287,6 @@ export const ITEMS = [
   // Đan dược / Thảo dược
   { id: 'dan_hp_2', ten: 'Bổ Huyết Đan (Trung) 🧪', loai: 'Đan dược', doHiem: 'Hiếm', giaCoSo: 200, chiSoJson: '{"hp_hoi":500}', yeuCauCanhGioi: 10, moTa: 'Phục hồi 500 điểm khí huyết (HP) bị tổn thương.', emoji: '<:dan_hp:1522644612605411379>', food: 0 },
   { id: 'dan_mp_2', ten: 'Hồi Thần Đan (Trung) 🌊', loai: 'Đan dược', doHiem: 'Hiếm', giaCoSo: 200, chiSoJson: '{"mp_hoi":200}', yeuCauCanhGioi: 10, moTa: 'Khôi phục 200 điểm linh lực pháp hải (MP).', emoji: '<:thuoc:1522632141698105354>', food: 0 },
-  { id: 'nhan_sam', ten: 'Tuyết Sơn Nhân Sâm 🥕', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 120, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Nhân sâm ngàn năm thu hoạch trên đỉnh núi tuyết hoang lạnh.', emoji: '<:thuoc:1522632141698105354>', food: 0 },
 
   // ==================== CẢNH GIỚI: KIM ĐAN (YÊU CẦU CẤP 13) ====================
   // Vũ khí Thể Tu
@@ -364,21 +363,14 @@ export const ITEMS = [
   { id: 'phap_bao_hon_ton', ten: 'Hỗn Độn Chung 🔔', loai: 'Pháp Bảo', doHiem: 'Cực hiếm', giaCoSo: 5000, chiSoJson: '{"vat_cong":50,"phap_cong":50,"hp":300}', yeuCauCanhGioi: 19, moTa: 'Chuông vàng chấn động tiên hải.', emoji: '<:chuong:1522624061602009279>', food: 0 },
 
   // Hạt giống (Trồng trọt) — food: 0 vì không phải thức ăn linh thú
-  { id: 'hat_giong_linh_chi', ten: 'Hạt Giống Linh Chi 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Hạt giống U Minh Linh Chi, trồng tại Dược Viên.', emoji: '<:hat_giong:1522644602266456275>', food: 0 },
-  { id: 'hat_giong_nhan_sam', ten: 'Hạt Giống Nhân Sâm 🌰', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Hạt giống Tuyết Sơn Nhân Sâm, chứa đựng sinh cơ.', emoji: '<:hat_giong:1522644602266456275>', food: 0 },
+  { id: 'hat_giong_tu_linh_thao', ten: 'Hạt Giống Tụ Linh Thảo', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Hạt giống Tụ Linh Thảo, trồng tại Dược Viên.', emoji: '<:HG_tu_linh_thao:1525174735464562688>', food: 0 },
 
   // Linh thảo thu hoạch theo phẩm chất — food: 1 (có thể cho thú ăn)
-  { id: 'linh_chi_luc', ten: 'U Minh Linh Chi (Phàm) 🍄', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh chi 100 năm tuổi, thu hoạch từ dược viên.', emoji: '<:linh_chi:1522610150853316778>', food: 1 },
-  { id: 'linh_chi_lam', ten: 'U Minh Linh Chi (Ưu) 🍄', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 150, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh chi 1000 năm tuổi, linh khí dồi dào.', emoji: '<:linh_chi:1522610150853316778>', food: 1 },
-  { id: 'linh_chi_tim', ten: 'U Minh Linh Chi (Siêu) 🍄', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh chi vạn năm hấp thu nguyệt hoa.', emoji: '<:linh_chi:1522610150853316778>', food: 1 },
-  { id: 'linh_chi_vang', ten: 'U Minh Linh Chi (Tuyệt) 🍄', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 1500, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh chi mười vạn năm trân quý vô ngần.', emoji: '<:linh_chi:1522610150853316778>', food: 1 },
-  { id: 'linh_chi_do', ten: 'U Minh Linh Chi (Tiên) 🍄', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tiên dược trăm vạn năm chỉ có trong truyền thuyết.', emoji: '<:linh_chi:1522610150853316778>', food: 1 },
-
-  { id: 'nhan_sam_luc', ten: 'Tuyết Sơn Nhân Sâm (Phàm) 🥕', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 80, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nhân sâm 100 năm tuổi tốt cho khí huyết.', emoji: '<:thuoc:1522632141698105354>', food: 1 },
-  { id: 'nhan_sam_lam', ten: 'Tuyết Sơn Nhân Sâm (Ưu) 🥕', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 240, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nhân sâm 1000 năm tuổi đào từ tuyết sơn hoang dã.', emoji: '<:thuoc:1522632141698105354>', food: 1 },
-  { id: 'nhan_sam_tim', ten: 'Tuyết Sơn Nhân Sâm (Siêu) 🥕', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 800, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Cực phẩm nhân sâm vạn năm hộ thể phục mạch.', emoji: '<:thuoc:1522632141698105354>', food: 1 },
-  { id: 'nhan_sam_vang', ten: 'Tuyết Sơn Nhân Sâm (Tuyệt) 🥕', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 2500, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nhân sâm mười vạn năm, linh khí ngút trời.', emoji: '<:thuoc:1522632141698105354>', food: 1 },
-  { id: 'nhan_sam_do', ten: 'Tuyết Sơn Nhân Sâm (Tiên) 🥕', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 8000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tiên thảo sâm vương trăm vạn năm cải tử hoàn sinh.', emoji: '<:thuoc:1522632141698105354>', food: 1 },
+  { id: 'tu_linh_thao_luc', ten: 'Tụ Linh Thảo (Phàm)', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 50, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tụ Linh Thảo phàm phẩm, thu hoạch từ dược viên.', emoji: '<:tu_linh_thao:1525174737687548114>', food: 1 },
+  { id: 'tu_linh_thao_lam', ten: 'Tụ Linh Thảo (Ưu)', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 150, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tụ Linh Thảo ưu phẩm, linh khí dồi dào.', emoji: '<:tu_linh_thao:1525174737687548114>', food: 1 },
+  { id: 'tu_linh_thao_tim', ten: 'Tụ Linh Thảo (Siêu)', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tụ Linh Thảo siêu phẩm hấp thu nguyệt hoa.', emoji: '<:tu_linh_thao:1525174737687548114>', food: 1 },
+  { id: 'tu_linh_thao_vang', ten: 'Tụ Linh Thảo (Tuyệt)', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 1500, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tụ Linh Thảo tuyệt phẩm trân quý vô ngần.', emoji: '<:tu_linh_thao:1525174737687548114>', food: 1 },
+  { id: 'tu_linh_thao_do', ten: 'Tụ Linh Thảo (Tiên)', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tụ Linh Thảo tiên phẩm chỉ có trong truyền thuyết.', emoji: '<:tu_linh_thao:1525174737687548114>', food: 1 },
 
   // Đan dược tăng Tu Vi — food: 0
   { id: 'dan_tu_vi_trang', ten: 'Tu Vi Đan (Phế) 💊', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan phế phẩm lập tức gia tăng tu vi (Tương đương 4 Đạo Niên tu tập).', emoji: '<:thuoc:1522632141698105354>', food: 0 },
@@ -423,7 +415,24 @@ export const ITEMS = [
   { id: 'nu_3', ten: 'Trang phục Tân Thủ Nữ 3 👗', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nữ.', emoji: '🎭', food: 0 },
   { id: 'backg01', ten: 'Nền Tân Thủ 1 🖼️', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nền ảnh tân thủ 1.', emoji: '🖼️', food: 0 },
   { id: 'backg02', ten: 'Nền Tân Thủ 2 🖼️', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nền ảnh tân thủ 2.', emoji: '🖼️', food: 0 },
-  { id: 'backg03', ten: 'Nền Tân Thủ 3 🖼️', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nền ảnh tân thủ 3.', emoji: '🖼️', food: 0 }
+  { id: 'backg03', ten: 'Nền Tân Thủ 3 🖼️', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nền ảnh tân thủ 3.', emoji: '🖼️', food: 0 },
+  { id: 'linh_sung_lenh', ten: 'Linh Sủng Lệnh 🎫', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tấm thẻ lệnh dùng triệu gọi và chiêu mộ Linh Thú tại Vạn Thú Các.', emoji: '<:linh_sung_lenh:1525144632651153510>', food: 0 },
+  { id: 'hoa_than_dan', ten: 'Hóa Thần Đan 💊', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 10000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược cực phẩm chứa linh lực dồi dào, cho linh thú ăn để tăng tu vi và cảnh giới.', emoji: '<:hoa_than_pet:1522610156720881804>', food: 0 },
+  { id: 'kim_phach_ha', ten: 'Yêu Phách Kim (Hạ) <:kim_phach_ha:1525148233305952276>', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 1000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Kim hạ phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:kim_phach_ha:1525148233305952276>', food: 0 },
+  { id: 'kim_phach_trung', ten: 'Yêu Phách Kim (Trung) <:kim_phach_trung:1525148231141429338>', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 3000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Kim trung phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:kim_phach_trung:1525148231141429338>', food: 0 },
+  { id: 'kim_phach_thuong', ten: 'Yêu Phách Kim (Thượng) <:kim_phach_thuong:1525148228746477658>', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 9000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Kim thượng phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:kim_phach_thuong:1525148228746477658>', food: 0 },
+  { id: 'tho_phach_ha', ten: 'Yêu Phách Thổ (Hạ) <:tho_phach_ha:1525148226481815572>', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 1000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Thổ hạ phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:tho_phach_ha:1525148226481815572>', food: 0 },
+  { id: 'tho_phach_trung', ten: 'Yêu Phách Thổ (Trung) <:tho_phach_trung:1525148224292257913>', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 3000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Thổ trung phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:tho_phach_trung:1525148224292257913>', food: 0 },
+  { id: 'tho_phach_thuong', ten: 'Yêu Phách Thổ (Thượng) <:tho_phach_thuong:1525148221620621455>', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 9000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Thổ thượng phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:tho_phach_thuong:1525148221620621455>', food: 0 },
+  { id: 'moc_phach_ha', ten: 'Yêu Phách Mộc (Hạ) <:moc_phach_ha:1525148219540246699>', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 1000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Mộc hạ phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:moc_phach_ha:1525148219540246699>', food: 0 },
+  { id: 'moc_phach_trung', ten: 'Yêu Phách Mộc (Trung) <:moc_phach_trung:1525148217250025572>', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 3000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Mộc trung phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:moc_phach_trung:1525148217250025572>', food: 0 },
+  { id: 'moc_phac_thuong', ten: 'Yêu Phách Mộc (Thượng) <:moc_phac_thuong:1525148214985101373>', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 9000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Mộc thượng phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:moc_phac_thuong:1525148214985101373>', food: 0 },
+  { id: 'thuy_phac_ha', ten: 'Yêu Phách Thủy (Hạ) <:thuy_phac_ha:1525148212380307557>', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 1000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Thủy hạ phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:thuy_phac_ha:1525148212380307557>', food: 0 },
+  { id: 'thuy_phach_trung', ten: 'Yêu Phách Thủy (Trung) <:thuy_phach_trung:1525148200564949176>', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 3000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Thủy trung phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:thuy_phach_trung:1525148200564949176>', food: 0 },
+  { id: 'thuy_phach_thuong', ten: 'Yêu Phách Thủy (Thượng) <:thuy_phach_thuong:1525148197889114132>', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 9000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Thủy thượng phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:thuy_phach_thuong:1525148197889114132>', food: 0 },
+  { id: 'hoa_phach_ha', ten: 'Yêu Phách Hỏa (Hạ) <:hoa_phach_ha:1525148195678589119>', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 1000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Hỏa hạ phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:hoa_phach_ha:1525148195678589119>', food: 0 },
+  { id: 'hoa_phach_trung', ten: 'Yêu Phách Hỏa (Trung) <:hoa_phach_trung:1525148192868401173>', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 3000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Hỏa trung phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:hoa_phach_trung:1525148192868401173>', food: 0 },
+  { id: 'hoa_phach_thuong', ten: 'Yêu Phách Hỏa (Thượng) <:hoa_phach_thuong:1525148190809002006>', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 9000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Yêu phách hệ Hỏa thượng phẩm, dùng để nâng cấp huyết mạch sủng vật.', emoji: '<:hoa_phach_thuong:1525148190809002006>', food: 0 }
 ];
 
 
@@ -484,6 +493,7 @@ export const DUNGEONS = [
       stonesMax: 20
     },
     drops: [
+      { itemId: 'hat_giong_tu_linh_thao', tile: 0.25 },
       { itemId: 'dan_hp_1', tile: 0.50 },
       { itemId: 'dan_mp_1', tile: 0.50 },
       // Pháp Tu
@@ -532,8 +542,7 @@ export const DUNGEONS = [
       { itemId: 'dan_mp_2', tile: 0.50 },
       { itemId: 'kiem_sat', tile: 0.15 },
       { itemId: 'truong_sat', tile: 0, replaceId: 'truong_truc', tile: 0.15 }, // replaceId for fallback
-      { itemId: 'ao_da', tile: 0.15 },
-      { itemId: 'nhan_sam', tile: 0.30 }
+      { itemId: 'ao_da', tile: 0.15 }
     ]
   },
   {
@@ -1109,7 +1118,7 @@ export function layKyNangPhapBaoActive(itemOrId, stats = null) {
 
 export function layVatPhamDotPhaTheoCapDo(level) {
   if (level >= 1 && level <= 9) {
-    return { seedId: 'hat_giong_luyen_khi_thao', herbId: 'linh_thao_luyen_khi', pillId: 'dan_dot_pha_1' };
+    return { seedId: 'hat_giong_tu_linh_thao', herbId: 'tu_linh_thao_luc', pillId: 'dan_dot_pha_1' };
   } else if (level >= 10 && level <= 12) {
     return { seedId: 'hat_giong_truc_co_thao', herbId: 'linh_thao_truc_co', pillId: 'dan_dot_pha_2' };
   } else if (level >= 13 && level <= 15) {
@@ -1128,66 +1137,122 @@ export function layVatPhamDotPhaTheoCapDo(level) {
   return null;
 }
 
-export const PET_QUALITY_LABELS = {
-  LT_1: 'Huyết Mạch Hoang Dã 🐾',
-  LT_2: 'Huyết Mạch Linh Thuần ✨',
-  LT_3: 'Huyết Mạch Vương Giả 👑',
-  LT_4: 'Huyết Mạch Hoàng Kim 🌟',
-  TT_1: 'Huyết Mạch Thái Cổ 🦖',
-  TT_2: 'Huyết Mạch Hỗn Độn 🌀',
-  TT_3: 'Huyết Mạch Hồng Hoang 🌋',
-  TT_4: 'Huyết Mạch Khởi Nguyên 🌌'
+export const PET_BLOODLINE_LABELS = {
+  'ha_pham': 'Hạ Phẩm ⚪',
+  'trung_pham': 'Trung Phẩm 🟢',
+  'trung_pham_1': 'Trung Phẩm +1 🟢',
+  'cuc_pham_0': 'Cực Phẩm +0 🔵',
+  'cuc_pham_1': 'Cực Phẩm +1 🔵',
+  'cuc_pham_2': 'Cực Phẩm +2 🔵',
+  'tien_pham_0': 'Tiên Phẩm +0 🟣',
+  'tien_pham_1': 'Tiên Phẩm +1 🟣',
+  'tien_pham_2': 'Tiên Phẩm +2 🟣',
+  'tien_pham_3': 'Tiên Phẩm +3 🟣',
+  'tien_pham_4': 'Tiên Phẩm +4 🟣',
+  'tien_pham_5': 'Tiên Phẩm +5 🟣',
+  'than_pham_0': 'Thần Phẩm +0 🔴',
+  'than_pham_1': 'Thần Phẩm +1 🔴',
+  'than_pham_2': 'Thần Phẩm +2 🔴',
+  'than_pham_3': 'Thần Phẩm +3 🔴',
+  'than_pham_4': 'Thần Phẩm +4 🔴',
+  'than_pham_5': 'Thần Phẩm +5 🔴'
+};
+
+export const PET_QUALITY_LABELS = PET_BLOODLINE_LABELS;
+
+export const NEW_PET_LINEAGES = {
+  'hoa_hau': {
+    name: 'Dòng Hỏa Hầu',
+    element: 'hoa',
+    stages: {
+      1: { name: 'Xích Yêu Hầu', image: 'HoaHau_1.png', passives: { vat_cong: 0.05, crit_rate: 0.03 } },
+      2: { name: 'Xích Luyện Hỏa Viên', image: 'HoaHau_2.png', passives: { vat_cong: 0.10, crit_rate: 0.06 } },
+      3: { name: 'Viêm Vũ Thiếu Niên', image: 'HoaHau_3.png', passives: { vat_cong: 0.15, crit_rate: 0.10, speed: 5 } },
+      4: { name: 'Tề Thiên Hỏa Tôn', image: 'HoaHau_4.png', passives: { vat_cong: 0.25, crit_rate: 0.15, speed: 10 } }
+    }
+  },
+  'bang_dieu': {
+    name: 'Dòng Băng Điểu',
+    element: 'thuy',
+    stages: {
+      1: { name: 'Băng Vũ Điểu', image: 'Bang_dieu_1.png', passives: { phap_cong: 0.05, xuyen_giap: 0.05 } },
+      2: { name: 'Huyền Băng Linh Tước', image: 'Bang_dieu_2.png', passives: { phap_cong: 0.10, xuyen_giap: 0.10 } },
+      3: { name: 'Băng Tuyết Vũ Cơ', image: 'Bang_dieu_3.png', passives: { phap_cong: 0.15, xuyen_giap: 0.15, speed: 5 } },
+      4: { name: 'Cửu Thiên Băng Hậu', image: 'Bang_dieu_4.png', passives: { phap_cong: 0.25, xuyen_giap: 0.25, speed: 10 } }
+    }
+  },
+  'nham_giap': {
+    name: 'Dòng Nham Giáp',
+    element: 'tho',
+    stages: {
+      1: { name: 'Nham Giáp Thú', image: 'Nham_thu_1.png', passives: { vat_phong: 0.08, phap_phong: 0.08 } },
+      2: { name: 'Kim Cang Cự Thú', image: 'Nham_thu_2.png', passives: { vat_phong: 0.15, phap_phong: 0.15, giam_sat_thuong: 0.05 } },
+      3: { name: 'Nham Thạch Lực Sĩ', image: 'Nham_thu_3.png', passives: { vat_phong: 0.25, phap_phong: 0.25, giam_sat_thuong: 0.10 } },
+      4: { name: 'Bất Diệt Sơn Thần', image: 'Nham_thu_4.png', passives: { vat_phong: 0.40, phap_phong: 0.40, giam_sat_thuong: 0.15 } }
+    }
+  },
+  'da_mieu': {
+    name: 'Dòng Dạ Miêu',
+    element: 'kim',
+    stages: {
+      1: { name: 'Huyễn Dạ Miêu', image: 'Da_Mieu_1.png', passives: { speed: 8, hieu_ung_cx: 0.05 } },
+      2: { name: 'U Minh Huyễn Báo', image: 'Da_Mieu_2.png', passives: { speed: 15, hieu_ung_cx: 0.10 } },
+      3: { name: 'Ám Dạ Thích Khách', image: 'Da_Mieu_3.png', passives: { speed: 25, hieu_ung_cx: 0.15, ne: 0.10 } },
+      4: { name: 'U Minh Mộng Ma', image: 'Da_Mieu_4.png', passives: { speed: 40, hieu_ung_cx: 0.25, ne: 0.15 } }
+    }
+  },
+  'thanh_loc': {
+    name: 'Dòng Thanh Lộc',
+    element: 'moc',
+    stages: {
+      1: { name: 'Thanh Mộc Lộc', image: 'thanh_loc_1.png', passives: { max_hp: 0.10, max_mp: 0.10 } },
+      2: { name: 'Tiên Tông Thần Lộc', image: 'thanh_loc_2.png', passives: { max_hp: 0.15, max_mp: 0.15, khang_hieu_ung: 0.05 } },
+      3: { name: 'Sâm Lâm Tinh Linh', image: 'thanh_loc_3.png', passives: { max_hp: 0.25, max_mp: 0.25, khang_hieu_ung: 0.15, speed: 5 } },
+      4: { name: 'Dược Sư Tiên Tử', image: 'thanh_loc_4.png', passives: { max_hp: 0.40, max_mp: 0.40, khang_hieu_ung: 0.30, speed: 10 } }
+    }
+  }
 };
 
 export const getPetQualityIndex = (rarity) => {
-  if (!rarity) return 0;
-  if (rarity.endsWith('_1')) return 0;
-  if (rarity.endsWith('_2')) return 1;
-  if (rarity.endsWith('_3')) return 2;
-  if (rarity.endsWith('_4')) return 3;
-  return 0;
+  const keys = Object.keys(PET_BLOODLINE_LABELS);
+  const idx = keys.indexOf(rarity);
+  return idx >= 0 ? idx : 0;
 };
 
 export const getPetTotalEvolves = (pet) => {
   if (!pet) return 0;
   const q = getPetQualityIndex(pet.rarity);
-  const p = pet.tienHoa || 0;
-  const extra = pet.extraEvo || 0;
-  return q * 11 + p + extra;
+  const p = pet.tienHoa || 1;
+  return q * 10 + (p - 1);
 };
 
 export const getPetLevelCap = (pet) => {
-  if (!pet) return 1;
-  if (pet.isMax) return 440;
-  const q = getPetQualityIndex(pet.rarity);
-  const p = pet.tienHoa || 0;
-  if (p < 10) {
-    return q * 110 + (p + 1) * 10;
-  } else {
-    return q * 110 + 110;
-  }
+  return 31;
 };
 
 export const getPetEvolutionCost = (pet) => {
-  if (!pet) return 0;
-  const isThan = ['to_long_1', 'to_long_2', 'phuong_hoang_1', 'phuong_hoang_2', 'ky_lan_1', 'ky_lan_2', 'huyen_vu_1', 'huyen_vu_2', 'bach_ho_1', 'bach_ho_2'].includes(pet.type);
-  const baseCost = isThan ? 10000 : 1000;
-  const totalEvolves = getPetTotalEvolves(pet);
-  return Math.floor(baseCost * Math.pow(1.25, totalEvolves));
+  return 0; // Bloodline tier upgrades use phach instead of stones
 };
 
-export const getFormattedPetName = (baseName, rarity, tienHoa, isMax) => {
+export function getPetStage(rarity) {
+  if (!rarity) return 1;
+  if (rarity.startsWith('than_pham')) return 4;
+  if (rarity.startsWith('tien_pham')) return 3;
+  if (rarity.startsWith('cuc_pham')) return 2;
+  return 1;
+}
+
+export function getFormattedPetName(baseName, rarity, tienHoa, isMax) {
   const cleanName = baseName.replace(/(\s\+\d+|\[MAX\]|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
-  if (isMax) {
+  if (isMax || rarity === 'than_pham_5') {
     return `${cleanName} [MAX]`;
   }
-  if (tienHoa > 0) {
+  if (tienHoa > 0 && rarity !== 'ha_pham' && rarity !== 'trung_pham' && rarity !== 'trung_pham_1') {
     return `${cleanName} +${tienHoa}`;
   }
   return cleanName;
-};
+}
 
-// Khai báo bộ nhớ cache cho PET_TEMPLATES để tránh gọi CSDL quá nhiều lần
 export let PET_TEMPLATES = {};
 
 export const loadPetTemplatesIntoCache = (templates) => {
@@ -1207,142 +1272,206 @@ export const loadPetTemplatesIntoCache = (templates) => {
 };
 
 export const PET_TEMPLATES_SEED = [
-  // 15 Linh Thú (5 species)
-  { id: 'ma_lang_1', name: 'Thiết Huyết Lang', emoji: '🐺', group: 'linh_thu', species: 'ma_lang', statType: 'vat_cong', statValue: 0.08, desc: 'Hộ thể: +8% Sát thương Vật lý nền' },
-  { id: 'ma_lang_2', name: 'U Minh Ma Lang', emoji: '🐺', group: 'linh_thu', species: 'ma_lang', statType: 'vat_cong', statValue: 0.10, desc: 'Hộ thể: +10% Sát thương Vật lý nền' },
-  { id: 'ma_lang_3', name: 'Huyết Nguyệt Lang', emoji: '🐺', group: 'linh_thu', species: 'ma_lang', statType: 'vat_cong', statValue: 0.12, desc: 'Hộ thể: +12% Sát thương Vật lý nền' },
-
-  { id: 'loi_diep_1', name: 'Thanh Vân Điệp', emoji: '🦋', group: 'linh_thu', species: 'loi_diep', statType: 'tu_toc', statValue: 0.08, desc: 'Hộ thể: +8% Tu tốc nền' },
-  { id: 'loi_diep_2', name: 'Thất Thải Lôi Điệp', emoji: '🦋', group: 'linh_thu', species: 'loi_diep', statType: 'tu_toc', statValue: 0.10, desc: 'Hộ thể: +5% Bạo kích & +10% Tu tốc nền' },
-  { id: 'loi_diep_3', name: 'Mộng Ảo Điệp', emoji: '🦋', group: 'linh_thu', species: 'loi_diep', statType: 'tu_toc', statValue: 0.12, desc: 'Hộ thể: +12% Tu tốc nền' },
-
-  { id: 'than_vien_1', name: 'Thiết Tý Viên', emoji: '🦍', group: 'linh_thu', species: 'than_vien', statType: 'max_hp', statValue: 0.10, desc: 'Hộ thể: +10% HP tối đa & +8% Hộ giáp nền' },
-  { id: 'than_vien_2', name: 'Thiết Tý Thần Viên', emoji: '🦍', group: 'linh_thu', species: 'than_vien', statType: 'max_hp', statValue: 0.15, desc: 'Hộ thể: +15% HP tối đa & +10% Hộ giáp nền' },
-  { id: 'than_vien_3', name: 'Kim Cương Viên', emoji: '🦍', group: 'linh_thu', species: 'than_vien', statType: 'max_hp', statValue: 0.18, desc: 'Hộ thể: +18% HP tối đa & +12% Hộ giáp nền' },
-
-  { id: 'linh_ho_1', name: 'Song Đầu Hổ', emoji: '🐯', group: 'linh_thu', species: 'linh_ho', statType: 'vat_cong', statValue: 0.08, desc: 'Hộ thể: +8% Vật Công & +5% Tốc độ di chuyển' },
-  { id: 'linh_ho_2', name: 'Bạch Ngân Linh Hổ', emoji: '🐯', group: 'linh_thu', species: 'linh_ho', statType: 'vat_cong', statValue: 0.12, desc: 'Hộ thể: +12% Vật Công & +8% Tốc độ di chuyển' },
-  { id: 'linh_ho_3', name: 'U Ảnh Hổ', emoji: '🐯', group: 'linh_thu', species: 'linh_ho', statType: 'vat_cong', statValue: 0.15, desc: 'Hộ thể: +15% Vật Công & +10% Tốc độ di chuyển' },
-
-  { id: 'linh_ho_fox_1', name: 'Tam Vĩ Yêu Hồ', emoji: '🦊', group: 'linh_thu', species: 'linh_ho_fox', statType: 'ne', statValue: 0.08, desc: 'Hộ thể: +8% Né tránh' },
-  { id: 'linh_ho_fox_2', name: 'Lục Vĩ Linh Hồ', emoji: '🦊', group: 'linh_thu', species: 'linh_ho_fox', statType: 'ne', statValue: 0.12, desc: 'Hộ thể: +12% Né tránh & +5% Bạo kích' },
-  { id: 'linh_ho_fox_3', name: 'Cửu Vĩ Linh Hồ', emoji: '🦊', group: 'linh_thu', species: 'linh_ho_fox', statType: 'ne', statValue: 0.15, desc: 'Hộ thể: +15% Né tránh & +8% Bạo kích' },
-
-  // 10 Thần Thú (5 species)
-  { id: 'to_long_1', name: 'Hỗn Thiên Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'phap_cong', statValue: 0.30, desc: 'Chủ động: Phước lành chân long. Hộ thể: +30% Pháp Công & +10% Bạo kích' },
-  { id: 'to_long_2', name: 'Thượng Cổ Tổ Long', emoji: '<:long:1522644627394662431>', group: 'than_thu', species: 'to_long', statType: 'phap_cong', statValue: 0.30, desc: 'Chủ động: Phước lành chân long. Hộ thể: +30% Pháp Công & +10% Bạo kích' },
-
-  { id: 'phuong_hoang_1', name: 'Cửu Thiên Phượng Hoàng', emoji: '<:phung:1522635618377662484>', group: 'than_thu', species: 'phuong_hoang', statType: 'crit_dmg', statValue: 0.35, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +35% Bạo thương & +20% Song công' },
-  { id: 'phuong_hoang_2', name: 'Huyết Hoàng Phượng', emoji: '<:phung:1522635618377662484>', group: 'than_thu', species: 'phuong_hoang', statType: 'crit_dmg', statValue: 0.38, desc: 'Chủ động: Hỏa Phượng Liệt Diễm. Hộ thể: +38% Bạo thương & +20% Song công' },
-
-  { id: 'ky_lan_1', name: 'Bạch Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'song_cong', statValue: 0.30, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +30% Song Công & +10% Tốc độ' },
-  { id: 'ky_lan_2', name: 'Thiên Ngọc Kỳ Lân', emoji: '<:lan:1522635616137908274>', group: 'than_thu', species: 'ky_lan', statType: 'song_cong', statValue: 0.30, desc: 'Chủ động: Kỳ Lân Hộ Thể. Hộ thể: +30% Song Công & +10% Tốc độ' },
-
-  { id: 'huyen_vu_1', name: 'Thần Thú Huyền Vũ', emoji: '<:quy:1522635603718570135>', group: 'than_thu', species: 'huyen_vu', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Cự Thần Hồng Hoang. Hộ thể: +25% HP & +15% Giáp' },
-  { id: 'huyen_vu_2', name: 'Thượng Cổ Hợp Quy', emoji: '<:quy:1522635603718570135>', group: 'than_thu', species: 'huyen_vu', statType: 'max_hp', statValue: 0.25, desc: 'Chủ động: Cự Thần Hồng Hoang. Hộ thể: +25% HP & +15% Giáp' },
-
-  { id: 'bach_ho_1', name: 'Thần Thú Bạch Hổ', emoji: '<:ho:1522635613822517248>', group: 'than_thu', species: 'bach_ho', statType: 'vat_cong', statValue: 0.30, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +30% Vật Công & +10% Bạo kích' },
-  { id: 'bach_ho_2', name: 'Thái Cổ Kim Hổ', emoji: '<:ho:1522635613822517248>', group: 'than_thu', species: 'bach_ho', statType: 'vat_cong', statValue: 0.30, desc: 'Chủ động: Bạch Hổ Sát Chiêu. Hộ thể: +30% Vật Công & +10% Bạo kích' }
+  { id: 'hoa_hau', name: 'Hỏa Hầu', emoji: '🐒', group: 'linh_thu', species: 'hoa_hau', statType: 'vat_cong', statValue: 0.05, desc: 'Dòng Hỏa Hầu - Sát Thương Vật Lý' },
+  { id: 'bang_dieu', name: 'Băng Điểu', emoji: '🐦', group: 'linh_thu', species: 'bang_dieu', statType: 'phap_cong', statValue: 0.05, desc: 'Dòng Băng Điểu - Sát Thương Phép Thuật' },
+  { id: 'nham_giap', name: 'Nham Giáp', emoji: '🛡️', group: 'linh_thu', species: 'nham_giap', statType: 'vat_phong', statValue: 0.08, desc: 'Dòng Nham Giáp - Đỡ Đòn Gánh Sát Thương' },
+  { id: 'da_mieu', name: 'Dạ Miêu', emoji: '🐈', group: 'linh_thu', species: 'da_mieu', statType: 'speed', statValue: 8.0, desc: 'Dòng Dạ Miêu - Khống Chế Thao Túng' },
+  { id: 'thanh_loc', name: 'Thanh Lộc', emoji: '🦌', group: 'linh_thu', species: 'thanh_loc', statType: 'max_hp', statValue: 0.10, desc: 'Dòng Thanh Lộc - Hỗ Trợ Trị Liệu' }
 ];
 
 export function checkHuyetMachApChe(level, rarity) {
-  if (rarity === 'TT_2' && level < 19) {
-    return {
-      allowed: false,
-      requiredRealm: 'Hóa Thần',
-      msg: 'Đạo hữu dưới Hóa Thần Cảnh không thể sử dụng linh thú có Huyết Mạch Hỗn Độn.'
-    };
-  }
-  if (rarity === 'TT_3' && level < 22) {
-    return {
-      allowed: false,
-      requiredRealm: 'Phản Hư',
-      msg: 'Đạo hữu dưới Phản Hư Cảnh không thể sử dụng linh thú có Huyết Mạch Hồng Hoang.'
-    };
-  }
-  if (rarity === 'TT_4' && level < 25) {
-    return {
-      allowed: false,
-      requiredRealm: 'Hợp Thể',
-      msg: 'Đạo hữu dưới Hợp Thể Cảnh không thể sử dụng linh thú có Huyết Mạch Khởi Nguyên.'
-    };
-  }
   return { allowed: true };
 }
 
-export function getPetDefaultBaseStats(type) {
+export function getPotentialUpgradeCost(currentPotential) {
+  const upgradesCount = Math.floor((currentPotential - 100) / 10);
+  return Math.floor(500 * Math.pow(1.05, upgradesCount));
+}
+
+export function getRealmIndex(level) {
+  if (level >= 1 && level <= 9) return 0;
+  if (level >= 10 && level <= 12) return 1;
+  if (level >= 13 && level <= 15) return 2;
+  if (level >= 16 && level <= 18) return 3;
+  if (level >= 19 && level <= 21) return 4;
+  if (level >= 22 && level <= 24) return 5;
+  if (level >= 25 && level <= 27) return 6;
+  if (level >= 28 && level <= 30) return 7;
+  if (level >= 31) return 8;
+  return 0;
+}
+
+export function getPetPassiveStats(type, stage, potential, level) {
+  const lineage = NEW_PET_LINEAGES[type];
+  if (!lineage) return {};
+  const stageConf = lineage.stages[stage];
+  if (!stageConf) return {};
+  
+  const potentialMult = potential / 100;
+  const R = getRealmIndex(level);
+  const realmMult = 1.0 + R * 0.02;
+  
   const stats = {};
-  if (!type) return stats;
-  if (type.startsWith('ma_lang_')) {
-    const val = type === 'ma_lang_1' ? 0.08 : (type === 'ma_lang_2' ? 0.10 : 0.12);
-    stats.vat_cong = val;
-  } else if (type.startsWith('loi_diep_')) {
-    const val = type === 'loi_diep_1' ? 0.08 : (type === 'loi_diep_2' ? 0.10 : 0.12);
-    stats.tu_toc = val;
-    if (type === 'loi_diep_2') stats.crit_rate = 0.05;
-  } else if (type.startsWith('than_vien_')) {
-    const hpVal = type === 'than_vien_1' ? 0.10 : (type === 'than_vien_2' ? 0.15 : 0.18);
-    const giapVal = type === 'than_vien_1' ? 0.08 : (type === 'than_vien_2' ? 0.10 : 0.12);
-    stats.max_hp = hpVal;
-    stats.giap = giapVal;
-  } else if (type.startsWith('linh_ho_fox_')) {
-    const neVal = type === 'linh_ho_fox_1' ? 0.08 : (type === 'linh_ho_fox_2' ? 0.12 : 0.15);
-    stats.ne = neVal;
-    if (type === 'linh_ho_fox_2') stats.crit_rate = 0.05;
-    else if (type === 'linh_ho_fox_3') stats.crit_rate = 0.08;
-  } else if (type.startsWith('linh_ho_')) {
-    const val = type === 'linh_ho_1' ? 0.08 : (type === 'linh_ho_2' ? 0.12 : 0.15);
-    stats.vat_cong = val;
-  } else if (type.startsWith('to_long_')) {
-    stats.phap_cong = 0.30;
-    stats.crit_rate = 0.10;
-  } else if (type.startsWith('phuong_hoang_')) {
-    stats.crit_dmg = 0.35;
-    stats.song_cong = 0.20;
-  } else if (type.startsWith('ky_lan_')) {
-    stats.song_cong = 0.30;
-    stats.speed = 0.10;
-  } else if (type.startsWith('huyen_vu_')) {
-    stats.max_hp = 0.25;
-    stats.giap = 0.15;
-  } else if (type.startsWith('bach_ho_')) {
-    stats.vat_cong = 0.30;
-    stats.crit_rate = 0.10;
+  for (const [stat, baseVal] of Object.entries(stageConf.passives)) {
+    stats[stat] = baseVal * potentialMult * realmMult;
   }
   return stats;
 }
 
 export function getPetCurrentStats(pet) {
-  if (pet && pet.fusedStats) {
-    try {
-      const parsed = JSON.parse(pet.fusedStats);
-      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-        return parsed;
-      }
-    } catch (e) {
-      console.error("Error parsing pet fusedStats:", e);
-    }
+  if (!pet) return {};
+  const stage = getPetStage(pet.rarity);
+  return getPetPassiveStats(pet.type, stage, pet.tuChat, pet.level);
+}
+
+export function getPetStageSkillDescription(type, stage) {
+  if (type === 'hoa_hau') {
+    if (stage === 1) return 'CD 3 hiệp: Gây 120% sát thương vật lý lên 1 kẻ địch, kèm hiệu ứng [Chảy Máu] (trừ 3% HP tối đa mỗi hiệp) trong 2 hiệp.';
+    if (stage === 2) return 'CD 3 hiệp: Gây 160% sát thương vật lý. [Chảy Máu] tăng lên 5% HP tối đa/hiệp.';
+    if (stage === 3) return 'CD 3 hiệp: Gây 200% sát thương vật lý. Nếu mục tiêu đang bị [Chảy Máu], lập tức kích nổ toàn bộ sát thương chảy máu còn lại thành một đòn bạo kích.';
+    return 'CD 3 hiệp: Gây 280% sát thương vật lý, bỏ qua 20% Vật Phòng. Nếu HP mục tiêu dưới 15% sau đòn đánh, lập tức kết liễu (Execute) kẻ địch.';
   }
-  return pet ? getPetDefaultBaseStats(pet.type) : {};
+  if (type === 'bang_dieu') {
+    if (stage === 1) return 'CD 3 hiệp: Bắn lông vũ, gây 80% sát thương phép lên toàn bộ địch.';
+    if (stage === 2) return 'CD 3 hiệp: Gây 120% sát thương phép lên toàn đội địch, có 20% tỷ lệ làm giảm 5 Tốc độ của chúng trong 2 hiệp.';
+    if (stage === 3) return 'CD 3 hiệp: Gây 160% sát thương phép toàn địch. Áp đặt hiệu ứng [Tê Buốt] (giảm 15% Pháp Phòng của địch) trong 2 hiệp.';
+    return 'CD 3 hiệp: Gây 220% sát thương phép toàn địch. Kẻ địch bị [Tê Buốt] sẽ chịu thêm sát thương chuẩn bằng 5% HP tối đa của chúng.';
+  }
+  if (type === 'nham_giap') {
+    if (stage === 1) return 'CD 4 hiệp: Tạo khiên cho chủ nhân bằng 15% HP tối đa, duy trì 2 hiệp.';
+    if (stage === 2) return 'CD 4 hiệp: Tạo khiên bằng 25% HP tối đa. Trong thời gian có khiên, chủ nhân miễn nhiễm 1 lần sát thương chí mạng.';
+    if (stage === 3) return 'CD 4 hiệp: Tạo khiên bằng 35% HP tối đa. Hút toàn bộ đòn đánh đơn mục tiêu của phe địch về phía chủ nhân (Khiêu khích) trong 1 hiệp.';
+    return 'CD 4 hiệp: Tạo khiên bằng 50% HP tối đa. Phản lại 30% sát thương nhận vào cho kẻ tấn công trong suốt thời gian tồn tại của khiên.';
+  }
+  if (type === 'da_mieu') {
+    if (stage === 1) return 'CD 4 hiệp: Sát thương phép nhỏ lên 1 địch, 60% tỷ lệ gây [Mù] (giảm 50% trúng đích) và giảm 5 Tốc Độ trong 2 hiệp.';
+    if (stage === 2) return 'CD 4 hiệp: Sát thương phép trung bình. Tăng tỷ lệ gây [Mù] lên 80% và giảm 10 Tốc Độ.';
+    if (stage === 3) return 'CD 4 hiệp: Gây [Mù] chắc chắn lên 1 mục tiêu. Có 50% cơ hội đánh cắp 1 buff có lợi của địch chuyển sang cho chủ nhân.';
+    return 'CD 4 hiệp: Khiến 1 mục tiêu rơi vào [Mộng Yểm] (Đóng băng/Mất lượt) trong 2 hiệp. Kẻ địch trong trạng thái này mỗi hiệp tự mất 10% MP hiện tại.';
+  }
+  if (type === 'thanh_loc') {
+    if (stage === 1) return 'CD 3 hiệp: Hồi 10% HP/MP cho chủ nhân, xóa 1 debuff.';
+    if (stage === 2) return 'CD 3 hiệp: Hồi 15% HP/MP. Xóa toàn bộ debuff đang có trên người chủ nhân.';
+    if (stage === 3) return 'CD 3 hiệp: Hồi 25% HP/MP. Gắn hiệu ứng [Hồi Tô]: Cứ đầu hiệp tự hồi thêm 5% HP trong 3 hiệp tiếp theo.';
+    return 'CD 4 hiệp - Tăng 1 hiệp CD: Hồi lập tức 40% HP/MP. Kích hoạt [Cải Tử Hoàn Sinh]: Nếu chủ nhân bị hạ gục trong 2 hiệp tới, lập tức sống lại với 30% HP (chỉ kích hoạt 1 lần mỗi trận).';
+  }
+  return '';
+}
+
+export function getBloodlineUpgradeReqs(rarity, tier, type) {
+  const lineage = NEW_PET_LINEAGES[type];
+  if (!lineage) return null;
+  const element = lineage.element;
+  
+  if (tier < 10) {
+    let phachId = `${element}_phach_ha`;
+    let count = 2;
+    if (rarity === 'ha_pham') {
+      phachId = `${element}_phach_ha`;
+      count = 2;
+    } else if (rarity === 'trung_pham') {
+      phachId = `${element}_phach_ha`;
+      count = 3;
+    } else if (rarity === 'trung_pham_1') {
+      phachId = `${element}_phach_trung`;
+      count = 2;
+    } else if (rarity.startsWith('cuc_pham')) {
+      phachId = `${element}_phach_trung`;
+      count = 3;
+    } else if (rarity.startsWith('tien_pham')) {
+      phachId = element === 'moc' ? 'moc_phac_thuong' : `${element}_phach_thuong`;
+      count = 2;
+    } else if (rarity.startsWith('than_pham')) {
+      phachId = element === 'moc' ? 'moc_phac_thuong' : `${element}_phach_thuong`;
+      count = 4;
+    }
+    
+    if (phachId === 'thuy_phach_ha') phachId = 'thuy_phac_ha';
+    if (phachId === 'moc_phach_thuong') phachId = 'moc_phac_thuong';
+
+    return { type: 'minor', phachId, count, nextTier: tier + 1 };
+  } else {
+    let nextGrade = '';
+    let potentialReq = 0;
+    let copiesReq = 0;
+    let phachId = '';
+    let phachCount = 0;
+    
+    if (rarity === 'ha_pham') {
+      nextGrade = 'trung_pham';
+      potentialReq = 200;
+      copiesReq = 1;
+      phachId = `${element}_phach_ha`;
+      phachCount = 10;
+    } else if (rarity === 'trung_pham') {
+      nextGrade = 'trung_pham_1';
+      potentialReq = 500;
+      copiesReq = 1;
+      phachId = `${element}_phach_ha`;
+      phachCount = 10;
+    } else if (rarity === 'trung_pham_1') {
+      nextGrade = 'cuc_pham_0';
+      potentialReq = 1000;
+      copiesReq = 2;
+      phachId = `${element}_phach_trung`;
+      phachCount = 10;
+    } else if (rarity === 'cuc_pham_0') {
+      nextGrade = 'cuc_pham_1';
+      potentialReq = 1000;
+      copiesReq = 0;
+      phachId = `${element}_phach_trung`;
+      phachCount = 10;
+    } else if (rarity === 'cuc_pham_1') {
+      nextGrade = 'cuc_pham_2';
+      potentialReq = 1000;
+      copiesReq = 0;
+      phachId = `${element}_phach_trung`;
+      phachCount = 10;
+    } else if (rarity === 'cuc_pham_2') {
+      nextGrade = 'tien_pham_0';
+      potentialReq = 2000;
+      copiesReq = 3;
+      phachId = element === 'moc' ? 'moc_phac_thuong' : `${element}_phach_thuong`;
+      phachCount = 10;
+    } else if (rarity.startsWith('tien_pham')) {
+      const currentIdx = parseInt(rarity.split('_')[2]);
+      if (currentIdx < 5) {
+        nextGrade = `tien_pham_${currentIdx + 1}`;
+        potentialReq = 2000;
+        copiesReq = 0;
+        phachId = element === 'moc' ? 'moc_phac_thuong' : `${element}_phach_thuong`;
+        phachCount = 10;
+      } else {
+        nextGrade = 'than_pham_0';
+        potentialReq = 4000;
+        copiesReq = 4;
+        phachId = element === 'moc' ? 'moc_phac_thuong' : `${element}_phach_thuong`;
+        phachCount = 10;
+      }
+    } else if (rarity.startsWith('than_pham')) {
+      const currentIdx = parseInt(rarity.split('_')[2]);
+      if (currentIdx < 5) {
+        nextGrade = `than_pham_${currentIdx + 1}`;
+        potentialReq = 4000;
+        copiesReq = 0;
+        phachId = element === 'moc' ? 'moc_phac_thuong' : `${element}_phach_thuong`;
+        phachCount = 10;
+      } else {
+        return null;
+      }
+    }
+    
+    if (phachId === 'thuy_phach_ha') phachId = 'thuy_phac_ha';
+    if (phachId === 'moc_phach_thuong') phachId = 'moc_phac_thuong';
+
+    return { type: 'major', nextGrade, potentialReq, copiesReq, phachId, phachCount, nextTier: 1 };
+  }
 }
 
 export function formatFusedStats(fusedStats) {
-  if (!fusedStats || Object.keys(fusedStats).length === 0) return '';
-  const lines = [];
-  for (const [key, val] of Object.entries(fusedStats)) {
-    const pct = (val * 100).toFixed(2);
-    let label = '';
-    if (key === 'vat_cong') label = 'Vật Công';
-    else if (key === 'phap_cong') label = 'Pháp Công';
-    else if (key === 'max_hp') label = 'HP';
-    else if (key === 'giap') label = 'Giáp';
-    else if (key === 'ne') label = 'Né tránh';
-    else if (key === 'crit_rate') label = 'Bạo kích';
-    else if (key === 'tu_toc') label = 'Tu tốc';
-    lines.push(`+${pct}% ${label}`);
-  }
-  return lines.join(' & ');
+  return '';
 }
+
 
 export async function tangLuongDuyen(userId1, userId2, delta = 1) {
   const { PlayerAffinity } = await import('./models/PlayerAffinity.js');
@@ -1521,6 +1650,174 @@ export function taiLapChiSoPhu(dongChiSoJson, itemDetail) {
 
   return newLines;
 }
+
+export function handlePetCombatSkill(pet, petState, ownerStats, opponentStats, battleLogs, ownerName, opponentName, currentOpponentBleed = false) {
+  if (!pet) return null;
+  const stage = getPetStage(pet.rarity);
+  const lineage = NEW_PET_LINEAGES[pet.type];
+  if (!lineage) return null;
+  const stageConf = lineage.stages[stage];
+  const petName = stageConf ? stageConf.name : pet.name;
+  
+  if (petState.cooldown > 0) {
+    petState.cooldown -= 1;
+    return null;
+  }
+  
+  // Set CD
+  const cd = (pet.type === 'nham_giap' || pet.type === 'da_mieu' || (pet.type === 'thanh_loc' && stage === 4)) ? 4 : 3;
+  petState.cooldown = cd;
+  
+  const result = {
+    petName,
+    damage: 0,
+    damageType: 'physical',
+    healHp: 0,
+    healMp: 0,
+    shield: 0,
+    debuffsToRemove: false,
+    applyBleed: false,
+    applyBlind: false,
+    applySlow: false,
+    applyTebut: false,
+    applyNightmare: false,
+    applyHoito: false,
+    applyCaituhoansinh: false,
+    stealBuff: false,
+    critImmune: false,
+    reflectDmg: false,
+    execute: false,
+    log: ''
+  };
+
+  if (pet.type === 'hoa_hau') {
+    result.damageType = 'physical';
+    if (stage === 1) {
+      result.damage = Math.floor(ownerStats.vat_cong * 1.2);
+      result.applyBleed = { turns: 2, dmg: Math.max(1, Math.floor(opponentStats.max_hp * 0.03)) };
+      result.log = `🐒 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** thi triển kỹ năng, vung trảo gây \`${result.damage.toLocaleString()}\` sát thương vật lý lên **${opponentName}** và khắc sâu hiệu ứng [Chảy Máu] (trừ 3% HP tối đa mỗi hiệp) trong 2 hiệp.`;
+    } else if (stage === 2) {
+      result.damage = Math.floor(ownerStats.vat_cong * 1.6);
+      result.applyBleed = { turns: 2, dmg: Math.max(1, Math.floor(opponentStats.max_hp * 0.05)) };
+      result.log = `🐒 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** thi triển kỹ năng, hóa thành cự viên đấm mạnh gây \`${result.damage.toLocaleString()}\` sát thương vật lý lên **${opponentName}** và gây [Chảy Máu] cực đại (trừ 5% HP tối đa mỗi hiệp) trong 2 hiệp.`;
+    } else if (stage === 3) {
+      result.damage = Math.floor(ownerStats.vat_cong * 2.0);
+      if (currentOpponentBleed && currentOpponentBleed.turns > 0) {
+        const explodeDmg = Math.floor(currentOpponentBleed.turns * currentOpponentBleed.dmg * 1.5);
+        result.damage += explodeDmg;
+        result.clearBleed = true;
+        result.log = `🐒 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** kích nổ ấn ký [Chảy Máu] trên người **${opponentName}**, gây tổng cộng \`${result.damage.toLocaleString()}\` sát thương bạo kích vật lý!`;
+      } else {
+        result.log = `🐒 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** vung gậy chém mạnh gây \`${result.damage.toLocaleString()}\` sát thương vật lý lên **${opponentName}**.`;
+      }
+    } else if (stage === 4) {
+      result.damage = Math.floor(ownerStats.vat_cong * 2.8);
+      result.ignoreDef = 0.20;
+      result.execute = true;
+      result.log = `🐒 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** vung thiết bổng bỏ qua 20% Vật Phòng, gây \`${result.damage.toLocaleString()}\` sát thương vật lý lên **${opponentName}**.`;
+    }
+  } else if (pet.type === 'bang_dieu') {
+    result.damageType = 'magic';
+    if (stage === 1) {
+      result.damage = Math.floor(ownerStats.phap_cong * 0.8);
+      result.log = `🐦 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** bắn lông vũ băng giá gây \`${result.damage.toLocaleString()}\` sát thương phép lên **${opponentName}**.`;
+    } else if (stage === 2) {
+      result.damage = Math.floor(ownerStats.phap_cong * 1.2);
+      if (Math.random() <= 0.20) {
+        result.applySlow = { turns: 2, amount: 5 };
+        result.log = `🐦 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** oanh kích gây \`${result.damage.toLocaleString()}\` sát thương phép lên **${opponentName}** và làm giảm 5 Tốc độ của đối thủ trong 2 hiệp.`;
+      } else {
+        result.log = `🐦 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** oanh kích gây \`${result.damage.toLocaleString()}\` sát thương phép lên **${opponentName}**.`;
+      }
+    } else if (stage === 3) {
+      result.damage = Math.floor(ownerStats.phap_cong * 1.6);
+      result.applyTebut = { turns: 2 };
+      result.log = `🐦 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** dội bão tuyết gây \`${result.damage.toLocaleString()}\` sát thương phép lên **${opponentName}** và áp đặt [Tê Buốt] (giảm 15% Pháp Phòng) trong 2 hiệp.`;
+    } else if (stage === 4) {
+      result.damage = Math.floor(ownerStats.phap_cong * 2.2);
+      result.checkTebutBonus = true;
+      result.log = `🐦 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** giải phóng băng phong gây \`${result.damage.toLocaleString()}\` sát thương phép lên **${opponentName}**.`;
+    }
+  } else if (pet.type === 'nham_giap') {
+    if (stage === 1) {
+      result.shield = Math.floor(ownerStats.max_hp * 0.15);
+      result.shieldTurns = 2;
+      result.log = `🛡️ **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** tạo lá chắn đá tảng hấp thụ \`${result.shield.toLocaleString()}\` sát thương trong 2 hiệp.`;
+    } else if (stage === 2) {
+      result.shield = Math.floor(ownerStats.max_hp * 0.25);
+      result.shieldTurns = 99;
+      result.critImmune = true;
+      result.log = `🛡️ **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** tạo lá chắn kim cang \`${result.shield.toLocaleString()}\` HP, giúp chủ nhân miễn nhiễm sát thương chí mạng khi còn khiên!`;
+    } else if (stage === 3) {
+      result.shield = Math.floor(ownerStats.max_hp * 0.35);
+      result.shieldTurns = 99;
+      result.provoke = true;
+      result.log = `🛡️ **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** tạo khiên nham thạch \`${result.shield.toLocaleString()}\` HP và khiêu khích đối thủ gánh mọi đòn đánh đơn mục tiêu.`;
+    } else if (stage === 4) {
+      result.shield = Math.floor(ownerStats.max_hp * 0.50);
+      result.shieldTurns = 99;
+      result.reflectDmg = true;
+      result.log = `🛡️ **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** tạo thần trận giáp sơn thần \`${result.shield.toLocaleString()}\` HP và phản 30% sát thương nhận vào!`;
+    }
+  } else if (pet.type === 'da_mieu') {
+    result.damageType = 'magic';
+    if (stage === 1) {
+      result.damage = Math.floor(ownerStats.phap_cong * 0.5);
+      if (Math.random() <= 0.60) {
+        result.applyBlind = { turns: 2 };
+        result.applySlow = { turns: 2, amount: 5 };
+        result.log = `🐈 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** cào nhẹ gây \`${result.damage.toLocaleString()}\` sát thương phép lên **${opponentName}**, gây [Mù] (giảm 50% trúng đích) và giảm 5 Tốc độ trong 2 hiệp.`;
+      } else {
+        result.log = `🐈 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** cào nhẹ gây \`${result.damage.toLocaleString()}\` sát thương phép lên **${opponentName}**.`;
+      }
+    } else if (stage === 2) {
+      result.damage = Math.floor(ownerStats.phap_cong * 1.0);
+      if (Math.random() <= 0.80) {
+        result.applyBlind = { turns: 2 };
+        result.applySlow = { turns: 2, amount: 10 };
+        result.log = `🐈 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** vồ tới gây \`${result.damage.toLocaleString()}\` sát thương phép lên **${opponentName}**, gây [Mù] mạnh và giảm 10 Tốc độ trong 2 hiệp.`;
+      } else {
+        result.log = `🐈 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** vồ tới gây \`${result.damage.toLocaleString()}\` sát thương phép lên **${opponentName}**.`;
+      }
+    } else if (stage === 3) {
+      result.applyBlind = { turns: 2 };
+      if (Math.random() <= 0.50) {
+        result.stealBuff = true;
+        result.log = `🐈 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** cướp ảnh huyền bí gây [Mù] tuyệt đối lên **${opponentName}** và đánh cắp 1 hiệu ứng có lợi của họ!`;
+      } else {
+        result.log = `🐈 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** gây [Mù] tuyệt đối lên **${opponentName}**.`;
+      }
+    } else if (stage === 4) {
+      result.applyNightmare = { turns: 2 };
+      result.log = `🐈 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** mở ác mộng khiến **${opponentName}** dính [Mộng Yểm] (Mất lượt và mất 10% MP đầu hiệp) trong 2 hiệp!`;
+    }
+  } else if (pet.type === 'thanh_loc') {
+    if (stage === 1) {
+      result.healHp = Math.floor(ownerStats.max_hp * 0.10);
+      result.healMp = Math.floor(ownerStats.max_mp * 0.10);
+      result.debuffsToRemove = 'one';
+      result.log = `🦌 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** tỏa lục quang hồi phục \`${result.healHp.toLocaleString()}\` HP, \`${result.healMp.toLocaleString()}\` MP và xóa bỏ 1 bất lợi.`;
+    } else if (stage === 2) {
+      result.healHp = Math.floor(ownerStats.max_hp * 0.15);
+      result.healMp = Math.floor(ownerStats.max_mp * 0.15);
+      result.debuffsToRemove = 'all';
+      result.log = `🦌 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** rung sừng ngọc hồi phục \`${result.healHp.toLocaleString()}\` HP, \`${result.healMp.toLocaleString()}\` MP và hóa giải toàn bộ debuff!`;
+    } else if (stage === 3) {
+      result.healHp = Math.floor(ownerStats.max_hp * 0.25);
+      result.healMp = Math.floor(ownerStats.max_mp * 0.25);
+      result.applyHoito = { turns: 3 };
+      result.log = `🦌 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** hồi \`${result.healHp.toLocaleString()}\` HP, \`${result.healMp.toLocaleString()}\` MP và kích hoạt [Hồi Tô] (tự hồi 5% HP mỗi lượt) trong 3 hiệp tiếp theo.`;
+    } else if (stage === 4) {
+      result.healHp = Math.floor(ownerStats.max_hp * 0.40);
+      result.healMp = Math.floor(ownerStats.max_mp * 0.40);
+      result.applyCaituhoansinh = { turns: 2 };
+      result.log = `🦌 **Linh Thú Hộ Thể**: **${petName}** của **${ownerName}** hồi phục mạnh \`${result.healHp.toLocaleString()}\` HP, \`${result.healMp.toLocaleString()}\` MP và ban trạng thái bảo mệnh [Cải Tử Hoàn Sinh] trong 2 hiệp!`;
+    }
+  }
+  
+  return result;
+}
+
 
 
 

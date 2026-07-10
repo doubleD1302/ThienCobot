@@ -85,6 +85,9 @@ class TuSi extends Model {
     let ne = 0.0; // Né tránh mặc định
     let lifesteal = 0.0; // Hút máu mặc định
     let speed = 100;
+    let giamSatThuong = 0.0;
+    let khangHieuUng = 0.0;
+    let hieuUngCx = 0.0;
 
     // Lưu chỉ số nền của tu sĩ để tính phần trăm gia tăng từ các dòng chỉ số ngẫu nhiên
     const baseHpVal = maxHp;
@@ -242,55 +245,34 @@ class TuSi extends Model {
 
     // 4. Cộng sủng vật (Pet) nếu có xuất chiến
     if (activePet) {
-      const template = config.PET_TEMPLATES[activePet.type];
-      if (template) {
-        const scale = (activePet.level || 1) * (activePet.tuChat || 100) / 100;
-        const scalePct = 1.0 + (scale - 1.0) * 0.01;
-        const totalEvolves = config.getPetTotalEvolves(activePet);
-        const evoMult = Math.pow(1.05, totalEvolves);
-        const isThan = template.group === 'than_thu';
-        const groupMult = isThan ? 1.5 : 1.0;
-
-        let extraEvoStatsBuff = 1.0;
-        if (template.species === 'ky_lan') {
-          const tienHoa = activePet.tienHoa || 0;
-          let lkDmgMult = 0.50;
-          for (let i = 1; i <= tienHoa; i++) {
-            if (lkDmgMult < 1.0) {
-              lkDmgMult = lkDmgMult * 1.05;
-              if (lkDmgMult > 1.0) lkDmgMult = 1.0;
-            } else {
-              extraEvoStatsBuff += 0.05;
-            }
-          }
-        }
-
-        const petStats = config.getPetCurrentStats(activePet);
-        for (const [key, val] of Object.entries(petStats)) {
-          const finalVal = val * extraEvoStatsBuff;
-          if (key === 'vat_cong') {
-            vatCong += baseVatCongVal * finalVal * scale * evoMult * groupMult;
-          } else if (key === 'phap_cong') {
-            phapCong += basePhapCongVal * finalVal * scale * evoMult * groupMult;
-          } else if (key === 'max_hp') {
-            maxHp += baseHpVal * finalVal * scale * evoMult * groupMult;
-          } else if (key === 'giap') {
-            giap += baseStats.giap * finalVal * scale * evoMult * groupMult;
-          } else if (key === 'ne') {
-            ne += finalVal * scalePct * evoMult * groupMult;
-          } else if (key === 'crit_rate') {
-            critRate += finalVal * scalePct * evoMult * groupMult;
-          } else if (key === 'crit_dmg') {
-            critDmg += finalVal * scalePct * evoMult * groupMult;
-          } else if (key === 'speed') {
-            speed += baseSpeedVal * finalVal * scale * evoMult * groupMult;
-          } else if (key === 'song_cong') {
-            if (this.huongTu === 'The Tu') {
-              vatCong += baseVatCongVal * finalVal * scale * evoMult * groupMult;
-            } else {
-              phapCong += basePhapCongVal * finalVal * scale * evoMult * groupMult;
-            }
-          }
+      const petStats = config.getPetCurrentStats(activePet);
+      for (const [key, val] of Object.entries(petStats)) {
+        if (key === 'vat_cong') {
+          vatCong += baseVatCongVal * val;
+        } else if (key === 'phap_cong') {
+          phapCong += basePhapCongVal * val;
+        } else if (key === 'max_hp') {
+          maxHp += baseHpVal * val;
+        } else if (key === 'max_mp') {
+          maxMp += baseMpVal * val;
+        } else if (key === 'vat_phong') {
+          vatPhong += baseVatPhongVal * val;
+        } else if (key === 'phap_phong') {
+          phapPhong += basePhapPhongVal * val;
+        } else if (key === 'ne') {
+          ne += val;
+        } else if (key === 'crit_rate') {
+          critRate += val;
+        } else if (key === 'speed') {
+          speed += val;
+        } else if (key === 'xuyen_giap') {
+          xuyenGiap += baseXuyenGiapVal * val;
+        } else if (key === 'giam_sat_thuong') {
+          giamSatThuong += val;
+        } else if (key === 'khang_hieu_ung') {
+          khangHieuUng += val;
+        } else if (key === 'hieu_ung_cx') {
+          hieuUngCx += val;
         }
       }
     }
@@ -326,7 +308,10 @@ class TuSi extends Model {
       crit_dmg: Math.max(1.0, critDmg),
       ne: Math.max(0.0, ne),
       lifesteal: Math.max(0.0, lifesteal),
-      speed: Math.max(1, Math.floor(speed))
+      speed: Math.max(1, Math.floor(speed)),
+      giam_sat_thuong: Math.max(0.0, giamSatThuong),
+      khang_hieu_ung: Math.max(0.0, khangHieuUng),
+      hieu_ung_cx: Math.max(0.0, hieuUngCx)
     };
   }
 

@@ -618,6 +618,7 @@ async function start() {
 
       // Khởi tạo và đồng bộ dữ liệu mẫu cho bảng pet_templates
       const { PetTemplate } = await import('./models/PetTemplate.js');
+      await PetTemplate.destroy({ where: {} });
       for (const t of config.PET_TEMPLATES_SEED) {
         await PetTemplate.upsert({
           id: t.id,
@@ -636,57 +637,31 @@ async function start() {
       const allTemplates = await PetTemplate.findAll();
       config.loadPetTemplatesIntoCache(allTemplates);
 
-      // Thực hiện migration cho các sủng vật cũ sang hệ thống mới
       const { Pet } = await import('./models/Pet.js');
-      const petsToMigrate = await Pet.findAll();
-      let migratedCount = 0;
-      for (const p of petsToMigrate) {
-        if (!p.rarity.startsWith('LT_') && !p.rarity.startsWith('TT_')) {
-          const oldType = p.type;
-          let newType = oldType;
-          let nextRarity = 'LT_1';
+      await Pet.destroy({ where: {} });
+      console.log(`Đã xoá sạch toàn bộ dữ liệu sủng vật cũ.`);
 
-          // Bản đồ chuyển đổi chủng loại cũ sang mới
-          const isLinh = ['ma_lang', 'loi_diep', 'than_vien'].includes(oldType);
-          if (isLinh) {
-            if (oldType === 'ma_lang') newType = 'ma_lang_2';
-            else if (oldType === 'loi_diep') newType = 'loi_diep_2';
-            else if (oldType === 'than_vien') newType = 'than_vien_2';
+      // Xoá sạch toàn bộ đồ tân thủ khỏi CSDL
+      const doTanThuIds = ['kiem_tien_tan_thu', 'truong_tien_tan_thu', 'giap_tien_tan_thu', 'kiem_go'];
+      const { Inventory } = await import('./models/Inventory.js');
+      const invCount = await Inventory.destroy({ where: { itemId: doTanThuIds } });
+      const tmplCount = await Item.destroy({ where: { id: doTanThuIds } });
+      console.log(`Đã xoá sạch toàn bộ đồ tân thủ khỏi vật phẩm và hành trang (Xoá ${tmplCount} mẫu, ${invCount} hành trang).`);
 
-            if (p.rarity === 'NORMAL') nextRarity = 'LT_1';
-            else if (p.rarity === 'RARE') nextRarity = 'LT_2';
-            else if (p.rarity === 'LEGENDARY') nextRarity = 'LT_3';
-            else nextRarity = 'LT_4';
-          } else {
-            // Thần Thú
-            if (oldType === 'to_long') newType = 'to_long_2';
-            else if (oldType === 'phuong_hoang') newType = 'phuong_hoang_1';
-            else if (oldType === 'ky_lan') newType = 'ky_lan_1';
-
-            if (p.rarity === 'NORMAL' || p.rarity === 'RARE' || p.rarity === 'LEGENDARY' || p.rarity === 'MYTHIC') nextRarity = 'TT_1';
-            else if (p.rarity === 'ANCIENT') nextRarity = 'TT_2';
-            else if (p.rarity === 'SUPREME') nextRarity = 'TT_3';
-            else nextRarity = 'TT_4';
-          }
-
-          p.type = newType;
-          p.rarity = nextRarity;
-          p.extraEvo = 0;
-          p.isMax = false;
-          const cleanName = p.name.replace(/(\s\+\d+|\[MAX\]|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
-          p.name = config.getFormattedPetName(cleanName, nextRarity, p.tienHoa || 0, false);
-          await p.save();
-          migratedCount++;
-        }
-      }
-      if (migratedCount > 0) {
-        console.log(`Đã di trú thành công ${migratedCount} sủng vật cũ sang hệ thống mới.`);
-      }
+      // Xoá sạch toàn bộ nguyên liệu luyện đan cũ của Luyện Khí
+      const oldHerbIds = [
+        'hat_giong_linh_chi', 'linh_chi_luc', 'linh_chi_lam', 'linh_chi_tim', 'linh_chi_vang', 'linh_chi_do',
+        'hat_giong_nhan_sam', 'nhan_sam_luc', 'nhan_sam_lam', 'nhan_sam_tim', 'nhan_sam_vang', 'nhan_sam_do', 'nhan_sam',
+        'hat_giong_luyen_khi_thao', 'linh_thao_luyen_khi'
+      ];
+      const deletedInvCount = await Inventory.destroy({ where: { itemId: oldHerbIds } });
+      const deletedTmplCount = await Item.destroy({ where: { id: oldHerbIds } });
+      console.log(`Đã xoá sạch các nguyên liệu luyện đan Luyện Khí cũ (Xoá ${deletedTmplCount} mẫu, ${deletedInvCount} hành trang).`);
 
       // Đồng bộ ShopItem cho các hạt giống và đan dược đột phá mới
       const { ShopItem } = await import('./models/ShopItem.js');
       const breakthroughShopItems = [
-        { itemId: 'hat_giong_luyen_khi_thao', giaBan: 200, yeuCauCapDo: 1 },
+        { itemId: 'hat_giong_tu_linh_thao', giaBan: 200, yeuCauCapDo: 1 },
         { itemId: 'dan_dot_pha_1', giaBan: 2000, yeuCauCapDo: 1 },
         { itemId: 'hat_giong_truc_co_thao', giaBan: 200, yeuCauCapDo: 10 },
         { itemId: 'dan_dot_pha_2', giaBan: 2000, yeuCauCapDo: 10 },
