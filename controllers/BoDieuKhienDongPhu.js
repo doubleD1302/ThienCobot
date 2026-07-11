@@ -2694,7 +2694,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       'pb_def_phap_truc_co': { materialId: 'bich_hai_bang_tinh', count: 5, matName: 'Bích Hải Băng Tinh <:_nglieu_Truc_co_4:1525418022070653019>' },
       'pb_aoe_phap_truc_co': { materialId: 'cuu_thien_tu_cat', count: 5, matName: 'Cửu Thiên Tử Cát <:_nglieu_Truc_co_5:1525418023685718116>' },
       'pb_don_phap_truc_co': { materialId: 'dia_hoa_chi_tinh', count: 5, matName: 'Địa Hỏa Chi Tinh <:_nglieu_Truc_co_3:1525418020137078794>' },
-      'pb_cc_phap_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169938393>' },
+      'pb_cc_phap_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169398393>' },
       'pb_buff_phap_truc_co': { materialId: 'thanh_vu_linh_sa', count: 5, matName: 'Thanh Vũ Linh Sa <:_nglieu_Truc_co_8:1525418018124071054>' },
 
       // Trúc Cơ - Thể Tu
@@ -2705,7 +2705,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       'pb_def_the_truc_co': { materialId: 'bich_hai_bang_tinh', count: 5, matName: 'Bích Hải Băng Tinh <:_nglieu_Truc_co_4:1525418022070653019>' },
       'pb_aoe_the_truc_co': { materialId: 'cuu_thien_tu_cat', count: 5, matName: 'Cửu Thiên Tử Cát <:_nglieu_Truc_co_5:1525418023685718116>' },
       'pb_don_the_truc_co': { materialId: 'dia_hoa_chi_tinh', count: 5, matName: 'Địa Hỏa Chi Tinh <:_nglieu_Truc_co_3:1525418020137078794>' },
-      'pb_cc_the_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169938393>' },
+      'pb_cc_the_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169398393>' },
       'pb_buff_the_truc_co': { materialId: 'thanh_vu_linh_sa', count: 5, matName: 'Thanh Vũ Linh Sa <:_nglieu_Truc_co_8:1525418018124071054>' },
 
       // Kim Đan
