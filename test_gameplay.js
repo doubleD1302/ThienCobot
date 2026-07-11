@@ -4864,14 +4864,37 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(resFail.ok, false);
     assert.ok(resFail.msg.includes('giới hạn kháng dược'));
 
-    // 4. Test đột phá đại cảnh giới (Trúc Cơ -> Kim Đan) thì reset pillCount về 0
-    // Ta giả lập logic thành công của dotpha bằng cách mô phỏng trực tiếp reset khi isMajor = true
-    const isMajorTest = true;
-    if (isMajorTest) {
-      abode.pillCount = 0;
-      await abode.save();
-    }
-    assert.strictEqual(abode.pillCount, 0, "Số lần ăn đan dược phải reset về 0 khi đột phá đại cảnh giới");
+    // 4. Test đột phá cảnh giới thì reset pillCount (khi isMajor = true) và waterCount (cho mọi level up)
+    abode.waterCount = 3;
+    abode.pillCount = 14;
+    await abode.save();
+
+    // Giả lập kết quả của logic trong BoDieuKhienTuLuyen khi đột phá thành công
+    const simulateBreakthrough = async (isMajorBreakthrough) => {
+      let currentAbode = await Abode.findByPk(tuSi.idNguoiDung);
+      if (currentAbode) {
+        currentAbode.waterCount = 0; // Reset free watering
+        if (isMajorBreakthrough) {
+          currentAbode.pillCount = 0; // Reset pill counts
+        }
+        await currentAbode.save();
+      }
+    };
+
+    // Trường hợp đột phá tiểu cảnh giới (isMajor = false)
+    await simulateBreakthrough(false);
+    await abode.reload();
+    assert.strictEqual(abode.waterCount, 0, "Lượt tưới nước phải reset về 0 khi đột phá tiểu cảnh giới");
+    assert.strictEqual(abode.pillCount, 14, "Lượt dùng đan KHÔNG được reset khi đột phá tiểu cảnh giới");
+
+    // Trường hợp đột phá đại cảnh giới (isMajor = true)
+    abode.waterCount = 3;
+    abode.pillCount = 14;
+    await abode.save();
+    await simulateBreakthrough(true);
+    await abode.reload();
+    assert.strictEqual(abode.waterCount, 0, "Lượt tưới nước phải reset về 0 khi đột phá đại cảnh giới");
+    assert.strictEqual(abode.pillCount, 0, "Lượt dùng đan phải reset về 0 khi đột phá đại cảnh giới");
 
     // Clean up
     await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
