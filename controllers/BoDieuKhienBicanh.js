@@ -258,6 +258,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let bossWeakenRounds = 0;
         let bossWeakenPct = 0;
         let playerImmuneRounds = 0;
+        let bossSlowRounds = 0;
+        let bossSlowPctVal = 0;
 
         const isPhysical = tuSi.huongTu === 'The Tu';
         const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
@@ -460,8 +462,6 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
       let playerActionCount = 0;
       let combatRound = 1;
-      let bossSlowRounds = 0;
-      let bossSlowPctVal = 0;
 
 
 

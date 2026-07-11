@@ -308,6 +308,8 @@ async function autoDiBiCanh(tuSi) {
     let bossPoisonDmgPerStack = 0;   // Sát thương độc mỗi tích
     let huyenVuCritActive = false;   // Huyền Vũ giảm bạo & phản đòn
     let critDmgRedPct = 0;           // Tỷ lệ giảm sát thương bạo
+    let bossSlowRounds = 0;
+    let bossSlowPctVal = 0;
 
     const isPhysical = tuSi.huongTu === 'The Tu';
     const playerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
@@ -502,8 +504,6 @@ async function autoDiBiCanh(tuSi) {
 
       let playerActionCount = 0;
       let combatRound = 1;
-      let bossSlowRounds = 0;
-      let bossSlowPctVal = 0;
 
 
 

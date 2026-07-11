@@ -769,6 +769,8 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       let bossPoisonDmgPerStack = 0;   // Sát thương độc mỗi tích
       let huyenVuCritActive = false;   // Huyền Vũ giảm bạo & phản đòn
       let critDmgRedPct = 0;           // Tỷ lệ giảm sát thương bạo
+      let bossSlowRounds = 0;
+      let bossSlowPctVal = 0;
 
       // Kích hoạt kỹ năng chủ động của Thần Thú khi vào trận chiến
       let kyLanCumulativeDmg = 0;
