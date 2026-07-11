@@ -1078,6 +1078,37 @@ async function _simCombat(tuSiA, tuSiB) {
   let tanKhiRoundsB = 0;
   let tanKhiPctB = 0;
 
+  // Chuẩn bị chiến đấu: Linh Căn, Huyết Mạch, Linh Thú
+  const A_elements = tuSiA.linhCanList || [];
+  const B_elements = tuSiB.linhCanList || [];
+  const A_hm = tuSiA.huyetMach;
+  const B_hm = tuSiB.huyetMach;
+
+  let prepA = `🔸 **${tuSiA.ten}** chuẩn bị: `;
+  if (A_elements.length > 0) prepA += `Linh Căn: [${A_elements.join(', ')}] | `;
+  if (A_hm) prepA += `Huyết Mạch: [${A_hm}] | `;
+  if (petA) {
+    const stage = config.getPetStage(petA.rarity);
+    const lineage = config.NEW_PET_LINEAGES[petA.type];
+    const petName = (lineage && lineage.stages[stage]) ? lineage.stages[stage].name : petA.name;
+    prepA += `Linh Thú: **${petName}** (Cấp ${petA.level}) | `;
+  }
+  prepA = prepA.endsWith(' | ') ? prepA.slice(0, -3) : prepA;
+
+  let prepB = `🔸 **${tuSiB.ten}** chuẩn bị: `;
+  if (B_elements.length > 0) prepB += `Linh Căn: [${B_elements.join(', ')}] | `;
+  if (B_hm) prepB += `Huyết Mạch: [${B_hm}] | `;
+  if (petB) {
+    const stage = config.getPetStage(petB.rarity);
+    const lineage = config.NEW_PET_LINEAGES[petB.type];
+    const petName = (lineage && lineage.stages[stage]) ? lineage.stages[stage].name : petB.name;
+    prepB += `Linh Thú: **${petName}** (Cấp ${petB.level}) | `;
+  }
+  prepB = prepB.endsWith(' | ') ? prepB.slice(0, -3) : prepB;
+
+  battleLogs.push(prepA);
+  battleLogs.push(prepB);
+
   // Pháp bảo chủ động A
   const dharmaA = eqA.inv.filter(x => x.item.loai === 'Pháp Bảo');
   for (const eq of dharmaA) {
@@ -1364,6 +1395,25 @@ async function _simCombat(tuSiA, tuSiB) {
       if (slowA > 0) slowA--;
       if (tebutA > 0) tebutA--;
       if (caituA > 0) caituA--;
+
+      // Log active buffs/debuffs for player A
+      const currentBuffsA = [];
+      if (tuKhiActiveA > 0) currentBuffsA.push(`Tụ Khí (${tuKhiActiveA} hiệp)`);
+      if (chienYStacksA > 0) currentBuffsA.push(`Chiến Ý x${chienYStacksA} (${chienYDurationA} hiệp)`);
+      if (shieldA > 0) currentBuffsA.push(`Khiên Chắn (\`${shieldA.toLocaleString()}\` HP)`);
+      if (slowA > 0) currentBuffsA.push(`Làm Chậm (${slowA} hiệp)`);
+      if (tebutA > 0) currentBuffsA.push(`Tê Buốt (${tebutA} hiệp)`);
+      if (caituA > 0) currentBuffsA.push(`Cải Tử Hoàn Sinh (${caituA} hiệp)`);
+      if (nightmareA > 0) currentBuffsA.push(`Mộng Yểm (${nightmareA} hiệp)`);
+      if (blindA > 0) currentBuffsA.push(`Mù Mắt (${blindA} hiệp)`);
+      for (const buff of activeBuffsA) {
+        if (buff.roundsLeft > 0) {
+          currentBuffsA.push(`${buff.ten} (${buff.roundsLeft} hiệp)`);
+        }
+      }
+      if (currentBuffsA.length > 0) {
+        battleLogs.push(`ℹ️ **[Hiệu ứng hiện tại của ${tuSiA.ten}]**: ${currentBuffsA.join(', ')}`);
+      }
 
       if (bleedA && bleedA.turns > 0) {
         const bleedDmg = bleedA.dmg;
@@ -1929,6 +1979,25 @@ async function _simCombat(tuSiA, tuSiB) {
       if (slowB > 0) slowB--;
       if (tebutB > 0) tebutB--;
       if (caituB > 0) caituB--;
+
+      // Log active buffs/debuffs for player B
+      const currentBuffsB = [];
+      if (tuKhiActiveB > 0) currentBuffsB.push(`Tụ Khí (${tuKhiActiveB} hiệp)`);
+      if (chienYStacksB > 0) currentBuffsB.push(`Chiến Ý x${chienYStacksB} (${chienYDurationB} hiệp)`);
+      if (shieldB > 0) currentBuffsB.push(`Khiên Chắn (\`${shieldB.toLocaleString()}\` HP)`);
+      if (slowB > 0) currentBuffsB.push(`Làm Chậm (${slowB} hiệp)`);
+      if (tebutB > 0) currentBuffsB.push(`Tê Buốt (${tebutB} hiệp)`);
+      if (caituB > 0) currentBuffsB.push(`Cải Tử Hoàn Sinh (${caituB} hiệp)`);
+      if (nightmareB > 0) currentBuffsB.push(`Mộng Yểm (${nightmareB} hiệp)`);
+      if (blindB > 0) currentBuffsB.push(`Mù Mắt (${blindB} hiệp)`);
+      for (const buff of activeBuffsB) {
+        if (buff.roundsLeft > 0) {
+          currentBuffsB.push(`${buff.ten} (${buff.roundsLeft} hiệp)`);
+        }
+      }
+      if (currentBuffsB.length > 0) {
+        battleLogs.push(`ℹ️ **[Hiệu ứng hiện tại của ${tuSiB.ten}]**: ${currentBuffsB.join(', ')}`);
+      }
 
       if (bleedB && bleedB.turns > 0) {
         const bleedDmg = bleedB.dmg;

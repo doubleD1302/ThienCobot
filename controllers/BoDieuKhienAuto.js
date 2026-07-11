@@ -422,7 +422,7 @@ async function autoDiBiCanh(tuSi) {
     let kyLanBurstTriggered = false;
     const battleLogs = [];
 
-    if (activePet && false && monsterHp > 0) {
+    if (activePet && monsterHp > 0) {
       const template = config.PET_TEMPLATES[activePet.type];
       if (template && template.group === 'than_thu') {
         const totalEvolves = config.getPetTotalEvolves(activePet);
@@ -663,6 +663,25 @@ async function autoDiBiCanh(tuSi) {
           if (slow > 0) slow--;
           if (tebut > 0) tebut--;
           if (caitu > 0) caitu--;
+
+          // Log active buffs/debuffs for player
+          const currentBuffs = [];
+          if (tuKhiActive > 0) currentBuffs.push(`Tụ Khí (${tuKhiActive} hiệp)`);
+          if (chienYStacks > 0) currentBuffs.push(`Chiến Ý x${chienYStacks} (${chienYDuration} hiệp)`);
+          if (playerShield > 0) currentBuffs.push(`Khiên Chắn (\`${playerShield.toLocaleString()}\` HP)`);
+          if (slow > 0) currentBuffs.push(`Làm Chậm (${slow} hiệp)`);
+          if (tebut > 0) currentBuffs.push(`Tê Buốt (${tebut} hiệp)`);
+          if (caitu > 0) currentBuffs.push(`Cải Tử Hoàn Sinh (${caitu} hiệp)`);
+          if (nightmare > 0) currentBuffs.push(`Mộng Yểm (${nightmare} hiệp)`);
+          if (blind > 0) currentBuffs.push(`Mù Mắt (${blind} hiệp)`);
+          for (const buff of activeBuffs) {
+            if (buff.roundsLeft > 0) {
+              currentBuffs.push(`${buff.ten} (${buff.roundsLeft} hiệp)`);
+            }
+          }
+          if (currentBuffs.length > 0) {
+            battleLogs.push(`ℹ️ **[Hiệu ứng hiện tại của ${tuSi.ten}]**: ${currentBuffs.join(', ')}`);
+          }
           if (playerShield <= 0) {
             critImmune = false;
             reflect = false;
