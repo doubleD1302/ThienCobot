@@ -1000,10 +1000,30 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           { label: '🥕 Dã Sơn Sâm (5 Linh Tuyền Thủy + 2000 LT)', value: 'pb_lk_da_son_sam::pb_lk_da_son_sam', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
           { label: '🥁 Chiến Cổ (5 Yêu Thú Huyết + 2000 LT)', value: 'pb_lk_chien_co::pb_lk_chien_co', capDoMin: 1, capDoMax: 9, heTu: 'The Tu' },
 
-          // Trúc Cơ
-          { label: '⚔️ Thiết Kiếm (5 Huyền Thiết Thạch + 2000 LT)', value: 'kiem_sat_nang::kiem_sat', capDoMin: 10, capDoMax: 12 },
-          { label: '🎋 Trúc Trượng (5 Huyền Thiết Thạch + 2000 LT)', value: 'truong_truc_thuong::truong_truc', capDoMin: 10, capDoMax: 12 },
-          { label: '🛡️ Thú Bì Giáp (5 Huyền Thiết Thạch + 2000 LT)', value: 'ao_vai_day::ao_da', capDoMin: 10, capDoMax: 12 },
+          // Trúc Cơ - Pháp Tu
+          { label: '🗡️ Tử Tiêu Tiên Kiếm (5 Huyền Thiết Tinh Sa + 4000 LT)', value: 'thanh_phong_kiem::vk_phap_truc_co', heTu: 'Phap Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🥋 Tử Vân Pháp Bào (5 Lục Ngọc Thạch + 4000 LT)', value: 'dao_bao_thanh_van::giap_phap_truc_co', heTu: 'Phap Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🔮 Tử Tinh Linh Bội (5 Âm Dương Đồng Chương + 4000 LT)', value: 'thuy_linh_boi::nb_phap_truc_co', heTu: 'Phap Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🏺 Linh Tuyết Phục Nguyên Bình (5 Địa Xích Linh Chi + 4000 LT)', value: 'pb_lk_thanh_linh_binh::pb_hoi_phap_truc_co', heTu: 'Phap Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🛡️ Tử Quang Hộ Thân Kính (5 Bích Hải Băng Tinh + 4000 LT)', value: 'pb_lk_ho_than_kinh::pb_def_phap_truc_co', heTu: 'Phap Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '⚡ Cửu Thiên Lôi Vân Phù (5 Cửu Thiên Tử Cát + 4000 LT)', value: 'pb_lk_dan_loi_phu::pb_aoe_phap_truc_co', heTu: 'Phap Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '💥 Tử Dương Linh Pháo (5 Địa Hỏa Chi Tinh + 4000 LT)', value: 'pb_lk_linh_phong_cham::pb_don_phap_truc_co', heTu: 'Phap Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '❄️ Huyền Băng Thần Tiên (5 Khổn Tiên Đằng Mộc + 4000 LT)', value: 'pb_lk_dinh_than_phu::pb_cc_phap_truc_co', heTu: 'Phap Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🪭 Tụ Linh Tiên Phiến (5 Thanh Vũ Linh Sa + 4000 LT)', value: 'pb_lk_tu_khi_ky::pb_buff_phap_truc_co', heTu: 'Phap Tu', capDoMin: 10, capDoMax: 12 },
+
+          // Trúc Cơ - Thể Tu & Chung
+          { label: '⚔️ Thiết Kiếm (5 Huyền Thiết Tinh Sa + 4000 LT)', value: 'kiem_sat_nang::kiem_sat', capDoMin: 10, capDoMax: 12 },
+          { label: '🎋 Trúc Trượng (5 Huyền Thiết Tinh Sa + 4000 LT)', value: 'truong_truc_thuong::truong_truc', capDoMin: 10, capDoMax: 12 },
+          { label: '🛡️ Thú Bì Giáp (5 Lục Ngọc Thạch + 4000 LT)', value: 'ao_vai_day::ao_da', capDoMin: 10, capDoMax: 12 },
+          { label: '🪓 Huyền Thiết Chiến Phủ (5 Huyền Thiết Tinh Sa + 4000 LT)', value: 'thiet_cot_dao::vk_the_truc_co', heTu: 'The Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🛡️ Kim Giáp Hoàng Lân (5 Lục Ngọc Thạch + 4000 LT)', value: 'tho_bo_thuc_cu::giap_the_truc_co', heTu: 'The Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '📿 Huyết Thạch Linh Bội (5 Âm Dương Đồng Chương + 4000 LT)', value: 'khuong_thach_boi::nb_the_truc_co', heTu: 'The Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '❇️ Huyết Hồn Linh Chi (5 Địa Xích Linh Chi + 4000 LT)', value: 'pb_lk_da_son_sam::pb_hoi_the_truc_co', heTu: 'The Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🛡️ Huyền Vũ Bảo Thuẫn (5 Bích Hải Băng Tinh + 4000 LT)', value: 'pb_lk_thach_phu_thuan::pb_def_the_truc_co', heTu: 'The Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🔥 Kinh Hồn Tiên Chuông (5 Cửu Thiên Tử Cát + 4000 LT)', value: 'pb_lk_hoa_tinh_dinh::pb_aoe_the_truc_co', heTu: 'The Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🔨 Xích Hỏa Thương (5 Địa Hỏa Chi Tinh + 4000 LT)', value: 'pb_lk_toai_thach_an::pb_don_the_truc_co', heTu: 'The Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '⛓️ Huyền Băng Tiên Thương (5 Khổn Tiên Đằng Mộc + 4000 LT)', value: 'pb_lk_u_thiet_lien::pb_cc_the_truc_co', heTu: 'The Tu', capDoMin: 10, capDoMax: 12 },
+          { label: '🥁 Bá Vương Chiến Kỳ (5 Thanh Vũ Linh Sa + 4000 LT)', value: 'pb_lk_chien_co::pb_buff_the_truc_co', heTu: 'The Tu', capDoMin: 10, capDoMax: 12 },
 
           // Kim Đan
           { label: 'Bát Hoang Cự Chùy (5 Vạn Năm Huyền Thiết + 2000 LT)', value: 'kiem_kim_dan_thuong::kiem_kim_dan', emoji: { id: '1524821321651982407' }, capDoMin: 13, capDoMax: 15 },
@@ -2662,9 +2682,31 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       'pb_lk_chien_co': { materialId: 'yeu_thu_huyet', count: 5, matName: 'Yêu Thú Huyết <:yeu_thu_huyet:1525076098302345277>' },
 
       // Trúc Cơ
-      'kiem_sat': { materialId: 'nguyen_lieu_truc_co', count: 5, matName: 'Huyền Thiết Thạch 🪙' },
-      'truong_truc': { materialId: 'nguyen_lieu_truc_co', count: 5, matName: 'Huyền Thiết Thạch 🪙' },
-      'ao_da': { materialId: 'nguyen_lieu_truc_co', count: 5, matName: 'Huyền Thiết Thạch 🪙' },
+      'kiem_sat': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
+      'truong_truc': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
+      'ao_da': { materialId: 'luc_ngoc_thach', count: 5, matName: 'Lục Ngọc Thạch <:_nglieu_Truc_co_2:1525418029650022400>' },
+
+      // Trúc Cơ - Pháp Tu
+      'vk_phap_truc_co': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
+      'giap_phap_truc_co': { materialId: 'luc_ngoc_thach', count: 5, matName: 'Lục Ngọc Thạch <:_nglieu_Truc_co_2:1525418029650022400>' },
+      'nb_phap_truc_co': { materialId: 'am_duong_dong_chuong', count: 5, matName: 'Âm Dương Đồng Chương <:_nglieu_Truc_co_9:1525418025715761232>' },
+      'pb_hoi_phap_truc_co': { materialId: 'dia_xich_linh_chi', count: 5, matName: 'Địa Xích Linh Chi <:_nglieu_Truc_co_6:1525418014290215042>' },
+      'pb_def_phap_truc_co': { materialId: 'bich_hai_bang_tinh', count: 5, matName: 'Bích Hải Băng Tinh <:_nglieu_Truc_co_4:1525418022070653019>' },
+      'pb_aoe_phap_truc_co': { materialId: 'cuu_thien_tu_cat', count: 5, matName: 'Cửu Thiên Tử Cát <:_nglieu_Truc_co_5:1525418023685718116>' },
+      'pb_don_phap_truc_co': { materialId: 'dia_hoa_chi_tinh', count: 5, matName: 'Địa Hỏa Chi Tinh <:_nglieu_Truc_co_3:1525418020137078794>' },
+      'pb_cc_phap_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169938393>' },
+      'pb_buff_phap_truc_co': { materialId: 'thanh_vu_linh_sa', count: 5, matName: 'Thanh Vũ Linh Sa <:_nglieu_Truc_co_8:1525418018124071054>' },
+
+      // Trúc Cơ - Thể Tu
+      'vk_the_truc_co': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
+      'giap_the_truc_co': { materialId: 'luc_ngoc_thach', count: 5, matName: 'Lục Ngọc Thạch <:_nglieu_Truc_co_2:1525418029650022400>' },
+      'nb_the_truc_co': { materialId: 'am_duong_dong_chuong', count: 5, matName: 'Âm Dương Đồng Chương <:_nglieu_Truc_co_9:1525418025715761232>' },
+      'pb_hoi_the_truc_co': { materialId: 'dia_xich_linh_chi', count: 5, matName: 'Địa Xích Linh Chi <:_nglieu_Truc_co_6:1525418014290215042>' },
+      'pb_def_the_truc_co': { materialId: 'bich_hai_bang_tinh', count: 5, matName: 'Bích Hải Băng Tinh <:_nglieu_Truc_co_4:1525418022070653019>' },
+      'pb_aoe_the_truc_co': { materialId: 'cuu_thien_tu_cat', count: 5, matName: 'Cửu Thiên Tử Cát <:_nglieu_Truc_co_5:1525418023685718116>' },
+      'pb_don_the_truc_co': { materialId: 'dia_hoa_chi_tinh', count: 5, matName: 'Địa Hỏa Chi Tinh <:_nglieu_Truc_co_3:1525418020137078794>' },
+      'pb_cc_the_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169938393>' },
+      'pb_buff_the_truc_co': { materialId: 'thanh_vu_linh_sa', count: 5, matName: 'Thanh Vũ Linh Sa <:_nglieu_Truc_co_8:1525418018124071054>' },
 
       // Kim Đan
       'kiem_kim_dan': { materialId: 'huyen_thiet_van_nam', count: 5, matName: 'Vạn Năm Huyền Thiết <:Huyen_thiet_van_nam:1524812777347092560>' },
@@ -2730,8 +2772,14 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       } catch (e) {}
     }
 
-    if (tuSi.linhThach < 2000) {
-      return { ok: false, msg: 'Linh thạch bất túc! Cần 2000 Linh thạch để đốt lò đúc khí.' };
+    let cost = 2000;
+    const newItem = config.ITEMS.find(e => e.id === newId);
+    if (newItem && newItem.yeuCauCanhGioi === 10) {
+      cost = 4000;
+    }
+
+    if (tuSi.linhThach < cost) {
+      return { ok: false, msg: `Linh thạch bất túc! Cần ${cost} Linh thạch để đốt lò đúc khí.` };
     }
 
     if (reqMat && invMat) {
@@ -2740,19 +2788,18 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       else await invMat.save();
     }
 
-    tuSi.linhThach -= 2000;
+    tuSi.linhThach -= cost;
     await tuSi.save();
 
     const eqQuality = config.rollForgedQuality(matQuality);
     if (eqQuality === 'fail') {
       return {
         ok: false,
-        msg: `💥 **Luyện Chế Thất Bại!** Linh hỏa bộc phát không ổn định làm nguyên liệu **${reqMat?.matName || 'rèn'}** hóa thành tro bụi... Đạo hữu tổn thất 2000 Linh thạch.`
+        msg: `💥 **Luyện Chế Thất Bại!** Linh hỏa bộc phát không ổn định làm nguyên liệu **${reqMat?.matName || 'rèn'}** hóa thành tro bụi... Đạo hữu tổn thất ${cost} Linh thạch.`
       };
     }
 
     const record = await Inventory.addVatPham(tuSi.idNguoiDung, newId, 1, { quality: eqQuality });
-    const newItem = config.ITEMS.find(e => e.id === newId);
 
     const qualityEmojis = { 'Thần Thoại': '🟠', 'Sử Thi': '🟣', 'Hiếm': '🔵', 'Thường': '🟢', 'Phế Phẩm': '⚪' };
     const qEmoji = qualityEmojis[eqQuality] || '';

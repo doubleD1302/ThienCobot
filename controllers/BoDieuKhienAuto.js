@@ -397,6 +397,7 @@ async function autoDiBiCanh(tuSi) {
             ten: activeSkill.ten,
             pbTen: eq.item.ten,
             loai: 'u_thiet_lien_debuff',
+            speedDebuff: activeSkill.speedDebuff || 5,
             roundsLeft: activeSkill.duration
           });
         } else if (activeSkill.loai === 'chien_co') {
@@ -405,6 +406,7 @@ async function autoDiBiCanh(tuSi) {
             pbTen: eq.item.ten,
             loai: 'chien_co',
             triGia: activeSkill.triGia,
+            critBonus: activeSkill.critBonus || 0.05,
             roundsLeft: activeSkill.duration
           });
         }
@@ -758,7 +760,7 @@ async function autoDiBiCanh(tuSi) {
           }
           for (const buff of activeBuffs) {
             if (buff.loai === 'chien_co' && buff.roundsLeft > 0) {
-              roundCritRate += 0.05;
+              roundCritRate += (buff.critBonus || 0.05);
             }
           }
 
@@ -1206,7 +1208,7 @@ async function autoDiBiCanh(tuSi) {
           }
           for (const buff of activeBuffs) {
             if (buff.loai === 'u_thiet_lien_debuff' && buff.roundsLeft > 0) {
-              currentBossSpeed = Math.max(10, currentBossSpeed - 5);
+              currentBossSpeed = Math.max(10, currentBossSpeed - (buff.speedDebuff || 5));
             }
           }
           avBoss = 10000 / currentBossSpeed;

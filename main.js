@@ -761,7 +761,15 @@ async function start() {
         { itemId: 'hat_giong_tu_van_hoa_anh', giaBan: 200, yeuCauCapDo: 16 },
         
         { itemId: 'nguyen_lieu_luyen_khi', giaBan: 200, yeuCauCapDo: 1 },
-        { itemId: 'nguyen_lieu_truc_co', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'huyen_thiet_tinh_sa', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'luc_ngoc_thach', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'am_duong_dong_chuong', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'dia_hoa_chi_tinh', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'cuu_thien_tu_cat', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'bich_hai_bang_tinh', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'khon_tien_dang_moc', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'dia_xich_linh_chi', giaBan: 500, yeuCauCapDo: 10 },
+        { itemId: 'thanh_vu_linh_sa', giaBan: 500, yeuCauCapDo: 10 },
         { itemId: 'nguyen_lieu_kim_dan', giaBan: 1000, yeuCauCapDo: 13 },
         { itemId: 'nguyen_lieu_nguyen_anh', giaBan: 1500, yeuCauCapDo: 16 },
         { itemId: 'nguyen_lieu_hoa_than', giaBan: 2500, yeuCauCapDo: 19 }

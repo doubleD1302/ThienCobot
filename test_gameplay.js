@@ -2591,7 +2591,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       assert.ok(res2.msg.includes("Thiếu nguyên liệu rèn"));
 
       // Add material to inventory (only 4)
-      const matInv = await Inventory.create({ idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co', soLuong: 4, trangBi: false });
+      const matInv = await Inventory.create({ idNguoiDung: userId, itemId: 'huyen_thiet_tinh_sa', soLuong: 4, trangBi: false });
 
       // 2. Forge with insufficient materials
       const res3 = await boDieuKhienDongPhu._processForge(tuSi, 'kiem_sat_nang', 'kiem_sat');
@@ -2610,9 +2610,9 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       // Check inventory and ling thach
       const newInv = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'kiem_sat' } });
       assert.ok(newInv);
-      assert.strictEqual(tuSi.linhThach, 8000); // 10000 - 2000 = 8000
+      assert.strictEqual(tuSi.linhThach, 6000); // 10000 - 4000 = 6000
 
-      const checkedMat = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'nguyen_lieu_truc_co' } });
+      const checkedMat = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'huyen_thiet_tinh_sa' } });
       assert.strictEqual(checkedMat, null);
 
       // Clean up
@@ -4725,6 +4725,84 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSiB.destroy();
     await PlayerSkill.destroy({ where: { idNguoiDung: ["888111222333", "888111222444"] } });
     await Skill.destroy({ where: { id: ["tu_duong_chuong", "phap_tuong_kim_cang"] } });
+  });
+
+  test('Trúc Cơ Pháp Tu 9 items, stats, active skills and forge recipe mapping', async () => {
+    const { ITEMS, KYNANG_PHAPBAO_ACTIVE } = await import('./config.js');
+    
+    // 1. Verify existence and stats of 9 items
+    const vk = ITEMS.find(item => item.id === 'vk_phap_truc_co');
+    const giap = ITEMS.find(item => item.id === 'giap_phap_truc_co');
+    const nb = ITEMS.find(item => item.id === 'nb_phap_truc_co');
+    const pbHoi = ITEMS.find(item => item.id === 'pb_hoi_phap_truc_co');
+    const pbDef = ITEMS.find(item => item.id === 'pb_def_phap_truc_co');
+    const pbAoe = ITEMS.find(item => item.id === 'pb_aoe_phap_truc_co');
+    const pbDon = ITEMS.find(item => item.id === 'pb_don_phap_truc_co');
+    const pbCc = ITEMS.find(item => item.id === 'pb_cc_phap_truc_co');
+    const pbBuff = ITEMS.find(item => item.id === 'pb_buff_phap_truc_co');
+
+    assert.ok(vk, "VK should exist");
+    assert.ok(giap, "Giáp should exist");
+    assert.ok(nb, "Ngọc Bội should exist");
+    assert.ok(pbHoi, "Hồi MP treasure should exist");
+    assert.ok(pbDef, "Defense treasure should exist");
+    assert.ok(pbAoe, "AoE damage treasure should exist");
+    assert.ok(pbDon, "Single damage treasure should exist");
+    assert.ok(pbCc, "Crowd control treasure should exist");
+    assert.ok(pbBuff, "Buff treasure should exist");
+
+    // Emojis check
+    assert.strictEqual(vk.emoji, '<:VK_PHAP_truc_co:1525394643494109277>');
+    assert.strictEqual(giap.emoji, '<:GIAP_PHAP_truc_co:1525394641539825794>');
+    assert.strictEqual(nb.emoji, '<:NB_PHAP_truc_co:1525394637899169932>');
+    assert.strictEqual(pbHoi.emoji, '<:PB_HOI_PHAP_truc_co:1525394639807582308>');
+    assert.strictEqual(pbDef.emoji, '<:PB_DEF_PHAP_truc_co:1525394635709612134>');
+    assert.strictEqual(pbAoe.emoji, '<:PB_AOE_PHAP_truc_co:1525394633776037980>');
+    assert.strictEqual(pbDon.emoji, '<:PB_DON_PHAP_truc_co:1525394631498661899>');
+    assert.strictEqual(pbCc.emoji, '<:PB_CC_PHAP_truc_co:1525394629628006510>');
+    assert.strictEqual(pbBuff.emoji, '<:PB_BUFF__PHAP_truc_co:1525394626989527112>');
+
+    // Check stats (should be x2 of Luyện Khí)
+    // Luyện Khí stats: phap_cong: 500, crit_rate: 0.03
+    // Trúc Cơ stats: phap_cong: 1000, crit_rate: 0.06
+    const vkStats = JSON.parse(vk.chiSoJson);
+    assert.strictEqual(vkStats.phap_cong, 1000);
+    assert.strictEqual(vkStats.crit_rate, 0.06);
+
+    // Luyện Khí stats: phap_phong: 100, vat_phong: 200, mp: 1000
+    // Trúc Cơ stats: phap_phong: 200, vat_phong: 400, mp: 2000
+    const giapStats = JSON.parse(giap.chiSoJson);
+    assert.strictEqual(giapStats.phap_phong, 200);
+    assert.strictEqual(giapStats.vat_phong, 400);
+    assert.strictEqual(giapStats.mp, 2000);
+
+    // Luyện Khí stats: speed: 5, crit_dmg: 0.12
+    // Trúc Cơ stats: speed: 10, crit_dmg: 0.24
+    const nbStats = JSON.parse(nb.chiSoJson);
+    assert.strictEqual(nbStats.speed, 10);
+    assert.strictEqual(nbStats.crit_dmg, 0.24);
+
+    // 2. Verify active skills (x2 value/effect of Luyện Khí)
+    const skHoi = KYNANG_PHAPBAO_ACTIVE['pb_hoi_phap_truc_co'];
+    const skDef = KYNANG_PHAPBAO_ACTIVE['pb_def_phap_truc_co'];
+    const skAoe = KYNANG_PHAPBAO_ACTIVE['pb_aoe_phap_truc_co'];
+    const skDon = KYNANG_PHAPBAO_ACTIVE['pb_don_phap_truc_co'];
+    const skCc = KYNANG_PHAPBAO_ACTIVE['pb_cc_phap_truc_co'];
+    const skBuff = KYNANG_PHAPBAO_ACTIVE['pb_buff_phap_truc_co'];
+
+    // Luyện khí: mp: 1000 -> Trúc Cơ: mp: 2000
+    assert.strictEqual(skHoi.triGia, 2000);
+    // Luyện khí: shield: 800 -> Trúc Cơ: shield: 1600
+    assert.strictEqual(skDef.triGia, 1600);
+    // Luyện khí: scale 0.80 -> Trúc Cơ: scale 1.60
+    assert.strictEqual(skAoe.tinhScale({ phap_cong: 1000 }), 1600);
+    // Luyện khí: scale 1.50 -> Trúc Cơ: scale 3.00
+    assert.strictEqual(skDon.tinhScale({ phap_cong: 1000 }), 3000);
+    // Luyện khí: chance 0.40 -> Trúc Cơ: chance 0.80
+    assert.strictEqual(skCc.chance, 0.80);
+    // Luyện khí: buff 20% & speed 10 -> Trúc Cơ: buff 40% & speed 20
+    assert.strictEqual(skBuff.triGia, 40);
+    assert.strictEqual(skBuff.speedBonus, 20);
   });
 
 });

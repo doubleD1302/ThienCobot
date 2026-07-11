@@ -1150,18 +1150,20 @@ async function _simCombat(tuSiA, tuSiB) {
           ten: activeSkill.ten,
           pbTen: eq.item.ten,
           loai: 'u_thiet_lien_debuff',
+          speedDebuff: activeSkill.speedDebuff || 5,
           roundsLeft: activeSkill.duration
         });
-        battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, gây \`${dmg}\` sát thương và giảm \`5\` Tốc độ của đối phương trong \`${activeSkill.duration}\` hiệp.`);
+        battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, gây \`${dmg}\` sát thương và giảm \`${activeSkill.speedDebuff || 5}\` Tốc độ của đối phương trong \`${activeSkill.duration}\` hiệp.`);
       } else if (activeSkill.loai === 'chien_co') {
         activeBuffsA.push({
           ten: activeSkill.ten,
           pbTen: eq.item.ten,
           loai: 'chien_co',
           triGia: activeSkill.triGia,
+          critBonus: activeSkill.critBonus || 0.05,
           roundsLeft: activeSkill.duration
         });
-        battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, tăng \`+${activeSkill.triGia}%\` Vật Công và \`+5%\` Bạo kích trong \`${activeSkill.duration}\` hiệp.`);
+        battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiA.ten}** kích hoạt **${activeSkill.ten}**, tăng \`+${activeSkill.triGia}%\` Vật Công và \`+${Math.floor((activeSkill.critBonus || 0.05) * 100)}%\` Bạo kích trong \`${activeSkill.duration}\` hiệp.`);
       }
     }
   }
@@ -1238,18 +1240,20 @@ async function _simCombat(tuSiA, tuSiB) {
           ten: activeSkill.ten,
           pbTen: eq.item.ten,
           loai: 'u_thiet_lien_debuff',
+          speedDebuff: activeSkill.speedDebuff || 5,
           roundsLeft: activeSkill.duration
         });
-        battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, gây \`${dmg}\` sát thương và giảm \`5\` Tốc độ của đối phương trong \`${activeSkill.duration}\` hiệp.`);
+        battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, gây \`${dmg}\` sát thương và giảm \`${activeSkill.speedDebuff || 5}\` Tốc độ của đối phương trong \`${activeSkill.duration}\` hiệp.`);
       } else if (activeSkill.loai === 'chien_co') {
         activeBuffsB.push({
           ten: activeSkill.ten,
           pbTen: eq.item.ten,
           loai: 'chien_co',
           triGia: activeSkill.triGia,
+          critBonus: activeSkill.critBonus || 0.05,
           roundsLeft: activeSkill.duration
         });
-        battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, tăng \`+${activeSkill.triGia}%\` Vật Công và \`+5%\` Bạo kích trong \`${activeSkill.duration}\` hiệp.`);
+        battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** của **${tuSiB.ten}** kích hoạt **${activeSkill.ten}**, tăng \`+${activeSkill.triGia}%\` Vật Công và \`+${Math.floor((activeSkill.critBonus || 0.05) * 100)}%\` Bạo kích trong \`${activeSkill.duration}\` hiệp.`);
       }
     }
   }
@@ -1297,7 +1301,7 @@ async function _simCombat(tuSiA, tuSiB) {
         currentSpeedA += buff.speedBonus;
       }
       if (buff.loai === 'u_thiet_lien_debuff' && buff.roundsLeft > 0) {
-        currentSpeedA = Math.max(10, currentSpeedA - 5);
+        currentSpeedA = Math.max(10, currentSpeedA - (buff.speedDebuff || 5));
       }
     }
     if (chienYStacksA > 0 && chienYDurationA > 0) {
@@ -1330,7 +1334,7 @@ async function _simCombat(tuSiA, tuSiB) {
         currentSpeedB += buff.speedBonus;
       }
       if (buff.loai === 'u_thiet_lien_debuff' && buff.roundsLeft > 0) {
-        currentSpeedB = Math.max(10, currentSpeedB - 5);
+        currentSpeedB = Math.max(10, currentSpeedB - (buff.speedDebuff || 5));
       }
     }
     if (chienYStacksB > 0 && chienYDurationB > 0) {
@@ -1556,7 +1560,7 @@ async function _simCombat(tuSiA, tuSiB) {
         let critRateA = statsA.crit_rate;
         for (const buff of activeBuffsA) {
           if (buff.loai === 'chien_co' && buff.roundsLeft > 0) {
-            critRateA += 0.05;
+            critRateA += (buff.critBonus || 0.05);
           }
         }
         let isCritA = Math.random() <= critRateA;
@@ -2121,7 +2125,7 @@ async function _simCombat(tuSiA, tuSiB) {
         let critRateB = statsB.crit_rate;
         for (const buff of activeBuffsB) {
           if (buff.loai === 'chien_co' && buff.roundsLeft > 0) {
-            critRateB += 0.05;
+            critRateB += (buff.critBonus || 0.05);
           }
         }
         let isCritB = Math.random() <= critRateB;

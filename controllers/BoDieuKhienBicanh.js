@@ -35,7 +35,27 @@ function getNguyenLieuLuyenKhiTheoCapDo(capDo, loai, itemId) {
     }
     return pbMats[sum % pbMats.length];
   }
-  if (capDo >= 10) return 'nguyen_lieu_truc_co';
+  if (capDo >= 10) {
+    if (loai === 'Vũ khí') return 'huyen_thiet_tinh_sa';
+    if (loai === 'Giáp') return 'luc_ngoc_thach';
+    if (loai === 'Ngọc Bội') return 'am_duong_dong_chuong';
+    if (loai === 'Pháp Bảo') {
+      if (itemId === 'pb_don_phap_truc_co' || itemId === 'pb_don_the_truc_co') return 'dia_hoa_chi_tinh';
+      if (itemId === 'pb_aoe_phap_truc_co' || itemId === 'pb_aoe_the_truc_co') return 'cuu_thien_tu_cat';
+      if (itemId === 'pb_def_phap_truc_co' || itemId === 'pb_def_the_truc_co') return 'bich_hai_bang_tinh';
+      if (itemId === 'pb_cc_phap_truc_co' || itemId === 'pb_cc_the_truc_co') return 'khon_tien_dang_moc';
+      if (itemId === 'pb_hoi_phap_truc_co' || itemId === 'pb_hoi_the_truc_co') return 'dia_xich_linh_chi';
+      if (itemId === 'pb_buff_phap_truc_co' || itemId === 'pb_buff_the_truc_co') return 'thanh_vu_linh_sa';
+      const tcPbMats = ['dia_hoa_chi_tinh', 'cuu_thien_tu_cat', 'bich_hai_bang_tinh', 'khon_tien_dang_moc', 'dia_xich_linh_chi', 'thanh_vu_linh_sa'];
+      let sum = 0;
+      const str = itemId || '';
+      for (let c = 0; c < str.length; c++) {
+        sum += str.charCodeAt(c);
+      }
+      return tcPbMats[sum % tcPbMats.length];
+    }
+    return 'huyen_thiet_tinh_sa';
+  }
 
   // Luyện Khí
   if (loai === 'Vũ khí') return 'so_cap_thiet_quang';
@@ -321,18 +341,20 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                 ten: activeSkill.ten,
                 pbTen: eq.item.ten,
                 loai: 'u_thiet_lien_debuff',
+                speedDebuff: activeSkill.speedDebuff || 5,
                 roundsLeft: activeSkill.duration
               });
-              battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, gây \`${dmg}\` sát thương và giảm \`5\` Tốc độ của đối phương trong \`${activeSkill.duration}\` hiệp.`);
+              battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, gây \`${dmg}\` sát thương và giảm \`${activeSkill.speedDebuff || 5}\` Tốc độ của đối phương trong \`${activeSkill.duration}\` hiệp.`);
             } else if (activeSkill.loai === 'chien_co') {
               activeBuffs.push({
                 ten: activeSkill.ten,
                 pbTen: eq.item.ten,
                 loai: 'chien_co',
                 triGia: activeSkill.triGia,
+                critBonus: activeSkill.critBonus || 0.05,
                 roundsLeft: activeSkill.duration
               });
-              battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, tăng \`+${activeSkill.triGia}%\` Vật Công và \`+5%\` Bạo kích trong \`${activeSkill.duration}\` hiệp.`);
+              battleLogs.push(`🔮 **Pháp Bảo Chủ Động**: **${eq.item.ten}** kích hoạt **${activeSkill.ten}**, tăng \`+${activeSkill.triGia}%\` Vật Công và \`+${Math.floor((activeSkill.critBonus || 0.05) * 100)}%\` Bạo kích trong \`${activeSkill.duration}\` hiệp.`);
             }
           }
         }
@@ -1141,7 +1163,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           }
           for (const buff of activeBuffs) {
             if (buff.loai === 'u_thiet_lien_debuff' && buff.roundsLeft > 0) {
-              currentBossSpeed = Math.max(10, currentBossSpeed - 5);
+              currentBossSpeed = Math.max(10, currentBossSpeed - (buff.speedDebuff || 5));
             }
           }
           avBoss = 10000 / currentBossSpeed;

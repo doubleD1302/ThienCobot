@@ -303,6 +303,15 @@ export const ITEMS = [
   { id: 'linh_tuyen_thuy', ten: 'Linh Tuyền Thủy', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Nước suối chứa một chút sinh khí tinh khiết, dùng làm bình hồi phục.', emoji: '<:linh_tuyen_thuy:1525076102870073426>', food: 0 },
   { id: 'yeu_thu_huyet', ten: 'Yêu Thú Huyết', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Máu của các loài thú hoang sơ cấp, dùng để kích thích chiến ý/linh lực.', emoji: '<:yeu_thu_huyet:1525076098302345277>', food: 0 },
   { id: 'nguyen_lieu_truc_co', ten: 'Huyền Thiết Thạch 🪙', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Quặng huyền thiết thô ráp, cứng cáp dẻo dai dùng để rèn đúc trang bị Trúc Cơ.', emoji: '🪙', food: 0 },
+  { id: 'huyen_thiet_tinh_sa', ten: 'Huyền Thiết Tinh Sa', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Quặng thiết đen tinh luyện, nguyên liệu chủ yếu để rèn đúc binh khí Trúc Cơ Kỳ.', emoji: '<:_nglieu_Truc_co_1:1525418027472916671>', food: 0 },
+  { id: 'luc_ngoc_thach', ten: 'Lục Ngọc Thạch', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Khối ngọc thạch màu lục bảo ẩn chứa sinh cơ dồi dào, chuyên dùng để dệt hộ giáp Trúc Cơ Kỳ.', emoji: '<:_nglieu_Truc_co_2:1525418029650022400>', food: 0 },
+  { id: 'am_duong_dong_chuong', ten: 'Âm Dương Đồng Chương', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Tấm đồng cổ khắc họa trận pháp ngũ hành linh lực, chuyên dùng để chế tác ngọc bội Trúc Cơ Kỳ.', emoji: '<:_nglieu_Truc_co_9:1525418025715761232>', food: 0 },
+  { id: 'dia_hoa_chi_tinh', ten: 'Địa Hỏa Chi Tinh', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Tinh hoa kết tinh từ hỏa diệm sâu dưới lòng đất, dùng để chế tác pháp bảo tấn công đơn thể Trúc Cơ Kỳ.', emoji: '<:_nglieu_Truc_co_3:1525418020137078794>', food: 0 },
+  { id: 'cuu_thien_tu_cat', ten: 'Cửu Thiên Tử Cát', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Bột cát màu tím mang theo sấm sét thiên kiếp, dùng để rèn đúc pháp bảo tấn công diện rộng Trúc Cơ Kỳ.', emoji: '<:_nglieu_Truc_co_5:1525418023685718116>', food: 0 },
+  { id: 'bich_hai_bang_tinh', ten: 'Bích Hải Băng Tinh', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Phiến lá băng tinh kết tinh ở vùng biển sâu lạnh giá, chuyên dùng để rèn pháp bảo phòng hộ Trúc Cơ Kỳ.', emoji: '<:_nglieu_Truc_co_4:1525418022070653019>', food: 0 },
+  { id: 'khon_tien_dang_moc', ten: 'Khổn Tiên Đằng Mộc', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Cổ mộc khô héo ngàn năm dẻo dai vô song, dùng làm cốt lõi rèn pháp bảo khống chế Trúc Cơ Kỳ.', emoji: '<:_nglieu_Truc_co_7:1525418016169938393>', food: 0 },
+  { id: 'dia_xich_linh_chi', ten: 'Địa Xích Linh Chi', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Nấm linh chi đỏ hút trọn linh khí đại địa, chuyên dùng rèn đúc pháp bảo phục nguyên trị liệu Trúc Cơ Kỳ.', emoji: '<:_nglieu_Truc_co_6:1525418014290215042>', food: 0 },
+  { id: 'thanh_vu_linh_sa', ten: 'Thanh Vũ Linh Sa', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 250, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Lớp linh sa mịn màu xanh lam tụ hội tinh khí đất trời, chuyên dùng rèn đúc pháp bảo tăng cường chiến ý Trúc Cơ Kỳ.', emoji: '<:_nglieu_Truc_co_8:1525418018124071054>', food: 0 },
   { id: 'nguyen_lieu_kim_dan', ten: 'Kim Đan Linh Sa 🪨', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Linh sa huyền ảo hội tụ đan hỏa linh khí dùng để rèn đúc trang bị Kim Đan.', emoji: '🪨', food: 0 },
   { id: 'huyen_thiet_van_nam', ten: 'Vạn Năm Huyền Thiết', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Quặng sắt sinh ra từ tâm Trái Đất, vô cùng cứng rắn, hấp thụ được cả linh khí lẫn sức mạnh thể chất.', emoji: '<:Huyen_thiet_van_nam:1524812777347092560>', food: 0 },
   { id: 'Thien_Tam_Linh_ty', ten: 'Thiên Tàm Linh Ty', loai: 'Nguyên liệu', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Tơ của nhện chúa ngàn năm, cực kỳ dẻo dai, dùng để dệt pháp bào hoặc bọc ngoài áo giáp nặng.', emoji: '<:Thien_Tam_Linh_ty:1524812779503226950>', food: 0 },
@@ -328,6 +337,28 @@ export const ITEMS = [
   // Vũ khí Pháp Tu
   { id: 'truong_truc_thuong', ten: 'Phàm Trúc Trượng 🪵', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 300, chiSoJson: '{"phap_cong":25}', yeuCauCanhGioi: 10, moTa: 'Khúc trúc già tầm thường nhưng dẫn linh khí khá tốt.', emoji: '<:truong_phep:1522629314653458472>', food: 0 },
   { id: 'truong_truc', ten: 'Trúc Trượng 🎋', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 500, chiSoJson: '{"phap_cong":30}', yeuCauCanhGioi: 10, moTa: 'Tương truyền làm bằng Linh Trúc ngàn năm, tương thích pháp lực rất tốt.', emoji: '<:truong_phep:1522629314653458472>', food: 0 },
+
+  // --- BỘ 9 TRANG BỊ TRÚC CƠ PHÁP TU ---
+  { id: 'vk_phap_truc_co', ten: 'Tử Tiêu Tiên Kiếm', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"phap_cong":1000,"crit_rate":0.06}', yeuCauCanhGioi: 10, moTa: 'Tử Tiêu tiên kiếm hội tụ cửu thiên huyền khí, tăng mạnh pháp thuật và bạo kích.', emoji: '<:VK_PHAP_truc_co:1525394643494109277>', food: 0 },
+  { id: 'giap_phap_truc_co', ten: 'Tử Vân Pháp Bào', loai: 'Giáp', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"phap_phong":200,"vat_phong":400,"mp":2000}', yeuCauCanhGioi: 10, moTa: 'Pháp bào dệt từ tử vân, phòng ngự vững chắc và tăng linh lực.', emoji: '<:GIAP_PHAP_truc_co:1525394641539825794>', food: 0 },
+  { id: 'nb_phap_truc_co', ten: 'Tử Tinh Linh Bội', loai: 'Ngọc Bội', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"speed":10,"crit_dmg":0.24}', yeuCauCanhGioi: 10, moTa: 'Linh bội ngọc tử tinh giúp tinh thần minh mẫn, hành động nhanh nhẹn.', emoji: '<:NB_PHAP_truc_co:1525394637899169932>', food: 0 },
+  { id: 'pb_hoi_phap_truc_co', ten: 'Linh Tuyết Phục Nguyên Bình', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Linh Tuyết Phục Nguyên.', emoji: '<:PB_HOI_PHAP_truc_co:1525394639807582308>', food: 0 },
+  { id: 'pb_def_phap_truc_co', ten: 'Tử Quang Hộ Thân Kính', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Linh Quang Hộ Tráo.', emoji: '<:PB_DEF_PHAP_truc_co:1525394635709612134>', food: 0 },
+  { id: 'pb_aoe_phap_truc_co', ten: 'Cửu Thiên Lôi Vân Phù', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Cửu Thiên Lôi Vân.', emoji: '<:PB_AOE_PHAP_truc_co:1525394633776037980>', food: 0 },
+  { id: 'pb_don_phap_truc_co', ten: 'Tử Dương Linh Pháo', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Oanh Thiên Thần Pháo.', emoji: '<:PB_DON_PHAP_truc_co:1525394631498661899>', food: 0 },
+  { id: 'pb_cc_phap_truc_co', ten: 'Huyền Băng Thần Tiên', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Hàn Băng Tỏa Phược.', emoji: '<:PB_CC_PHAP_truc_co:1525394629628006510>', food: 0 },
+  { id: 'pb_buff_phap_truc_co', ten: 'Tụ Linh Tiên Phiến', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Tử Khí Hào Phong.', emoji: '<:PB_BUFF__PHAP_truc_co:1525394626989527112>', food: 0 },
+
+  // --- BỘ 9 TRANG BỊ TRÚC CƠ THỂ TU ---
+  { id: 'vk_the_truc_co', ten: 'Huyền Thiết Chiến Phủ', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"vat_cong":1000,"crit_rate":0.06}', yeuCauCanhGioi: 10, moTa: 'Chiến phủ đúc từ huyền thiết nặng nề, tăng cực mạnh lực tấn công vật lý.', emoji: '<:VK_THE_Truc_co:1525392255400280136>', food: 0 },
+  { id: 'giap_the_truc_co', ten: 'Kim Giáp Hoàng Lân', loai: 'Giáp', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"vat_phong":200,"phap_phong":400,"hp":2000}', yeuCauCanhGioi: 10, moTa: 'Khải giáp rực rỡ lân phiến hoàng kim bảo hộ sinh mệnh.', emoji: '<:GIAP_THE_Trucco:1525392249653821530>', food: 0 },
+  { id: 'nb_the_truc_co', ten: 'Huyết Thạch Linh Bội', loai: 'Ngọc Bội', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{"speed":8,"crit_dmg":0.24}', yeuCauCanhGioi: 10, moTa: 'Ngọc bội chuỗi hạt huyết thạch tăng tốc độ hành động và sát thương chí mạng.', emoji: '<:NB_THE_Trucco:1525392251843248208>', food: 0 },
+  { id: 'pb_hoi_the_truc_co', ten: 'Huyết Hồn Linh Chi', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Đại Bổ Khí Huyết.', emoji: '<:PB_HOI_THE_Trucco:1525392240921411654>', food: 0 },
+  { id: 'pb_def_the_truc_co', ten: 'Huyền Vũ Bảo Thuẫn', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Nham Thạch Hộ Thể.', emoji: '<:PB_DEF_THE_Trucco:1525392253676163102>', food: 0 },
+  { id: 'pb_aoe_the_truc_co', ten: 'Kinh Hồn Tiên Chuông', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Liệt Diễm Khí Kình.', emoji: '<:PB_AOE_THE_Trucco:1525392243039539240>', food: 0 },
+  { id: 'pb_don_the_truc_co', ten: 'Xích Hỏa Thương', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Man Lực Trực Kích.', emoji: '<:PB_DON_THE_Trucco:1525392247468589056>', food: 0 },
+  { id: 'pb_cc_the_truc_co', ten: 'Huyền Băng Tiên Thương', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Thiết Khóa Trầm Trọng.', emoji: '<:PB_CC_THE_Trucco:1525392245296074822>', food: 0 },
+  { id: 'pb_buff_the_truc_co', ten: 'Bá Vương Chiến Kỳ', loai: 'Pháp Bảo', doHiem: 'Hiếm', giaCoSo: 1200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Pháp bảo chủ động: Thú Huyết Sôi Sục.', emoji: '<:PB_BUFF_THE_Trucco:1525392238241382520>', food: 0 },
 
   // Giáp
   { id: 'ao_vai_day', ten: 'Đạo Bào Vải Dày 🥋', loai: 'Giáp', doHiem: 'Thường', giaCoSo: 300, chiSoJson: '{"vat_phong":10,"phap_phong":10,"hp":100}', yeuCauCanhGioi: 10, moTa: 'Áo vải nhiều lớp gia cố bảo vệ tu sĩ Trúc Cơ.', emoji: '<:ao:1522624070741524530>', food: 0 },
@@ -613,9 +644,39 @@ export const DUNGEONS = [
     drops: [
       { itemId: 'dan_hp_2', tile: 0.50 },
       { itemId: 'dan_mp_2', tile: 0.50 },
-      { itemId: 'kiem_sat', tile: 0.15 },
-      { itemId: 'truong_sat', tile: 0, replaceId: 'truong_truc', tile: 0.15 }, // replaceId for fallback
-      { itemId: 'ao_da', tile: 0.15 }
+      { itemId: 'huyen_thiet_tinh_sa', tile: 0.15 },
+      { itemId: 'luc_ngoc_thach', tile: 0.15 },
+      { itemId: 'am_duong_dong_chuong', tile: 0.15 },
+      { itemId: 'dia_hoa_chi_tinh', tile: 0.10 },
+      { itemId: 'cuu_thien_tu_cat', tile: 0.10 },
+      { itemId: 'bich_hai_bang_tinh', tile: 0.10 },
+      { itemId: 'khon_tien_dang_moc', tile: 0.10 },
+      { itemId: 'dia_xich_linh_chi', tile: 0.10 },
+      { itemId: 'thanh_vu_linh_sa', tile: 0.10 },
+      // Trúc Cơ - Pháp Tu
+      { itemId: 'vk_phap_truc_co', tile: 0.12 },
+      { itemId: 'giap_phap_truc_co', tile: 0.12 },
+      { itemId: 'nb_phap_truc_co', tile: 0.12 },
+      { itemId: 'pb_hoi_phap_truc_co', tile: 0.06 },
+      { itemId: 'pb_def_phap_truc_co', tile: 0.06 },
+      { itemId: 'pb_aoe_phap_truc_co', tile: 0.06 },
+      { itemId: 'pb_don_phap_truc_co', tile: 0.06 },
+      { itemId: 'pb_cc_phap_truc_co', tile: 0.06 },
+      { itemId: 'pb_buff_phap_truc_co', tile: 0.06 },
+      // Trúc Cơ - Thể Tu
+      { itemId: 'vk_the_truc_co', tile: 0.12 },
+      { itemId: 'giap_the_truc_co', tile: 0.12 },
+      { itemId: 'nb_the_truc_co', tile: 0.12 },
+      { itemId: 'pb_hoi_the_truc_co', tile: 0.06 },
+      { itemId: 'pb_def_the_truc_co', tile: 0.06 },
+      { itemId: 'pb_aoe_the_truc_co', tile: 0.06 },
+      { itemId: 'pb_don_the_truc_co', tile: 0.06 },
+      { itemId: 'pb_cc_the_truc_co', tile: 0.06 },
+      { itemId: 'pb_buff_the_truc_co', tile: 0.06 },
+      // Chung
+      { itemId: 'kiem_sat', tile: 0.10 },
+      { itemId: 'truong_truc', tile: 0.10 },
+      { itemId: 'ao_da', tile: 0.10 }
     ]
   },
   {
@@ -914,6 +975,97 @@ export function rollDynamicStats(item, options = {}) {
 
 // Cấu hình Kỹ Năng Chủ Động của Pháp Bảo
 export const KYNANG_PHAPBAO_ACTIVE = {
+  // --- KỸ NĂNG CHỦ ĐỘNG PHÁP BẢO TRÚC CƠ (THỂ TU) ---
+  pb_hoi_the_truc_co: {
+    ten: "Đại Bổ Khí Huyết ❇️",
+    loai: "hoi_hp",
+    triGia: 2000,
+    duration: 0,
+    moTa: "Hồi phục lập tức 2000 Khí Huyết (HP)."
+  },
+  pb_def_the_truc_co: {
+    ten: "Nham Thạch Hộ Thể 🛡️",
+    loai: "thach_phu_thuan",
+    triGia: 300,
+    duration: 2,
+    moTa: "Tăng 60% Thủ, chặn 300 sát thương trong 2 hiệp."
+  },
+  pb_aoe_the_truc_co: {
+    ten: "Liệt Diễm Khí Kình 🔥",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.vat_cong || 100) * 1.60),
+    duration: 0,
+    moTa: "Gây 160% Sát thương vật lý lên toàn bộ mục tiêu."
+  },
+  pb_don_the_truc_co: {
+    ten: "Man Lực Trực Kích 🔨",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.vat_cong || 100) * 3.00),
+    duration: 0,
+    moTa: "Gây 300% Sát thương vật lý lên 1 mục tiêu."
+  },
+  pb_cc_the_truc_co: {
+    ten: "Thiết Khóa Trầm Trọng ⛓️",
+    loai: "u_thiet_lien",
+    tinhScale: (stats) => Math.floor((stats?.vat_cong || 100) * 1.60),
+    speedDebuff: 10,
+    duration: 2,
+    moTa: "Gây 160% Sát thương vật lý và giảm 10 Tốc độ của mục tiêu trong 2 hiệp."
+  },
+  pb_buff_the_truc_co: {
+    ten: "Thú Huyết Sôi Sục 🥁",
+    loai: "chien_co",
+    triGia: 40,
+    critBonus: 0.10,
+    duration: 2,
+    moTa: "Tăng 40% Vật Công và +10% Bạo kích trong 2 hiệp."
+  },
+
+  // --- KỸ NĂNG CHỦ ĐỘNG PHÁP BẢO TRÚC CƠ ---
+  pb_hoi_phap_truc_co: {
+    ten: "Linh Tuyết Phục Nguyên 🏺",
+    loai: "hoi_mp",
+    triGia: 2000,
+    duration: 0,
+    moTa: "Hồi phục lập tức 2000 Chân Khí (MP)."
+  },
+  pb_def_phap_truc_co: {
+    ten: "Linh Quang Hộ Tráo 🛡️",
+    loai: "khien",
+    triGia: 1600,
+    duration: 2,
+    moTa: "Tạo khiên chặn 1600 sát thương trong 2 hiệp."
+  },
+  pb_aoe_phap_truc_co: {
+    ten: "Cửu Thiên Lôi Vân ⚡",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.phap_cong || 100) * 1.60),
+    duration: 0,
+    moTa: "Gây 160% Sát thương phép lên toàn bộ mục tiêu."
+  },
+  pb_don_phap_truc_co: {
+    ten: "Oanh Thiên Thần Pháo 💥",
+    loai: "tan_cong",
+    tinhScale: (stats) => Math.floor((stats?.phap_cong || 100) * 3.00),
+    duration: 0,
+    moTa: "Bắn ra pháo năng lượng cực mạnh, gây 300% Sát thương phép lên 1 mục tiêu."
+  },
+  pb_cc_phap_truc_co: {
+    ten: "Hàn Băng Tỏa Phược ❄️",
+    loai: "khong_che",
+    chance: 0.80,
+    duration: 1,
+    moTa: "Roi băng khóa chặt đối phương, 80% tỷ lệ gây Đóng Băng (mất lượt) trong 1 hiệp."
+  },
+  pb_buff_phap_truc_co: {
+    ten: "Tử Khí Hào Phong 🪭",
+    loai: "tu_khi_ky",
+    triGia: 40,
+    speedBonus: 20,
+    duration: 2,
+    moTa: "Quạt ra tử khí linh lực, tăng 40% Pháp Công và +20 Tốc độ trong 2 hiệp."
+  },
+
   // --- KỸ NĂNG CHỦ ĐỘNG PHÁP BẢO LUYỆN KHÍ ---
   // Pháp Tu
   pb_lk_linh_phong_cham: {

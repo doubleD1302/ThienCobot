@@ -905,18 +905,20 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               ten: activeSkill.ten,
               pbTen: eq.item.ten,
               loai: 'u_thiet_lien_debuff',
+              speedDebuff: activeSkill.speedDebuff || 5,
               roundsLeft: activeSkill.duration
             });
-            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gây \`+${dmg}\` sát thương và giảm \`5\` Tốc độ của Boss trong \`${activeSkill.duration}\` hiệp.`);
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Gây \`+${dmg}\` sát thương và giảm \`${activeSkill.speedDebuff || 5}\` Tốc độ của Boss trong \`${activeSkill.duration}\` hiệp.`);
           } else if (activeSkill.loai === 'chien_co') {
             activeBuffs.push({
               ten: activeSkill.ten,
               pbTen: eq.item.ten,
               loai: 'chien_co',
               triGia: activeSkill.triGia,
+              critBonus: activeSkill.critBonus || 0.05,
               roundsLeft: activeSkill.duration
             });
-            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Tăng \`+${activeSkill.triGia}%\` Vật Công và \`+5%\` Bạo kích trong \`${activeSkill.duration}\` hiệp.`);
+            pbLogs.push(`🔮 **Pháp Bảo** [${eq.item.ten}] kích hoạt **${activeSkill.ten}**: Tăng \`+${activeSkill.triGia}%\` Vật Công và \`+${Math.floor((activeSkill.critBonus || 0.05) * 100)}%\` Bạo kích trong \`${activeSkill.duration}\` hiệp.`);
           }
         }
       }
@@ -1205,7 +1207,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           }
           for (const buff of activeBuffs) {
             if (buff.loai === 'chien_co' && buff.roundsLeft > 0) {
-              roundCritRate += 0.05;
+              roundCritRate += (buff.critBonus || 0.05);
             }
           }
           const isCrit = Math.random() <= roundCritRate;
@@ -1632,7 +1634,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           }
           for (const buff of activeBuffs) {
             if (buff.loai === 'u_thiet_lien_debuff' && buff.roundsLeft > 0) {
-              currentBossSpeed = Math.max(10, currentBossSpeed - 5);
+              currentBossSpeed = Math.max(10, currentBossSpeed - (buff.speedDebuff || 5));
             }
           }
           avBoss = 10000 / currentBossSpeed;
