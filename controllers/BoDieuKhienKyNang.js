@@ -130,19 +130,20 @@ class BoDieuKhienKyNang extends BoDieuKhienGoc {
       .setColor(0xe74c3c)
       .setTimestamp();
 
-    let tableText = '```markdown\n| Tên Chiêu Thức | S.Thương | H.Chiêu | Cấp Y.Cầu |\n| :--- | :---: | :---: | :---: |\n';
+    let listText = '';
     if (filteredSkills.length === 0) {
-      tableText += '| (Trống) | - | - | - |\n';
+      listText = '*Không có chiêu thức nào khả dụng ở cảnh giới này.*';
     } else {
       for (const sk of filteredSkills) {
-        tableText += `| ${sk.ten} | ${sk.satThuong}% | ${sk.cooldown}s | Cấp ${sk.yeuCauCanhGioi} |\n`;
+        listText += `• **${sk.ten}** (Yêu cầu: Cấp \`${sk.yeuCauCanhGioi}\`)\n` +
+                    `  *Sát thương*: \`${sk.satThuong}%\` | *Hồi chiêu*: \`${Math.max(1, Math.round(sk.cooldown / 3))} hiệp\`\n` +
+                    `  *Mô tả*: _${sk.moTa || 'Chưa có mô tả.'}_\n\n`;
       }
     }
-    tableText += '```';
 
     embed.addFields({
-      name: `🥋 Bảng Chiêu Thức Phái ${playerClass === 'The Tu' ? 'Thể Tu' : 'Pháp Tu'}`,
-      value: tableText,
+      name: `🥋 Chiêu Thức Phái ${playerClass === 'The Tu' ? 'Thể Tu' : 'Pháp Tu'}`,
+      value: listText.slice(0, 1023),
       inline: false
     });
 

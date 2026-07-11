@@ -792,11 +792,11 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     const cdItem = await Item.findByPk('co_duyen_lenh');
     const bthItem = await Item.findByPk('binh_tinh_hai');
-    const dtpItem = await Item.findByPk('dan_than_pham');
+    const dtpItem = await Item.findByPk('dan_tu_vi_luyen_khi');
 
     assert.ok(cdItem, "Cơ Duyên Lệnh phải tồn tại");
     assert.ok(bthItem, "Bình Tinh Hải phải tồn tại");
-    assert.ok(dtpItem, "Đan Thần Phẩm phải tồn tại");
+    assert.ok(dtpItem, "Luyện Khí Tu Vi Đan phải tồn tại");
     assert.strictEqual(bthItem.loai, 'Chí bảo', "Bình Tinh Hải phải thuộc loại Chí bảo");
 
     // 2. Create player for testing
@@ -824,8 +824,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     const today = new Date().toISOString().split('T')[0];
     assert.strictEqual(tuSi.lastUseBinhTinhHai, today);
 
-    // Check inventory for Đan Thần Phẩm
-    let dtpInv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'dan_than_pham' } });
+    // Check inventory for Luyện Khí Tu Vi Đan
+    let dtpInv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: 'dan_tu_vi_luyen_khi' } });
     assert.ok(dtpInv);
     assert.strictEqual(dtpInv.soLuong, 2);
 
@@ -834,9 +834,9 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(bthResult2.ok, false);
     assert.ok(bthResult2.msg.includes('đã trích xuất sinh cơ'));
 
-    // 3. Test using Đan Thần Phẩm
+    // 3. Test using Luyện Khí Tu Vi Đan
     const prevLinhLuc = tuSi.linhLuc;
-    const dtpResult = await boDieuKhienVatPham._thucHienDungItem(tuSi, dtpInv, 'dan_than_pham');
+    const dtpResult = await boDieuKhienVatPham._thucHienDungItem(tuSi, dtpInv, 'dan_tu_vi_luyen_khi');
     assert.strictEqual(dtpResult.ok, true);
     assert.ok(dtpResult.msg.includes('nuốt'));
 
@@ -2409,6 +2409,28 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
   test('Bloodline Suppression and Breakthrough Pill Drop Blocks', async () => {
     assert.deepStrictEqual(config.checkHuyetMachApChe(15, 'than_pham_5'), { allowed: true });
+
+    // Verify legacy LT_1/TT_1 rarity normalization
+    assert.strictEqual(config.PET_BLOODLINE_LABELS['LT_1'], 'Hạ Phẩm ⚪', 'LT_1 should map to Hạ Phẩm');
+    assert.strictEqual(config.PET_BLOODLINE_LABELS['TT_1'], 'Hạ Phẩm ⚪', 'TT_1 should map to Hạ Phẩm');
+    assert.strictEqual(config.PET_BLOODLINE_LABELS['ha_pham'], 'Hạ Phẩm ⚪', 'ha_pham should map to Hạ Phẩm');
+
+    // getPetQualityIndex normalizes LT_1/TT_1 to ha_pham index
+    const haIdx = config.getPetQualityIndex('ha_pham');
+    assert.strictEqual(config.getPetQualityIndex('LT_1'), haIdx, 'LT_1 should have same quality index as ha_pham');
+    assert.strictEqual(config.getPetQualityIndex('TT_1'), haIdx, 'TT_1 should have same quality index as ha_pham');
+
+    // getBloodlineUpgradeReqs normalizes LT_1 -> ha_pham
+    const reqsLT = config.getBloodlineUpgradeReqs('LT_1', 0, 'hoa_hau');
+    const reqsHP = config.getBloodlineUpgradeReqs('ha_pham', 0, 'hoa_hau');
+    assert.deepStrictEqual(reqsLT, reqsHP, 'LT_1 upgrade reqs should match ha_pham');
+
+    // Pet skill descriptions work for all 5 lineages
+    const petTypes = ['hoa_hau', 'bang_dieu', 'nham_giap', 'da_mieu', 'thanh_loc'];
+    for (const type of petTypes) {
+      const desc = config.getPetStageSkillDescription(type, 1);
+      assert.ok(desc && desc.length > 0, `${type} stage 1 should have a skill description`);
+    }
   });
 
   test('Chuyển Sinh Đan deletes all player-related records', async () => {
@@ -2664,14 +2686,14 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
   test('Divine/Legendary items and Ancient Egg cannot drop in dungeons', async () => {
     const { Item } = await import('./models/Item.js');
 
-    // 1. Verify that 'trung_than_thu' has doHiem = 'Huyền thoại'
-    const egg = await Item.findByPk('trung_than_thu');
+    // 1. Verify that 'van_yeu_qua_tien' has doHiem = 'Huyền thoại'
+    const egg = await Item.findByPk('van_yeu_qua_tien');
     assert.ok(egg);
     assert.strictEqual(egg.doHiem, 'Huyền thoại');
 
     // 2. Validate dropping check logic
     const testItems = [
-      { id: 'trung_than_thu', doHiem: 'Huyền thoại' },
+      { id: 'van_yeu_qua_tien', doHiem: 'Huyền thoại' },
       { id: 'chuyen_sinh_dan', doHiem: 'Huyền thoại' },
       { id: 'van_yeu_qua_than', doHiem: 'Thần cấp' },
       { id: 'kiem_go', doHiem: 'Thường' },
@@ -2680,7 +2702,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     const allowedDrops = [];
     for (const item of testItems) {
-      const isBlocked = (item.doHiem === 'Huyền thoại' || item.doHiem === 'Thần cấp' || item.id === 'trung_than_thu' || item.id === 'chuyen_sinh_dan');
+      const isBlocked = (item.doHiem === 'Huyền thoại' || item.doHiem === 'Thần cấp' || item.id === 'chuyen_sinh_dan');
       if (!isBlocked) {
         allowedDrops.push(item.id);
       }
@@ -2817,11 +2839,11 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       moTa: 'test'
     });
     await Item.upsert({
-      id: 'dan_tu_vi_tim',
-      ten: 'Tu Vi Đan (Siêu) 💊',
+      id: 'dan_tu_vi_luyen_khi',
+      ten: 'Luyện Khí Tu Vi Đan 💊',
       loai: 'Đan dược',
-      doHiem: 'Cực hiếm',
-      giaCoSo: 2000,
+      doHiem: 'Thường',
+      giaCoSo: 1000,
       chiSoJson: '{}',
       yeuCauCanhGioi: 1,
       moTa: 'test'
@@ -2867,8 +2889,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(resUseVV.ok, true);
     assert.ok(resUseVV.msg.includes('Nhận Phúc Lợi Thẻ Vĩnh Viễn Thành Công'));
 
-    // Check we got the Tu Vi Đan (Siêu)
-    const tvRecord = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'dan_tu_vi_tim' } });
+    // Check we got the Luyện Khí Tu Vi Đan
+    const tvRecord = await Inventory.findOne({ where: { idNguoiDung: userId, itemId: 'dan_tu_vi_luyen_khi' } });
     assert.ok(tvRecord);
     assert.strictEqual(tvRecord.soLuong, 1);
 
@@ -3295,10 +3317,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     };
     await collectHandler(mockSelectCat);
 
-    // Select item 'dan_than_pham'
+    // Select item 'dan_tu_vi_luyen_khi'
     const mockSelectItem = {
       customId: 'edit_gift_item_select',
-      values: ['dan_than_pham'],
+      values: ['dan_tu_vi_luyen_khi'],
       user: { id: '12345' },
       deferUpdate: async () => {}
     };
@@ -3313,7 +3335,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await collectHandler(mockClickGiftBtn);
 
     // Check inventory
-    const gifted = await Inventory.findOne({ where: { idNguoiDung: targetTuSi.idNguoiDung, itemId: 'dan_than_pham' } });
+    const gifted = await Inventory.findOne({ where: { idNguoiDung: targetTuSi.idNguoiDung, itemId: 'dan_tu_vi_luyen_khi' } });
     assert.ok(gifted);
     assert.strictEqual(gifted.soLuong, 5);
 
@@ -3487,10 +3509,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     };
     await collectHandler(mockSelectCat);
 
-    // Select item 'dan_than_pham'
+    // Select item 'dan_tu_vi_luyen_khi'
     const mockSelectItem = {
       customId: 'edit_gift_item_select',
-      values: ['dan_than_pham'],
+      values: ['dan_tu_vi_luyen_khi'],
       user: { id: '12345' },
       deferUpdate: async () => {}
     };
@@ -3505,8 +3527,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await collectHandler(mockClickGiftBtn);
 
     // Check inventory for both targets
-    const gifted1 = await Inventory.findOne({ where: { idNguoiDung: target1.idNguoiDung, itemId: 'dan_than_pham' } });
-    const gifted2 = await Inventory.findOne({ where: { idNguoiDung: target2.idNguoiDung, itemId: 'dan_than_pham' } });
+    const gifted1 = await Inventory.findOne({ where: { idNguoiDung: target1.idNguoiDung, itemId: 'dan_tu_vi_luyen_khi' } });
+    const gifted2 = await Inventory.findOne({ where: { idNguoiDung: target2.idNguoiDung, itemId: 'dan_tu_vi_luyen_khi' } });
     assert.ok(gifted1);
     assert.ok(gifted2);
     assert.strictEqual(gifted1.soLuong, 10);
@@ -3595,10 +3617,10 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     };
     await collectHandler(mockClickNext);
 
-    // Select item 'trung_than_thu'
+    // Select item 'trung_linh_thu_tien'
     const mockSelectItem = {
       customId: 'edit_gift_item_select',
-      values: ['trung_than_thu'],
+      values: ['trung_linh_thu_tien'],
       user: { id: '12345' },
       deferUpdate: async () => {}
     };
@@ -3613,7 +3635,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await collectHandler(mockClickGiftBtn);
 
     // Check inventory
-    const gifted = await Inventory.findOne({ where: { idNguoiDung: targetUserId, itemId: 'trung_than_thu' } });
+    const gifted = await Inventory.findOne({ where: { idNguoiDung: targetUserId, itemId: 'trung_linh_thu_tien' } });
     assert.ok(gifted);
     assert.strictEqual(gifted.soLuong, 1);
 
@@ -4617,6 +4639,92 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await Inventory.destroy({ where: { idNguoiDung: testUserId } });
     await PlayerGiftCode.destroy({ where: { userId: testUserId } });
     await tuSi.destroy();
+  });
+
+  test('Trúc Cơ skills registration, MP cost scaling, and simulator integration', async () => {
+    const { getSkillMpCost, SKILLS } = await import('./config.js');
+    const { _simCombat } = await import('./controllers/BoDieuKhienTuongTac.js');
+    const { PlayerSkill } = await import('./models/PlayerSkill.js');
+    const { Skill } = await import('./models/Skill.js');
+
+    await Skill.findOrCreate({
+      where: { id: "tu_duong_chuong" },
+      defaults: {
+        ten: "Tử Dương Chưởng",
+        loai: "Phép thuật",
+        satThuong: 400,
+        cooldown: 15,
+        yeuCauCanhGioi: 10,
+        moTa: "Tử Dương Chưởng"
+      }
+    });
+    await Skill.findOrCreate({
+      where: { id: "phap_tuong_kim_cang" },
+      defaults: {
+        ten: "Pháp Tướng Kim Cang",
+        loai: "Hỗ trợ",
+        satThuong: 0,
+        cooldown: 21,
+        yeuCauCanhGioi: 10,
+        moTa: "Pháp Tướng Kim Cang"
+      }
+    });
+
+    // 1. Verify getSkillMpCost scaling formula
+    const tuKhiThuat = SKILLS.find(s => s.id === 'tu_khi_thuat'); // support skill = 5000 MP
+    const linhPhaoThuat = SKILLS.find(s => s.id === 'linh_phao_thuat'); // magic Luyện Khí = 5000 MP
+    const tuDuongChuong = SKILLS.find(s => s.id === 'tu_duong_chuong'); // magic Trúc Cơ = 7500 MP
+    const thaiHuVanKiem = SKILLS.find(s => s.id === 'thai_hu_van_kiem_quyet'); // magic Kim Đan = 11250 MP
+
+    assert.strictEqual(getSkillMpCost(tuKhiThuat), 5000, "Support skills should cost 5000 MP at Luyện Khí");
+    assert.strictEqual(getSkillMpCost(linhPhaoThuat), 5000, "Luyện Khí magic skill should cost 5000 MP");
+    
+    // Trúc Cơ index = 1 -> 5000 * 1.5^1 = 7500 MP
+    assert.strictEqual(getSkillMpCost(tuDuongChuong), 7500, "Trúc Cơ magic skill should cost 7500 MP (5000 * 1.5)");
+    
+    // Kim Đan index = 2 -> 5000 * 1.5^2 = 11250 MP
+    assert.strictEqual(getSkillMpCost(thaiHuVanKiem), 11250, "Kim Đan magic skill should cost 11250 MP (5000 * 2.25)");
+
+    // 2. Setup characters for PVP combat simulation with Trúc Cơ skills
+    const tuSiA = await TuSi.create({
+      idNguoiDung: "888111222333",
+      ten: "TrucCoAtkTester",
+      gioiTinh: "Nữ",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 11, // Trúc Cơ
+      linhLuc: 0,
+      linhThach: 1000,
+      theLuc: 50
+    });
+
+    const tuSiB = await TuSi.create({
+      idNguoiDung: "888111222444",
+      ten: "TrucCoDefTester",
+      gioiTinh: "Nam",
+      huongTu: "The Tu",
+      linhCan: "Thổ Linh Căn",
+      capDo: 11, // Trúc Cơ
+      linhLuc: 0,
+      linhThach: 1000,
+      theLuc: 50
+    });
+
+    await PlayerSkill.create({ idNguoiDung: tuSiA.idNguoiDung, skillId: "tu_duong_chuong", capDo: 5, trangBi: true });
+    await PlayerSkill.create({ idNguoiDung: tuSiB.idNguoiDung, skillId: "phap_tuong_kim_cang", capDo: 5, trangBi: true });
+
+    // Run combat simulator
+    const battleResult = await _simCombat(tuSiA, tuSiB);
+    assert.ok(battleResult);
+    
+    const logsStr = battleResult.battleLogs.join("\n");
+    assert.ok(logsStr.includes("Tử Dương Chưởng") || logsStr.includes("Pháp Tướng Kim Cang"), "Logs should show Trúc Cơ skill casts");
+
+    // Clean up
+    await tuSiA.destroy();
+    await tuSiB.destroy();
+    await PlayerSkill.destroy({ where: { idNguoiDung: ["888111222333", "888111222444"] } });
+    await Skill.destroy({ where: { id: ["tu_duong_chuong", "phap_tuong_kim_cang"] } });
   });
 
 });

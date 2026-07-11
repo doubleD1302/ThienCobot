@@ -1060,6 +1060,8 @@ async function _simCombat(tuSiA, tuSiB) {
   let caituTriggeredA = false;
   let critImmuneA = false;
   let reflectA = false;
+  let tanKhiRoundsA = 0;
+  let tanKhiPctA = 0;
 
   // Player B Pet States
   const petStateB = { cooldown: 0 };
@@ -1073,6 +1075,8 @@ async function _simCombat(tuSiA, tuSiB) {
   let caituTriggeredB = false;
   let critImmuneB = false;
   let reflectB = false;
+  let tanKhiRoundsB = 0;
+  let tanKhiPctB = 0;
 
   // Pháp bảo chủ động A
   const dharmaA = eqA.inv.filter(x => x.item.loai === 'Pháp Bảo');
@@ -1289,6 +1293,9 @@ async function _simCombat(tuSiA, tuSiB) {
       if (buff.loai === 'tu_khi_ky' && buff.roundsLeft > 0) {
         currentSpeedA += buff.speedBonus;
       }
+      if (buff.loai === 'bat_hoang_bo_buff' && buff.roundsLeft > 0) {
+        currentSpeedA += buff.speedBonus;
+      }
       if (buff.loai === 'u_thiet_lien_debuff' && buff.roundsLeft > 0) {
         currentSpeedA = Math.max(10, currentSpeedA - 5);
       }
@@ -1317,6 +1324,9 @@ async function _simCombat(tuSiA, tuSiB) {
         currentSpeedB += buff.speedBonus;
       }
       if (buff.loai === 'tu_khi_ky' && buff.roundsLeft > 0) {
+        currentSpeedB += buff.speedBonus;
+      }
+      if (buff.loai === 'bat_hoang_bo_buff' && buff.roundsLeft > 0) {
         currentSpeedB += buff.speedBonus;
       }
       if (buff.loai === 'u_thiet_lien_debuff' && buff.roundsLeft > 0) {
@@ -1481,6 +1491,34 @@ async function _simCombat(tuSiA, tuSiB) {
         }
       }
 
+      // Pháp Tướng Kim Cang Regen A
+      for (const buff of activeBuffsA) {
+        if (buff.loai === 'phap_tuong_kim_cang_regen' && buff.roundsLeft > 0) {
+          const healAmt = Math.floor(statsA.max_hp * buff.triGia);
+          hpA = Math.min(statsA.max_hp, hpA + healAmt);
+          battleLogs.push(`❇️ **Pháp Tướng Kim Cang**: **${tuSiA.ten}** hồi phục \`+${healAmt.toLocaleString()}\` HP từ hư ảnh hộ pháp (HP hiện tại: \`${hpA}/${statsA.max_hp}\`).`);
+        }
+      }
+
+      // Hỏa Lôi Đạp burn damage A -> B
+      for (const buff of activeBuffsA) {
+        if (buff.loai === 'hoa_loi_dap' && buff.roundsLeft > 0) {
+          const burnDmg = Math.floor(statsA.vat_cong * buff.triGia);
+          hpB = Math.max(0, hpB - burnDmg);
+          battleLogs.push(`🔥 **Hỏa Lôi Đạp**: **${tuSiB.ten}** bị thiêu đốt chịu \`-${burnDmg.toLocaleString()}\` sát thương vật lý (HP còn: \`${hpB.toLocaleString()}\`).`);
+        }
+      }
+      if (hpB <= 0) {
+        if (caituB > 0 && !caituTriggeredB) {
+          caituTriggeredB = true;
+          hpB = Math.floor(statsB.max_hp * 0.15);
+          battleLogs.push(`😇 **Cải Tử Hoàn Sinh**: **${tuSiB.ten}** được cứu mạng bởi Linh thú, hồi phục lại \`${hpB.toLocaleString()}\` HP!`);
+        } else {
+          winner = tuSiA;
+          break;
+        }
+      }
+
       if (stunnedRoundsA > 0) {
         battleLogs.push(`💤 **Choáng**: **${tuSiA.ten}** bị choáng không thể hành động trong lượt này!`);
         stunnedRoundsA--;
@@ -1496,6 +1534,10 @@ async function _simCombat(tuSiA, tuSiB) {
             roundAtkAMult += buff.triGia / 100;
           } else if (buff.loai === 'chien_co' && buff.roundsLeft > 0) {
             roundAtkAMult += buff.triGia / 100;
+          } else if (buff.loai === 'tu_duong_chuong' && buff.roundsLeft > 0) {
+            roundAtkAMult += buff.triGia;
+          } else if (buff.loai === 'hong_hoang_kich_buff' && buff.roundsLeft > 0) {
+            roundAtkAMult += buff.triGia;
           }
         }
         let currentRoundAtkA = Math.floor(atkA * roundAtkAMult);
@@ -1573,10 +1615,16 @@ async function _simCombat(tuSiA, tuSiB) {
             if (buff.loai === 'thach_phu_thuan' && buff.roundsLeft > 0) {
               targetDefB = Math.floor(targetDefB * 1.30);
             }
+            if (buff.loai === 'phap_tuong_kim_cang_shield' && buff.roundsLeft > 0) {
+              targetDefB = Math.floor(targetDefB * (1 + buff.defBonus));
+            }
           }
           if (skill.id === 'bat_hoang_toai_thach_kich') {
             const ignorePct = Math.min(1.0, 0.10 * (1 + (capDo - 1) * 0.01));
-            targetDefB = Math.floor(defB * (1 - ignorePct));
+            targetDefB = Math.floor(targetDefB * (1 - ignorePct));
+          }
+          if (tanKhiRoundsB > 0) {
+            targetDefB = Math.floor(targetDefB * (1 - tanKhiPctB));
           }
           dmgA = Math.max(1, Math.floor(rawDmg) - targetDefB);
           if (skill.satThuong === 0) dmgA = 0;
@@ -1598,6 +1646,90 @@ async function _simCombat(tuSiA, tuSiB) {
             chienYStacksA = Math.min(3, (chienYStacksA || 0) + 1);
             chienYDurationA = 3;
             battleLogs.push(`🔥 **${skill.ten}**: **${tuSiA.ten}** thiêu đốt \`-${hpSacrifice.toLocaleString()}\` HP hiện tại, tích luỹ 1 tầng **[Chiến Ý]** (Hiện tại: \`${chienYStacksA}/3\` tầng, kéo dài 3 hiệp).`);
+          }
+
+          // Xử lý hiệu ứng đặc biệt của kỹ năng Trúc Cơ
+          if (skill.id === 'tu_duong_chuong') {
+            const phapCongBonus = 0.10 * (1 + (capDo - 1) * 0.01);
+            activeBuffsA.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'tu_duong_chuong',
+              triGia: phapCongBonus,
+              roundsLeft: 3
+            });
+            const tanKhiChance = 0.35 * (1 + (capDo - 1) * 0.01);
+            if (Math.random() <= tanKhiChance) {
+              tanKhiRoundsB = 2;
+              tanKhiPctB = 0.15 * (1 + (capDo - 1) * 0.01);
+              battleLogs.push(`🔥 **${skill.ten}**: Gây trạng thái **[Tán Khí]** làm giảm \`-${Math.round(tanKhiPctB * 100)}%\` Kháng Pháp của **${tuSiB.ten}** trong 2 hiệp.`);
+            }
+          }
+          if (skill.id === 'phap_tuong_kim_cang') {
+            const hpHealPct = 0.08 * (1 + (capDo - 1) * 0.01);
+            const defBonusPct = 0.30 * (1 + (capDo - 1) * 0.01);
+            const hoTheReduction = 0.15 * (1 + (capDo - 1) * 0.01);
+            activeBuffsA.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'phap_tuong_kim_cang_regen',
+              triGia: hpHealPct,
+              roundsLeft: 5
+            });
+            activeBuffsA.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'phap_tuong_kim_cang_shield',
+              defBonus: defBonusPct,
+              reduction: hoTheReduction,
+              roundsLeft: 5
+            });
+            battleLogs.push(`🛡️ **${skill.ten}**: Triệu hồi Pháp Tướng, tăng cường phòng ngự và hồi phục tự thân.`);
+          }
+          if (skill.id === 'hong_hoang_kich') {
+            const hpHealAmt = Math.floor(statsA.max_hp * 0.05);
+            hpA = Math.min(statsA.max_hp, hpA + hpHealAmt);
+            const vatCongBonus = 0.15 * (1 + (capDo - 1) * 0.01);
+            activeBuffsA.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'hong_hoang_kich_buff',
+              triGia: vatCongBonus,
+              roundsLeft: 2
+            });
+            battleLogs.push(`🩸 **${skill.ten}**: Hồi phục \`+${hpHealAmt.toLocaleString()}\` HP, tăng \`+${Math.round(vatCongBonus * 100)}%\` Vật công trong 2 hiệp.`);
+            
+            if (hpB / statsB.max_hp >= 0.70) {
+              isCritA = true;
+              battleLogs.push(`💥 **${skill.ten}**: **${tuSiB.ten}** dồi dào huyết khí, kích hoạt chắc chắn bạo kích!`);
+            }
+            const stunChance = 0.30 * (1 + (capDo - 1) * 0.01);
+            if (Math.random() <= stunChance) {
+              stunnedRoundsB = 1;
+              battleLogs.push(`💤 **${skill.ten}**: Gây trạng thái **[Định Thân]** khiến **${tuSiB.ten}** mất lượt!`);
+            }
+          }
+          if (skill.id === 'bat_hoang_bo') {
+            const hpHealAmt = Math.floor(statsA.max_hp * 0.10);
+            hpA = Math.min(statsA.max_hp, hpA + hpHealAmt);
+            const speedBonus = Math.floor((statsA.speed || 100) * 0.30 * (1 + (capDo - 1) * 0.01));
+            const neBonus = 0.20 * (1 + (capDo - 1) * 0.01);
+            activeBuffsA.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'bat_hoang_bo_buff',
+              speedBonus: speedBonus,
+              neBonus: neBonus,
+              roundsLeft: 4
+            });
+            activeBuffsA.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'hoa_loi_dap',
+              triGia: 0.40 * (1 + (capDo - 1) * 0.01),
+              roundsLeft: 4
+            });
+            battleLogs.push(`👟 **${skill.ten}**: Hồi \`+${hpHealAmt.toLocaleString()}\` HP, tăng tốc độ và khả năng né tránh, kích hoạt trạng thái **[Hỏa Lôi Đạp]**.`);
           }
 
           // Xử lý hiệu ứng đặc biệt của kỹ năng Kim Đan
@@ -1654,6 +1786,12 @@ async function _simCombat(tuSiA, tuSiB) {
             if (buff.loai === 'thach_phu_thuan' && buff.roundsLeft > 0) {
               targetDefB = Math.floor(targetDefB * 1.30);
             }
+            if (buff.loai === 'phap_tuong_kim_cang_shield' && buff.roundsLeft > 0) {
+              targetDefB = Math.floor(targetDefB * (1 + buff.defBonus));
+            }
+          }
+          if (tanKhiRoundsB > 0) {
+            targetDefB = Math.floor(targetDefB * (1 - tanKhiPctB));
           }
           dmgA = Math.max(1, Math.floor(rawDmg) - targetDefB);
           castMsgA = 'đánh thường';
@@ -1661,11 +1799,26 @@ async function _simCombat(tuSiA, tuSiB) {
 
         // B né tránh đòn A
         let roundNeB = statsB.ne;
+        for (const buff of activeBuffsB) {
+          if (buff.loai === 'bat_hoang_bo_buff' && buff.roundsLeft > 0) {
+            roundNeB = Math.min(0.90, roundNeB + buff.neBonus);
+          }
+        }
         if (Math.random() <= roundNeB) {
           battleLogs.push(`⚡ **Hiệp ${combatRound}** (Lượt ${actionCountA + 1} của **${tuSiA.ten}**, AV: ${elapsed.toFixed(0)}): **${tuSiA.ten}** ${castMsgA} nhưng **${tuSiB.ten}** né tránh thành công!`);
         } else {
           if (isCritA && critImmuneB) {
             // crit immune
+          }
+
+          let hoTheRedB = 0;
+          for (const buff of activeBuffsB) {
+            if (buff.loai === 'phap_tuong_kim_cang_shield' && buff.roundsLeft > 0) {
+              hoTheRedB = Math.max(hoTheRedB, buff.reduction);
+            }
+          }
+          if (hoTheRedB > 0) {
+            dmgA = Math.floor(dmgA * (1 - hoTheRedB));
           }
 
           if (shieldB > 0) {
@@ -1754,6 +1907,7 @@ async function _simCombat(tuSiA, tuSiB) {
 
       if (slowRoundsA > 0) slowRoundsA--;
       if (weakenRoundsA > 0) weakenRoundsA--;
+      if (tanKhiRoundsA > 0) tanKhiRoundsA--;
       if (shieldA <= 0) {
         critImmuneA = false;
         reflectA = false;
@@ -1902,6 +2056,34 @@ async function _simCombat(tuSiA, tuSiB) {
         }
       }
 
+      // Pháp Tướng Kim Cang Regen B
+      for (const buff of activeBuffsB) {
+        if (buff.loai === 'phap_tuong_kim_cang_regen' && buff.roundsLeft > 0) {
+          const healAmt = Math.floor(statsB.max_hp * buff.triGia);
+          hpB = Math.min(statsB.max_hp, hpB + healAmt);
+          battleLogs.push(`❇️ **Pháp Tướng Kim Cang**: **${tuSiB.ten}** hồi phục \`+${healAmt.toLocaleString()}\` HP từ hư ảnh hộ pháp (HP hiện tại: \`${hpB}/${statsB.max_hp}\`).`);
+        }
+      }
+
+      // Hỏa Lôi Đạp burn damage B -> A
+      for (const buff of activeBuffsB) {
+        if (buff.loai === 'hoa_loi_dap' && buff.roundsLeft > 0) {
+          const burnDmg = Math.floor(statsB.vat_cong * buff.triGia);
+          hpA = Math.max(0, hpA - burnDmg);
+          battleLogs.push(`🔥 **Hỏa Lôi Đạp**: **${tuSiA.ten}** bị thiêu đốt chịu \`-${burnDmg.toLocaleString()}\` sát thương vật lý (HP còn: \`${hpA.toLocaleString()}\`).`);
+        }
+      }
+      if (hpA <= 0) {
+        if (caituA > 0 && !caituTriggeredA) {
+          caituTriggeredA = true;
+          hpA = Math.floor(statsA.max_hp * 0.15);
+          battleLogs.push(`😇 **Cải Tử Hoàn Sinh**: **${tuSiA.ten}** được cứu mạng bởi Linh thú, hồi phục lại \`${hpA.toLocaleString()}\` HP!`);
+        } else {
+          winner = tuSiB;
+          break;
+        }
+      }
+
       if (stunnedRoundsB > 0) {
         battleLogs.push(`💤 **Choáng**: **${tuSiB.ten}** bị choáng không thể hành động trong lượt này!`);
         stunnedRoundsB--;
@@ -1917,6 +2099,10 @@ async function _simCombat(tuSiA, tuSiB) {
             roundAtkBMult += buff.triGia / 100;
           } else if (buff.loai === 'chien_co' && buff.roundsLeft > 0) {
             roundAtkBMult += buff.triGia / 100;
+          } else if (buff.loai === 'tu_duong_chuong' && buff.roundsLeft > 0) {
+            roundAtkBMult += buff.triGia;
+          } else if (buff.loai === 'hong_hoang_kich_buff' && buff.roundsLeft > 0) {
+            roundAtkBMult += buff.triGia;
           }
         }
         let currentRoundAtkB = Math.floor(atkB * roundAtkBMult);
@@ -1994,10 +2180,16 @@ async function _simCombat(tuSiA, tuSiB) {
             if (buff.loai === 'thach_phu_thuan' && buff.roundsLeft > 0) {
               targetDefA = Math.floor(targetDefA * 1.30);
             }
+            if (buff.loai === 'phap_tuong_kim_cang_shield' && buff.roundsLeft > 0) {
+              targetDefA = Math.floor(targetDefA * (1 + buff.defBonus));
+            }
           }
           if (skill.id === 'bat_hoang_toai_thach_kich') {
             const ignorePct = Math.min(1.0, 0.10 * (1 + (capDo - 1) * 0.01));
-            targetDefA = Math.floor(defA * (1 - ignorePct));
+            targetDefA = Math.floor(targetDefA * (1 - ignorePct));
+          }
+          if (tanKhiRoundsA > 0) {
+            targetDefA = Math.floor(targetDefA * (1 - tanKhiPctA));
           }
           dmgB = Math.max(1, Math.floor(rawDmg) - targetDefA);
           if (skill.satThuong === 0) dmgB = 0;
@@ -2019,6 +2211,90 @@ async function _simCombat(tuSiA, tuSiB) {
             chienYStacksB = Math.min(3, (chienYStacksB || 0) + 1);
             chienYDurationB = 3;
             battleLogs.push(`🔥 **${skill.ten}**: **${tuSiB.ten}** thiêu đốt \`-${hpSacrifice.toLocaleString()}\` HP hiện tại, tích luỹ 1 tầng **[Chiến Ý]** (Hiện tại: \`${chienYStacksB}/3\` tầng, kéo dài 3 hiệp).`);
+          }
+
+          // Xử lý hiệu ứng đặc biệt của kỹ năng Trúc Cơ
+          if (skill.id === 'tu_duong_chuong') {
+            const phapCongBonus = 0.10 * (1 + (capDo - 1) * 0.01);
+            activeBuffsB.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'tu_duong_chuong',
+              triGia: phapCongBonus,
+              roundsLeft: 3
+            });
+            const tanKhiChance = 0.35 * (1 + (capDo - 1) * 0.01);
+            if (Math.random() <= tanKhiChance) {
+              tanKhiRoundsA = 2;
+              tanKhiPctA = 0.15 * (1 + (capDo - 1) * 0.01);
+              battleLogs.push(`🔥 **${skill.ten}**: Gây trạng thái **[Tán Khí]** làm giảm \`-${Math.round(tanKhiPctA * 100)}%\` Kháng Pháp của **${tuSiA.ten}** trong 2 hiệp.`);
+            }
+          }
+          if (skill.id === 'phap_tuong_kim_cang') {
+            const hpHealPct = 0.08 * (1 + (capDo - 1) * 0.01);
+            const defBonusPct = 0.30 * (1 + (capDo - 1) * 0.01);
+            const hoTheReduction = 0.15 * (1 + (capDo - 1) * 0.01);
+            activeBuffsB.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'phap_tuong_kim_cang_regen',
+              triGia: hpHealPct,
+              roundsLeft: 5
+            });
+            activeBuffsB.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'phap_tuong_kim_cang_shield',
+              defBonus: defBonusPct,
+              reduction: hoTheReduction,
+              roundsLeft: 5
+            });
+            battleLogs.push(`🛡️ **${skill.ten}**: Triệu hồi Pháp Tướng, tăng cường phòng ngự và hồi phục tự thân.`);
+          }
+          if (skill.id === 'hong_hoang_kich') {
+            const hpHealAmt = Math.floor(statsB.max_hp * 0.05);
+            hpB = Math.min(statsB.max_hp, hpB + hpHealAmt);
+            const vatCongBonus = 0.15 * (1 + (capDo - 1) * 0.01);
+            activeBuffsB.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'hong_hoang_kich_buff',
+              triGia: vatCongBonus,
+              roundsLeft: 2
+            });
+            battleLogs.push(`🩸 **${skill.ten}**: Hồi phục \`+${hpHealAmt.toLocaleString()}\` HP, tăng \`+${Math.round(vatCongBonus * 100)}%\` Vật công trong 2 hiệp.`);
+            
+            if (hpA / statsA.max_hp >= 0.70) {
+              isCritB = true;
+              battleLogs.push(`💥 **${skill.ten}**: **${tuSiA.ten}** dồi dào huyết khí, kích hoạt chắc chắn bạo kích!`);
+            }
+            const stunChance = 0.30 * (1 + (capDo - 1) * 0.01);
+            if (Math.random() <= stunChance) {
+              stunnedRoundsA = 1;
+              battleLogs.push(`💤 **${skill.ten}**: Gây trạng thái **[Định Thân]** khiến **${tuSiA.ten}** mất lượt!`);
+            }
+          }
+          if (skill.id === 'bat_hoang_bo') {
+            const hpHealAmt = Math.floor(statsB.max_hp * 0.10);
+            hpB = Math.min(statsB.max_hp, hpB + hpHealAmt);
+            const speedBonus = Math.floor((statsB.speed || 100) * 0.30 * (1 + (capDo - 1) * 0.01));
+            const neBonus = 0.20 * (1 + (capDo - 1) * 0.01);
+            activeBuffsB.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'bat_hoang_bo_buff',
+              speedBonus: speedBonus,
+              neBonus: neBonus,
+              roundsLeft: 4
+            });
+            activeBuffsB.push({
+              ten: skill.ten,
+              pbTen: skill.ten,
+              loai: 'hoa_loi_dap',
+              triGia: 0.40 * (1 + (capDo - 1) * 0.01),
+              roundsLeft: 4
+            });
+            battleLogs.push(`👟 **${skill.ten}**: Hồi \`+${hpHealAmt.toLocaleString()}\` HP, tăng tốc độ và khả năng né tránh, kích hoạt trạng thái **[Hỏa Lôi Đạp]**.`);
           }
 
           // Xử lý hiệu ứng đặc biệt của kỹ năng Kim Đan
@@ -2075,6 +2351,12 @@ async function _simCombat(tuSiA, tuSiB) {
             if (buff.loai === 'thach_phu_thuan' && buff.roundsLeft > 0) {
               targetDefA = Math.floor(targetDefA * 1.30);
             }
+            if (buff.loai === 'phap_tuong_kim_cang_shield' && buff.roundsLeft > 0) {
+              targetDefA = Math.floor(targetDefA * (1 + buff.defBonus));
+            }
+          }
+          if (tanKhiRoundsA > 0) {
+            targetDefA = Math.floor(targetDefA * (1 - tanKhiPctA));
           }
           dmgB = Math.max(1, Math.floor(rawDmg) - targetDefA);
           castMsgB = 'đánh thường';
@@ -2082,11 +2364,26 @@ async function _simCombat(tuSiA, tuSiB) {
 
         // A né tránh đòn B
         let roundNeA = statsA.ne;
+        for (const buff of activeBuffsA) {
+          if (buff.loai === 'bat_hoang_bo_buff' && buff.roundsLeft > 0) {
+            roundNeA = Math.min(0.90, roundNeA + buff.neBonus);
+          }
+        }
         if (Math.random() <= roundNeA) {
           battleLogs.push(`⚡ **Hiệp ${combatRound}** (Lượt ${actionCountB + 1} của **${tuSiB.ten}**, AV: ${elapsed.toFixed(0)}): **${tuSiB.ten}** ${castMsgB} nhưng **${tuSiA.ten}** né tránh thành công!`);
         } else {
           if (isCritB && critImmuneA) {
             // crit immune
+          }
+
+          let hoTheRedA = 0;
+          for (const buff of activeBuffsA) {
+            if (buff.loai === 'phap_tuong_kim_cang_shield' && buff.roundsLeft > 0) {
+              hoTheRedA = Math.max(hoTheRedA, buff.reduction);
+            }
+          }
+          if (hoTheRedA > 0) {
+            dmgB = Math.floor(dmgB * (1 - hoTheRedA));
           }
 
           if (shieldA > 0) {
@@ -2175,6 +2472,7 @@ async function _simCombat(tuSiA, tuSiB) {
 
       if (slowRoundsB > 0) slowRoundsB--;
       if (weakenRoundsB > 0) weakenRoundsB--;
+      if (tanKhiRoundsB > 0) tanKhiRoundsB--;
       if (shieldB <= 0) {
         critImmuneB = false;
         reflectB = false;

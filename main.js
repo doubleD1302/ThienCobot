@@ -225,13 +225,42 @@ client.on('interactionCreate', async interaction => {
     if (allowedCommands) {
       if (!allowedCommands.includes(interaction.commandName)) {
         const allowedList = allowedCommands.map(c => `\`/${c}\``).join(', ') || '*Không có lệnh nào*';
+        
+        // Tìm các kênh trong cùng guild được phép sử dụng lệnh này
+        const suitableChannels = [];
+        for (const [chId, allowedCmds] of ChannelRestriction.cache.entries()) {
+          if (allowedCmds.includes(interaction.commandName)) {
+            const ch = interaction.guild?.channels.cache.get(chId);
+            if (ch) {
+              suitableChannels.push(`<#${chId}>`);
+            }
+          }
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle('🌌 Thiên Đạo Hiển Hiện — Chỉ Dẫn Tiên Lộ')
+          .setDescription(
+            `🧘 **Đạo hữu <@${interaction.user.id}>**, quy tắc thiên địa nghiêm cấm thi triển pháp thuật này tại đây!\n\n` +
+            `🚫 **Kênh này (<#${interaction.channelId}>) chỉ cho phép**: ${allowedList}\n\n` +
+            `✨ **Thiên Đạo chỉ dẫn đạo hữu đến các linh địa phù hợp để sử dụng lệnh \`/${interaction.commandName}\`:**\n` +
+            (suitableChannels.length > 0
+              ? suitableChannels.map(ch => `• ${ch}`).join('\n')
+              : '• Các kênh không bị giới hạn lệnh trong tông môn.')
+          )
+          .setColor(0x3498db)
+          .setThumbnail(interaction.client.user.displayAvatarURL())
+          .setTimestamp()
+          .setFooter({ text: 'Thiên Đạo Tu Tiên RPG' });
+
         return await interaction.reply({
-          content: `🚫 **Kênh này chỉ cho phép sử dụng**: ${allowedList}\nHãy đến kênh phù hợp để dùng lệnh \`/${interaction.commandName}\`.`,
+          embeds: [embed],
           ephemeral: true
         });
       }
     }
-  } catch (_) { }
+  } catch (err) {
+    console.error('Lỗi khi kiểm tra giới hạn kênh:', err);
+  }
 
   try {
     await lenh.execute(interaction);
@@ -305,7 +334,54 @@ async function start() {
     // Tự động chèn/đồng bộ toàn bộ danh sách kỹ năng từ config.js vào cơ sở dữ liệu
     try {
       const { Skill } = await import('./models/Skill.js');
-      const { SKILLS } = await import('./config.js');
+      const { PlayerSkill } = await import('./models/PlayerSkill.js');
+      const { Item } = await import('./models/Item.js');
+      const { Inventory } = await import('./models/Inventory.js');
+      const { ShopItem } = await import('./models/ShopItem.js');
+      const { SKILLS, ITEMS } = await import('./config.js');
+      const { Op } = await import('sequelize');
+
+      // Xóa các kỹ năng cũ không có trong cấu hình mới
+      const activeIds = SKILLS.map(sk => sk.id);
+      await Skill.destroy({
+        where: {
+          id: {
+            [Op.notIn]: activeIds
+          }
+        }
+      });
+      await PlayerSkill.destroy({
+        where: {
+          skillId: {
+            [Op.notIn]: activeIds
+          }
+        }
+      });
+
+      // Xóa các items cũ không có trong cấu hình mới
+      const activeItemIds = ITEMS.map(item => item.id);
+      await Item.destroy({
+        where: {
+          id: {
+            [Op.notIn]: activeItemIds
+          }
+        }
+      });
+      await Inventory.destroy({
+        where: {
+          itemId: {
+            [Op.notIn]: activeItemIds
+          }
+        }
+      });
+      await ShopItem.destroy({
+        where: {
+          itemId: {
+            [Op.notIn]: activeItemIds
+          }
+        }
+      });
+
       for (const sk of SKILLS) {
         await Skill.upsert({
           id: sk.id,
@@ -677,8 +753,12 @@ async function start() {
         { itemId: 'dan_dot_pha_7', giaBan: 2000, yeuCauCapDo: 25 },
         { itemId: 'hat_giong_dai_thua_qua', giaBan: 200, yeuCauCapDo: 28 },
         { itemId: 'dan_dot_pha_8', giaBan: 2000, yeuCauCapDo: 28 },
-        { itemId: 'hoa_than_linh_sung_dan', giaBan: 1000000, yeuCauCapDo: 1 },
         { itemId: 'trung_linh_thu_tien', giaBan: 100000, yeuCauCapDo: 1 },
+
+        // Hạt giống đan dược tu vi mới
+        { itemId: 'hat_giong_ngoc_lo_sinh_co', giaBan: 200, yeuCauCapDo: 10 },
+        { itemId: 'hat_giong_kim_o_tudan', giaBan: 200, yeuCauCapDo: 13 },
+        { itemId: 'hat_giong_tu_van_hoa_anh', giaBan: 200, yeuCauCapDo: 16 },
         
         { itemId: 'nguyen_lieu_luyen_khi', giaBan: 200, yeuCauCapDo: 1 },
         { itemId: 'nguyen_lieu_truc_co', giaBan: 500, yeuCauCapDo: 10 },

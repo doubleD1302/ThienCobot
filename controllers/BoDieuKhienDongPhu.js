@@ -1102,7 +1102,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         }
 
         // Trứng ấp sủng vật
-        const eggs = sellableList.filter(e => e.item.id.startsWith('trung_linh_thu') || e.item.id === 'trung_than_thu' || e.item.id === 'trung_than');
+        const eggs = sellableList.filter(e => e.item.id.startsWith('trung_linh_thu'));
         if (eggs.length > 0) {
           rows.push(
             new ActionRowBuilder().addComponents(
@@ -1818,7 +1818,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           const eggId = i.values[0];
           // Ghi nhớ loại trứng người chơi đã chọn để ấp nhanh
           selectedEggId = eggId;
-          const hasVideo = eggId === 'trung_linh_thu_tien' || eggId === 'trung_linh_thu_than' || eggId === 'trung_than_thu' || eggId === 'trung_than';
+          const hasVideo = eggId === 'trung_linh_thu_tien' || eggId === 'trung_linh_thu_than';
 
           if (hasVideo) {
             const { AttachmentBuilder } = await import('discord.js');
@@ -1826,9 +1826,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               ? './public/video/pet/dap_trung.mp4'
               : './public/video/pet/dap_trung_than.mp4';
             const eggNameText = eggId === 'trung_linh_thu_tien' ? 'Trứng Linh Thú (Tiên)'
-              : eggId === 'trung_than' ? 'Trứng Thần Thú 🌟'
-                : eggId === 'trung_than_thu' ? 'Trứng Thần Thú Thượng Cổ 🌟'
-                  : 'Trứng Linh Thú (Thần)';
+              : 'Trứng Linh Thú (Thần)';
 
             // Tạm thời disable các components và gửi video kèm thông báo chờ
             const tempEmbed = new EmbedBuilder()
@@ -2564,35 +2562,21 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       };
     }
 
-    const colorCode = herbId.split('_').pop(); // 'luc', 'lam', 'tim', 'vang', 'do'
-    const roll = Math.random() * 100;
+    const tuViRecipeMap = {
+      'ngoc_lo_sinh_co_thao': 'dan_tu_vi_truc_co',
+      'kim_o_tu_dan_hoa': 'dan_tu_vi_kim_dan',
+      'tu_van_hoa_anh_thao': 'dan_tu_vi_nguyen_anh'
+    };
 
-    let targetPillId = 'dan_tu_vi_trang'; // Mặc định Trắng
+    let targetPillId = tuViRecipeMap[herbId];
+    if (!targetPillId) {
+      if (herbId.startsWith('tu_linh_thao_')) {
+        targetPillId = 'dan_tu_vi_luyen_khi';
+      }
+    }
 
-    if (colorCode === 'luc') {
-      if (roll <= 0.1) targetPillId = 'dan_tu_vi_do';
-      else if (roll <= 1.0) targetPillId = 'dan_tu_vi_vang';
-      else if (roll <= 10.0) targetPillId = 'dan_tu_vi_tim';
-      else if (roll <= 30.0) targetPillId = 'dan_tu_vi_lam';
-      else if (roll <= 60.0) targetPillId = 'dan_tu_vi_luc';
-    } else if (colorCode === 'lam') {
-      if (roll <= 0.5) targetPillId = 'dan_tu_vi_do';
-      else if (roll <= 3.0) targetPillId = 'dan_tu_vi_vang';
-      else if (roll <= 20.0) targetPillId = 'dan_tu_vi_tim';
-      else if (roll <= 50.0) targetPillId = 'dan_tu_vi_lam';
-      else targetPillId = 'dan_tu_vi_luc';
-    } else if (colorCode === 'tim') {
-      if (roll <= 2.0) targetPillId = 'dan_tu_vi_do';
-      else if (roll <= 10.0) targetPillId = 'dan_tu_vi_vang';
-      else if (roll <= 40.0) targetPillId = 'dan_tu_vi_tim';
-      else targetPillId = 'dan_tu_vi_lam';
-    } else if (colorCode === 'vang') {
-      if (roll <= 10.0) targetPillId = 'dan_tu_vi_do';
-      else if (roll <= 50.0) targetPillId = 'dan_tu_vi_vang';
-      else targetPillId = 'dan_tu_vi_tim';
-    } else if (colorCode === 'do') {
-      if (roll <= 70.0) targetPillId = 'dan_tu_vi_do';
-      else targetPillId = 'dan_tu_vi_vang';
+    if (!targetPillId) {
+      return { ok: false, msg: 'Không tìm thấy công thức luyện đan cho linh thảo này.' };
     }
 
     await Inventory.addVatPham(tuSi.idNguoiDung, targetPillId, 1);
@@ -2600,7 +2584,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
 
     return {
       ok: true,
-      msg: `Luyện đan hoàn tất! Đạo hữu luyện chế ra: **${targetItem?.ten ?? targetPillId}**.`
+      msg: `Luyện đan hoàn tất! Đạo hữu luyện chế ra: **${targetItem?.ten ?? targetPillId} ${targetItem?.emoji || ''}**.`
     };
   }
 
@@ -2627,18 +2611,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     const cg = await CanhGioi.findByPk(tuSi.capDo);
     const tocDoGoc = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
 
-    // Đan dược tu vi: Trắng x4 Đạo Niên, Lục x8, Lam x16, Tím x32, Vàng x64, Đỏ x128
-    const pillBonusMap = {
-      'dan_tu_vi_trang': 4,
-      'dan_tu_vi_luc': 8,
-      'dan_tu_vi_lam': 16,
-      'dan_tu_vi_tim': 32,
-      'dan_tu_vi_vang': 64,
-      'dan_tu_vi_do': 128
-    };
-
-    const countDaoNien = pillBonusMap[pillId] || 4;
-    const gainedExp = Math.floor(tocDoGoc * countDaoNien);
+    const { tinhTuViNhanDuoc } = config;
+    const { gainedExp, multiplier } = tinhTuViNhanDuoc(pillId, tuSi.canhGioi, tocDoCoBan);
 
     tuSi.linhLuc += gainedExp;
     await tuSi.save();
@@ -2648,9 +2622,14 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
 
     const pillItem = config.ITEMS.find(e => e.id === pillId);
 
+    let msg = `Hóa Dược Nhập Thể! Đạo hữu ăn **${pillItem?.ten}** dược lực tan ra, lập tức nhận được \`+${gainedExp.toLocaleString()}\` Linh Lực.`;
+    if (multiplier < 1.0) {
+      msg += `\n*(Do cảnh giới thấp hơn đại cảnh giới của đạo hữu, hiệu quả đan dược giảm còn ${multiplier * 100}%).*`;
+    }
+
     return {
       ok: true,
-      msg: `Hóa Dược Nhập Thể! Đạo hữu ăn **${pillItem?.ten}** dược lực tan ra, lập tức nhận được \`+${gainedExp.toLocaleString()}\` Linh Lực.`
+      msg
     };
   }
 
@@ -2797,27 +2776,20 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     if (inv.soLuong <= 0) await inv.destroy();
     else await inv.save();
 
-    // Trứng Thần Thú Thượng Cổ: đảm bảo 100% ra Thần Thú Huyết Mạch Thái Cổ (TT_1)
-    // Các loại trứng khác: roll theo tỷ lệ
+    // Các loại trứng: roll theo tỷ lệ
     let isThan = false;
-
-    if (eggId === 'trung_than_thu') {
-      // 100% Thần Thú
-      isThan = true;
-    } else {
-      let rollThanThuRate = 0; // Tỷ lệ nở ra Thần Thú
-      if (eggId === 'trung_linh_thu_than' || eggId === 'trung_than') {
-        rollThanThuRate = 50;
-      } else if (eggId === 'trung_linh_thu_tien') {
-        rollThanThuRate = 3;
-      } else if (eggId === 'trung_linh_thu_linh') {
-        rollThanThuRate = 1;
-      } else if (eggId === 'trung_linh_thu_pham' || eggId === 'trung_linh_thu') {
-        rollThanThuRate = 0;
-      }
-      const roll = Math.random() * 100;
-      isThan = roll < rollThanThuRate;
+    let rollThanThuRate = 0; // Tỷ lệ nở ra Thần Thú
+    if (eggId === 'trung_linh_thu_than') {
+      rollThanThuRate = 50;
+    } else if (eggId === 'trung_linh_thu_tien') {
+      rollThanThuRate = 3;
+    } else if (eggId === 'trung_linh_thu_linh') {
+      rollThanThuRate = 1;
+    } else if (eggId === 'trung_linh_thu_pham' || eggId === 'trung_linh_thu') {
+      rollThanThuRate = 0;
     }
+    const roll = Math.random() * 100;
+    isThan = roll < rollThanThuRate;
 
     let selectedTemplate = null;
     if (isThan) {
@@ -2828,7 +2800,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       selectedTemplate = templates[Math.floor(Math.random() * templates.length)];
     }
 
-    const rarity = isThan ? 'TT_1' : 'LT_1';
+    const rarity = 'ha_pham';
     const cleanName = selectedTemplate.name;
     const formattedName = config.getFormattedPetName(cleanName, rarity, 0, false);
 
@@ -2861,9 +2833,9 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
     if (roll <= 12.0) {
       const eggRoll = Math.random() * 100;
       let targetEggId = 'trung_linh_thu';
-      // 10% cơ hội trứng thượng cổ
+      // 10% cơ hội trứng thần
       if (eggRoll <= 10.0) {
-        targetEggId = 'trung_than_thu';
+        targetEggId = 'trung_linh_thu_than';
       }
 
       await Inventory.addVatPham(tuSi.idNguoiDung, targetEggId, 1);
@@ -2961,7 +2933,10 @@ function getPlotAgeAndHerb(plot) {
     'hat_giong_hoa_than_chi': { herbId: 'linh_thao_hoa_than', name: 'Hóa Thần Chi 🍄' },
     'hat_giong_phan_hu_dang': { herbId: 'linh_thao_phan_hu', name: 'Phản Hư Đằng 🍀' },
     'hat_giong_hop_the_lien': { herbId: 'linh_thao_hop_the', name: 'Hợp Thể Liên 💮' },
-    'hat_giong_dai_thua_qua': { herbId: 'linh_thao_dai_thua', name: 'Đại Thừa Tinh Quả 🍇' }
+    'hat_giong_dai_thua_qua': { herbId: 'linh_thao_dai_thua', name: 'Đại Thừa Tinh Quả 🍇' },
+    'hat_giong_ngoc_lo_sinh_co': { herbId: 'ngoc_lo_sinh_co_thao', name: 'Ngọc Lộ Sinh Cơ Thảo 🌿' },
+    'hat_giong_kim_o_tudan': { herbId: 'kim_o_tu_dan_hoa', name: 'Kim Ô Tụ Đan Hoa 🌸' },
+    'hat_giong_tu_van_hoa_anh': { herbId: 'tu_van_hoa_anh_thao', name: 'Tử Vận Hóa Anh Thảo 🍒' }
   };
 
   let seedName = 'Hạt giống Linh Thảo 🌰';

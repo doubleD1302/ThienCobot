@@ -142,6 +142,55 @@ export function layThongTinCanhGioi(level) {
   return { realmName: "Phàm Nhân", stageName: "Vô Danh" };
 }
 
+export const MAP_DAI_CANH_GIOI = {
+  "Luyện Khí": 0,
+  "Trúc Cơ": 1,
+  "Kim Đan": 2,
+  "Nguyên Anh": 3,
+  "Hóa Thần": 4,
+  "Phản Hư": 5,
+  "Hợp Thể": 6,
+  "Đại Thừa": 7,
+  "Tiên Nhân": 8
+};
+
+export const MAP_PILL_TO_REALM = {
+  'dan_tu_vi_luyen_khi': 'Luyện Khí',
+  'dan_tu_vi_truc_co': 'Trúc Cơ',
+  'dan_tu_vi_kim_dan': 'Kim Đan',
+  'dan_tu_vi_nguyen_anh': 'Nguyên Anh'
+};
+
+export function layDanTuViTheoCapDo(level) {
+  const { realmName } = layThongTinCanhGioi(level);
+  if (realmName === 'Luyện Khí') return 'dan_tu_vi_luyen_khi';
+  if (realmName === 'Trúc Cơ') return 'dan_tu_vi_truc_co';
+  if (realmName === 'Kim Đan') return 'dan_tu_vi_kim_dan';
+  return 'dan_tu_vi_nguyen_anh';
+}
+
+export function tinhTuViNhanDuoc(pillId, playerCanhGioi, tocDoCoBan) {
+  const pillBonusMap = {
+    'dan_tu_vi_luyen_khi': 64,
+    'dan_tu_vi_truc_co': 64,
+    'dan_tu_vi_kim_dan': 64,
+    'dan_tu_vi_nguyen_anh': 64
+  };
+  const countDaoNien = pillBonusMap[pillId] || 64;
+  let multiplier = 1.0;
+  const pillRealmName = MAP_PILL_TO_REALM[pillId];
+  if (pillRealmName) {
+    const playerRealmIdx = MAP_DAI_CANH_GIOI[playerCanhGioi] ?? 0;
+    const pillRealmIdx = MAP_DAI_CANH_GIOI[pillRealmName] ?? 0;
+    const diff = playerRealmIdx - pillRealmIdx;
+    if (diff > 0) {
+      multiplier = Math.pow(0.5, diff);
+    }
+  }
+  const gainedExp = Math.floor(tocDoCoBan * countDaoNien * multiplier);
+  return { gainedExp, multiplier };
+}
+
 export function layLinhLucYeuCau(level) {
   if (level >= 31) {
     return 999999999; // Cấp tối đa
@@ -373,24 +422,27 @@ export const ITEMS = [
   { id: 'tu_linh_thao_do', ten: 'Tụ Linh Thảo (Tiên)', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tụ Linh Thảo tiên phẩm chỉ có trong truyền thuyết.', emoji: '<:tu_linh_thao:1525174737687548114>', food: 1 },
 
   // Đan dược tăng Tu Vi — food: 0
-  { id: 'dan_tu_vi_trang', ten: 'Tu Vi Đan (Phế) 💊', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan phế phẩm lập tức gia tăng tu vi (Tương đương 4 Đạo Niên tu tập).', emoji: '<:thuoc:1522632141698105354>', food: 0 },
-  { id: 'dan_tu_vi_luc', ten: 'Tu Vi Đan (Phàm) 💊', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 300, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan phàm phẩm lập tức gia tăng tu vi (Tương đương 8 Đạo Niên tu tập).', emoji: '<:thuoc:1522632141698105354>', food: 0 },
-  { id: 'dan_tu_vi_lam', ten: 'Tu Vi Đan (Ưu) 💊', loai: 'Đan dược', doHiem: 'Hiếm', giaCoSo: 800, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan ưu phẩm lập tức gia tăng tu vi (Tương đương 16 Đạo Niên tu tập).', emoji: '<:thuoc:1522632141698105354>', food: 0 },
-  { id: 'dan_tu_vi_tim', ten: 'Tu Vi Đan (Siêu) 💊', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan siêu phẩm lập tức gia tăng tu vi (Tương đương 32 Đạo Niên tu tập).', emoji: '<:thuoc:1522632141698105354>', food: 0 },
-  { id: 'dan_tu_vi_vang', ten: 'Tu Vi Đan (Tuyệt) 💊', loai: 'Đan dược', doHiem: 'Huyền thoại', giaCoSo: 6000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Linh đan tuyệt phẩm lập tức gia tăng tu vi (Tương đương 64 Đạo Niên tu tập).', emoji: '<:thuoc:1522632141698105354>', food: 0 },
-  { id: 'dan_tu_vi_do', ten: 'Tu Vi Đan (Tiên) 💊', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 20000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tiên linh thần đan lập tức gia tăng tu vi (Tương đương 128 Đạo Niên tu tập).', emoji: '<:thuoc:1522632141698105354>', food: 0 },
+  { id: 'dan_tu_vi_luyen_khi', ten: 'Luyện Khí Tu Vi Đan', loai: 'Đan dược', doHiem: 'Thường', giaCoSo: 1000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tu vi đan phù hợp cho tu sĩ Luyện Khí Kỳ.', emoji: '<:Luyen_Khi_tu_vi_dan:1525372735394680902>', food: 0 },
+  { id: 'dan_tu_vi_truc_co', ten: 'Trúc Cơ Tu Vi Đan', loai: 'Đan dược', doHiem: 'Hiếm', giaCoSo: 4000, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Tu vi đan phù hợp cho tu sĩ Trúc Cơ Kỳ.', emoji: '<:truc_co_tu_vi_dan:1525372732978626674>', food: 0 },
+  { id: 'dan_tu_vi_kim_dan', ten: 'Kim Đan Tu Vi Đan', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 10000, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Tu vi đan phù hợp cho tu sĩ Kim Đan Kỳ.', emoji: '<:kim_dan_tu_vi_dan:1525372731032342608>', food: 0 },
+  { id: 'dan_tu_vi_nguyen_anh', ten: 'Nguyên Anh Tu Vi Đan', loai: 'Đan dược', doHiem: 'Huyền thoại', giaCoSo: 30000, chiSoJson: '{}', yeuCauCanhGioi: 16, moTa: 'Tu vi đan phù hợp cho tu sĩ Nguyên Anh Kỳ.', emoji: '<:nguyen_anh_tu_vi_dan:1525372728843042846>', food: 0 },
+
+  // Hạt giống & Linh thảo luyện đan tu vi
+  { id: 'hat_giong_ngoc_lo_sinh_co', ten: 'Hạt Giống Ngọc Lộ Sinh Cơ Thảo 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Hạt giống Ngọc Lộ Sinh Cơ Thảo, gieo trồng tại dược viên.', emoji: '<:seed_ngoc_lo_sinh_co:1525376226208911452>', food: 0 },
+  { id: 'ngoc_lo_sinh_co_thao', ten: 'Ngọc Lộ Sinh Cơ Thảo', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 1000, chiSoJson: '{}', yeuCauCanhGioi: 10, moTa: 'Ngọc Lộ Sinh Cơ Thảo chứa sinh cơ bạt ngàn, dùng luyện đan tu vi.', emoji: '<:ngoc_lo_sinh_co_thao:1525376223805702164>', food: 1 },
+  { id: 'hat_giong_kim_o_tudan', ten: 'Hạt Giống Kim Ô Tụ Đan Hoa 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Hạt giống Kim Ô Tụ Đan Hoa, gieo trồng tại dược viên.', emoji: '<:seed_kim_o_tudan:1525376221385326592>', food: 0 },
+  { id: 'kim_o_tu_dan_hoa', ten: 'Kim Ô Tụ Đan Hoa', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 2500, chiSoJson: '{}', yeuCauCanhGioi: 13, moTa: 'Kim Ô Tụ Đan Hoa tỏa ánh thái dương, dùng luyện đan tu vi.', emoji: '<:kim_o_tu_dan_hoa:1525376219011354624>', food: 1 },
+  { id: 'hat_giong_tu_van_hoa_anh', ten: 'Hạt Giống Tử Vận Hóa Anh Thảo 🌰', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 16, moTa: 'Hạt giống Tử Vận Hóa Anh Thảo, gieo trồng tại dược viên.', emoji: '<:seed_tu_van_hoa_anh:1525376216838967406>', food: 0 },
+  { id: 'tu_van_hoa_anh_thao', ten: 'Tử Vận Hóa Anh Thảo', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 6000, chiSoJson: '{}', yeuCauCanhGioi: 16, moTa: 'Tử Vận Hóa Anh Thảo tụ tử khí đông lai, dùng luyện đan tu vi.', emoji: '<:tu_van_hoa_anh_thao:1525376205669531819>', food: 1 },
 
   // Vật phẩm bổ trợ ấp trứng — food: 0
   { id: 'trung_linh_thu', ten: 'Trứng Linh Thú 🥚', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Ấp nở tại Động Phủ để nhận được linh thú trung thành.', emoji: '<:trung_thuong:1522632136568471682>', food: 0 },
-  { id: 'trung_than_thu', ten: 'Trứng Thần Thú Thượng Cổ 🌟', loai: 'Linh thảo', doHiem: 'Huyền thoại', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng thần thú thượng cổ cực kỳ quý hiếm.', emoji: '<:trung_TC:1522635606394667090>', food: 0 },
   { id: 'trung_linh_thu_pham', ten: 'Trứng Linh Thú (Phàm) 🥚', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 5000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Phàm. Ấp nở chắc chắn nhận được Linh Thú.', emoji: '<:trung_thuong:1522632136568471682>', food: 0 },
   { id: 'trung_linh_thu_linh', ten: 'Trứng Linh Thú (Linh) 🥚', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 20000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Linh. Ấp nở có 1% tỷ lệ nở ra Thần Thú.', emoji: '<:trung_linh:1522635608881762444>', food: 0 },
   { id: 'trung_linh_thu_tien', ten: 'Trứng Linh Thú (Tiên) 🥚', loai: 'Linh thảo', doHiem: 'Cực hiếm', giaCoSo: 100000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Tiên. Ấp nở có 3% tỷ lệ nở ra Thần Thú. Có bán ở shop.', emoji: '<:trung_tien:1522632128096108584>', food: 0 },
   { id: 'trung_linh_thu_than', ten: 'Trứng Linh Thú (Thần) 🥚', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 500000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng linh thú phẩm chất Thần. Ấp nở có 50% tỷ lệ nở ra Thần Thú.', emoji: '<:trung_than:1522635611133968566>', food: 0 },
-  { id: 'trung_than', ten: 'Trứng Thần Thú 🌟', loai: 'Linh thảo', doHiem: 'Thần cấp', giaCoSo: 500000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trứng huyền bí ngưng tụ thần uy. Ấp nở có 50% nở ra Thần Thú, 50% nở ra Linh Thú.', emoji: '<:trung_than:1522635611133968566>', food: 0 },
 
   // Linh sủng đan — food: 0; Vạn yêu quả — food: 1 (thức ăn linh thú)
-  { id: 'hoa_than_linh_sung_dan', ten: 'Hóa Thần Linh Sủng Đan 🔴', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 19, moTa: 'Đan dược nghịch thiên cải mệnh, giúp Linh Thú đạt trạng thái MAX tiến hóa ngẫu nhiên thành Thần Thú.', emoji: '<:hoa_than_pet:1522610156720881804>', food: 0 },
   { id: 'van_yeu_qua_phe', ten: 'Vạn Yêu Quả (Phế) ⚪', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 200, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Quả exp phế phẩm của sủng vật, cho ăn gia tăng 500 EXP.', emoji: '<:vyq_trang:1522629320600846418>', food: 1 },
   { id: 'van_yeu_qua_ha', ten: 'Vạn Yêu Quả (Hạ) 🟢', loai: 'Linh thảo', doHiem: 'Thường', giaCoSo: 400, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Quả exp hạ phẩm của sủng vật, cho ăn gia tăng 1000 EXP.', emoji: '<:vyq_luc:1522629310270279932>', food: 1 },
   { id: 'van_yeu_qua_trung', ten: 'Vạn Yêu Quả (Trung) 🔵', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 800, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Quả exp trung phẩm của sủng vật, cho ăn gia tăng 2000 EXP.', emoji: '<:vyq_xanh:1522629316951806087>', food: 1 },
@@ -402,10 +454,9 @@ export const ITEMS = [
   { id: 'co_duyen_lenh', ten: 'Cơ Duyên Lệnh 🎫', loai: 'Linh thảo', doHiem: 'Hiếm', giaCoSo: 2000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tấm thẻ ẩn chứa cơ duyên thiên địa, dùng để quay Hồ Tạo Hóa.', food: 0 },
   { id: 'binh_tinh_hai', ten: 'Bình Tinh Hải', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Chí bảo thượng cổ, mỗi ngày có thể trích xuất sinh cơ để ngưng tụ 2 viên Đan Thần Phẩm.', emoji: '<:binh_tinh_hai:1523244204333994016>', food: 0 },
   { id: 'can_khon_dinh', ten: 'Càn Khôn Đỉnh', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 1000000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Chí bảo thượng cổ, mỗi ngày có thể dùng 2 lần để tái lập linh văn (chỉ số phụ) của trang bị đang mặc.', emoji: '<:can_khon_dinh:1523249412950855850>', food: 0 },
-  { id: 'the_vinh_vien', ten: 'Thẻ Vĩnh Viễn', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ vĩnh viễn chí bảo, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh và 1 Tu Vi Đan (Siêu).', emoji: '<:the_vinh_vien:1524432820892733650>', food: 0 },
+  { id: 'the_vinh_vien', ten: 'Thẻ Vĩnh Viễn', loai: 'Chí bảo', doHiem: 'Thần cấp', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ vĩnh viễn chí bảo, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh và 1 Tu Vi Đan phù hợp cảnh giới.', emoji: '<:the_vinh_vien:1524432820892733650>', food: 0 },
   { id: 'the_quy', ten: 'Thẻ Quý', loai: 'Chí bảo', doHiem: 'Cực hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ quý chí bảo thời hạn 90 ngày, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh.', emoji: '<:the_quy:1524432824042520659>', food: 0 },
   { id: 'the_thang', ten: 'Thẻ Tháng', loai: 'Chí bảo', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Thẻ tháng chí bảo thời hạn 30 ngày, mỗi ngày sử dụng nhận 2 Cơ Duyên Lệnh.', emoji: '<:the_thang:1524432822608068720>', food: 0 },
-  { id: 'dan_than_pham', ten: 'Đan Thần Phẩm 🔴', loai: 'Đan dược', doHiem: 'Thần cấp', giaCoSo: 50000, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược thần cấp trích xuất từ Bình Tinh Hải, khi nuốt lập tức gia tăng tu vi tương đương 128 Đạo Niên tu luyện.', emoji: '<:dan_than_pham:1522644612605411379>', food: 0 },
   { id: 'dich_dung_dan', ten: 'Dịch Dung Đan 🎭', loai: 'Đan dược', doHiem: 'Cực hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Đan dược thần bí dùng để nhận ngẫu nhiên trang phục và nền ảnh tân thủ.', emoji: '<:dich_dung_dan:1523300794701582397>', food: 0 },
   { id: 'nam_1', ten: 'Trang phục Tân Thủ Nam 1 👕', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nam.', emoji: '🎭', food: 0 },
   { id: 'nam_2', ten: 'Trang phục Tân Thủ Nam 2 👕', loai: 'Skin', doHiem: 'Hiếm', giaCoSo: 0, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Trang phục tân thủ dành cho Nam.', emoji: '🎭', food: 0 },
@@ -444,29 +495,51 @@ export const SKILLS = [
   // Kỹ năng phái Thể Tu (Vật lý)
   { id: 'huyet_khi_phun_trao', ten: 'Huyết Khí Phun Trào <:huyet_khi_phun_trao:1525086798328369283>', loai: 'Vật lý', satThuong: 0, cooldown: 9, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Đốt cháy một phần khí huyết để kích hoạt tiềm năng nhục thân, khiến cơ bắp tràn trề sức mạnh.' },
   { id: 'bang_son_quyen', ten: 'Băng Sơn Quyền <:bang_son_quyen:1525086796462162022>', loai: 'Vật lý', satThuong: 100, cooldown: 0, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Dồn toàn lực vào nắm đấm, lao đến nện mạnh xuống khiến mặt đất rung chuyển, hạn chế khả năng di chuyển của địch.' },
-  { id: 'ba_vuong_kich', ten: 'Bá Vương Kích 🔱', loai: 'Vật lý', satThuong: 150, cooldown: 12, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Kích ra mạnh mẽ như Bá Vương xuất thế, sát thương bằng 150% Vật công.' },
+  { id: 'hong_hoang_kich', ten: 'Hồng Hoang Kích <:Hong_hoang_kich:1525381965010829443>', loai: 'Vật lý', satThuong: 500, cooldown: 9, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Dồn toàn bộ huyết khí vào một quyền uy mãnh, bạo phát lực lượng mang theo uy quyền vỡ đất lở núi, không thể cản phá. [Sát thương: Gây 500% Sát thương Vật lý. Hồi phục: Hút huyết khí phản hồi, lập tức hồi 5% Sinh lực tối đa khi đánh trúng mục tiêu. Buff bản thân: Tăng 15% Sát thương vật công trong 2 hiệp tiếp theo. Hiệu ứng phụ: Chắc chắn Bạo kích (100% Crit) nếu Sinh lực mục tiêu đang trên 70%. Có 30% tỷ lệ gây [Choáng/Định Thân] trong 1 hiệp. Hồi chiêu 3 hiệp]' },
+  { id: 'bat_hoang_bo', ten: 'Bát Hoang Bộ <:bat_hoang_bo:1525381962565554186>', loai: 'Vật lý', satThuong: 0, cooldown: 21, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Thân pháp nhanh như chớp, vận chuyển huyết khí bùng nổ thành tàn ảnh hỏa diễm càn quét khắp chiến trường. [Hồi phục: Lập tức hồi 10% Sinh lực tối đa ngay khi thi triển. Buff bản thân: Tăng 30% Tốc độ và 20% Thân pháp (Né tránh) trong 4 hiệp. Hiệu ứng phụ: Kích hoạt trạng thái [Hỏa Lôi Đạp]: Trong thời gian duy trì, mỗi khi lướt qua (đánh trúng) kẻ địch sẽ thiêu đốt chúng, gây 40% Sát thương vật công mỗi hiệp. Hồi chiêu 7 hiệp]' },
   { id: 'bat_hoang_toai_thach_kich', ten: 'Bát Hoang Toái Thạch Kích <:bat_hoang_toai_thach_kich:1525024448137269421>', loai: 'Vật lý', satThuong: 150, cooldown: 9, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật vận dụng toàn bộ sức mạnh cơ bắp, gây sát thương vật lý bằng 150% Vật Công lên một mục tiêu và bỏ qua 10% Vật Phòng của đối phương. - hồi chiêu 3 hiệp' },
   { id: 'cuu_long_ba_the_tran', ten: 'Cửu Long Bá Thể Trận <:cuu_long_ba_the:1525024450687537233>', loai: 'Vật lý', satThuong: 0, cooldown: 15, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật kích hoạt khí huyết, tạo ra một lớp khiên chắn tương đương 20% HP tối đa và tăng 15% Kháng khống chế trong 3 hiệp. - hồi chiêu 5 hiệp' },
   { id: 'huyet_mach_cuong_hoa', ten: 'Huyết Mạch Cuồng Hóa <:huyet_mach_cuong_hoa:1525024458547531817>', loai: 'Vật lý', satThuong: 0, cooldown: 15, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật thiêu đốt 10% HP hiện tại để tiến vào trạng thái cuồng nộ, giúp tăng 30% Vật Công và +20 Tốc độ trong 3 hiệp. - hồi chiêu 5 hiệp' },
-  { id: 'ham_thien_chuong', ten: 'Hám Thiên Chưởng 💥', loai: 'Vật lý', satThuong: 200, cooldown: 18, yeuCauCanhGioi: 19, congPhapId: null, moTa: 'Tụ lực giáng chưởng chấn động thiên địa, sát thương bằng 200% Vật công.' },
 
   // Kỹ năng phái Pháp Tu (Phép thuật)
   { id: 'tu_khi_thuat', ten: 'Tụ Khí Thuật <:tu_khi_thuat:1525086802921394176>', loai: 'Phép thuật', satThuong: 0, cooldown: 6, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Tu sĩ vận chuyển chu thiên, dẫn dắt linh khí đất trời vào cơ thể.' },
   { id: 'linh_phao_thuat', ten: 'Linh Pháo Thuật <:linh_phao_thuat:1525086800635494522>', loai: 'Phép thuật', satThuong: 100, cooldown: 0, yeuCauCanhGioi: 1, congPhapId: null, moTa: 'Nén chân khí lại thành một viên pháo năng lượng rồi bắn thẳng vào kẻ địch.' },
-  { id: 'ngu_loi_thuat', ten: 'Ngự Lôi Thuật ⚡', loai: 'Phép thuật', satThuong: 150, cooldown: 12, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Dẫn lôi đình giáng xuống đầu kẻ thù, sát thương bằng 150% Pháp công.' },
+  { id: 'tu_duong_chuong', ten: 'Tử Dương Chưởng <:tu_guong_chuong:1525381952536842381>', loai: 'Phép thuật', satThuong: 400, cooldown: 15, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Ngưng tụ linh lực thành chưởng ấn tử hỏa rực rỡ, thiêu đốt và phá vỡ chân khí của kẻ địch. [Sát thương: Gây 400% Sát thương Pháp thuật. Buff bản thân: Tăng 10% Pháp công trong 3 hiệp. Hiệu ứng phụ: Có 35% tỷ lệ gây trạng thái [Tán Khí] (giảm 15% Kháng Pháp của mục tiêu) trong 2 hiệp. Hồi chiêu 5 hiệp]' },
+  { id: 'phap_tuong_kim_cang', ten: 'Pháp Tướng Kim Cang <:phap_tuong_kim_cang:1525381960837365871>', loai: 'Phép thuật', satThuong: 0, cooldown: 21, yeuCauCanhGioi: 10, congPhapId: null, moTa: 'Triệu hồi hư ảnh Kim Cang Hộ Pháp kim quang rực rỡ bao bọc toàn thân, vạn pháp bất xâm. [Hồi phục: Tự dưỡng thương, hồi 8% Sinh lực tối đa mỗi hiệp, kéo dài trong 5 hiệp. Buff bản thân: Tăng 30% Vật phòng và Pháp phòng trong 5 hiệp. Hiệu ứng phụ: Nhận trạng thái [Hộ Thể] (giảm 15% toàn bộ sát thương gánh chịu) trong thời gian hiệu lực. Hồi chiêu 7 hiệp]' },
   { id: 'thai_hu_van_kiem_quyet', ten: 'Thái Hư Vạn Kiếm Quyết <:thai_hu_van_kiem:1525024456840450088>', loai: 'Phép thuật', satThuong: 100, cooldown: 9, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật tiêu hao chân khí triệu hồi vô số phi kiếm, gây sát thương phép diện rộng bằng 100% Pháp Công lên toàn bộ kẻ địch và làm giảm 10% Tốc độ của chúng. - hồi chiêu 3 hiệp' },
   { id: 'ngu_loi_oanh_dinh', ten: 'Ngũ Lôi Oanh Đỉnh <:ngu_loi_oanh_dinh:1525024452830826617>', loai: 'Phép thuật', satThuong: 180, cooldown: 9, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật ngưng tụ sấm sét giáng xuống đầu một mục tiêu, gây sát thương phép cực mạnh bằng 180% Pháp Công kèm theo 20% tỷ lệ gây Tê Liệt (mất lượt hành động) trong 1 hiệp. - hồi chiêu 3 hiệp' },
-  { id: 'dai_tu_linh_tran', ten: 'Đại Tụ Linh Trận <:dai_tu_linh_tran:1525024454911070258>', loai: 'Phép thuật', satThuong: 0, cooldown: 15, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật trận pháp hấp thụ linh khí đất trời, ngay lập tức hồi phục 30% Chân Khí (MP) tối đa và giảm thời gian hồi chiêu của tất cả kỹ năng khác đi 1 lượt. - hồi chiêu 5 hiệp' },
-  { id: 'bang_vu_thuat', ten: 'Băng Vũ Thuật ❄️', loai: 'Phép thuật', satThuong: 200, cooldown: 18, yeuCauCanhGioi: 19, congPhapId: null, moTa: 'Tạo cơn mưa băng buốt lạnh tàn phá kinh mạch, sát thương bằng 200% Pháp công.' }
+  { id: 'dai_tu_linh_tran', ten: 'Đại Tụ Linh Trận <:dai_tu_linh_tran:1525024454911070258>', loai: 'Phép thuật', satThuong: 0, cooldown: 15, yeuCauCanhGioi: 13, congPhapId: null, moTa: 'Nhân vật trận pháp hấp thụ linh khí đất trời, ngay lập tức hồi phục 30% Chân Khí (MP) tối đa và giảm thời gian hồi chiêu của tất cả kỹ năng khác đi 1 lượt. - hồi chiêu 5 hiệp' }
 ];
 
 export function getSkillMpCost(skill) {
-  if (skill.id === 'linh_phao_thuat') return 200;
-  if (skill.yeuCauCanhGioi === 13) {
-    if (skill.loai === 'Vật lý') return 25000;
-    if (skill.loai === 'Phép thuật') return 30000;
+  // Luyện Khí (level 1-9): realm index 0
+  // Trúc Cơ (level 10-12): realm index 1
+  // Kim Đan (level 13-15): realm index 2
+  // Nguyên Anh (level 16-18): realm index 3
+  // Hóa Thần (level 19-21): realm index 4
+  // Phản Hư (level 22-24): realm index 5
+  // Hợp Thể (level 25-27): realm index 6
+  // Đại Thừa (level 28-30): realm index 7
+  // Tiên Nhân (level 31+): realm index 8
+  
+  let realmIndex = 0;
+  if (skill.yeuCauCanhGioi >= 31) realmIndex = 8;
+  else if (skill.yeuCauCanhGioi >= 28) realmIndex = 7;
+  else if (skill.yeuCauCanhGioi >= 25) realmIndex = 6;
+  else if (skill.yeuCauCanhGioi >= 22) realmIndex = 5;
+  else if (skill.yeuCauCanhGioi >= 19) realmIndex = 4;
+  else if (skill.yeuCauCanhGioi >= 16) realmIndex = 3;
+  else if (skill.yeuCauCanhGioi >= 13) realmIndex = 2;
+  else if (skill.yeuCauCanhGioi >= 10) realmIndex = 1;
+  
+  let baseLuyenKhiMp = 0;
+  if (skill.loai === 'Vật lý') {
+    baseLuyenKhiMp = 3500;
+  } else {
+    baseLuyenKhiMp = 5000;
   }
-  return 0;
+  
+  return Math.floor(baseLuyenKhiMp * Math.pow(1.5, realmIndex));
 }
 
 // ==========================================
@@ -1138,6 +1211,8 @@ export function layVatPhamDotPhaTheoCapDo(level) {
 }
 
 export const PET_BLOODLINE_LABELS = {
+  'LT_1': 'Hạ Phẩm ⚪',
+  'TT_1': 'Hạ Phẩm ⚪',
   'ha_pham': 'Hạ Phẩm ⚪',
   'trung_pham': 'Trung Phẩm 🟢',
   'trung_pham_1': 'Trung Phẩm +1 🟢',
@@ -1214,6 +1289,8 @@ export const NEW_PET_LINEAGES = {
 };
 
 export const getPetQualityIndex = (rarity) => {
+  // Normalize legacy rarity values
+  if (rarity === 'LT_1' || rarity === 'TT_1') rarity = 'ha_pham';
   const keys = Object.keys(PET_BLOODLINE_LABELS);
   const idx = keys.indexOf(rarity);
   return idx >= 0 ? idx : 0;
@@ -1243,6 +1320,8 @@ export function getPetStage(rarity) {
 }
 
 export function getFormattedPetName(baseName, rarity, tienHoa, isMax) {
+  // Normalize legacy rarity values
+  if (rarity === 'LT_1' || rarity === 'TT_1') rarity = 'ha_pham';
   const cleanName = baseName.replace(/(\s\+\d+|\[MAX\]|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
   if (isMax || rarity === 'than_pham_5') {
     return `${cleanName} [MAX]`;
@@ -1362,6 +1441,9 @@ export function getBloodlineUpgradeReqs(rarity, tier, type) {
   const lineage = NEW_PET_LINEAGES[type];
   if (!lineage) return null;
   const element = lineage.element;
+  
+  // Normalize legacy rarity values
+  if (rarity === 'LT_1' || rarity === 'TT_1') rarity = 'ha_pham';
   
   if (tier < 10) {
     let phachId = `${element}_phach_ha`;

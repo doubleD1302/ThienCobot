@@ -69,16 +69,19 @@ INSERT OR REPLACE INTO items (id, ten, loai, do_hiem, gia_co_so, chi_so_json, ye
 ('nhan_sam_vang', 'Tuyết Sơn Nhân Sâm (Tuyệt) 🥕', 'Linh thảo', 'Huyền thoại', 2500, '{}', 1, 'Nhân sâm mười vạn năm, linh khí ngút trời.'),
 ('nhan_sam_do', 'Tuyết Sơn Nhân Sâm (Tiên) 🥕', 'Linh thảo', 'Thần cấp', 8000, '{}', 1, 'Tiên thảo sâm vương trăm vạn năm cải tử hoàn sinh.');
 
--- Đan Dược Tu Vi
+-- Đan Dược Tu Vi & Linh Thảo
 INSERT OR REPLACE INTO items (id, ten, loai, do_hiem, gia_co_so, chi_so_json, yeu_cau_canh_gioi, mo_ta) VALUES
-('dan_tu_vi_trang', 'Tu Vi Đan (Phế) 💊', 'Đan dược', 'Phế Phẩm', 100, '{}', 1, 'Đan dược cấp thấp giúp lập tức gia tăng tu vi (Tương đương 4 Đạo Niên tu luyện).'),
-('dan_tu_vi_luc', 'Tu Vi Đan (Phàm) 💊', 'Đan dược', 'Thường', 300, '{}', 1, 'Đan dược gia tăng tu vi phàm phẩm (Tương đương 8 Đạo Niên tu luyện).'),
-('dan_tu_vi_lam', 'Tu Vi Đan (Ưu) 💊', 'Đan dược', 'Hiếm', 800, '{}', 1, 'Đan dược gia tăng tu vi ưu phẩm (Tương đương 16 Đạo Niên tu luyện).'),
-('dan_tu_vi_tim', 'Tu Vi Đan (Siêu) 💊', 'Đan dược', 'Cực hiếm', 2000, '{}', 1, 'Linh đan gia tăng tu vi siêu phẩm (Tương đương 32 Đạo Niên tu luyện).'),
-('dan_tu_vi_vang', 'Tu Vi Đan (Tuyệt) 💊', 'Đan dược', 'Huyền thoại', 6000, '{}', 1, 'Huyền đan gia tăng tu vi tuyệt phẩm (Tương đương 64 Đạo Niên tu luyện).'),
-('dan_tu_vi_do', 'Tu Vi Đan (Tiên) 💊', 'Đan dược', 'Thần cấp', 20000, '{}', 1, 'Thần đan gia tăng tu vi tiên phẩm (Tương đương 128 Đạo Niên tu luyện).');
+('dan_tu_vi_luyen_khi', 'Luyện Khí Tu Vi Đan', 'Đan dược', 'Thường', 1000, '{}', 1, 'Tu vi đan phù hợp cho tu sĩ Luyện Khí Kỳ.'),
+('dan_tu_vi_truc_co', 'Trúc Cơ Tu Vi Đan', 'Đan dược', 'Hiếm', 4000, '{}', 10, 'Tu vi đan phù hợp cho tu sĩ Trúc Cơ Kỳ.'),
+('dan_tu_vi_kim_dan', 'Kim Đan Tu Vi Đan', 'Đan dược', 'Cực hiếm', 10000, '{}', 13, 'Tu vi đan phù hợp cho tu sĩ Kim Đan Kỳ.'),
+('dan_tu_vi_nguyen_anh', 'Nguyên Anh Tu Vi Đan', 'Đan dược', 'Huyền thoại', 30000, '{}', 16, 'Tu vi đan phù hợp cho tu sĩ Nguyên Anh Kỳ.'),
+('hat_giong_ngoc_lo_sinh_co', 'Hạt Giống Ngọc Lộ Sinh Cơ Thảo', 'Linh thảo', 'Thường', 200, '{}', 10, 'Hạt giống Ngọc Lộ Sinh Cơ Thảo, gieo trồng tại dược viên.'),
+('ngoc_lo_sinh_co_thao', 'Ngọc Lộ Sinh Cơ Thảo', 'Linh thảo', 'Hiếm', 1000, '{}', 10, 'Ngọc Lộ Sinh Cơ Thảo chứa sinh cơ bạt ngàn, dùng luyện đan tu vi.'),
+('hat_giong_kim_o_tudan', 'Hạt Giống Kim Ô Tụ Đan Hoa', 'Linh thảo', 'Thường', 200, '{}', 13, 'Hạt giống Kim Ô Tụ Đan Hoa, gieo trồng tại dược viên.'),
+('kim_o_tu_dan_hoa', 'Kim Ô Tụ Đan Hoa', 'Linh thảo', 'Hiếm', 2500, '{}', 13, 'Kim Ô Tụ Đan Hoa tỏa ánh thái dương, dùng luyện đan tu vi.'),
+('hat_giong_tu_van_hoa_anh', 'Hạt Giống Tử Vận Hóa Anh Thảo', 'Linh thảo', 'Thường', 200, '{}', 16, 'Hạt giống Tử Vận Hóa Anh Thảo, gieo trồng tại dược viên.'),
+('tu_van_hoa_anh_thao', 'Tử Vận Hóa Anh Thảo', 'Linh thảo', 'Hiếm', 6000, '{}', 16, 'Tử Vận Hóa Anh Thảo tụ tử khí đông lai, dùng luyện đan tu vi.');
 
--- Trứng Linh thú & Thần thú
+-- Trứng Linh thú
 INSERT OR REPLACE INTO items (id, ten, loai, do_hiem, gia_co_so, chi_so_json, yeu_cau_canh_gioi, mo_ta) VALUES
-('trung_linh_thu', 'Trứng Linh Thú 🥚', 'Linh thảo', 'Hiếm', 5000, '{}', 1, 'Trứng chứa sinh cơ của yêu thú hiền lành, có thể ấp nở tại Động Phủ.'),
-('trung_than_thu', 'Trứng Thần Thú Thượng Cổ 🌟', 'Linh thảo', 'Huyền thoại', 50000, '{}', 1, 'Trứng thần thú viễn cổ tỏa ra hào quang thần thánh, ấp nở thần thú hộ mệnh.');
+('trung_linh_thu', 'Trứng Linh Thú 🥚', 'Linh thảo', 'Hiếm', 5000, '{}', 1, 'Trứng chứa sinh cơ của yêu thú hiền lành, có thể ấp nở tại Động Phủ.');

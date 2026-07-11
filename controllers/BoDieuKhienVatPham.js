@@ -948,24 +948,19 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       const eggId = itemDetail.id;
 
       let rollThanThuRate = 0; // Tỷ lệ nở ra Thần Thú
-
-      // Trứng Thần Thú Thượng Cổ: đảm bảo 100% ra Thần Thú Huyết Mạch Thái Cổ (TT_1)
       let isThan = false;
-      if (eggId === 'trung_than_thu') {
-        isThan = true;
-      } else {
-        if (eggId === 'trung_linh_thu_than' || eggId === 'trung_than') {
-          rollThanThuRate = 50;
-        } else if (eggId === 'trung_linh_thu_tien') {
-          rollThanThuRate = 3;
-        } else if (eggId === 'trung_linh_thu_linh') {
-          rollThanThuRate = 1;
-        } else if (eggId === 'trung_linh_thu_pham' || eggId === 'trung_linh_thu') {
-          rollThanThuRate = 0;
-        }
-        const roll = Math.random() * 100;
-        isThan = roll < rollThanThuRate;
+
+      if (eggId === 'trung_linh_thu_than') {
+        rollThanThuRate = 50;
+      } else if (eggId === 'trung_linh_thu_tien') {
+        rollThanThuRate = 3;
+      } else if (eggId === 'trung_linh_thu_linh') {
+        rollThanThuRate = 1;
+      } else if (eggId === 'trung_linh_thu_pham' || eggId === 'trung_linh_thu') {
+        rollThanThuRate = 0;
       }
+      const roll = Math.random() * 100;
+      isThan = roll < rollThanThuRate;
 
       let selectedTemplate = null;
       if (isThan) {
@@ -976,7 +971,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         selectedTemplate = templates[Math.floor(Math.random() * templates.length)];
       }
 
-      const rarity = isThan ? 'TT_1' : 'LT_1';
+      const rarity = 'ha_pham';
       const cleanName = selectedTemplate.name;
       const formattedName = config.getFormattedPetName(cleanName, rarity, 0, false);
 
@@ -1040,17 +1035,23 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
       // Claim reward
       if (itemDetail.id === 'the_vinh_vien') {
+        const targetPillId = config.layDanTuViTheoCapDo(tuSi.capDo);
+        await Inventory.addVatPham(tuSi.idNguoiDung, targetPillId, 1);
         await Inventory.addVatPham(tuSi.idNguoiDung, 'co_duyen_lenh', 2);
-        await Inventory.addVatPham(tuSi.idNguoiDung, 'dan_tu_vi_tim', 1);
         meta.lastUsed = today;
         inv.dongChiSoJson = JSON.stringify(meta);
         await inv.save();
+
+        const pillDetail = await Item.findByPk(targetPillId);
+        const pillEmoji = pillDetail ? pillDetail.emoji : '';
+        const pillName = pillDetail ? pillDetail.ten : '';
+
         return {
           ok: true,
           msg: `🎉 **Nhận Phúc Lợi Thẻ Vĩnh Viễn Thành Công!**\n` +
                `Đạo hữu **${tuSi.ten}** đã nhận được:\n` +
                `• 🎫 **2 Cơ Duyên Lệnh**\n` +
-               `• <:thuoc:1522632141698105354> **1 Tu Vi Đan (Siêu) 💊**\n\n` +
+               `• ${pillEmoji} **1 ${pillName}**\n\n` +
                `*Thẻ Vĩnh Viễn không bị tiêu hao và có thời hạn vĩnh viễn.*`
         };
       } else {
@@ -1080,13 +1081,18 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         return { ok: false, msg: `Hôm nay đạo hữu đã trích xuất sinh cơ từ **Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>** rồi, hãy đợi ngày mai!` };
       }
       
-      await Inventory.addVatPham(tuSi.idNguoiDung, 'dan_than_pham', 2);
+      const targetPillId = config.layDanTuViTheoCapDo(tuSi.capDo);
+      await Inventory.addVatPham(tuSi.idNguoiDung, targetPillId, 2);
       tuSi.lastUseBinhTinhHai = today;
       await tuSi.save();
+
+      const pillDetail = await Item.findByPk(targetPillId);
+      const pillEmoji = pillDetail ? pillDetail.emoji : '';
+      const pillName = pillDetail ? pillDetail.ten : '';
       
       return {
         ok: true,
-        msg: `Đạo hữu **${tuSi.ten}** đã sử dụng **Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>** để trích xuất ra **2 viên Đan Thần Phẩm 🔴**! Bình Tinh Hải không bị tiêu hao.`
+        msg: `Đạo hữu **${tuSi.ten}** đã sử dụng **Bình Tinh Hải <:binh_tinh_hai:1523244204333994016>** để trích xuất ra **2 viên ${pillName} ${pillEmoji}**! Bình Tinh Hải không bị tiêu hao.`
       };
     }
 
@@ -1215,39 +1221,52 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       };
     }
 
-    // Xử lý Đan Thần Phẩm
-    if (itemDetail.id === 'dan_than_pham') {
-      const { CanhGioi } = await import('../models/CanhGioi.js');
+    // Xử lý Đan Tu Vi (dan_tu_vi_luyen_khi, dan_tu_vi_truc_co, dan_tu_vi_kim_dan, dan_tu_vi_nguyen_anh)
+    if (itemDetail.id.startsWith('dan_tu_vi_')) {
       const { Abode } = await import('../models/Abode.js');
-      const { Pet } = await import('../models/Pet.js');
+      let abode = await Abode.findByPk(tuSi.idNguoiDung);
+      if (!abode) {
+        abode = await Abode.create({ userId: tuSi.idNguoiDung, level: 0, pillCount: 0 });
+      }
 
+      // Check daily reset on Abode.pillCount
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (abode.lastPill !== todayStr) {
+        abode.pillCount = 0;
+        abode.lastPill = todayStr;
+        await abode.save();
+      }
+
+      const dailyLimit = 5;
+      if (abode.pillCount >= dailyLimit) {
+        return { ok: false, msg: `Cơ thể đạo hữu đã đạt giới hạn kháng dược! Hôm nay không thể ăn thêm đan dược tu vi nữa (Tối đa ${dailyLimit} viên/ngày).` };
+      }
+
+      const { CanhGioi } = await import('../models/CanhGioi.js');
       const cg = await CanhGioi.findByPk(tuSi.capDo);
       const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
 
-      let activePet = await Pet.findOne({ where: { userId: tuSi.idNguoiDung, isActive: true } });
-      if (activePet) {
-        const check = config.checkHuyetMachApChe(tuSi.capDo, activePet.rarity);
-        if (!check.allowed) activePet = null;
-      }
-      const multiplier = tuSi.layHeSoTuLuyen(activePet);
+      const { tinhTuViNhanDuoc } = config;
+      const { gainedExp, multiplier } = tinhTuViNhanDuoc(itemDetail.id, tuSi.canhGioi, tocDoCoBan);
 
-      const abode = await Abode.findByPk(tuSi.idNguoiDung);
-      const lvDongPhu = abode ? abode.level : 0;
-      const speedMult = 1 + lvDongPhu;
-
-      const thienDao = await tuSi.layHeSoThienDao();
-      const expGained = Math.floor(128 * tocDoCoBan * multiplier * speedMult * thienDao.expMult);
-
-      tuSi.linhLuc += expGained;
+      tuSi.linhLuc += gainedExp;
       await tuSi.save();
+
+      abode.pillCount += 1;
+      await abode.save();
 
       inv.soLuong -= 1;
       if (inv.soLuong <= 0) await inv.destroy();
       else await inv.save();
 
+      let recoveryMsg = `Đạo hữu **${tuSi.ten}** đã nuốt **${itemDetail.ten} ${itemDetail.emoji || ''}**! Cảm nhận linh khí bộc phát, tu vi gia tăng **+${gainedExp.toLocaleString()} Linh Lực**.`;
+      if (multiplier < 1.0) {
+        recoveryMsg += `\n*(Do cảnh giới thấp hơn đại cảnh giới của đạo hữu, hiệu quả đan dược giảm còn ${multiplier * 100}%).*`;
+      }
+
       return {
         ok: true,
-        msg: `Đạo hữu **${tuSi.ten}** đã nuốt **${itemDetail.ten} 🔴**! Cảm nhận linh khí bộc phát, tu vi gia tăng thần tốc **+${expGained.toLocaleString()} Linh Lực** *(tương đương 128 Đạo Niên tu luyện)*.`
+        msg: recoveryMsg
       };
     }
 

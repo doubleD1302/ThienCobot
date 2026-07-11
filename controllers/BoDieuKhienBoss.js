@@ -978,6 +978,8 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       let chienYStacks = 0;
       let chienYDuration = 0;
       let linhPhaoDebuff = 0;
+      let monsterTanKhiRounds = 0;
+      let monsterTanKhiPct = 0;
 
       while (monsterHp > 0 && playerHp > 0 && playerActionCount < 15) {
         // Tính toán tốc độ hành động động của người chơi theo buff
@@ -987,6 +989,9 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             currentPlaySpeed += buff.speedBonus;
           }
           if (buff.loai === 'tu_khi_ky' && buff.roundsLeft > 0) {
+            currentPlaySpeed += buff.speedBonus;
+          }
+          if (buff.loai === 'bat_hoang_bo_buff' && buff.roundsLeft > 0) {
             currentPlaySpeed += buff.speedBonus;
           }
         }
@@ -1146,6 +1151,26 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             if (monsterHp <= 0) break;
           }
 
+          // Pháp Tướng Kim Cang Regen
+          for (const buff of activeBuffs) {
+            if (buff.loai === 'phap_tuong_kim_cang_regen' && buff.roundsLeft > 0) {
+              const healAmt = Math.floor(stats.max_hp * buff.triGia);
+              playerHp = Math.min(stats.max_hp, playerHp + healAmt);
+              battleLogs.push(`❇️ **Pháp Tướng Kim Cang**: Hồi phục \`+${healAmt.toLocaleString()}\` HP từ hư ảnh hộ pháp (HP hiện tại: \`${playerHp}/${stats.max_hp}\`).`);
+            }
+          }
+
+          // Hỏa Lôi Đạp burn damage
+          for (const buff of activeBuffs) {
+            if (buff.loai === 'hoa_loi_dap' && buff.roundsLeft > 0) {
+              const burnDmg = Math.floor(stats.vat_cong * buff.triGia);
+              monsterHp = Math.max(0, monsterHp - burnDmg);
+              totalDmgDealt += burnDmg;
+              battleLogs.push(`🔥 **Hỏa Lôi Đạp**: **${boss.ten}** chịu \`-${burnDmg.toLocaleString()}\` sát thương vật lý thiêu đốt (HP còn: \`${monsterHp.toLocaleString()}\`).`);
+            }
+          }
+          if (monsterHp <= 0) break;
+
           let currentRoundAtkMult = playerAtkMult;
           for (const buff of activeBuffs) {
             if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
@@ -1156,6 +1181,10 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               currentRoundAtkMult += buff.triGia / 100;
             } else if (buff.loai === 'chien_co' && buff.roundsLeft > 0) {
               currentRoundAtkMult += buff.triGia / 100;
+            } else if (buff.loai === 'tu_duong_chuong' && buff.roundsLeft > 0) {
+              currentRoundAtkMult += buff.triGia;
+            } else if (buff.loai === 'hong_hoang_kich_buff' && buff.roundsLeft > 0) {
+              currentRoundAtkMult += buff.triGia;
             }
           }
           if (toLongBuffActive) {
@@ -1242,6 +1271,9 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               const ignorePct = Math.min(1.0, 0.10 * (1 + (capDo - 1) * 0.01));
               targetDef = Math.floor(bossDef * (1 - ignorePct));
             }
+            if (monsterTanKhiRounds > 0) {
+              targetDef = Math.floor(targetDef * (1 - monsterTanKhiPct));
+            }
             pDmg = Math.max(10, Math.floor(rawDmg) - targetDef);
             if (skill.satThuong === 0) pDmg = 0;
 
@@ -1262,6 +1294,90 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               chienYStacks = Math.min(3, (chienYStacks || 0) + 1);
               chienYDuration = 3;
               battleLogs.push(`🔥 **${skill.ten}**: Thiêu đốt \`-${hpSacrifice.toLocaleString()}\` HP hiện tại, tích lũy 1 tầng **[Chiến Ý]** (Hiện tại: \`${chienYStacks}/3\` tầng, kéo dài 3 hiệp).`);
+            }
+
+            // Xử lý hiệu ứng đặc biệt của kỹ năng Trúc Cơ
+            if (skill.id === 'tu_duong_chuong') {
+              const phapCongBonus = 0.10 * (1 + (capDo - 1) * 0.01);
+              activeBuffs.push({
+                ten: skill.ten,
+                pbTen: skill.ten,
+                loai: 'tu_duong_chuong',
+                triGia: phapCongBonus,
+                roundsLeft: 3
+              });
+              const tanKhiChance = 0.35 * (1 + (capDo - 1) * 0.01);
+              if (Math.random() <= tanKhiChance) {
+                monsterTanKhiRounds = 2;
+                monsterTanKhiPct = 0.15 * (1 + (capDo - 1) * 0.01);
+                battleLogs.push(`🔥 **${skill.ten}**: Gây trạng thái **[Tán Khí]** làm giảm \`-${Math.round(monsterTanKhiPct * 100)}%\` Kháng Pháp của đối phương trong 2 hiệp.`);
+              }
+            }
+            if (skill.id === 'phap_tuong_kim_cang') {
+              const hpHealPct = 0.08 * (1 + (capDo - 1) * 0.01);
+              const defBonusPct = 0.30 * (1 + (capDo - 1) * 0.01);
+              const hoTheReduction = 0.15 * (1 + (capDo - 1) * 0.01);
+              activeBuffs.push({
+                ten: skill.ten,
+                pbTen: skill.ten,
+                loai: 'phap_tuong_kim_cang_regen',
+                triGia: hpHealPct,
+                roundsLeft: 5
+              });
+              activeBuffs.push({
+                ten: skill.ten,
+                pbTen: skill.ten,
+                loai: 'phap_tuong_kim_cang_shield',
+                defBonus: defBonusPct,
+                reduction: hoTheReduction,
+                roundsLeft: 5
+              });
+              battleLogs.push(`🛡️ **${skill.ten}**: Triệu hồi Pháp Tướng, tăng cường phòng ngự và hồi phục tự thân.`);
+            }
+            if (skill.id === 'hong_hoang_kich') {
+              const hpHealAmt = Math.floor(stats.max_hp * 0.05);
+              playerHp = Math.min(stats.max_hp, playerHp + hpHealAmt);
+              const vatCongBonus = 0.15 * (1 + (capDo - 1) * 0.01);
+              activeBuffs.push({
+                ten: skill.ten,
+                pbTen: skill.ten,
+                loai: 'hong_hoang_kich_buff',
+                triGia: vatCongBonus,
+                roundsLeft: 2
+              });
+              battleLogs.push(`🩸 **${skill.ten}**: Hồi phục \`+${hpHealAmt.toLocaleString()}\` HP, tăng \`+${Math.round(vatCongBonus * 100)}%\` Vật công trong 2 hiệp.`);
+              
+              if (monsterHp / boss.hp >= 0.70) {
+                isCrit = true;
+                battleLogs.push(`💥 **${skill.ten}**: Mục tiêu dồi dào huyết khí, kích hoạt chắc chắn bạo kích!`);
+              }
+              const stunChance = 0.30 * (1 + (capDo - 1) * 0.01);
+              if (Math.random() <= stunChance) {
+                bossStunnedRounds = 1;
+                battleLogs.push(`💤 **${skill.ten}**: Gây trạng thái **[Định Thân]** khiến đối phương mất lượt!`);
+              }
+            }
+            if (skill.id === 'bat_hoang_bo') {
+              const hpHealAmt = Math.floor(stats.max_hp * 0.10);
+              playerHp = Math.min(stats.max_hp, playerHp + hpHealAmt);
+              const speedBonus = Math.floor((stats.speed || 100) * 0.30 * (1 + (capDo - 1) * 0.01));
+              const neBonus = 0.20 * (1 + (capDo - 1) * 0.01);
+              activeBuffs.push({
+                ten: skill.ten,
+                pbTen: skill.ten,
+                loai: 'bat_hoang_bo_buff',
+                speedBonus: speedBonus,
+                neBonus: neBonus,
+                roundsLeft: 4
+              });
+              activeBuffs.push({
+                ten: skill.ten,
+                pbTen: skill.ten,
+                loai: 'hoa_loi_dap',
+                triGia: 0.40 * (1 + (capDo - 1) * 0.01),
+                roundsLeft: 4
+              });
+              battleLogs.push(`👟 **${skill.ten}**: Hồi \`+${hpHealAmt.toLocaleString()}\` HP, tăng tốc độ và khả năng né tránh, kích hoạt trạng thái **[Hỏa Lôi Đạp]**.`);
             }
 
             // Xử lý hiệu ứng đặc biệt của kỹ năng Kim Đan
@@ -1505,6 +1621,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           if (monsterBlind > 0) monsterBlind--;
           if (monsterSlow > 0) monsterSlow--;
           if (monsterTebut > 0) monsterTebut--;
+          if (monsterTanKhiRounds > 0) monsterTanKhiRounds--;
           
           let currentBossSpeed = 100;
           if (bossSlowRounds > 0) {
@@ -1528,8 +1645,20 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               if (buff.loai === 'thach_phu_thuan' && buff.roundsLeft > 0) {
                 pDef = Math.floor(pDef * 1.30);
               }
+              if (buff.loai === 'phap_tuong_kim_cang_shield' && buff.roundsLeft > 0) {
+                pDef = Math.floor(pDef * (1 + buff.defBonus));
+              }
             }
             let bossDmg = Math.max(1, Math.floor((boss.vatCong - pDef) / 2)) * 2;
+            let hoTheRed = 0;
+            for (const buff of activeBuffs) {
+              if (buff.loai === 'phap_tuong_kim_cang_shield' && buff.roundsLeft > 0) {
+                hoTheRed = Math.max(hoTheRed, buff.reduction);
+              }
+            }
+            if (hoTheRed > 0) {
+              bossDmg = Math.floor(bossDmg * (1 - hoTheRed));
+            }
             
             if (bossWeakenRounds > 0) {
               bossDmg = Math.floor(bossDmg * (1 - bossWeakenPct));
@@ -1556,6 +1685,11 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             let roundNe = stats.ne;
             if (kyLanBuffActive) {
               roundNe = Math.min(0.90, roundNe + 0.15);
+            }
+            for (const buff of activeBuffs) {
+              if (buff.loai === 'bat_hoang_bo_buff' && buff.roundsLeft > 0) {
+                roundNe = Math.min(0.90, roundNe + buff.neBonus);
+              }
             }
             const isDodge = Math.random() <= roundNe;
 
