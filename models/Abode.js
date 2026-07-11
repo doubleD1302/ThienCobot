@@ -48,6 +48,11 @@ Abode.init({
     type:      DataTypes.DATEONLY,
     allowNull: true,
     field:     'last_song_tu'
+  },
+  quickSeedId: {
+    type:      DataTypes.STRING(50),
+    allowNull: true,
+    field:     'quick_seed_id'
   }
 }, {
   sequelize,

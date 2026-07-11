@@ -161,6 +161,17 @@ export const MAP_PILL_TO_REALM = {
   'dan_tu_vi_nguyen_anh': 'Nguyên Anh'
 };
 
+/**
+ * Tính hệ số nhân tu vi cho bí cảnh & lịch luyện theo đại cảnh giới.
+ * Mỗi đại cảnh giới tăng lên, tu vi nhận được nhân thêm x5 (luỹ tiến).
+ * Luyện Khí (idx=0) → x1, Trúc Cơ (idx=1) → x5, Kim Đan (idx=2) → x25, ...
+ */
+export function layHeSoTuViDaiCanhGioi(capDo) {
+  const { realmName } = layThongTinCanhGioi(capDo);
+  const realmIndex = MAP_DAI_CANH_GIOI[realmName] ?? 0;
+  return Math.pow(5, realmIndex);
+}
+
 export function layDanTuViTheoCapDo(level) {
   const { realmName } = layThongTinCanhGioi(level);
   if (realmName === 'Luyện Khí') return 'dan_tu_vi_luyen_khi';

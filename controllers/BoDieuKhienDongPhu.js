@@ -238,12 +238,23 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           ? `Miễn phí (Đã dùng \`${waterCount}/3\` lần)`
           : `Tốn \`${waterCost.toLocaleString()}\` 🪙 (Đã dùng \`${waterCount}\` lần)`;
 
+        let quickSeedText = '_Chưa cài đặt_';
+        if (abode.quickSeedId) {
+          const sItem = config.ITEMS.find(e => e.id === abode.quickSeedId);
+          if (sItem) {
+            const quickSeedInv = myInventory.find(e => e.item.id === abode.quickSeedId);
+            const quickSeedQty = quickSeedInv ? quickSeedInv.soLuong : 0;
+            quickSeedText = `**${sItem.ten}** (Có: \`${quickSeedQty}\` hạt)`;
+          }
+        }
+
         const embed = new EmbedBuilder()
           .setTitle(`🌱 Linh Dược Viên: ${tuSi.ten}`)
           .setColor(0x2ecc71)
           .setDescription(
             `> 🧑‍🌾 **Số ô đất**: \`${countPlots} / 26\`\n` +
             `> 💦 **Tưới nước hôm nay**: ${waterText}\n` +
+            `> ⚙️ **Hạt giống trồng nhanh**: ${quickSeedText}\n` +
             `*(Mỗi lần tưới nước giúp rút ngắn thời gian sinh trưởng của toàn bộ cây đi 20 Đạo Niên)*\n\n` +
             `${'─'.repeat(38)}\n` +
             descLines.join('\n\n')
@@ -267,6 +278,28 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             `• **Thời gian sinh trưởng**: \`${ageResult.age.toFixed(1)} Đạo Niên\`\n` +
             `• **Phẩm chất thu hoạch dự kiến**: **${ageResult.herbName || '_Không có_'}**\n\n` +
             `*Lưu ý: Thời gian sinh trưởng càng lâu thì cây linh thảo thu về càng nhiều năm tuổi, phẩm chất đan dược chế tạo ra càng cao!*`
+          );
+        embeds.push(embed);
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // 3.1 CÀI ĐẶT TRỒNG NHANH (GARDEN_CONFIG_QUICK)
+      // ══════════════════════════════════════════════════════════════
+      else if (menu === 'GARDEN_CONFIG_QUICK') {
+        let currentSeedText = '_Chưa cài đặt_';
+        if (abode.quickSeedId) {
+          const sItem = config.ITEMS.find(e => e.id === abode.quickSeedId);
+          if (sItem) {
+            currentSeedText = `**${sItem.ten}**`;
+          }
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle('⚙️ Cài Đặt Trồng Nhanh')
+          .setColor(0x2ecc71)
+          .setDescription(
+            `• **Hạt giống trồng nhanh hiện tại**: ${currentSeedText}\n\n` +
+            `Vui lòng chọn loại hạt giống dưới đây để làm hạt giống mặc định khi nhấn nút **Trồng Nhanh**.`
           );
         embeds.push(embed);
       }
@@ -792,6 +825,35 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               .setStyle(ButtonStyle.Secondary)
           )
         );
+
+        // Nút Trồng Nhanh, Thu Hoạch Nhanh, Cài Đặt
+        const hasQuickSeed = !!abode.quickSeedId;
+        const quickSeedInvCheck = hasQuickSeed ? sellableList.find(e => e.item.id === abode.quickSeedId) : null;
+        const hasQuickSeedInBag = quickSeedInvCheck && quickSeedInvCheck.soLuong > 0;
+        const emptyPlots = plots.filter(p => p.status === 'EMPTY');
+        const readyPlots = plots.filter(p => {
+          const r = getPlotAgeAndHerb(p);
+          return p.status === 'PLANTED' && r.ready;
+        });
+
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('garden_quick_plant')
+              .setLabel('🌱 Trồng Nhanh')
+              .setStyle(ButtonStyle.Success)
+              .setDisabled(!hasQuickSeed || !hasQuickSeedInBag || emptyPlots.length === 0),
+            new ButtonBuilder()
+              .setCustomId('garden_quick_harvest')
+              .setLabel('🌾 Thu Hoạch Nhanh')
+              .setStyle(ButtonStyle.Success)
+              .setDisabled(readyPlots.length === 0),
+            new ButtonBuilder()
+              .setCustomId('garden_config_quick')
+              .setLabel('⚙️ Cài Đặt Trồng Nhanh')
+              .setStyle(ButtonStyle.Secondary)
+          )
+        );
       }
 
       // ══════════════════════════════════════════════════════════════
@@ -858,6 +920,61 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 .setLabel('🌾 Thu Hoạch Linh Thảo')
                 .setStyle(ButtonStyle.Success)
                 .setDisabled(!ageResult.ready)
+            )
+          );
+        }
+
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('btn_back')
+              .setLabel('↩️ Quay Lại')
+              .setStyle(ButtonStyle.Secondary)
+          )
+        );
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // 3.1 CÀI ĐẶT TRỒNG NHANH (GARDEN_CONFIG_QUICK)
+      // ══════════════════════════════════════════════════════════════
+      else if (menu === 'GARDEN_CONFIG_QUICK') {
+        const allSeeds = config.ITEMS.filter(e => e.loai === 'Linh thảo' && e.id.startsWith('hat_giong_'));
+        const QUICK_SEED_PAGE_SIZE = 24;
+        const totalQuickSeedPages = Math.ceil(allSeeds.length / QUICK_SEED_PAGE_SIZE) || 1;
+        if (seedPage >= totalQuickSeedPages) seedPage = Math.max(0, totalQuickSeedPages - 1);
+        const seedsThisPage = allSeeds.slice(seedPage * QUICK_SEED_PAGE_SIZE, (seedPage + 1) * QUICK_SEED_PAGE_SIZE);
+
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('garden_select_quick_seed')
+              .setPlaceholder(`🌰 Chọn hạt giống trồng nhanh... (Trang ${seedPage + 1}/${totalQuickSeedPages})`)
+              .addOptions(seedsThisPage.map(s => {
+                const invEntry = sellableList.find(e => e.item.id === s.id);
+                const qty = invEntry ? invEntry.soLuong : 0;
+                return {
+                  label: s.ten.length > 100 ? s.ten.substring(0, 97) + '...' : s.ten,
+                  description: `Đang có: ${qty} hạt trong túi`,
+                  value: s.id,
+                  default: s.id === abode.quickSeedId
+                };
+              }))
+          )
+        );
+
+        if (totalQuickSeedPages > 1) {
+          rows.push(
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('seed_page_prev')
+                .setLabel('◀ Trang Trước')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(seedPage === 0),
+              new ButtonBuilder()
+                .setCustomId('seed_page_next')
+                .setLabel('Trang Sau ▶')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(seedPage >= totalQuickSeedPages - 1)
             )
           );
         }
@@ -1739,6 +1856,65 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
 
             actionMessage = BoTaoEmbed.thanhCong('🔓 Mở Ô Đất Mới', `Đã khai hoang thêm ô đất số ${currentPlots + 1} thành công.`);
           }
+        } else if (i.customId === 'garden_quick_plant') {
+          // Trồng nhanh: gieo hạt giống đã cài đặt lên toàn bộ ô đất trống
+          if (abode.quickSeedId) {
+            const allPlots = await GardenPlot.findAll({ where: { userId: tuSi.idNguoiDung } });
+            const emptyPlotsQ = allPlots.filter(p => p.status === 'EMPTY');
+            const seedInv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: abode.quickSeedId } });
+            if (emptyPlotsQ.length > 0 && seedInv && seedInv.soLuong > 0) {
+              const plantCount = Math.min(emptyPlotsQ.length, seedInv.soLuong);
+              for (let idx = 0; idx < plantCount; idx++) {
+                emptyPlotsQ[idx].seedItemId = abode.quickSeedId;
+                emptyPlotsQ[idx].plantedAt = new Date();
+                emptyPlotsQ[idx].status = 'PLANTED';
+                await emptyPlotsQ[idx].save();
+              }
+              seedInv.soLuong -= plantCount;
+              if (seedInv.soLuong <= 0) await seedInv.destroy();
+              else await seedInv.save();
+              const seedItem = config.ITEMS.find(e => e.id === abode.quickSeedId);
+              actionMessage = BoTaoEmbed.thanhCong(
+                '🌱 Trồng Nhanh Thành Công',
+                `Đã gieo **${plantCount}** hạt giống **${seedItem?.ten ?? abode.quickSeedId}** vào ${plantCount} ô đất trống.`
+              );
+            } else if (emptyPlotsQ.length === 0) {
+              actionMessage = BoTaoEmbed.loi('Không còn ô đất trống nào để trồng!');
+            } else {
+              actionMessage = BoTaoEmbed.loi('Không đủ hạt giống trong túi đồ để trồng nhanh!');
+            }
+          }
+        } else if (i.customId === 'garden_quick_harvest') {
+          // Thu hoạch nhanh: thu toàn bộ ô đất đã sẵn sàng thu hoạch
+          const allPlots = await GardenPlot.findAll({ where: { userId: tuSi.idNguoiDung } });
+          const harvested = [];
+          for (const p of allPlots) {
+            const ageRes = getPlotAgeAndHerb(p);
+            if (p.status === 'PLANTED' && ageRes.ready && ageRes.herbId) {
+              await Inventory.addVatPham(tuSi.idNguoiDung, ageRes.herbId, 1);
+              harvested.push(ageRes.herbName);
+              p.seedItemId = null;
+              p.plantedAt = null;
+              p.status = 'EMPTY';
+              await p.save();
+            }
+          }
+          if (harvested.length > 0) {
+            // Gom nhóm thu hoạch cho đẹp
+            const tally = {};
+            for (const name of harvested) tally[name] = (tally[name] || 0) + 1;
+            const harvestLines = Object.entries(tally).map(([name, cnt]) => `• **${name}** x${cnt}`).join('\n');
+            actionMessage = BoTaoEmbed.thanhCong(
+              '🌾 Thu Hoạch Nhanh Thành Công',
+              `Đã thu hoạch **${harvested.length}** ô đất:\n${harvestLines}`
+            );
+          } else {
+            actionMessage = BoTaoEmbed.loi('Không có ô đất nào đã sẵn sàng thu hoạch!');
+          }
+        } else if (i.customId === 'garden_config_quick') {
+          // Chuyển sang menu cài đặt trồng nhanh
+          seedPage = 0;
+          menuStack.push('GARDEN_CONFIG_QUICK');
         }
       }
 
@@ -1784,6 +1960,25 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             );
             menuStack.pop();
           }
+        }
+      }
+
+      // ── XỬ LÝ CÀI ĐẶT TRỒNG NHANH (GARDEN_CONFIG_QUICK) ─────────────────────
+      else if (currentMenu === 'GARDEN_CONFIG_QUICK') {
+        if (i.customId === 'seed_page_prev') {
+          seedPage = Math.max(0, seedPage - 1);
+        } else if (i.customId === 'seed_page_next') {
+          seedPage += 1;
+        } else if (i.customId === 'garden_select_quick_seed') {
+          const selectedSeedId = i.values[0];
+          abode.quickSeedId = selectedSeedId;
+          await abode.save();
+          const selectedSeedItem = config.ITEMS.find(e => e.id === selectedSeedId);
+          actionMessage = BoTaoEmbed.thanhCong(
+            '⚙️ Cài Đặt Thành Công',
+            `Đã thiết lập **${selectedSeedItem?.ten ?? selectedSeedId}** làm hạt giống trồng nhanh mặc định.`
+          );
+          menuStack.pop(); // Quay lại GARDEN
         }
       }
 
@@ -2973,8 +3168,11 @@ function getPlotAgeAndHerb(plot) {
   const age = elapsedMins / (config.DAO_NIEN_SECONDS / 60);
 
   const isTuLinhThao = plot.seedItemId === 'hat_giong_tu_linh_thao';
+  const isLinhChi = plot.seedItemId === 'hat_giong_linh_chi';
+  const isNhanSam = plot.seedItemId === 'hat_giong_nhan_sam';
 
   const SEED_TO_HERB_MAP = {
+    'hat_giong_luyen_khi_thao': { herbId: 'linh_thao_luyen_khi', name: 'Luyện Khí Thảo 🌿' },
     'hat_giong_truc_co_thao': { herbId: 'linh_thao_truc_co', name: 'Trúc Cơ Thảo 🌿' },
     'hat_giong_kim_dan_hoa': { herbId: 'linh_thao_kim_dan', name: 'Kim Đan Hoa 🌸' },
     'hat_giong_nguyen_anh_qua': { herbId: 'linh_thao_nguyen_anh', name: 'Nguyên Anh Linh Quả 🍒' },
@@ -2990,6 +3188,10 @@ function getPlotAgeAndHerb(plot) {
   let seedName = 'Hạt giống Linh Thảo 🌰';
   if (isTuLinhThao) {
     seedName = 'Hạt giống Tụ Linh Thảo 🌰';
+  } else if (isLinhChi) {
+    seedName = 'Hạt giống Linh Chi 🌰';
+  } else if (isNhanSam) {
+    seedName = 'Hạt giống Nhân Sâm 🌰';
   } else if (SEED_TO_HERB_MAP[plot.seedItemId]) {
     seedName = `Hạt giống ${SEED_TO_HERB_MAP[plot.seedItemId].name.replace(/🌿|🌸|🍒|🍄|🍀|💮|🍇/, '').trim()} 🌰`;
   }
@@ -3017,6 +3219,40 @@ function getPlotAgeAndHerb(plot) {
       } else {
         herbId = 'tu_linh_thao_do';
         herbName = 'Tụ Linh Thảo (Tiên) <:tu_linh_thao:1525174737687548114>';
+      }
+    } else if (isLinhChi) {
+      if (age < 8) {
+        herbId = 'linh_chi_luc';
+        herbName = 'U Minh Linh Chi (Phàm) 🍄';
+      } else if (age < 16) {
+        herbId = 'linh_chi_lam';
+        herbName = 'U Minh Linh Chi (Ưu) 🍄';
+      } else if (age < 32) {
+        herbId = 'linh_chi_tim';
+        herbName = 'U Minh Linh Chi (Siêu) 🍄';
+      } else if (age < 64) {
+        herbId = 'linh_chi_vang';
+        herbName = 'U Minh Linh Chi (Tuyệt) 🍄';
+      } else {
+        herbId = 'linh_chi_do';
+        herbName = 'U Minh Linh Chi (Tiên) 🍄';
+      }
+    } else if (isNhanSam) {
+      if (age < 8) {
+        herbId = 'nhan_sam_luc';
+        herbName = 'Tuyết Sơn Nhân Sâm (Phàm) 🥕';
+      } else if (age < 16) {
+        herbId = 'nhan_sam_lam';
+        herbName = 'Tuyết Sơn Nhân Sâm (Ưu) 🥕';
+      } else if (age < 32) {
+        herbId = 'nhan_sam_tim';
+        herbName = 'Tuyết Sơn Nhân Sâm (Siêu) 🥕';
+      } else if (age < 64) {
+        herbId = 'nhan_sam_vang';
+        herbName = 'Tuyết Sơn Nhân Sâm (Tuyệt) 🥕';
+      } else {
+        herbId = 'nhan_sam_do';
+        herbName = 'Tuyết Sơn Nhân Sâm (Tiên) 🥕';
       }
     } else if (SEED_TO_HERB_MAP[plot.seedItemId]) {
       herbId = SEED_TO_HERB_MAP[plot.seedItemId].herbId;

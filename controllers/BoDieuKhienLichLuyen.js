@@ -65,11 +65,14 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
 
       const thienDao = await tuSi.layHeSoThienDao();
 
+      // Hệ số luỹ tiến theo đại cảnh giới (x5 mỗi đại cảnh giới)
+      const heSoDaiCanhGioi = config.layHeSoTuViDaiCanhGioi(tuSi.capDo);
+
       // Áp dụng các hiệu ứng ngẫu nhiên
       if (effects.exp) {
         const minExp = effects.exp.min || 10;
         const maxExp = effects.exp.max || 20;
-        const addedExp = Math.floor((minExp + Math.random() * (maxExp - minExp)) * thienDao.expMult);
+        const addedExp = Math.floor((minExp + Math.random() * (maxExp - minExp)) * thienDao.expMult * heSoDaiCanhGioi);
         tuSi.linhLuc += addedExp;
         rewardText += `• **Linh lực tích lũy**: \`+${addedExp}\` ✨\n`;
       }
@@ -153,6 +156,9 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
 
       if (thienDao && (thienDao.expMult > 1.0 || thienDao.stoneMult > 1.0)) {
         rewardText += `• **Phù trì**: **${thienDao.name}** (${thienDao.expMult > 1.0 ? '+' + Math.floor((thienDao.expMult - 1) * 100) + '% Tu Vi' : '+' + Math.floor((thienDao.stoneMult - 1) * 100) + '% Linh Thạch'}) (Hạng ${thienDao.rank})\n`;
+      }
+      if (heSoDaiCanhGioi > 1) {
+        rewardText += `• **Đại Cảnh Giới Gia Thành**: \`x${heSoDaiCanhGioi.toLocaleString()}\` Tu Vi 🔥\n`;
       }
 
       tuSi.theLuc = Math.max(0, tuSi.theLuc - 1);

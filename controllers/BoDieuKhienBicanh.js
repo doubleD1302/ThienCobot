@@ -1314,9 +1314,10 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
         let droppedEgg = null;
 
         const thienDao = await tuSi.layHeSoThienDao();
+        const heSoDaiCanhGioi = config.layHeSoTuViDaiCanhGioi(tuSi.capDo);
 
         if (isWin) {
-          gainedExp = Math.floor((dungeon.thuong.expMin + Math.random() * (dungeon.thuong.expMax - dungeon.thuong.expMin)) * thienDao.expMult);
+          gainedExp = Math.floor((dungeon.thuong.expMin + Math.random() * (dungeon.thuong.expMax - dungeon.thuong.expMin)) * thienDao.expMult * heSoDaiCanhGioi);
           gainedStones = Math.floor((dungeon.thuong.stonesMin + Math.random() * (dungeon.thuong.stonesMax - dungeon.thuong.stonesMin)) * thienDao.stoneMult);
 
           // Rơi trang bị/vật phẩm
@@ -1476,7 +1477,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
           droppedCoDuyenLenh,
           droppedBreakthrough,
           droppedVanYeuQua,
-          droppedEgg
+          droppedEgg,
+          heSoDaiCanhGioi
         );
 
         await i.editReply({
