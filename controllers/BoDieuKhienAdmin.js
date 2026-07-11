@@ -535,9 +535,10 @@ class BoDieuKhienAdmin {
           const spawnValDisplay = guildConfig.bossSpawnType === 'chu_ky' ? `Mỗi ${guildConfig.bossSpawnValue} phút` : guildConfig.bossSpawnValue;
           const rewardsDisplay = guildConfig.bossRewardsEnabled !== false ? '🟢 ĐANG BẬT' : '🔴 ĐANG TẮT';
 
-          embed.setTitle(`👹 Cài Đặt Triệu Hồi Cự Thú 👹`)
+          embed.setTitle(`👹 Cài Đặt Cự Thú & Hệ Thống 👹`)
             .setColor(0xe74c3c);
           let desc = `*Cấu hình tần suất hoặc thời gian tự động xuất hiện của Boss thế giới tại Server này.*\n\n` +
+                     `• **Đạo Niên Hiện Tại**: \`Năm thứ ${guildConfig.layDaoNienHienTai()}\`\n` +
                      `• **Kiểu triệu hồi**: \`${spawnTypeDisplay}\`\n` +
                      `• **Giá trị cấu hình**: \`${spawnValDisplay}\`\n` +
                      `• **Lần triệu hồi cuối**: \`${lastSpawnStr}\`\n` +
@@ -551,14 +552,17 @@ class BoDieuKhienAdmin {
           const rewardsBtnLabel = guildConfig.bossRewardsEnabled !== false ? '🎁 Quà Boss: BẬT' : '🎁 Quà Boss: TẮT';
           const rewardsBtnStyle = guildConfig.bossRewardsEnabled !== false ? ButtonStyle.Success : ButtonStyle.Danger;
 
-          const row = new ActionRowBuilder().addComponents(
+          const row1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('edit_boss_set_cycle').setLabel('⏳ Chu Kỳ').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('edit_boss_set_hours').setLabel('⏰ Mốc Giờ').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('edit_boss_toggle_rewards').setLabel(rewardsBtnLabel).setStyle(rewardsBtnStyle),
-            new ButtonBuilder().setCustomId('edit_boss_spawn_now').setLabel('👹 Gọi Boss').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId('edit_boss_spawn_now').setLabel('👹 Gọi Boss').setStyle(ButtonStyle.Danger)
+          );
+          const row2 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_boss_reset_daonien').setLabel('⏳ Reset Đạo Niên').setStyle(ButtonStyle.Danger),
             new ButtonBuilder().setCustomId('edit_boss_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
           );
-          rows.push(row);
+          rows.push(row1, row2);
 
         } else if (currentMenu === 'EDIT_STATS') {
           let desc = '';
@@ -1122,6 +1126,21 @@ class BoDieuKhienAdmin {
           } catch (spawnErr) {
             console.error('[Admin Command] Lỗi triệu hồi boss:', spawnErr);
             statusMessage = `❌ Thao tác triệu hồi gặp lỗi linh lực bất túc.`;
+          }
+        } else if (customId === 'edit_boss_reset_daonien') {
+          try {
+            const { CauHinhGuild } = await import('../models/CauHinhGuild.js');
+            let guildConfig = await CauHinhGuild.findByPk(interaction.guildId);
+            if (!guildConfig) {
+              guildConfig = await CauHinhGuild.create({ idGuild: interaction.guildId });
+            }
+            guildConfig.ngayKhoiTao = new Date();
+            await guildConfig.save();
+            statusMessage = `⏳ Đã khôi phục Đạo Niên của máy chủ về năm thứ 1!`;
+            await sendPublicLog(`Khôi phục Đạo Niên của máy chủ về năm thứ 1`);
+          } catch (resetErr) {
+            console.error('[Admin Command] Lỗi reset Đạo Niên:', resetErr);
+            statusMessage = `❌ Lỗi khi thiết lập lại Đạo Niên.`;
           }
         } else if (customId === 'edit_btn_close') {
           collector.stop('closed');
