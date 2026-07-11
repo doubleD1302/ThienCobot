@@ -293,6 +293,7 @@ export const ITEMS = [
   { id: 'pb_lk_chien_co', ten: 'Chiến Cổ', loai: 'Pháp Bảo', doHiem: 'Thường', giaCoSo: 600, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Kỹ năng chủ động: Thú Huyết Sôi Sục.', emoji: '<:chien_co:1525083750281515058>', food: 0 },
 
   // --- NGUYÊN LIỆU LUYỆN CHẾ SƠ CẤP ---
+  { id: 'nguyen_lieu_luyen_khi', ten: 'Luyện Khí Thiết Sa 🪙', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Sắt vụn dùng để luyện khí sơ cấp.', emoji: '🪙', food: 0 },
   { id: 'so_cap_thiet_quang', ten: 'Sơ Cấp Thiết Quặng', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Mỏ quặng sắt cơ bản, dùng để rèn đao, đúc kiếm.', emoji: '<:so_cap_thiet_quang:1525076114295492679>', food: 0 },
   { id: 'tho_linh_dan_ty', ten: 'Thô Linh Đàn Ty', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Tơ thô của tằm dâu dại, dùng dệt áo thô hoặc may đạo bào.', emoji: '<:tho_linh_dan_ty:1525076109887148144>', food: 0 },
   { id: 'linh_khi_toai_thach', ten: 'Linh Khí Toái Thạch', loai: 'Nguyên liệu', doHiem: 'Thường', giaCoSo: 100, chiSoJson: '{}', yeuCauCanhGioi: 1, moTa: 'Mảnh vỡ đá linh khí chứa chút gió nhẹ, dùng để chế tạo ngọc bội cộng Tốc Độ.', emoji: '<:linh_khi_toai_thach:1525076112382623754>', food: 0 },
