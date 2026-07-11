@@ -1237,7 +1237,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
         await abode.save();
       }
 
-      const dailyLimit = 5;
+      const dailyLimit = config.layGioiHanDanDaily(tuSi.capDo, abode.level);
       if (abode.pillCount >= dailyLimit) {
         return { ok: false, msg: `Cơ thể đạo hữu đã đạt giới hạn kháng dược! Hôm nay không thể ăn thêm đan dược tu vi nữa (Tối đa ${dailyLimit} viên/ngày).` };
       }

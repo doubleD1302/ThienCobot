@@ -218,6 +218,16 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 
           if (isMajor) {
             tuSi.linhThach -= stoneCost;
+            try {
+              const { Abode } = await import('../models/Abode.js');
+              let abode = await Abode.findByPk(tuSi.idNguoiDung);
+              if (abode) {
+                abode.pillCount = 0;
+                await abode.save();
+              }
+            } catch (abodeErr) {
+              console.error('[Breakthrough] Lỗi reset pillCount:', abodeErr);
+            }
           }
 
           tuSi.dongBoCanhGioi();

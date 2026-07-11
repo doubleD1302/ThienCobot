@@ -169,6 +169,12 @@ export function layDanTuViTheoCapDo(level) {
   return 'dan_tu_vi_nguyen_anh';
 }
 
+export function layGioiHanDanDaily(level, abodeLevel) {
+  const { realmName } = layThongTinCanhGioi(level);
+  const realmIndex = MAP_DAI_CANH_GIOI[realmName] || 0;
+  return 10 + (abodeLevel || 0) + realmIndex;
+}
+
 export function tinhTuViNhanDuoc(pillId, playerCanhGioi, tocDoCoBan) {
   const pillBonusMap = {
     'dan_tu_vi_luyen_khi': 64,
