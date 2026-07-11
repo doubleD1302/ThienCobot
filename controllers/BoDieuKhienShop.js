@@ -9,7 +9,7 @@ import {
 
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed, layMauCanhGioi } from '../views/BoTaoEmbed.js';
-import { ShopItem } from '../models/ShopItem.js';
+import { PlayerShop } from '../models/PlayerShop.js';
 import { LichSuMua } from '../models/LichSuMua.js';
 import { Item } from '../models/Item.js';
 import { Inventory } from '../models/Inventory.js';
@@ -31,63 +31,165 @@ const LOAI_EMOJI = {
   'Cổ Bảo Chủ Động': '🏺',
   'Pháp Bảo':        '📿',
   'Đan dược':        '💊',
-  'Linh thảo':       '🌱'
+  'Linh thảo':       '🌱',
+  'Nguyên liệu':     '⚙️'
 };
 
-// Nhóm hiển thị trong shop (mỗi nhóm = 1 "tab" trong select menu)
 const SHOP_TABS = [
-  { value: 'tat_ca',    label: 'Tất Cả Hàng',   emoji: '🏪', loai: null },
-  { value: 'vu_khi',   label: 'Vũ Khí & Giáp', emoji: '⚔️', loai: ['Vũ khí', 'Giáp', 'Ngọc Bội'] },
-  { value: 'phap_bao', label: 'Cổ Bảo & Pháp Bảo', emoji: '🔮', loai: ['Cổ Bảo Chủ Động', 'Pháp Bảo'] },
-  { value: 'tieu_hao', label: 'Đan Dược',       emoji: '💊', loai: ['Đan dược', 'Linh thảo'] },
-  { value: 'pet',      label: 'Tiên Thú (Công Đức)', emoji: '🐾', loai: null }
+  { value: 'tat_ca',    label: 'Cửa Hàng Cá Nhân', emoji: '🏪' },
+  { value: 'pet',      label: 'Tiên Thú (Công Đức)', emoji: '🐾' }
 ];
 
-const ITEMS_PER_PAGE = 8; // số item trên mỗi trang trong shop
-const SELL_ITEMS_PER_PAGE = 8; // số item trên mỗi trang trong kho bán đồ
+function getRefreshCost(refreshCount) {
+  return Math.floor(1000 * Math.pow(1.5, refreshCount));
+}
 
-// ── Helper: load tất cả hàng hoá kèm chi tiết item ─────────────────────────
-async function loadShopCatalog() {
-  const shopRows = await ShopItem.findAll({
-    where: { hienThi: true },
-    order: [['thuTu', 'ASC'], ['id', 'ASC']]
-  });
+function getRealmStartLevel(level) {
+  if (level >= 31) return 31;
+  if (level >= 28) return 28;
+  if (level >= 25) return 25;
+  if (level >= 22) return 22;
+  if (level >= 19) return 19;
+  if (level >= 16) return 16;
+  if (level >= 13) return 13;
+  if (level >= 10) return 10;
+  return 1;
+}
 
-  const catalog = [];
-  for (const row of shopRows) {
-    const itemDetail = await Item.findByPk(row.itemId);
-    if (itemDetail) {
-      catalog.push({ shop: row, item: itemDetail });
+async function generatePlayerShop(tuSi) {
+  const items = [];
+  
+  for (let i = 0; i < 10; i++) {
+    const cat = Math.floor(Math.random() * 3); // 0 = Material, 1 = Pill, 2 = Equipment
+    let chosenItem = null;
+    
+    if (cat === 0) {
+      // Forge Materials (Thường, Hiếm, Cực hiếm)
+      const roll = Math.random() * 100;
+      let doHiem = 'Thường';
+      if (roll < 2) {
+        doHiem = 'Cực hiếm';
+      } else if (roll < 32) {
+        doHiem = 'Hiếm';
+      }
+      
+      let eligible = config.ITEMS.filter(x => x.loai === 'Nguyên liệu' && x.doHiem === doHiem);
+      if (eligible.length === 0) {
+        eligible = config.ITEMS.filter(x => x.loai === 'Nguyên liệu');
+      }
+      if (eligible.length > 0) {
+        chosenItem = eligible[Math.floor(Math.random() * eligible.length)];
+      }
+    } else if (cat === 1) {
+      // Tu Vi Pills (Thường, Hiếm, Cực hiếm, Huyền thoại)
+      const roll = Math.random() * 100;
+      let doHiem = 'Thường';
+      if (roll < 2) {
+        doHiem = 'Huyền thoại';
+      } else if (roll < 12) {
+        doHiem = 'Cực hiếm';
+      } else if (roll < 40) {
+        doHiem = 'Hiếm';
+      }
+      
+      let eligible = config.ITEMS.filter(x => x.id.startsWith('dan_tu_vi_') && x.doHiem === doHiem);
+      if (eligible.length === 0) {
+        eligible = config.ITEMS.filter(x => x.id.startsWith('dan_tu_vi_'));
+      }
+      if (eligible.length > 0) {
+        chosenItem = eligible[Math.floor(Math.random() * eligible.length)];
+      }
+    } else {
+      // Equipment (Thường, Hiếm, Cực hiếm)
+      const roll = Math.random() * 100;
+      let doHiem = 'Thường';
+      if (roll < 1) {
+        doHiem = 'Cực hiếm';
+      } else if (roll < 31) {
+        doHiem = 'Hiếm';
+      }
+      
+      const realmStart = getRealmStartLevel(tuSi.capDo);
+      let eligible = config.ITEMS.filter(x => 
+        ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Pháp Bảo'].includes(x.loai) && 
+        x.doHiem === doHiem &&
+        x.yeuCauCanhGioi === realmStart
+      );
+      if (eligible.length === 0) {
+        eligible = config.ITEMS.filter(x => 
+          ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Pháp Bảo'].includes(x.loai) && 
+          x.yeuCauCanhGioi === realmStart
+        );
+      }
+      if (eligible.length === 0) {
+        eligible = config.ITEMS.filter(x => 
+          ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Pháp Bảo'].includes(x.loai) && 
+          x.yeuCauCanhGioi <= tuSi.capDo &&
+          x.doHiem === doHiem
+        );
+      }
+      if (eligible.length === 0) {
+        eligible = config.ITEMS.filter(x => 
+          ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Pháp Bảo'].includes(x.loai) && 
+          x.yeuCauCanhGioi <= tuSi.capDo
+        );
+      }
+      
+      if (eligible.length > 0) {
+        chosenItem = eligible[Math.floor(Math.random() * eligible.length)];
+      }
+    }
+    
+    if (chosenItem) {
+      items.push({
+        slotIndex: i + 1,
+        itemId: chosenItem.id,
+        giaBan: chosenItem.giaCoSo || 1000,
+        bought: false
+      });
     }
   }
-  return catalog;
+  return items;
 }
 
-// ── Helper: lọc catalog theo tab ───────────────────────────────────────────
-function filterByTab(catalog, tabValue) {
-  if (tabValue === 'pet') return [];
-  const tab = SHOP_TABS.find(t => t.value === tabValue);
-  if (!tab || !tab.loai) return catalog;
-  return catalog.filter(e => tab.loai.includes(e.item.loai));
+async function getOrInitPlayerShop(tuSi) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  
+  let pShop = await PlayerShop.findByPk(tuSi.idNguoiDung);
+  if (!pShop) {
+    const items = await generatePlayerShop(tuSi);
+    pShop = await PlayerShop.create({
+      userId: tuSi.idNguoiDung,
+      itemsJson: JSON.stringify(items),
+      refreshCount: 0,
+      lastRefreshed: todayStr
+    });
+  } else if (pShop.lastRefreshed !== todayStr) {
+    pShop.refreshCount = 0;
+    pShop.lastRefreshed = todayStr;
+    const items = await generatePlayerShop(tuSi);
+    pShop.itemsJson = JSON.stringify(items);
+    await pShop.save();
+  }
+  return pShop;
 }
 
-// ── Helper: tạo embed trang shop (mua đồ) ──────────────────────────────────
-function buildShopEmbed(tuSi, entries, pageIdx, totalPages, tabLabel) {
+function buildPersonalShopEmbed(tuSi, shopItems, pShop) {
   const color = layMauCanhGioi(tuSi.canhGioi);
-
-  const lines = entries.map((e, i) => {
-    const { shop, item } = e;
-    const idx      = pageIdx * ITEMS_PER_PAGE + i + 1;
-    const doHiemEm = DO_HIEM_EMOJI[item.doHiem] || '⚪';
-    const loaiEm   = item.emoji || LOAI_EMOJI[item.loai] || '📦';
-    const giaText  = `🪙 \`${shop.giaBan.toLocaleString()}\` Linh Thạch`;
-    const tonText  = shop.soLuongTon === -1 ? '' : ` · Còn \`${shop.soLuongTon}\``;
-    const reqText  = shop.yeuCauCapDo > 1
-      ? ` · ⚠️ Cấp **${shop.yeuCauCapDo}**`
-      : '';
+  
+  const lines = shopItems.map((e) => {
+    const itemDetail = config.ITEMS.find(x => x.id === e.itemId);
+    if (!itemDetail) return `**${e.slotIndex}.** Vật phẩm không tồn tại`;
+    
+    const doHiemEm = DO_HIEM_EMOJI[itemDetail.doHiem] || '⚪';
+    const loaiEm   = itemDetail.emoji || LOAI_EMOJI[itemDetail.loai] || '📦';
+    const statusText = e.bought 
+      ? '~~[Đã Bán Hết]~~ 🔴'
+      : `🪙 \`${e.giaBan.toLocaleString()}\` Linh Thạch`;
+      
     let statsText = '';
     try {
-      const stats = JSON.parse(item.chiSoJson || '{}');
+      const stats = JSON.parse(itemDetail.chiSoJson || '{}');
       const parts = [];
       if (stats.vat_cong)  parts.push(`+${stats.vat_cong} Vật Công`);
       if (stats.phap_cong) parts.push(`+${stats.phap_cong} Pháp Công`);
@@ -95,55 +197,40 @@ function buildShopEmbed(tuSi, entries, pageIdx, totalPages, tabLabel) {
       if (stats.phap_phong)parts.push(`+${stats.phap_phong} Pháp Phòng`);
       if (stats.hp)        parts.push(`+${stats.hp} HP`);
       if (stats.mp)        parts.push(`+${stats.mp} MP`);
-      if (stats.hp_hoi)    parts.push(`Hồi ${stats.hp_hoi * 10} HP`);
-      if (stats.mp_hoi)    parts.push(`Hồi ${stats.mp_hoi} MP`);
       if (parts.length > 0) statsText = `\n   *(${parts.join(', ')})*`;
     } catch (_) {}
 
-    return `**${idx}.** ${doHiemEm}${loaiEm} **${item.ten}** — ${giaText}${tonText}${reqText}${statsText}`;
+    return `**${e.slotIndex}.** ${doHiemEm}${loaiEm} **${itemDetail.ten}** — ${statusText}${statsText}`;
   });
 
-  if (tabLabel === 'Tiên Thú (Công Đức)') {
-    const lines = [
-      `**1.** 🟢🥚 **Trứng Linh Thú (Linh)** — \`2\` Điểm Công Đức\n   *(Trứng linh thú phẩm chất Linh. Ấp nở tại Động Phủ để nhận được linh thú trung thành. Có 1% tỷ lệ nở ra Thần Thú.)*`
-    ];
-    return new EmbedBuilder()
-      .setTitle(`🏪 Linh Bảo Các — Cửa Hàng Tu Tiên`)
-      .setColor(color)
-      .setDescription(
-        `> 🌟 **Điểm Công Đức hiện có**: \`${tuSi.congDuc || 0}\`  |  📋 **Danh mục**: ${tabLabel}\n` +
-        `${'─'.repeat(38)}\n${lines.join('\n\n')}`
-      )
-      .setTimestamp()
-      .setFooter({ text: 'Chọn vật phẩm bên dưới → Bấm nút Mua phía dưới cùng để giao dịch.' });
-  }
-
-  const desc = entries.length > 0
-    ? lines.join('\n\n')
-    : '_Không có hàng hoá trong danh mục này._';
+  const nextCost = pShop.refreshCount < 10 ? getRefreshCost(pShop.refreshCount) : 0;
+  const refreshText = pShop.refreshCount < 10 
+    ? `Làm mới tiếp theo: \`${nextCost.toLocaleString()}\` 🪙`
+    : `Đã hết lượt làm mới hôm nay`;
 
   return new EmbedBuilder()
-    .setTitle(`🏪 Linh Bảo Các — Cửa Hàng Tu Tiên`)
+    .setTitle(`🏪 Linh Bảo Các — Shop Cá Nhân`)
     .setColor(color)
     .setDescription(
-      `> 🪙 **Linh thạch hiện có**: \`${tuSi.linhThach.toLocaleString()}\`  |  📋 **Danh mục**: ${tabLabel}` +
-      (totalPages > 1 ? `  |  📄 Trang ${pageIdx + 1}/${totalPages}` : '') +
-      `\n${'─'.repeat(38)}\n${desc}`
+      `> 🪙 **Linh thạch của ngươi**: \`${tuSi.linhThach.toLocaleString()}\` 🪙\n` +
+      `> 🔄 **Số lượt làm mới hôm nay**: \`${pShop.refreshCount}/10\` (${refreshText})\n` +
+      `${'─'.repeat(38)}\n${lines.join('\n\n')}`
     )
     .setTimestamp()
-    .setFooter({ text: 'Chọn vật phẩm bên dưới → Bấm nút Mua phía dưới cùng để giao dịch.' });
+    .setFooter({ text: 'Chọn ô vật phẩm bên dưới để xem chi tiết và mua.' });
 }
 
-// ── Helper: embed chi tiết 1 item đang được chọn để MUA ───────────────────
-function buildItemDetailEmbed(tuSi, shopEntry) {
-  const { shop, item } = shopEntry;
+function buildPersonalItemDetailEmbed(tuSi, shopSlot) {
+  const itemDetail = config.ITEMS.find(x => x.id === shopSlot.itemId);
+  if (!itemDetail) return null;
+  
   const color     = layMauCanhGioi(tuSi.canhGioi);
-  const doHiemEm  = DO_HIEM_EMOJI[item.doHiem] || '⚪';
-  const loaiEm    = item.emoji || LOAI_EMOJI[item.loai] || '📦';
+  const doHiemEm  = DO_HIEM_EMOJI[itemDetail.doHiem] || '⚪';
+  const loaiEm    = itemDetail.emoji || LOAI_EMOJI[itemDetail.loai] || '📦';
 
   let statsText = '_Không có chỉ số_';
   try {
-    const stats = JSON.parse(item.chiSoJson || '{}');
+    const stats = JSON.parse(itemDetail.chiSoJson || '{}');
     const parts = [];
     if (stats.vat_cong)  parts.push(`• **Vật Công**: \`+${stats.vat_cong}\``);
     if (stats.phap_cong) parts.push(`• **Pháp Công**: \`+${stats.phap_cong}\``);
@@ -151,36 +238,31 @@ function buildItemDetailEmbed(tuSi, shopEntry) {
     if (stats.phap_phong)parts.push(`• **Pháp Phòng**: \`+${stats.phap_phong}\``);
     if (stats.hp)        parts.push(`• **HP tối đa**: \`+${stats.hp}\``);
     if (stats.mp)        parts.push(`• **MP tối đa**: \`+${stats.mp}\``);
-    if (stats.hp_hoi)    parts.push(`• **Hồi HP**: \`+${stats.hp_hoi * 10}\``);
-    if (stats.mp_hoi)    parts.push(`• **Hồi MP**: \`+${stats.mp_hoi}\``);
     if (parts.length > 0) statsText = parts.join('\n');
   } catch (_) {}
 
-  const reqText = shop.yeuCauCapDo > 1
-    ? config.layThongTinCanhGioi(shop.yeuCauCapDo).realmName + ` (Cấp ${shop.yeuCauCapDo})`
+  const canAfford = tuSi.linhThach >= shopSlot.giaBan;
+  const isBought  = shopSlot.bought;
+  const reqText = itemDetail.yeuCauCanhGioi > 1
+    ? config.layThongTinCanhGioi(itemDetail.yeuCauCanhGioi).realmName + ` (Cấp ${itemDetail.yeuCauCanhGioi})`
     : 'Không yêu cầu';
-
-  const canAfford = tuSi.linhThach >= shop.giaBan;
-  const canLevel  = tuSi.capDo >= shop.yeuCauCapDo;
-  const inStock   = shop.soLuongTon === -1 || shop.soLuongTon > 0;
+  const canLevel = tuSi.capDo >= itemDetail.yeuCauCanhGioi;
 
   return new EmbedBuilder()
-    .setTitle(`${doHiemEm}${loaiEm} Chi Tiết: ${item.ten}`)
-    .setColor(canAfford && canLevel && inStock ? 0x2ecc71 : 0xe74c3c)
+    .setTitle(`${doHiemEm}${loaiEm} Chi Tiết Ô ${shopSlot.slotIndex}: ${itemDetail.ten}`)
+    .setColor(canAfford && canLevel && !isBought ? 0x2ecc71 : 0xe74c3c)
     .addFields(
-      { name: '📦 Phân Loại', value: `${item.loai} · ${item.doHiem}`, inline: true },
-      { name: '🪙 Giá Bán',  value: `\`${shop.giaBan.toLocaleString()}\` Linh Thạch`, inline: true },
-      { name: '📦 Tồn Kho',  value: shop.soLuongTon === -1 ? '∞ Vô hạn' : `\`${shop.soLuongTon}\``, inline: true },
+      { name: '📦 Phân Loại', value: `${itemDetail.loai} · ${itemDetail.doHiem}`, inline: true },
+      { name: '🪙 Giá Bán',  value: `\`${shopSlot.giaBan.toLocaleString()}\` Linh Thạch`, inline: true },
       { name: '⚠️ Yêu Cầu Cấp', value: reqText, inline: true },
       { name: '💰 Ví Của Ngươi', value: `\`${tuSi.linhThach.toLocaleString()}\` Linh Thạch`, inline: true },
-      { name: '✅ Trạng Thái', value: canAfford && canLevel && inStock ? '🟢 Đủ điều kiện mua' : '🔴 Không đủ điều kiện', inline: true },
+      { name: '✅ Trạng Thái', value: isBought ? '🔴 Đã bán hết' : (canAfford && canLevel ? '🟢 Đủ điều kiện mua' : '🔴 Không đủ điều kiện'), inline: true },
       { name: '📊 Chỉ Số', value: statsText, inline: false },
-      { name: '📖 Mô Tả', value: item.moTa || '_Không có mô tả._', inline: false }
+      { name: '📖 Mô Tả', value: itemDetail.moTa || '_Không có mô tả._', inline: false }
     )
-    .setFooter({ text: `Mã vật phẩm: ${item.id}` });
+    .setFooter({ text: `Mã vật phẩm: ${itemDetail.id}` });
 }
 
-// ── Helper: tạo embed trang bán đồ (sell) ──────────────────────────────────
 function buildSellEmbed(tuSi, entries, pageIdx, totalPages) {
   const color = layMauCanhGioi(tuSi.canhGioi);
 
@@ -211,7 +293,6 @@ function buildSellEmbed(tuSi, entries, pageIdx, totalPages) {
     .setFooter({ text: 'Chọn vật phẩm từ túi đồ bên dưới → Chọn số lượng muốn bán.' });
 }
 
-// ── Helper: embed chi tiết 1 item trong túi đang được chọn để BÁN ───────────
 function buildSellItemDetailEmbed(tuSi, invEntry) {
   const { item, soLuong, invId } = invEntry;
   const color     = layMauCanhGioi(tuSi.canhGioi);
@@ -266,22 +347,17 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         });
       }
 
-      // Catalog hàng hóa tĩnh trong shop
-      const catalog = await loadShopCatalog();
-
       // Trạng thái giao diện tương tác
       let currentMode        = 'BUY'; // 'BUY', 'SELL', 'HISTORY'
       
       // State cho Mode MUA
       let shopTab            = 'tat_ca';
-      let shopPageIdx        = 0;
-      let selectedShopId     = null;
+      let selectedShopId     = null; // slotIndex hoặc buy_pet_egg_linh
 
       // State cho Mode BÁN
       let sellPageIdx        = 0;
       let selectedInventoryId = null;
 
-      // ── Helper: load danh sách đồ có thể bán từ kho của người chơi ──────────
       const loadSellableInventory = async () => {
         const invList = await Inventory.findAll({
           where: { idNguoiDung: tuSi.idNguoiDung, trangBi: false }
@@ -308,10 +384,7 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         return sellable;
       };
 
-      // ── BUILD COMPONENTS ROWS ──────────────────────────────────────────────
-
-      /** Row 1: Nút chuyển đổi Mode chính (luôn hiển thị) */
-      const buildModeRow = (disabled = false) => {
+      const buildModeRow = (disabled = false, pShop = null) => {
         return new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId('mode_buy')
@@ -336,16 +409,8 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         );
       };
 
-      // ──────────────────────────────────────────
-      //  COMPONENTS CHO MODE MUA (BUY)
-      // ──────────────────────────────────────────
-      const buildBuyComponents = (disabled = false) => {
-        const filtered = filterByTab(catalog, shopTab);
-        const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-        const start = shopPageIdx * ITEMS_PER_PAGE;
-        const pageEntries = filtered.slice(start, start + ITEMS_PER_PAGE);
-
-        const rows = [buildModeRow(disabled)];
+      const buildBuyComponents = (pShop, disabled = false) => {
+        const rows = [buildModeRow(disabled, pShop)];
 
         // Row 2: Chọn danh mục
         rows.push(
@@ -363,13 +428,12 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
           )
         );
 
-        // Row 3: Chọn item trên trang hiện tại
         if (shopTab === 'pet') {
           rows.push(
             new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId('buy_item_select')
-                .setPlaceholder('🔍 Chọn vật phẩm xem chi tiết...')
+                .setPlaceholder('🔍 Chọn trứng linh thú...')
                 .setDisabled(disabled)
                 .addOptions([
                   {
@@ -382,80 +446,59 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
                 ])
             )
           );
-        } else if (pageEntries.length === 0) {
-          rows.push(
-            new ActionRowBuilder().addComponents(
-              new StringSelectMenuBuilder()
-                .setCustomId('buy_item_select')
-                .setPlaceholder('⚠️ Danh mục này hiện đang trống')
-                .setDisabled(true)
-                .addOptions([{ label: '(Trống)', value: '__empty__' }])
-            )
-          );
         } else {
+          // Shop cá nhân - hiển thị 10 vật phẩm
+          const shopItems = JSON.parse(pShop.itemsJson);
           rows.push(
             new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId('buy_item_select')
-                .setPlaceholder('🔍 Chọn vật phẩm xem chi tiết...')
+                .setPlaceholder('🔍 Chọn ô vật phẩm trong shop cá nhân...')
                 .setDisabled(disabled)
-                .addOptions(pageEntries.map(e => ({
-                  label:       e.item.ten.slice(0, 100),
-                  value:       String(e.shop.id),
-                  emoji:       DO_HIEM_EMOJI[e.item.doHiem] || '⚪',
-                  description: `${e.item.loai} · ${e.shop.giaBan.toLocaleString()} Linh Thạch`.slice(0, 100),
-                  default:     String(e.shop.id) === String(selectedShopId)
-                })))
+                .addOptions(shopItems.map(e => {
+                  const itemDetail = config.ITEMS.find(x => x.id === e.itemId);
+                  const label = itemDetail ? itemDetail.ten : e.itemId;
+                  const statusText = e.bought ? '[Đã Mua]' : `${e.giaBan.toLocaleString()} Linh Thạch`;
+                  return {
+                    label: `[Ô ${e.slotIndex}] ${label}`.slice(0, 100),
+                    value: String(e.slotIndex),
+                    emoji: itemDetail ? (DO_HIEM_EMOJI[itemDetail.doHiem] || '⚪') : '⚪',
+                    description: statusText,
+                    default: String(e.slotIndex) === String(selectedShopId)
+                  };
+                }))
             )
           );
-        }
 
-        // Row 4: Phân trang
-        rows.push(
-          new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId('buy_prev')
-              .setLabel('◀ Trang trước')
-              .setStyle(ButtonStyle.Secondary)
-              .setDisabled(disabled || shopPageIdx === 0),
-            new ButtonBuilder()
-              .setCustomId('buy_next')
-              .setLabel('Trang sau ▶')
-              .setStyle(ButtonStyle.Secondary)
-              .setDisabled(disabled || shopPageIdx >= totalPages - 1)
-          )
-        );
+          // Row 4: Nút làm mới shop cá nhân
+          const refreshCost = getRefreshCost(pShop.refreshCount);
+          const btnRefresh = new ButtonBuilder()
+            .setCustomId('buy_refresh_shop')
+            .setLabel(pShop.refreshCount >= 10 ? '🔄 Hết lượt làm mới' : `🔄 Làm mới (${refreshCost.toLocaleString()} 🪙)`)
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(disabled || pShop.refreshCount >= 10);
+          
+          rows.push(new ActionRowBuilder().addComponents(btnRefresh));
+        }
 
         // Row 5: Nút Mua (chỉ hiển thị khi chọn item)
         if (selectedShopId && !disabled) {
-          rows.push(
-            new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                .setCustomId('buy_action_1')
-                .setLabel('🛒 Mua x1')
-                .setStyle(ButtonStyle.Success),
-              new ButtonBuilder()
-                .setCustomId('buy_action_5')
-                .setLabel('🛒 Mua x5')
-                .setStyle(ButtonStyle.Success),
-              new ButtonBuilder()
-                .setCustomId('buy_action_10')
-                .setLabel('🛒 Mua x10')
-                .setStyle(ButtonStyle.Success),
-              new ButtonBuilder()
-                .setCustomId('buy_deselect')
-                .setLabel('↩️ Bỏ chọn')
-                .setStyle(ButtonStyle.Secondary)
-            )
+          const actionRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('buy_action_execute')
+              .setLabel('🛒 Xác Nhận Mua')
+              .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+              .setCustomId('buy_deselect')
+              .setLabel('↩️ Bỏ chọn')
+              .setStyle(ButtonStyle.Secondary)
           );
+          rows.push(actionRow);
         }
 
         return rows;
       };
 
-      // ──────────────────────────────────────────
-      //  COMPONENTS CHO MODE BÁN (SELL)
-      // ──────────────────────────────────────────
       const buildSellComponents = (sellableList, disabled = false) => {
         const totalPages = Math.max(1, Math.ceil(sellableList.length / SELL_ITEMS_PER_PAGE));
         const start = sellPageIdx * SELL_ITEMS_PER_PAGE;
@@ -463,7 +506,6 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
 
         const rows = [buildModeRow(disabled)];
 
-        // Row 2: Dropdown chọn vật phẩm để bán từ túi
         if (pageEntries.length === 0) {
           rows.push(
             new ActionRowBuilder().addComponents(
@@ -495,7 +537,6 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
           );
         }
 
-        // Row 3: Phân trang túi đồ bán
         rows.push(
           new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -511,7 +552,6 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
           )
         );
 
-        // Row 4: Hành động Bán (chỉ hiện khi có item được chọn)
         if (selectedInventoryId && !disabled) {
           const selectedInv = sellableList.find(e => String(e.invId) === String(selectedInventoryId));
           const maxQty = selectedInv ? selectedInv.soLuong : 1;
@@ -548,20 +588,25 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         return rows;
       };
 
-      // ── BUILD EMBEDS ───────────────────────────────────────────────────────
-      const buildAllEmbeds = async (sellableList) => {
+      const buildAllEmbeds = async (sellableList, pShop = null) => {
         if (currentMode === 'BUY') {
-          const filtered = filterByTab(catalog, shopTab);
-          const total = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-          const start = shopPageIdx * ITEMS_PER_PAGE;
-          const pageEntries = filtered.slice(start, start + ITEMS_PER_PAGE);
-          const tabLabel = SHOP_TABS.find(t => t.value === shopTab)?.label ?? 'Tất Cả';
+          if (shopTab === 'pet') {
+            const lines = [
+              `**1.** 🟢🥚 **Trứng Linh Thú (Linh)** — \`2\` Điểm Công Đức\n   *(Trứng linh thú phẩm chất Linh. Ấp nở tại Động Phủ để nhận được linh thú trung thành. Có 1% tỷ lệ nở ra Thần Thú.)*`
+            ];
+            const embeds = [
+              new EmbedBuilder()
+                .setTitle(`Linh Bảo Các — Tiên Thú`)
+                .setColor(layMauCanhGioi(tuSi.canhGioi))
+                .setDescription(
+                  `> 🌟 **Điểm Công Đức hiện có**: \`${tuSi.congDuc || 0}\`  |  📋 **Danh mục**: Tiên Thú\n` +
+                  `${'─'.repeat(38)}\n${lines.join('\n\n')}`
+                )
+                .setTimestamp()
+                .setFooter({ text: 'Chọn vật phẩm bên dưới → Bấm nút Mua phía dưới cùng để giao dịch.' })
+            ];
 
-          const embeds = [buildShopEmbed(tuSi, pageEntries, shopPageIdx, total, tabLabel)];
-
-          if (selectedShopId) {
             if (selectedShopId === 'buy_pet_egg_linh') {
-              const color = layMauCanhGioi(tuSi.canhGioi);
               const canAfford = (tuSi.congDuc || 0) >= 2;
               embeds.push(
                 new EmbedBuilder()
@@ -577,14 +622,23 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
                   )
                   .setFooter({ text: 'Mã vật phẩm: trung_linh_thu_linh' })
               );
-            } else {
-              const entry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
-              if (entry) {
-                embeds.push(buildItemDetailEmbed(tuSi, entry));
+            }
+            return embeds;
+          } else {
+            // Shop cá nhân
+            const shopItems = JSON.parse(pShop.itemsJson);
+            const embeds = [buildPersonalShopEmbed(tuSi, shopItems, pShop)];
+            
+            if (selectedShopId && selectedShopId !== 'buy_pet_egg_linh') {
+              const idx = parseInt(selectedShopId, 10);
+              const slot = shopItems.find(x => x.slotIndex === idx);
+              if (slot) {
+                const det = buildPersonalItemDetailEmbed(tuSi, slot);
+                if (det) embeds.push(det);
               }
             }
+            return embeds;
           }
-          return embeds;
         }
 
         if (currentMode === 'SELL') {
@@ -604,7 +658,6 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         }
 
         if (currentMode === 'HISTORY') {
-          // Mode lịch sử: Lấy 15 giao dịch mua và bán gần nhất
           const records = await LichSuMua.findAll({
             where:  { idNguoiDung: tuSi.idNguoiDung },
             order:  [['muaLuc', 'DESC']],
@@ -624,10 +677,8 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
             const time = new Date(r.muaLuc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
             
             if (r.soLuong < 0) {
-              // Bán hàng (soLuong âm, giaDaTra âm)
               return `**${i + 1}.** 🟢 **BÁN**: ${name} x\`${-r.soLuong}\` ➔ \`+${(-r.giaDaTra).toLocaleString()}\` 🪙 · \`${time}\``;
             } else {
-              // Mua hàng (soLuong dương, giaDaTra dương)
               return `**${i + 1}.** 🔴 **MUA**: ${name} x\`${r.soLuong}\` ➔ \`-${r.giaDaTra.toLocaleString()}\` 🪙 · \`${time}\``;
             }
           }));
@@ -648,17 +699,18 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
         return [];
       };
 
-      // ── INITIAL SEND ───────────────────────────────────────────────────────
+      // Initial get player shop
+      let pShop = await getOrInitPlayerShop(tuSi);
       let sellableList = await loadSellableInventory();
+
       const msg = await interaction.editReply({
-        embeds:     await buildAllEmbeds(sellableList),
-        components: buildBuyComponents()
+        embeds:     await buildAllEmbeds(sellableList, pShop),
+        components: buildBuyComponents(pShop)
       });
 
-      // ── COLLECTOR ──────────────────────────────────────────────────────────
       const collector = msg.createMessageComponentCollector({
         filter: i => i.user.id === interaction.user.id,
-        time:   240_000 // Tăng lên 4 phút để tương tác thoải mái
+        time:   240_000
       });
 
       collector.on('collect', async i => {
@@ -666,12 +718,15 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
 
         let actionResultEmbed = null;
 
+        // Reload player & shop objects dynamically
+        await tuSi.reload();
+        pShop = await getOrInitPlayerShop(tuSi);
+
         switch (i.customId) {
           // ── MODE SWITCHING ─────────────────────────────────────────────────
           case 'mode_buy': {
             currentMode = 'BUY';
             selectedShopId = null;
-            shopPageIdx = 0;
             break;
           }
           case 'mode_sell': {
@@ -693,7 +748,6 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
           // ── BUY MODE INTERACTIONS ──────────────────────────────────────────
           case 'buy_tab_select': {
             shopTab = i.values[0];
-            shopPageIdx = 0;
             selectedShopId = null;
             break;
           }
@@ -701,29 +755,41 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
             selectedShopId = i.values[0];
             break;
           }
-          case 'buy_prev': {
-            shopPageIdx = Math.max(0, shopPageIdx - 1);
-            selectedShopId = null;
-            break;
-          }
-          case 'buy_next': {
-            const filtered = filterByTab(catalog, shopTab);
-            const total = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-            shopPageIdx = Math.min(total - 1, shopPageIdx + 1);
-            selectedShopId = null;
-            break;
-          }
           case 'buy_deselect': {
             selectedShopId = null;
             break;
           }
+          case 'buy_refresh_shop': {
+            if (pShop.refreshCount >= 10) {
+              actionResultEmbed = BoTaoEmbed.loi('Hôm nay ngươi đã làm mới tối đa 10 lần rồi!');
+              break;
+            }
+            const cost = getRefreshCost(pShop.refreshCount);
+            if (tuSi.linhThach < cost) {
+              actionResultEmbed = BoTaoEmbed.loi(`Ngươi không có đủ ${cost.toLocaleString()} Linh Thạch để làm mới shop!`);
+              break;
+            }
+
+            // Deduct Linh Thach and increment count
+            tuSi.linhThach -= cost;
+            await tuSi.save();
+
+            pShop.refreshCount += 1;
+            const items = await generatePlayerShop(tuSi);
+            pShop.itemsJson = JSON.stringify(items);
+            await pShop.save();
+
+            selectedShopId = null;
+            actionResultEmbed = BoTaoEmbed.thanhCong('🔄 Làm Mới Thành Công', `Đã làm mới shop cá nhân. Tiêu hao \`-${cost.toLocaleString()}\` Linh Thạch.`);
+            break;
+          }
           case 'buy_action_1':
           case 'buy_action_5':
-          case 'buy_action_10': {
+          case 'buy_action_10':
+          case 'buy_action_execute': {
             if (!selectedShopId) break;
-            const qty = i.customId === 'buy_action_1' ? 1
-                      : i.customId === 'buy_action_5' ? 5 : 10;
-            
+            const qty = i.customId === 'buy_action_5' ? 5 : (i.customId === 'buy_action_10' ? 10 : 1);
+
             if (selectedShopId === 'buy_pet_egg_linh') {
               const res = await this._thucHienMuaPetEggLinh(tuSi, qty);
               actionResultEmbed = res.ok
@@ -731,18 +797,56 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
                 : BoTaoEmbed.loi(res.msg);
               selectedShopId = null;
             } else {
-              const shopEntry = catalog.find(e => String(e.shop.id) === String(selectedShopId));
-              if (shopEntry) {
-                const res = await this._thucHienMua(tuSi, shopEntry, qty);
-                actionResultEmbed = res.ok
-                  ? BoTaoEmbed.thanhCong('🛒 Mua Hàng Thành Công', res.msg)
-                  : BoTaoEmbed.loi(res.msg);
-
-                if (res.ok && shopEntry.shop.soLuongTon !== -1) {
-                  shopEntry.shop.soLuongTon -= qty;
-                }
-                selectedShopId = null;
+              const idx = parseInt(selectedShopId, 10);
+              const shopItems = JSON.parse(pShop.itemsJson);
+              const slot = shopItems.find(x => x.slotIndex === idx);
+              
+              if (!slot) {
+                actionResultEmbed = BoTaoEmbed.loi('Không tìm thấy ô vật phẩm này.');
+                break;
               }
+              if (slot.bought) {
+                actionResultEmbed = BoTaoEmbed.loi('Vật phẩm tại ô này đã bán hết.');
+                break;
+              }
+
+              const itemDetail = config.ITEMS.find(x => x.id === slot.itemId);
+              if (!itemDetail) {
+                actionResultEmbed = BoTaoEmbed.loi('Vật phẩm không tồn tại trong điển tịch.');
+                break;
+              }
+              if (tuSi.capDo < itemDetail.yeuCauCanhGioi) {
+                actionResultEmbed = BoTaoEmbed.loi(`Cấp độ của ngươi (cấp ${tuSi.capDo}) không đủ để sử dụng vật phẩm này (yêu cầu cấp ${itemDetail.yeuCauCanhGioi}).`);
+                break;
+              }
+              if (tuSi.linhThach < slot.giaBan) {
+                actionResultEmbed = BoTaoEmbed.loi('Ngươi không đủ Linh thạch để mua vật phẩm này.');
+                break;
+              }
+
+              // Deduct Linh Thach
+              tuSi.linhThach -= slot.giaBan;
+              await tuSi.save();
+
+              // Add item to inventory
+              await Inventory.addVatPham(tuSi.idNguoiDung, slot.itemId, 1);
+
+              // Log to transaction history
+              await LichSuMua.create({
+                idNguoiDung: tuSi.idNguoiDung,
+                itemId:      slot.itemId,
+                soLuong:     1,
+                giaDaTra:    slot.giaBan,
+                muaLuc:      new Date()
+              });
+
+              // Mark slot as bought
+              slot.bought = true;
+              pShop.itemsJson = JSON.stringify(shopItems);
+              await pShop.save();
+
+              actionResultEmbed = BoTaoEmbed.thanhCong('🛒 Mua Hàng Thành Công', `Ngươi đã mua thành công **${itemDetail.ten}** với giá \`${slot.giaBan.toLocaleString()}\` Linh Thạch.`);
+              selectedShopId = null;
             }
             break;
           }
@@ -771,49 +875,44 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
           case 'sell_action_5':
           case 'sell_action_all': {
             if (!selectedInventoryId) break;
-            
-            const selectedInv = sellableList.find(e => String(e.invId) === String(selectedInventoryId));
-            if (!selectedInv) break;
+            const invRecord = await Inventory.findByPk(selectedInventoryId);
+            if (!invRecord || invRecord.idNguoiDung !== tuSi.idNguoiDung) {
+              actionResultEmbed = BoTaoEmbed.loi('Vật phẩm không hợp lệ.');
+              selectedInventoryId = null;
+              break;
+            }
 
-            const qty = i.customId === 'sell_action_1' ? 1
-                      : i.customId === 'sell_action_5' ? 5 : selectedInv.soLuong;
+            const itemDetail = await Item.findByPk(invRecord.itemId);
+            if (!itemDetail) {
+              actionResultEmbed = BoTaoEmbed.loi('Vật phẩm không tồn tại.');
+              selectedInventoryId = null;
+              break;
+            }
 
-            const res = await this._thucHienBanByInvId(tuSi, selectedInv.invId, qty);
+            const maxQty = invRecord.soLuong;
+            let qty = 1;
+            if (i.customId === 'sell_action_5') qty = Math.min(5, maxQty);
+            else if (i.customId === 'sell_action_all') qty = maxQty;
+
+            const res = await this._thucHienBanByInvId(tuSi, invRecord.id, qty);
             actionResultEmbed = res.ok
-              ? BoTaoEmbed.thanhCong('🛍️ Bán Hàng Thành Công', res.msg)
+              ? BoTaoEmbed.thanhCong('💰 Bán Hàng Thành Công', res.msg)
               : BoTaoEmbed.loi(res.msg);
 
             selectedInventoryId = null;
-            // Reload sellable inventory
             sellableList = await loadSellableInventory();
-            const totalSellPages = Math.max(1, Math.ceil(sellableList.length / SELL_ITEMS_PER_PAGE));
-            sellPageIdx = Math.min(sellPageIdx, totalSellPages - 1);
             break;
           }
-
-          default: break;
         }
 
-        // Tạo lại list components dựa trên Mode hiện tại
-        let currentComponents = [];
-        if (currentMode === 'BUY') {
-          currentComponents = buildBuyComponents();
-        } else if (currentMode === 'SELL') {
-          currentComponents = buildSellComponents(sellableList);
-        } else if (currentMode === 'HISTORY') {
-          currentComponents = [buildModeRow()];
-        }
-
-        // Tạo embeds
-        const embeds = await buildAllEmbeds(sellableList);
+        const nextPayload = {
+          embeds:     await buildAllEmbeds(sellableList, pShop),
+          components: currentMode === 'BUY' ? buildBuyComponents(pShop) : buildSellComponents(sellableList)
+        };
         if (actionResultEmbed) {
-          embeds.push(actionResultEmbed);
+          nextPayload.embeds.push(actionResultEmbed);
         }
-
-        await i.editReply({
-          embeds,
-          components: currentComponents
-        });
+        await i.editReply(nextPayload);
       });
 
       collector.on('end', async (_, reason) => {
@@ -822,132 +921,46 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
             await interaction.editReply({
               embeds: [
                 new EmbedBuilder()
-                  .setTitle('🏪 Linh Bảo Các — Đã Đóng Cửa')
-                  .setDescription('Đạo hữu đã cất bước rời khỏi Linh Bảo Các. Chúc đạo hữu tu hành thuận lợi!')
+                  .setTitle('🏪 Linh Bảo Các — Đã Đóng')
+                  .setDescription('Cửa tiệm đã đóng kết giới. Chúc đạo hữu tu hành tiến bộ!')
                   .setColor(0x7f8c8d)
                   .setTimestamp()
-                  .setFooter({ text: 'Dùng lệnh /shop để mở lại.' })
               ],
               components: []
             });
           } else {
-            // Hết giờ -> disable tất cả controls
-            let finalComponents = [];
-            if (currentMode === 'BUY') {
-              finalComponents = buildBuyComponents(true);
-            } else if (currentMode === 'SELL') {
-              finalComponents = buildSellComponents(sellableList, true);
-            } else {
-              finalComponents = [buildModeRow(true)];
-            }
             await interaction.editReply({
-              components: finalComponents
+              components: currentMode === 'BUY' ? buildBuyComponents(pShop, true) : buildSellComponents(sellableList, true)
             });
           }
-        } catch (_) {}
+        } catch (_) { }
       });
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
-  //  PRIVATE HELPER: thực hiện giao dịch đổi trứng linh thú bằng Công Đức
-  // ─────────────────────────────────────────────────────────────────────────
-  async _thucHienMuaPetEggLinh(tuSi, soLuong = 1) {
-    const tongGia = 2 * soLuong;
-    if ((tuSi.congDuc || 0) < tongGia) {
-      return {
-        ok: false,
-        msg: `Điểm Công Đức không đủ! Cần \`${tongGia}\` Điểm Công Đức (Ngươi đang có \`${tuSi.congDuc || 0}\`).`
-      };
+  async _thucHienMuaPetEggLinh(tuSi, qty) {
+    if ((tuSi.congDuc || 0) < 2 * qty) {
+      return { ok: false, msg: `Đạo hữu không đủ Điểm Công Đức để quy đổi x${qty} Trứng Linh Thú (Linh) (yêu cầu \`${2 * qty}\` Điểm, hiện có \`${tuSi.congDuc || 0}\`).` };
     }
 
-    tuSi.congDuc = (tuSi.congDuc || 0) - tongGia;
+    tuSi.congDuc -= 2 * qty;
     await tuSi.save();
 
-    await Inventory.addVatPham(tuSi.idNguoiDung, 'trung_linh_thu_linh', soLuong);
+    await Inventory.addVatPham(tuSi.idNguoiDung, 'trung_linh_thu_linh', qty);
 
-    // Ghi lịch sử
     await LichSuMua.create({
       idNguoiDung: tuSi.idNguoiDung,
       itemId:      'trung_linh_thu_linh',
-      soLuong,
-      giaDaTra:    tongGia,
-      giaLoai:     'Công Đức'
+      soLuong:     qty,
+      giaDaTra:    0,
+      muaLuc:      new Date()
     });
 
-    return {
-      ok: true,
-      msg: `Đạo hữu **${tuSi.ten}** đã đổi thành công **Trứng Linh Thú (Linh)** x${soLuong} tiêu hao \`${tongGia}\` Điểm Công Đức.\n` +
-           `• Điểm công đức còn lại: \`${tuSi.congDuc}\` Công Đức`
-    };
+    return { ok: true, msg: `Đạo hữu đã quy đổi thành công **Trứng Linh Thú (Linh)** x\`${qty}\`!` };
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  //  PRIVATE HELPER: thực hiện giao dịch mua hàng
-  // ─────────────────────────────────────────────────────────────────────────
-  async _thucHienMua(tuSi, shopEntry, soLuong = 1) {
-    const { shop, item } = shopEntry;
-
-    // 1. Kiểm tra cấp độ
-    if (tuSi.capDo < shop.yeuCauCapDo) {
-      const cgReq = config.layThongTinCanhGioi(shop.yeuCauCapDo);
-      return {
-        ok:  false,
-        msg: `Cảnh giới bất túc! Vật phẩm này yêu cầu tu vi tối thiểu: **${cgReq.realmName}** (Cấp ${shop.yeuCauCapDo}). Hiện tại: **${tuSi.canhGioi}**.`
-      };
-    }
-
-    // 2. Kiểm tra tồn kho
-    if (shop.soLuongTon !== -1 && shop.soLuongTon < soLuong) {
-      return {
-        ok:  false,
-        msg: `Tồn kho không đủ! Chỉ còn \`${shop.soLuongTon}\` cái trong kho.`
-      };
-    }
-
-    // 3. Kiểm tra linh thạch
-    const tongGia = shop.giaBan * soLuong;
-    if (tuSi.linhThach < tongGia) {
-      return {
-        ok:  false,
-        msg: `Linh thạch không đủ! Cần \`${tongGia.toLocaleString()}\` 🪙 (Ngươi đang có \`${tuSi.linhThach.toLocaleString()}\` 🪙).`
-      };
-    }
-
-    // 4. Trừ tiền
-    tuSi.linhThach -= tongGia;
-    await tuSi.save();
-
-    // 5. Thêm vật phẩm vào balo
-    await Inventory.addVatPham(tuSi.idNguoiDung, item.id, soLuong);
-
-    // 6. Trừ tồn kho (nếu có giới hạn)
-    if (shop.soLuongTon !== -1) {
-      shop.soLuongTon -= soLuong;
-      await shop.save();
-    }
-
-    // 7. Ghi lịch sử
-    await LichSuMua.create({
-      idNguoiDung: tuSi.idNguoiDung,
-      itemId:      item.id,
-      soLuong,
-      giaDaTra:    tongGia,
-      giaLoai:     shop.giaLoai
-    });
-
-    return {
-      ok:  true,
-      msg: `Đạo hữu **${tuSi.ten}** đã mua thành công **${item.ten}** x${soLuong} tiêu hao \`${tongGia.toLocaleString()}\` 🪙 Linh Thạch.\n` +
-           `• Linh thạch còn lại: \`${tuSi.linhThach.toLocaleString()}\` 🪙`
-    };
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  //  PRIVATE HELPER: thực hiện giao dịch bán hàng bằng ID trong Inventory
-  // ─────────────────────────────────────────────────────────────────────────
   async _thucHienBanByInvId(tuSi, invId, soLuong = 1) {
-    const inv = await Inventory.findOne({
+    const invRecord = await Inventory.findOne({
       where: {
         id: invId,
         idNguoiDung: tuSi.idNguoiDung,
@@ -955,16 +968,16 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
       }
     });
 
-    if (!inv) {
+    if (!invRecord) {
       return { ok: false, msg: `Không tìm thấy vật phẩm có mã định danh #${invId} trong túi đồ.` };
     }
 
-    const itemDetail = await Item.findByPk(inv.itemId);
+    const itemDetail = await Item.findByPk(invRecord.itemId);
     if (!itemDetail || itemDetail.loai === 'Skin') {
       return { ok: false, msg: `Không thể bán trang phục thời trang / skin tại Linh Bảo Các.` };
     }
 
-    if (inv.khoa) {
+    if (invRecord.khoa) {
       return { ok: false, msg: `Vật phẩm **${itemDetail.ten}** đã bị khóa, không thể bán!` };
     }
 
@@ -983,68 +996,36 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
     const donGia = Math.floor(itemDetail.giaCoSo * 0.3);
     const tongGia = donGia * soLuong;
 
-    const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(itemDetail.loai);
-
-    if (isEquipable) {
-      // Vì mỗi trang bị là 1 bản ghi riêng biệt, nếu yêu cầu bán nhiều hơn 1, cần tìm thêm các trang bị chưa mặc tương đương.
-      const records = await Inventory.findAll({
-        where: {
-          idNguoiDung: tuSi.idNguoiDung,
-          itemId: itemDetail.id,
-          trangBi: false
-        },
-        limit: soLuong
-      });
-
-      if (records.length < soLuong) {
-        return {
-          ok: false,
-          msg: `Số lượng trang bị **${itemDetail.ten}** chưa mặc trong túi không đủ! (Có: \`${records.length}\` / Yêu cầu bán: \`${soLuong}\`).`
-        };
-      }
-
-      for (const rec of records) {
-        await rec.destroy();
-      }
-    } else {
-      // Đối với đan dược / linh thảo cộng dồn
-      if (inv.soLuong < soLuong) {
-        return {
-          ok: false,
-          msg: `Số lượng **${itemDetail.ten}** trong túi không đủ! (Có: \`${inv.soLuong}\` / Yêu cầu bán: \`${soLuong}\`).`
-        };
-      }
-
-      inv.soLuong -= soLuong;
-      if (inv.soLuong <= 0) {
-        await inv.destroy();
-      } else {
-        await inv.save();
-      }
+    if (invRecord.soLuong < soLuong) {
+      return {
+        ok: false,
+        msg: `Số lượng **${itemDetail.ten}** trong túi không đủ!`
+      };
     }
 
-    // Cộng linh thạch
+    // Deduct quantity
+    await Inventory.consumeItem(tuSi.idNguoiDung, itemDetail.id, soLuong);
+
+    // Add Linh Thach
     tuSi.linhThach += tongGia;
     await tuSi.save();
 
-    // Ghi lịch sử giao dịch bán đồ (soLuong âm, giaDaTra âm để phân biệt)
+    // Log history (negative quantity / value for sell records)
     await LichSuMua.create({
       idNguoiDung: tuSi.idNguoiDung,
       itemId:      itemDetail.id,
       soLuong:     -soLuong,
       giaDaTra:    -tongGia,
-      giaLoai:     'linh_thach'
+      muaLuc:      new Date()
     });
 
     return {
       ok: true,
-      msg: `Đạo hữu **${tuSi.ten}** đã bán thành công **${itemDetail.ten}** x${soLuong} thu về \`+${tongGia.toLocaleString()}\` 🪙 Linh Thạch.\n` +
-           `• Giá thu mua (30%): \`${donGia}\` 🪙/cái\n` +
-           `• Linh thạch hiện tại: \`${tuSi.linhThach.toLocaleString()}\` 🪙`
+      msg: `Đạo hữu đã bán thành công **${itemDetail.ten}** x${soLuong} thu về \`+${tongGia.toLocaleString()}\` Linh Thạch.`
     };
   }
 }
 
-const controller = new BoDieuKhienShop();
-export const danhSachLenhShop = [controller.lenhShop];
-export { controller as boDieuKhienShop };
+export const boDieuKhienShop = new BoDieuKhienShop();
+export const danhSachLenhShop = [boDieuKhienShop.lenhShop];
+export { getRefreshCost, getRealmStartLevel, generatePlayerShop, getOrInitPlayerShop };

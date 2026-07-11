@@ -21,6 +21,7 @@ const { Pet } = await import('./models/Pet.js');
 const { PetTemplate } = await import('./models/PetTemplate.js');
 const { GardenPlot } = await import('./models/GardenPlot.js');
 const { ShopItem } = await import('./models/ShopItem.js');
+const { PlayerShop } = await import('./models/PlayerShop.js');
 const { LichSuMua } = await import('./models/LichSuMua.js');
 const { ChannelRestriction } = await import('./models/ChannelRestriction.js');
 const { WorldBoss } = await import('./models/WorldBoss.js');
@@ -4899,6 +4900,62 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     // Clean up
     await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
     await abode.destroy();
+    await tuSi.destroy();
+  });
+
+  test('Personal Random Shop generation, refresh cost progression, and daily reset', async () => {
+    const { PlayerShop } = await import('./models/PlayerShop.js');
+    const { getRefreshCost, getOrInitPlayerShop } = await import('./controllers/BoDieuKhienShop.js');
+    const { TuSi } = await import('./models/TuSi.js');
+
+    const tuSi = await TuSi.create({
+      idNguoiDung: "9999999999999995",
+      ten: "TestShopTuSi",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 11, // Trúc Cơ Kỳ
+      linhLuc: 0,
+      linhThach: 100000
+    });
+    tuSi.linhCanList = ["Hoa"];
+
+    // Clean any existing shop
+    await PlayerShop.destroy({ where: { userId: tuSi.idNguoiDung } });
+
+    // 1. Test getOrInitPlayerShop generates exactly 10 slots
+    const pShop = await getOrInitPlayerShop(tuSi);
+    assert.ok(pShop);
+    assert.strictEqual(String(pShop.userId), String(tuSi.idNguoiDung));
+    assert.strictEqual(pShop.refreshCount, 0);
+
+    const items = JSON.parse(pShop.itemsJson);
+    assert.strictEqual(items.length, 10);
+    for (const item of items) {
+      assert.ok(item.slotIndex >= 1 && item.slotIndex <= 10);
+      assert.ok(item.itemId);
+      assert.ok(item.giaBan > 0);
+      assert.strictEqual(item.bought, false);
+    }
+
+    // 2. Test getRefreshCost progression
+    assert.strictEqual(getRefreshCost(0), 1000);
+    assert.strictEqual(getRefreshCost(1), 1500);
+    assert.strictEqual(getRefreshCost(2), 2250);
+    assert.strictEqual(getRefreshCost(3), 3375);
+
+    // 3. Test daily reset simulation
+    pShop.refreshCount = 5;
+    pShop.lastRefreshed = "2020-01-01"; // Old date
+    await pShop.save();
+
+    const reloadedShop = await getOrInitPlayerShop(tuSi);
+    assert.strictEqual(reloadedShop.refreshCount, 0, "Daily refreshCount should be reset to 0");
+    const todayStr = new Date().toISOString().split('T')[0];
+    assert.strictEqual(reloadedShop.lastRefreshed, todayStr, "lastRefreshed date should be updated to today");
+
+    // Clean up
+    await pShop.destroy();
     await tuSi.destroy();
   });
 

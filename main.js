@@ -34,6 +34,7 @@ import './models/Dungeon.js';
 import './models/ThienDaoLuc.js';
 import './models/AdventureEvent.js';
 import './models/ShopItem.js';
+import './models/PlayerShop.js';
 import './models/LichSuMua.js';
 import './models/Abode.js';
 import './models/GardenPlot.js';
