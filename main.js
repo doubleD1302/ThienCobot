@@ -695,7 +695,6 @@ async function start() {
 
       // Dọn dẹp vật phẩm đan dược và linh thảo cũ không còn trong config.ITEMS
       const configItemIds = config.ITEMS.map(x => x.id);
-      const { Op } = (await import('sequelize'));
       const oldItems = await Item.findAll({
         where: {
           id: { [Op.notIn]: configItemIds },
