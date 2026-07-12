@@ -617,7 +617,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             const currentHour = nowVN.getHours();
             if (currentHour >= 7 && global.lastDmgCalcDate !== dateStr) {
               global.lastDmgCalcDate = dateStr;
-              await this.tinhToanHpBossTheoCanhGioi();
+              await this.tinhVaLuuChiSoBoss(guildId);
             }
 
             if (shouldSpawn) {
