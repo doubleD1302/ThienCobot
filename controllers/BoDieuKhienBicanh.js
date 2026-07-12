@@ -1318,7 +1318,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
 
         if (isWin) {
           gainedExp = Math.floor((dungeon.thuong.expMin + Math.random() * (dungeon.thuong.expMax - dungeon.thuong.expMin)) * thienDao.expMult * heSoDaiCanhGioi);
-          gainedStones = Math.floor((dungeon.thuong.stonesMin + Math.random() * (dungeon.thuong.stonesMax - dungeon.thuong.stonesMin)) * thienDao.stoneMult);
+          gainedStones = Math.floor((dungeon.thuong.stonesMin + Math.random() * (dungeon.thuong.stonesMax - dungeon.thuong.stonesMin)) * thienDao.stoneMult * 5);
 
           // Rơi trang bị/vật phẩm
           for (const drop of dungeon.drops) {
@@ -1329,18 +1329,29 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                 if (itemDetail.doHiem === 'Huyền thoại' || itemDetail.doHiem === 'Thần cấp' || targetId === 'trung_than_thu' || targetId === 'chuyen_sinh_dan') {
                   // Chặn không rơi
                 } else {
+                  if (itemDetail.loai === 'Linh thảo' && !itemDetail.id.startsWith('hat_giong_')) {
+                    // Cường hóa rơi linh thảo phù hợp cảnh giới
+                    const realmHerbId = config.layVatPhamDotPhaTheoCapDo(tuSi.capDo).herbId;
+                    const herbDetail = await Item.findByPk(realmHerbId);
+                    if (herbDetail) {
+                      droppedItem = herbDetail;
+                      await Inventory.addVatPham(tuSi.idNguoiDung, realmHerbId, 1);
+                      break;
+                    }
+                  }
                   const isEquip = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(itemDetail.loai);
                   if (isEquip) {
-                    const matId = getNguyenLieuLuyenKhiTheoCapDo(itemDetail.yeuCauCanhGioi || tuSi.capDo, itemDetail.loai, itemDetail.id);
+                    const matId = config.getNguyenLieuLuyenKhiTheoCapDo(itemDetail.yeuCauCanhGioi || tuSi.capDo, itemDetail.loai, itemDetail.id);
                     const matDetail = await Item.findByPk(matId);
                     if (matDetail) {
                       droppedItem = matDetail;
-                      await Inventory.addVatPham(tuSi.idNguoiDung, matId, 1);
+                      await Inventory.addVatPham(tuSi.idNguoiDung, matId, 5); // x5 quantity!
                       break;
                     }
                   } else {
                     droppedItem = itemDetail;
-                    await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+                    const dropQty = itemDetail.loai === 'Nguyên liệu' ? 5 : 1;
+                    await Inventory.addVatPham(tuSi.idNguoiDung, targetId, dropQty);
                     break;
                   }
                 }
@@ -1367,7 +1378,8 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                 // Chặn không rơi
               } else {
                 droppedBreakthrough = itemDetail;
-                await Inventory.addVatPham(tuSi.idNguoiDung, targetId, 1);
+                const dropQty = targetId === btData.seedId ? 5 : 1;
+                await Inventory.addVatPham(tuSi.idNguoiDung, targetId, dropQty);
               }
             }
           }
@@ -1381,7 +1393,7 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
                 // Chặn không rơi
               } else {
                 droppedSeed = seedDetail;
-                await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 1);
+                await Inventory.addVatPham(tuSi.idNguoiDung, seedId, 5); // x5 quantity!
               }
             }
           }

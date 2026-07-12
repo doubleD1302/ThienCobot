@@ -2073,3 +2073,231 @@ export function handlePetCombatSkill(pet, petState, ownerStats, opponentStats, b
 
 
 
+
+export function getNguyenLieuLuyenKhiTheoCapDo(capDo, loai, itemId) {
+  if (capDo >= 19) return 'nguyen_lieu_hoa_than';
+  if (capDo >= 16) return 'nguyen_lieu_nguyen_anh';
+  if (capDo >= 13) {
+    if (loai === 'Vũ khí') return 'huyen_thiet_van_nam';
+    if (loai === 'Giáp') return 'Thien_Tam_Linh_ty';
+    if (loai === 'Ngọc Bội') return 'hon_tinh_huyet_nguyet';
+    const pbMats = [
+      'cuc_duong_hoa_thach',
+      'loi_tri_bang_tinh',
+      'Hau_tho_chi_loi',
+      'u_minh_te_truc',
+      'sinh_sinh_tao_hoa_dich',
+      'tinh_khong_luu_sa'
+    ];
+    let sum = 0;
+    const str = itemId || '';
+    for (let c = 0; c < str.length; c++) {
+      sum += str.charCodeAt(c);
+    }
+    return pbMats[sum % pbMats.length];
+  }
+  if (capDo >= 10) {
+    if (loai === 'Vũ khí') return 'huyen_thiet_tinh_sa';
+    if (loai === 'Giáp') return 'luc_ngoc_thach';
+    if (loai === 'Ngọc Bội') return 'am_duong_dong_chuong';
+    if (loai === 'Pháp Bảo') {
+      if (itemId === 'pb_don_phap_truc_co' || itemId === 'pb_don_the_truc_co') return 'dia_hoa_chi_tinh';
+      if (itemId === 'pb_aoe_phap_truc_co' || itemId === 'pb_aoe_the_truc_co') return 'cuu_thien_tu_cat';
+      if (itemId === 'pb_def_phap_truc_co' || itemId === 'pb_def_the_truc_co') return 'bich_hai_bang_tinh';
+      if (itemId === 'pb_cc_phap_truc_co' || itemId === 'pb_cc_the_truc_co') return 'khon_tien_dang_moc';
+      if (itemId === 'pb_hoi_phap_truc_co' || itemId === 'pb_hoi_the_truc_co') return 'dia_xich_linh_chi';
+      if (itemId === 'pb_buff_phap_truc_co' || itemId === 'pb_buff_the_truc_co') return 'thanh_vu_linh_sa';
+      const tcPbMats = ['dia_hoa_chi_tinh', 'cuu_thien_tu_cat', 'bich_hai_bang_tinh', 'khon_tien_dang_moc', 'dia_xich_linh_chi', 'thanh_vu_linh_sa'];
+      let sum = 0;
+      const str = itemId || '';
+      for (let c = 0; c < str.length; c++) {
+        sum += str.charCodeAt(c);
+      }
+      return tcPbMats[sum % tcPbMats.length];
+    }
+    return 'huyen_thiet_tinh_sa';
+  }
+
+  // Luyện Khí
+  if (loai === 'Vũ khí') return 'so_cap_thiet_quang';
+  if (loai === 'Giáp') return 'tho_linh_dan_ty';
+  if (loai === 'Ngọc Bội') return 'linh_khi_toai_thach';
+  if (loai === 'Pháp Bảo') {
+    if (itemId === 'pb_lk_linh_phong_cham' || itemId === 'pb_lk_toai_thach_an') return 'nham_hoa_tinh_hoa';
+    if (itemId === 'pb_lk_dan_loi_phu' || itemId === 'pb_lk_hoa_tinh_dinh') return 'sat_danh_moc';
+    if (itemId === 'pb_lk_ho_than_kinh' || itemId === 'pb_lk_thach_phu_thuan') return 'kien_thach_tam';
+    if (itemId === 'pb_lk_dinh_than_phu' || itemId === 'pb_lk_u_thiet_lien') return 'thiet_dang_man';
+    if (itemId === 'pb_lk_thanh_linh_binh' || itemId === 'pb_lk_da_son_sam') return 'linh_tuyen_thuy';
+    if (itemId === 'pb_lk_tu_khi_ky' || itemId === 'pb_lk_chien_co') return 'yeu_thu_huyet';
+    const lkPbMats = ['nham_hoa_tinh_hoa', 'sat_danh_moc', 'kien_thach_tam', 'thiet_dang_man', 'linh_tuyen_thuy', 'yeu_thu_huyet'];
+    let sum = 0;
+    const str = itemId || '';
+    for (let c = 0; c < str.length; c++) {
+      sum += str.charCodeAt(c);
+    }
+    return lkPbMats[sum % lkPbMats.length];
+  }
+  return 'so_cap_thiet_quang';
+}
+
+export function checkTrangBiPhuHopHuongTu(item, huongTu) {
+  if (!item) return false;
+  const isEquip = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
+  if (!isEquip) return true;
+
+  const id = item.id || '';
+  const phapTuKeywords = [
+    'phap', 'truong', 'phong_cham', 'dan_loi', 'ho_than_kinh', 'dinh_than_phu', 
+    'thanh_linh_binh', 'tu_khi_ky', 'huyen_mon', 'thanh_van', 'thuy_linh', 'tien_van',
+    'chuyen_sinh_dan', 'tri_tue', 'ngoc_linh'
+  ];
+  
+  const theTuKeywords = [
+    'the', 'dao', 'phu', 'thuong', 'toai_thach', 'hoa_tinh_dinh', 'thach_phu_thuan',
+    'u_thiet_lien', 'da_son_sam', 'chien_co', 'thiet_cot', 'tho_bo', 'khuong_thach',
+    'huyen_thiet', 'van_nam', 'man_luc', 'bao_kich', 'dam_bao'
+  ];
+
+  const matchesPhapTu = phapTuKeywords.some(kw => id.includes(kw));
+  const matchesTheTu = theTuKeywords.some(kw => id.includes(kw));
+
+  if (huongTu === 'Phap Tu') {
+    if (matchesTheTu && !matchesPhapTu) return false;
+    return true;
+  } else if (huongTu === 'The Tu') {
+    if (matchesPhapTu && !matchesTheTu) return false;
+    return true;
+  }
+  
+  return true;
+}
+
+export function layMoTaChiTietKyNang(skillId, capDo = 1) {
+  const capDoScale = 1 + (capDo - 1) * 0.01;
+  const capDoScaleMajor = 1 + (capDo - 1) * 0.1;
+
+  const descMap = {
+    // Thể Tu
+    'huyet_khi_phun_trao': () => {
+      const speedBonus = Math.floor(2 * capDoScale);
+      return `Đốt cháy một phần khí huyết để kích hoạt tiềm năng nhục thân.
+• **Tiêu hao**: 10% HP hiện tại và \`${getSkillMpCost({ id: 'huyet_khi_phun_trao', yeuCauCanhGioi: 1, loai: 'Vật lý' }).toLocaleString()}\` MP.
+• **Hiệu ứng**: Tích lũy 1 tầng [Chiến Ý] (tối đa 3 tầng). Mỗi tầng tăng **+10% Sát thương** và **+${speedBonus} Tốc độ** trong 3 hiệp.
+• **Thời gian hồi**: 9 giây (3 hiệp).`;
+    },
+    'bang_son_quyen': () => {
+      const dmgPct = Math.round(100 * capDoScale);
+      return `Dồn toàn lực vào nắm đấm nện mạnh xuống đất.
+• **Sát thương**: Gây **${dmgPct}%** Sát thương Vật lý.
+• **Thời gian hồi**: Không có (0 hiệp).`;
+    },
+    'hong_hoang_kich': () => {
+      const dmgPct = Math.round(500 * capDoScaleMajor);
+      const atkBonus = Math.round(15 * capDoScale);
+      const stunChance = Math.round(30 * capDoScale);
+      return `Dồn toàn bộ huyết khí vào một quyền uy mãnh càn quét.
+• **Sát thương**: Gây **${dmgPct}%** Sát thương Vật lý.
+• **Hồi phục**: Hồi phục ngay **5%** HP tối đa.
+• **Tự Buff**: Tăng **+${atkBonus}%** Vật công trong 2 hiệp.
+• **Hiệu ứng phụ**:
+  - Chắc chắn Bạo kích nếu HP đối thủ đang trên 70%.
+  - Có **${stunChance}%** tỷ lệ gây [Choáng/Định Thân] trong 1 hiệp.
+• **Thời gian hồi**: 9 giây (3 hiệp).`;
+    },
+    'bat_hoang_bo': () => {
+      const spdBonus = Math.round(30 * capDoScale);
+      const neBonus = Math.round(20 * capDoScale);
+      const dotDmg = Math.round(40 * capDoScale);
+      return `Thân pháp nhanh như chớp bùng nổ thành tàn ảnh thiêu đốt.
+• **Hồi phục**: Hồi phục ngay **10%** HP tối đa.
+• **Tự Buff**: Tăng **+\u200b${spdBonus}%** Tốc độ và **+${neBonus}%** Né tránh (Thân pháp) trong 4 hiệp.
+• **Hiệu ứng phụ**: Kích hoạt trạng thái [Hỏa Lôi Đạp] gây **${dotDmg}%** Sát thương vật lý mỗi hiệp trong 4 hiệp.
+• **Thời gian hồi**: 21 giây (7 hiệp).`;
+    },
+    'bat_hoang_toai_thach_kich': () => {
+      const dmgPct = Math.round(150 * capDoScale);
+      const ignorePct = Math.round(10 * capDoScale);
+      return `Vận dụng toàn bộ sức mạnh cơ bắp nện nứt đá.
+• **Sát thương**: Gây **${dmgPct}%** Sát thương Vật lý.
+• **Hiệu ứng phụ**: Bỏ qua **${ignorePct}%** Vật phòng của đối phương.
+• **Thời gian hồi**: 9 giây (3 hiệp).`;
+    },
+    'cuu_long_ba_the_tran': () => {
+      const shieldPct = Math.round(20 * capDoScale);
+      return `Kích hoạt khí huyết tạo lá chắn rồng bảo hộ cơ thể.
+• **Hiệu ứng**: Tạo một lớp khiên tương đương **${shieldPct}%** HP tối đa và tăng 15% Kháng khống chế trong 3 hiệp.
+• **Thời gian hồi**: 15 giây (5 hiệp).`;
+    },
+    'huyet_mach_cuong_hoa': () => {
+      const atkBonus = Math.round(30 * capDoScale);
+      const spdBonus = Math.round(20 * capDoScale);
+      return `Thiêu đốt huyết mạch bộc phát chiến lực cực hạn.
+• **Tiêu hao**: 10% HP hiện tại.
+• **Tự Buff**: Tăng **+${atkBonus}%** Vật công và **+${spdBonus}** Tốc độ trong 3 hiệp.
+• **Thời gian hồi**: 15 giây (5 hiệp).`;
+    },
+
+    // Pháp Tu
+    'tu_khi_thuat': () => {
+      const mpRecPct = Math.round(15 * capDoScale);
+      return `Vận chuyển linh lực, dẫn dắt linh khí đất trời vào cơ thể.
+• **Hồi phục**: Hồi phục **${mpRecPct}%** MP tối đa.
+• **Hiệu ứng**: Nhận trạng thái [Tụ Khí] trong 2 hiệp (Tăng sát thương cho chiêu phép tiếp theo).
+• **Thời gian hồi**: 6 giây (2 hiệp).`;
+    },
+    'linh_phao_thuat': () => {
+      const dmgPct = Math.round(100 * capDoScale);
+      return `Nén chân khí bắn ra pháo năng lượng oanh tạc mục tiêu.
+• **Sát thương**: Gây **${dmgPct}%** Sát thương Phép thuật.
+• **Thời gian hồi**: Không có (0 hiệp).`;
+    },
+    'tu_duong_chuong': () => {
+      const dmgPct = Math.round(400 * capDoScaleMajor);
+      const atkBonus = Math.round(10 * capDoScale);
+      const debuffChance = Math.round(35 * capDoScale);
+      const debuffAmt = Math.round(15 * capDoScale);
+      return `Ngưng tụ chưởng ấn tử hỏa thiêu rụi chân khí đối phương.
+• **Sát thương**: Gây **${dmgPct}%** Sát thương Phép thuật.
+• **Tự Buff**: Tăng **+${atkBonus}%** Pháp công trong 3 hiệp.
+• **Hiệu ứng phụ**: Có **${debuffChance}%** tỷ lệ gây [Tán Khí] (giảm **-${debuffAmt}%** Kháng Pháp của đối thủ) trong 2 hiệp.
+• **Thời gian hồi**: 15 giây (5 hiệp).`;
+    },
+    'phap_tuong_kim_cang': () => {
+      const regenPct = Math.round(8 * capDoScale);
+      const defBonus = Math.round(30 * capDoScale);
+      const reduction = Math.round(15 * capDoScale);
+      return `Triệu hồi hư ảnh hộ pháp kim quang vạn pháp bất xâm.
+• **Hồi phục**: Hồi **${regenPct}%** HP tối đa mỗi hiệp, kéo dài 5 hiệp.
+• **Tự Buff**: Tăng **+${defBonus}%** Vật phòng và Pháp phòng trong 5 hiệp.
+• **Hiệu ứng phụ**: Giảm **-${reduction}%** toàn bộ sát thương gánh chịu trong 5 hiệp.
+• **Thời gian hồi**: 21 giây (7 hiệp).`;
+    },
+    'thai_hu_van_kiem_quyet': () => {
+      const dmgPct = Math.round(100 * capDoScale);
+      const slowPct = Math.round(10 * capDoScale);
+      return `Triệu hồi vạn đạo kiếm quang càn quét chiến trường.
+• **Sát thương**: Gây **${dmgPct}%** Sát thương Phép thuật lên toàn bộ đối thủ.
+• **Hiệu ứng phụ**: Làm chậm **-${slowPct}%** Tốc độ đối phương trong 3 hiệp.
+• **Thời gian hồi**: 9 giây (3 hiệp).`;
+    },
+    'ngu_loi_oanh_dinh': () => {
+      const dmgPct = Math.round(180 * capDoScale);
+      const stunChance = Math.round(20 * capDoScale);
+      return `Triệu gọi ngũ lôi đánh thẳng xuống đầu đối thủ.
+• **Sát thương**: Gây **${dmgPct}%** Sát thương Phép thuật.
+• **Hiệu ứng phụ**: Có **${stunChance}%** tỷ lệ gây Tê Liệt (Choáng/mất lượt) trong 1 hiệp.
+• **Thời gian hồi**: 9 giây (3 hiệp).`;
+    },
+    'dai_tu_linh_tran': () => {
+      const mpRecPct = Math.round(30 * capDoScale);
+      return `Kích hoạt tụ linh pháp trận lớn dưới chân.
+• **Hồi phục**: Hồi phục ngay **${mpRecPct}%** MP tối đa.
+• **Hiệu ứng phụ**: Giảm thời gian hồi chiêu của toàn bộ kỹ năng khác đi 1 lượt.
+• **Thời gian hồi**: 15 giây (5 hiệp).`;
+    }
+  };
+
+  const generator = descMap[skillId];
+  if (generator) return generator();
+  return null;
+}

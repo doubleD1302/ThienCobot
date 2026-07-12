@@ -1352,7 +1352,7 @@ async function autoDiBiCanh(tuSi) {
 
     if (isWin) {
       gainedExp = Math.floor((dungeon.thuong.expMin + Math.random() * (dungeon.thuong.expMax - dungeon.thuong.expMin)) * thienDao.expMult);
-      gainedStones = Math.floor((dungeon.thuong.stonesMin + Math.random() * (dungeon.thuong.stonesMax - dungeon.thuong.stonesMin)) * thienDao.stoneMult);
+      gainedStones = Math.floor((dungeon.thuong.stonesMin + Math.random() * (dungeon.thuong.stonesMax - dungeon.thuong.stonesMin)) * thienDao.stoneMult * 5);
 
       const statsObj = tuSi.thongKeAuto;
       statsObj.exp = (statsObj.exp || 0) + gainedExp;
@@ -1364,8 +1364,25 @@ async function autoDiBiCanh(tuSi) {
           const targetId = drop.replaceId && Math.random() < 0.5 ? drop.replaceId : drop.itemId;
           const itemDetail = await Item.findByPk(targetId);
           if (itemDetail) {
-            droppedItem = itemDetail;
-            itemsMap[targetId] = (itemsMap[targetId] || 0) + 1;
+            if (itemDetail.loai === 'Linh thảo' && !itemDetail.id.startsWith('hat_giong_')) {
+              const realmHerbId = config.layVatPhamDotPhaTheoCapDo(tuSi.capDo).herbId;
+              const herbDetail = await Item.findByPk(realmHerbId);
+              if (herbDetail) {
+                droppedItem = herbDetail;
+                itemsMap[realmHerbId] = (itemsMap[realmHerbId] || 0) + 1;
+                break;
+              }
+            }
+            const isEquip = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(itemDetail.loai);
+            if (isEquip) {
+              const matId = config.getNguyenLieuLuyenKhiTheoCapDo(itemDetail.yeuCauCanhGioi || tuSi.capDo, itemDetail.loai, itemDetail.id);
+              droppedItem = await Item.findByPk(matId) || itemDetail;
+              itemsMap[matId] = (itemsMap[matId] || 0) + 5; // x5 quantity!
+            } else {
+              droppedItem = itemDetail;
+              const dropQty = itemDetail.loai === 'Nguyên liệu' ? 5 : 1;
+              itemsMap[targetId] = (itemsMap[targetId] || 0) + dropQty;
+            }
             break;
           }
         }
@@ -1373,7 +1390,7 @@ async function autoDiBiCanh(tuSi) {
 
       if (Math.random() <= 0.20) {
         const seedId = 'hat_giong_tu_linh_thao';
-        itemsMap[seedId] = (itemsMap[seedId] || 0) + 1;
+        itemsMap[seedId] = (itemsMap[seedId] || 0) + 5; // x5 quantity!
       }
 
       // 15% cơ hội rơi nguyên liệu hoặc đan đột phá phù hợp cảnh giới
@@ -1391,7 +1408,8 @@ async function autoDiBiCanh(tuSi) {
         }
         const itemDetail = await Item.findByPk(targetId);
         if (itemDetail) {
-          itemsMap[targetId] = (itemsMap[targetId] || 0) + 1;
+          const dropQty = targetId === btData.seedId ? 5 : 1;
+          itemsMap[targetId] = (itemsMap[targetId] || 0) + dropQty;
         }
       }
 
@@ -1488,7 +1506,7 @@ async function autoDiLichLuyen(tuSi) {
     }
     if (effects.itemRandomEligible) {
       const allItems = await Item.findAll();
-      const eligibleItems = allItems.filter(item => item.doHiem === 'Thường' || item.doHiem === 'Hiếm');
+      const eligibleItems = allItems.filter(item => (item.doHiem === 'Thường' || item.doHiem === 'Hiếm') && config.checkTrangBiPhuHopHuongTu(item, tuSi.huongTu));
       const itemDropped = eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
       if (itemDropped) {
         itemsMap[itemDropped.id] = (itemsMap[itemDropped.id] || 0) + 1;

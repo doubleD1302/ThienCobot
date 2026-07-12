@@ -113,25 +113,29 @@ async function generatePlayerShop(tuSi) {
       let eligible = config.ITEMS.filter(x => 
         ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Pháp Bảo'].includes(x.loai) && 
         x.doHiem === doHiem &&
-        x.yeuCauCanhGioi === realmStart
+        x.yeuCauCanhGioi === realmStart &&
+        config.checkTrangBiPhuHopHuongTu(x, tuSi.huongTu)
       );
       if (eligible.length === 0) {
         eligible = config.ITEMS.filter(x => 
           ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Pháp Bảo'].includes(x.loai) && 
-          x.yeuCauCanhGioi === realmStart
+          x.yeuCauCanhGioi === realmStart &&
+          config.checkTrangBiPhuHopHuongTu(x, tuSi.huongTu)
         );
       }
       if (eligible.length === 0) {
         eligible = config.ITEMS.filter(x => 
           ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Pháp Bảo'].includes(x.loai) && 
           x.yeuCauCanhGioi <= tuSi.capDo &&
-          x.doHiem === doHiem
+          x.doHiem === doHiem &&
+          config.checkTrangBiPhuHopHuongTu(x, tuSi.huongTu)
         );
       }
       if (eligible.length === 0) {
         eligible = config.ITEMS.filter(x => 
           ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Pháp Bảo'].includes(x.loai) && 
-          x.yeuCauCanhGioi <= tuSi.capDo
+          x.yeuCauCanhGioi <= tuSi.capDo &&
+          config.checkTrangBiPhuHopHuongTu(x, tuSi.huongTu)
         );
       }
       
@@ -1004,7 +1008,12 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
     }
 
     // Deduct quantity
-    await Inventory.consumeItem(tuSi.idNguoiDung, itemDetail.id, soLuong);
+    invRecord.soLuong -= soLuong;
+    if (invRecord.soLuong <= 0) {
+      await invRecord.destroy();
+    } else {
+      await invRecord.save();
+    }
 
     // Add Linh Thach
     tuSi.linhThach += tongGia;

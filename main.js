@@ -693,6 +693,23 @@ async function start() {
       }
       console.log(`Đã đồng bộ thành công ${config.ITEMS.length} vật phẩm mẫu vào CSDL.`);
 
+      // Dọn dẹp vật phẩm đan dược và linh thảo cũ không còn trong config.ITEMS
+      const configItemIds = config.ITEMS.map(x => x.id);
+      const { Op } = (await import('sequelize'));
+      const oldItems = await Item.findAll({
+        where: {
+          id: { [Op.notIn]: configItemIds },
+          loai: { [Op.in]: ['Đan dược', 'Linh thảo'] }
+        }
+      });
+      const oldItemIds = oldItems.map(x => x.id);
+      if (oldItemIds.length > 0) {
+        const { Inventory } = await import('./models/Inventory.js');
+        const deletedInv = await Inventory.destroy({ where: { itemId: { [Op.in]: oldItemIds } } });
+        const deletedItm = await Item.destroy({ where: { id: { [Op.in]: oldItemIds } } });
+        console.log(`Đã dọn dẹp ${oldItemIds.length} vật phẩm cũ không còn sử dụng (Đã xóa ${deletedInv} bản ghi trong túi đồ và ${deletedItm} trong bảng vật phẩm).`);
+      }
+
       // Khởi tạo và đồng bộ dữ liệu mẫu cho bảng pet_templates
       const { PetTemplate } = await import('./models/PetTemplate.js');
       await PetTemplate.destroy({ where: {} });

@@ -236,7 +236,6 @@ class BoDieuKhienTuLuyen extends BoDieuKhienGoc {
 
           tuSi.dongBoCanhGioi();
           tuSi.theLucMax = (tuSi.theLucMax || 200) + 1;
-          tuSi.theLuc = (tuSi.theLuc || 200) + 1;
           const { realmName: newRealmName, stageName: newStage } = config.layThongTinCanhGioi(tuSi.capDo);
 
           // Hồi phục toàn mãn trạng thái

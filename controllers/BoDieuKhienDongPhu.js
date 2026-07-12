@@ -1,3 +1,4 @@
+import fs from 'fs';
 import {
   SlashCommandBuilder,
   ActionRowBuilder,
@@ -2136,8 +2137,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           const template = config.PET_TEMPLATES[pet.type];
           if (i.customId === 'pet_action_active') {
             if (pet.isActive) {
-              await Pet.update({ isActive: false }, { where: { id: pet.id } });
               pet.isActive = false;
+              await pet.save();
               actionMessage = BoTaoEmbed.thanhCong('💤 Sủng vật thu hồi', `Đã cho **${pet.name}** về nghỉ ngơi.`);
             } else {
               const check = config.checkHuyetMachApChe(tuSi.capDo, pet.rarity);
@@ -2145,8 +2146,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 actionMessage = BoTaoEmbed.thatBai('🚫 Áp Chế Huyết Mạch', check.msg);
               } else {
                 await Pet.update({ isActive: false }, { where: { userId: tuSi.idNguoiDung } });
-                await Pet.update({ isActive: true }, { where: { id: pet.id } });
                 pet.isActive = true;
+                await pet.save();
                 actionMessage = BoTaoEmbed.thanhCong('⚔️ Sủng vật xuất chiến', `**${pet.name}** đã xuất chiến hộ mệnh đạo hữu.`);
               }
             }

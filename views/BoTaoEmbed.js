@@ -587,10 +587,12 @@ export class BoTaoEmbed {
     const learnedLines = [];
     for (const psk of playerSkills) {
       const trangBiText = psk.trangBi ? '`[Đã Lắp ⚔️]` ' : '`[Chưa Lắp]` ';
+      const detailedDesc = config.layMoTaChiTietKyNang(psk.skillId, psk.capDo) || psk.moTa;
+      const cooldownRounds = Math.max(1, Math.ceil((psk.cooldown || 0) / 3));
       learnedLines.push(
         `• ${trangBiText}**${psk.ten} (Cấp ${psk.capDo})**\n` +
-        `  *Sát thương*: \`${psk.satThuong}%\` | *Hồi chiêu*: \`${psk.cooldown}s\`\n` +
-        `  *Mô tả*: _${psk.moTa}_`
+        `  *Hồi chiêu*: \`${psk.cooldown || 0}s\` (tương đương \`${cooldownRounds}\` hiệp)\n` +
+        `  *Chi tiết*: _${detailedDesc}_`
       );
     }
 
@@ -599,10 +601,12 @@ export class BoTaoEmbed {
       const { stageName } = config.layThongTinCanhGioi(sk.yeuCauCanhGioi);
       const reqExp = config.layLinhLucYeuCau(sk.yeuCauCanhGioi);
       const cost = Math.min(100000000, Math.floor(reqExp / 100));
+      const detailedDesc = config.layMoTaChiTietKyNang(sk.id, 1) || sk.moTa;
+      const cooldownRounds = Math.max(1, Math.ceil((sk.cooldown || 0) / 3));
       availableLines.push(
         `• **${sk.ten}** (Yêu cầu: **${stageName}** · Phí: \`${cost.toLocaleString()}\` 🪙)\n` +
-        `  *Sát thương*: \`${sk.satThuong}%\` | *Hồi chiêu*: \`${sk.cooldown}s\` | ID: \`${sk.id}\`\n` +
-        `  *Mô tả*: _${sk.moTa}_`
+        `  *Hồi chiêu*: \`${sk.cooldown || 0}s\` (tương đương \`${cooldownRounds}\` hiệp) | ID: \`${sk.id}\`\n` +
+        `  *Chi tiết*: _${detailedDesc}_`
       );
     }
 
@@ -785,6 +789,19 @@ export class BoTaoEmbed {
         return `${emoji} **${line.ten}**: \`${sign}${line.phanTram}%\``;
       }).join('\n');
       embed.addFields({ name: '🔮 Dòng Chỉ Số Linh Khí', value: linesTxt, inline: false });
+    }
+
+    const activeSkill = config.layKyNangPhapBaoActive(item.id);
+    if (activeSkill && (item.loai === 'Pháp Bảo' || item.loai === 'Cổ Bảo Chủ Động')) {
+      const effectDesc = activeSkill.moTa || '_Chưa rõ hiệu ứng._';
+      embed.addFields({
+        name: '⚡ Kỹ Năng Chủ Động Pháp Bảo',
+        value: `• **Tên chiêu thức**: **${activeSkill.ten}**\n` +
+               `• **Loại kỹ năng**: \`${activeSkill.loai}\`\n` +
+               `• **Chi tiết hiệu ứng**: ${effectDesc}\n` +
+               `• **Thời gian duy trì**: \`${activeSkill.duration || 0} hiệp\` *(Kích hoạt khi vào trận đấu)*`,
+        inline: false
+      });
     }
 
     return embed;

@@ -1892,18 +1892,18 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     let statsObj = tuSi.thongKeAuto;
     assert.strictEqual(statsObj.activeMinutes, 5);
     assert.strictEqual(statsObj.exp, 30);
-    assert.strictEqual(statsObj.stones, 150);
+    assert.strictEqual(statsObj.stones, 350);
     assert.ok(statsObj.items['hat_giong_tu_linh_thao'] >= 2);
 
     // --- 5. Test harvest action credits rewards and resets stats ---
     const harvestResult = await creditAutoRewards(tuSi);
     assert.ok(harvestResult);
     assert.strictEqual(harvestResult.expGained, 30);
-    assert.strictEqual(harvestResult.stonesGained, 150);
+    assert.strictEqual(harvestResult.stonesGained, 350);
 
     await tuSi.reload();
     assert.strictEqual(tuSi.linhLuc, 30);
-    assert.strictEqual(tuSi.linhThach, 5150);
+    assert.strictEqual(tuSi.linhThach, 5350);
 
     // Check that items dropped are now added to Inventory
     invItems = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
@@ -1928,7 +1928,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     assert.strictEqual(tuSi.thoiGianAuto, 240); // 245 - 5
     assert.strictEqual(tuSi.thongKeAuto.activeMinutes, 5); // reset back to 5
     assert.strictEqual(tuSi.thongKeAuto.exp, 30); // 10 (dungeon) + 20 (event)
-    assert.strictEqual(tuSi.thongKeAuto.stones, 150); // 50 (dungeon) + 100 (event)
+    assert.strictEqual(tuSi.thongKeAuto.stones, 350); // 50 (dungeon) + 100 (event)
 
     // Clean up
     await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
@@ -4162,7 +4162,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     const hasMaterial = await Inventory.findOne({ where: { idNguoiDung, itemId: 'so_cap_thiet_quang' } });
     assert.ok(hasMaterial);
-    assert.strictEqual(hasMaterial.soLuong, 1);
+    assert.strictEqual(hasMaterial.soLuong, 5);
 
     // Clean up
     await dungeon.destroy();
@@ -4295,7 +4295,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     const hasHuyenThiet = await Inventory.findOne({ where: { idNguoiDung, itemId: 'huyen_thiet_van_nam' } });
     assert.ok(hasHuyenThiet);
-    assert.strictEqual(hasHuyenThiet.soLuong, 1);
+    assert.strictEqual(hasHuyenThiet.soLuong, 5);
 
     // Clean up
     await dungeon.destroy();

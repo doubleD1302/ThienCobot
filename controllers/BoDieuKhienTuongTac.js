@@ -148,7 +148,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
               .setDescription(
                 interceptMsg +
                 `⚔️ Cuộc tỷ thí long trời lở đất kết thúc sau ${round - 1} hiệp!\n\n` +
-                `🏆 **Người chiến thắng**: **${winner.ten}**\n\n` +
+                `🏆 **Người chiến thắng**: ${winner ? `**${winner.ten}**` : '*Hòa (Hết lượt)*'}\n\n` +
                 `📝 **Nhật ký tỷ thí**:\n` +
                 pageLogs
               )
@@ -352,7 +352,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             let color = 0;
             let description = '';
 
-            if (winner.idNguoiDung === tuSiA.idNguoiDung) {
+            if (winner && winner.idNguoiDung === tuSiA.idNguoiDung) {
               title = '👹 Cướp Đoạt Thành Công (Đả Bại Phu Thê)';
               color = 0x2ecc71;
               const stolen = Math.min(100000, Math.floor(tuSiB.linhThach * 0.10));
@@ -364,7 +364,7 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
               description = `💥 Đạo hữu **${tuSiA.ten}** định cướp đoạt **${tuSiB.ten}**, phu quân/nương tử **${spouse.ten}** phát hiện và lao vào ngăn chặn nhưng đáng tiếc bị đánh bại!\n` +
                 `🏆 **Cướp đoạt thành công!** Kẻ ác nhân **${tuSiA.ten}** thắng cuộc và lấy đi tài vật!\n\n` +
                 `• **Số linh thạch cướp được**: \`+${stolen.toLocaleString()}\` Linh thạch từ **${tuSiB.ten}**.\n\n`;
-            } else {
+            } else if (winner && winner.idNguoiDung === spouse.idNguoiDung) {
               title = '💀 Cướp Đoạt Thất Bại (Bị Phu Thê Đánh Bại)';
               color = 0xe74c3c;
               const penalty = Math.floor(tuSiA.linhThach * 0.05);
@@ -382,6 +382,11 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
                 `🏆 **Phu thê thủ hộ thành công!** **${spouse.ten}** đánh bại kẻ xấu xa **${tuSiA.ten}**!\n\n` +
                 `• **Bồi thường phạt tổn hại**: Khấu trừ \`-${penalty.toLocaleString()}\` Linh thạch chuyển cho **${spouse.ten}**.\n` +
                 `• **Tổn thương nhận lấy**: Trừ \`-30% HP\` tối đa.\n\n`;
+            } else {
+              title = '⚖️ Cướp Đoạt Bất Phân Thắng Bại';
+              color = 0x7f8c8d;
+              description = `💥 Đạo hữu **${tuSiA.ten}** định cướp đoạt **${tuSiB.ten}**, phu quân/nương tử **${spouse.ten}** bước ra tỷ thí. Cả hai đấu suốt 300 hiệp bất phân thắng bại!\n` +
+                `🏆 **Kết quả**: Hòa (Tỷ thí chấm dứt, không ai mất linh thạch).\n\n`;
             }
 
             const renderPage = (pageIdx) => {
@@ -523,14 +528,18 @@ class BoDieuKhienTuongTac extends BoDieuKhienGoc {
             let color = 0;
             let description = '';
 
-            if (winner.idNguoiDung === spouse.idNguoiDung) {
+            if (winner && winner.idNguoiDung === spouse.idNguoiDung) {
               title = '💢 Ngăn Chặn Song Tu (Phu Thê Chiến Thắng)';
               color = 0xe74c3c;
               description = `💢 Đạo hữu **${tuSiA.ten}** định gạ gẫm song tu với **${tuSiB.ten}** nhưng đã bị phu quân/nương tử của họ là **${spouse.ten}** phát hiện kịp thời và đánh cho một trận tơi tả!\n\n`;
-            } else {
+            } else if (winner && winner.idNguoiDung === tuSiA.idNguoiDung) {
               title = '💢 Phá Vỡ Song Tu (Kẻ Gạ Gẫm Chiến Thắng)';
               color = 0xe67e22;
               description = `💢 Đạo hữu **${tuSiA.ten}** định gạ gẫm song tu với **${tuSiB.ten}**. Phu quân/nương tử **${spouse.ten}** lao vào ngăn cản nhưng đáng tiếc bị đánh bại! Dẫu vậy, mối giao tình song tu vẫn bị phá vỡ.\n\n`;
+            } else {
+              title = '⚖️ Trận Đấu Bất Phân Thắng Bại';
+              color = 0x7f8c8d;
+              description = `💢 Đạo hữu **${tuSiA.ten}** định gạ gẫm song tu với **${tuSiB.ten}**, phu quân/nương tử **${spouse.ten}** phát hiện và lao vào ngăn chặn. Hai bên đấu đến kiệt sức bất phân thắng bại! Kế hoạch song tu bị huỷ bỏ.\n\n`;
             }
 
             const renderPage = (pageIdx) => {
@@ -1108,6 +1117,67 @@ async function _simCombat(tuSiA, tuSiB) {
 
   battleLogs.push(prepA);
   battleLogs.push(prepB);
+
+  // Kích hoạt Linh Căn, Huyết Mạch, Linh Thú bị động
+  if (A_elements.length > 0) {
+    battleLogs.push(`☯️ **Linh Căn Bị Động**: **${tuSiA.ten}** vận hành Linh Căn [${A_elements.join(', ')}] hấp thu linh khí chiến đấu!`);
+  }
+  if (A_hm) {
+    const hmConfig = config.HUYET_MACH[A_hm];
+    if (hmConfig) {
+      battleLogs.push(`🧬 **Huyết Mạch Bị Động**: **${tuSiA.ten}** bộc phát Huyết Mạch **${hmConfig.name}**, gia tăng căn cơ chiến đấu!`);
+    }
+  }
+  if (petA) {
+    const stage = config.getPetStage(petA.rarity);
+    const lineage = config.NEW_PET_LINEAGES[petA.type];
+    const stageConf = lineage?.stages[stage];
+    const petName = stageConf ? stageConf.name : petA.name;
+    const passiveStats = config.getPetPassiveStats(petA.type, stage, petA.tuChat, petA.level);
+    if (passiveStats && Object.keys(passiveStats).length > 0) {
+      const nameMap = {
+        vat_cong: 'Vật Công', phap_cong: 'Pháp Công', vat_phong: 'Vật Phòng', phap_phong: 'Pháp Phòng',
+        max_hp: 'HP', max_mp: 'MP', speed: 'Tốc độ', crit_rate: 'Bạo Kích', xuyen_giap: 'Xuyên Giáp',
+        giam_sat_thuong: 'Giảm Sát Thương', hieu_ung_cx: 'Hiệu Ứng CX', ne: 'Né Tránh', khang_hieu_ung: 'Kháng Hiệu Ứng'
+      };
+      const statLines = Object.entries(passiveStats).map(([k, v]) => {
+        const label = nameMap[k] || k;
+        const valStr = (v < 1 && v > 0) ? `+${Math.round(v * 100)}%` : `+${v}`;
+        return `${label} ${valStr}`;
+      });
+      battleLogs.push(`🐾 **Linh Thú Bị Động**: **${petName}** kích hoạt bị động hộ chủ, cường hóa cho **${tuSiA.ten}**: [${statLines.join(', ')}]!`);
+    }
+  }
+
+  if (B_elements.length > 0) {
+    battleLogs.push(`☯️ **Linh Căn Bị Động**: **${tuSiB.ten}** vận hành Linh Căn [${B_elements.join(', ')}] hấp thu linh khí chiến đấu!`);
+  }
+  if (B_hm) {
+    const hmConfig = config.HUYET_MACH[B_hm];
+    if (hmConfig) {
+      battleLogs.push(`🧬 **Huyết Mạch Bị Động**: **${tuSiB.ten}** bộc phát Huyết Mạch **${hmConfig.name}**, gia tăng căn cơ chiến đấu!`);
+    }
+  }
+  if (petB) {
+    const stage = config.getPetStage(petB.rarity);
+    const lineage = config.NEW_PET_LINEAGES[petB.type];
+    const stageConf = lineage?.stages[stage];
+    const petName = stageConf ? stageConf.name : petB.name;
+    const passiveStats = config.getPetPassiveStats(petB.type, stage, petB.tuChat, petB.level);
+    if (passiveStats && Object.keys(passiveStats).length > 0) {
+      const nameMap = {
+        vat_cong: 'Vật Công', phap_cong: 'Pháp Công', vat_phong: 'Vật Phòng', phap_phong: 'Pháp Phòng',
+        max_hp: 'HP', max_mp: 'MP', speed: 'Tốc độ', crit_rate: 'Bạo Kích', xuyen_giap: 'Xuyên Giáp',
+        giam_sat_thuong: 'Giảm Sát Thương', hieu_ung_cx: 'Hiệu Ứng CX', ne: 'Né Tránh', khang_hieu_ung: 'Kháng Hiệu Ứng'
+      };
+      const statLines = Object.entries(passiveStats).map(([k, v]) => {
+        const label = nameMap[k] || k;
+        const valStr = (v < 1 && v > 0) ? `+${Math.round(v * 100)}%` : `+${v}`;
+        return `${label} ${valStr}`;
+      });
+      battleLogs.push(`🐾 **Linh Thú Bị Động**: **${petName}** kích hoạt bị động hộ chủ, cường hóa cho **${tuSiB.ten}**: [${statLines.join(', ')}]!`);
+    }
+  }
 
   // Pháp bảo chủ động A
   const dharmaA = eqA.inv.filter(x => x.item.loai === 'Pháp Bảo');

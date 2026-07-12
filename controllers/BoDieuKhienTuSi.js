@@ -708,6 +708,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
           }
         }
       });
+      candidatePBs = candidatePBs.filter(x => config.checkTrangBiPhuHopHuongTu(x, tuSi.huongTu));
 
       // Nếu cảnh giới hiện tại chưa có Pháp Bảo tương ứng, lấy tất cả Pháp Bảo yêu cầu cấp <= nhân vật
       if (candidatePBs.length === 0) {
@@ -719,6 +720,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
             }
           }
         });
+        candidatePBs = candidatePBs.filter(x => config.checkTrangBiPhuHopHuongTu(x, tuSi.huongTu));
       }
 
       if (candidatePBs.length > 0) {
@@ -754,6 +756,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
           }
         }
       });
+      candidates = candidates.filter(x => config.checkTrangBiPhuHopHuongTu(x, tuSi.huongTu));
 
       if (candidates.length === 0) {
         candidates = await Item.findAll({
@@ -766,6 +769,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
             }
           }
         });
+        candidates = candidates.filter(x => config.checkTrangBiPhuHopHuongTu(x, tuSi.huongTu));
       }
 
       // Lọc theo phái tu (Thể Tu vs Pháp Tu)

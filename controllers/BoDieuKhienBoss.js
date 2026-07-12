@@ -161,23 +161,31 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
   };
 
   // Lấy trang bị Thần Thoại cảnh giới người chơi (10% drop)
-  const getThanThoaiEquipForPlayer = async (playerCapDo) => {
+  const getThanThoaiEquipForPlayer = async (playerCapDo, playerHuongTu) => {
     const realmInfo = config.layThongTinCanhGioi(playerCapDo);
     const realmObj = config.CANH_GIOI_LIST.find(r => r.name === realmInfo.realmName) || config.CANH_GIOI_LIST[0];
     const minLvl = realmObj.min_level;
     const maxLvl = realmObj.max_level;
 
-    const candidates = await Item.findAll({
+    let candidates = await Item.findAll({
       where: {
         yeuCauCanhGioi: { [Op.between]: [minLvl, maxLvl] },
         loai: { [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'] }
       }
     });
 
+    if (playerHuongTu) {
+      candidates = candidates.filter(item => config.checkTrangBiPhuHopHuongTu(item, playerHuongTu));
+    }
+
     if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
-    const fallback = await Item.findAll({
+    
+    let fallback = await Item.findAll({
       where: { loai: { [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'] } }
     });
+    if (playerHuongTu) {
+      fallback = fallback.filter(item => config.checkTrangBiPhuHopHuongTu(item, playerHuongTu));
+    }
     return fallback.length > 0 ? fallback[Math.floor(Math.random() * fallback.length)] : null;
   };
 
@@ -208,7 +216,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
 
       // 10% rớt trang bị Thần Thoại
       if (Math.random() < 0.10) {
-        const eqItem = await getThanThoaiEquipForPlayer(lhTuSi.capDo);
+        const eqItem = await getThanThoaiEquipForPlayer(lhTuSi.capDo, lhTuSi.huongTu);
         if (eqItem) {
           const normLoai = eqItem.loai ? eqItem.loai.normalize('NFC') : '';
           const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);
@@ -285,7 +293,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
 
     // 10% rớt thêm trang bị cấp Thần Thoại (đảm bảo có ít nhất 1 dòng Thần Thoại)
     if (Math.random() < 0.10) {
-      const eqItem = await getThanThoaiEquipForPlayer(tuSi.capDo);
+      const eqItem = await getThanThoaiEquipForPlayer(tuSi.capDo, tuSi.huongTu);
       if (eqItem) {
         const normLoai = eqItem.loai ? eqItem.loai.normalize('NFC') : '';
         const isEquipable = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].map(x => x.normalize('NFC')).includes(normLoai);

@@ -85,7 +85,7 @@ class BoDieuKhienLichLuyen extends BoDieuKhienGoc {
       }
       if (effects.itemRandomEligible) {
         const allItems = await Item.findAll();
-        const eligibleItems = allItems.filter(item => item.doHiem === 'Thường' || item.doHiem === 'Hiếm');
+        const eligibleItems = allItems.filter(item => (item.doHiem === 'Thường' || item.doHiem === 'Hiếm') && config.checkTrangBiPhuHopHuongTu(item, tuSi.huongTu));
         const itemDropped = eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
         if (itemDropped) {
           await Inventory.addVatPham(tuSi.idNguoiDung, itemDropped.id, 1);
