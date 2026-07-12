@@ -645,19 +645,24 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
   async tinhVaLuuChiSoBoss(guildId) {
     try {
       const { TuSi } = await import('../models/TuSi.js');
+      const { Inventory } = await import('../models/Inventory.js');
+      const { Item } = await import('../models/Item.js');
+      const { PlayerSkill } = await import('../models/PlayerSkill.js');
+      const { Skill } = await import('../models/Skill.js');
+      const { Pet } = await import('../models/Pet.js');
       const { Op } = await import('sequelize');
 
       const realmRanges = {
-        'Luyện Khí': { min: 1, max: 9 },
-        'Trúc Cơ':   { min: 10, max: 12 },
-        'Kim Đan':   { min: 13, max: 999 }
+        'Luyện Khí': { min: 1, max: 9, def: { vatPhong: 20, phapPhong: 20, giap: 10 } },
+        'Trúc Cơ':   { min: 10, max: 12, def: { vatPhong: 200, phapPhong: 200, giap: 50 } },
+        'Kim Đan':   { min: 13, max: 999, def: { vatPhong: 500, phapPhong: 500, giap: 100 } }
       };
 
       const result = {};
 
-      for (const [realm, range] of Object.entries(realmRanges)) {
+      for (const [realm, conf] of Object.entries(realmRanges)) {
         const players = await TuSi.findAll({
-          where: { capDo: { [Op.between]: [range.min, range.max] } }
+          where: { capDo: { [Op.between]: [conf.min, conf.max] } }
         });
 
         if (players.length === 0) {
@@ -666,27 +671,216 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           continue;
         }
 
-        // Tính trung bình HP và công của người chơi
         let totalHp = 0;
         let totalAtk = 0;
+        let totalDmgInRealm = 0;
+
         for (const p of players) {
           try {
             const stats = await p.layChiSoDayDu();
             totalHp  += (stats.max_hp  || 0);
             totalAtk += Math.max(stats.vat_cong || 0, stats.phap_cong || 0);
-          } catch (e) { /* bỏ qua nếu lỗi 1 tu sĩ */ }
+
+            // Load combat simulation variables
+            const equippedInv = await Inventory.findAll({ where: { idNguoiDung: p.idNguoiDung, trangBi: true } });
+            const activePet = await Pet.findOne({ where: { userId: p.idNguoiDung, isActive: true } });
+
+            // Active/passive treasures
+            const activeTreasures = [];
+            for (const eq of equippedInv) {
+              const detail = await Item.findByPk(eq.itemId);
+              if (detail && detail.loai === 'Cổ Bảo Chủ Động') {
+                eq.item = detail;
+                activeTreasures.push(eq);
+              }
+            }
+
+            // Skills
+            const learned = await PlayerSkill.findAll({ where: { idNguoiDung: p.idNguoiDung, trangBi: true } });
+            const skills = [];
+            for (const psk of learned) {
+              const detail = await Skill.findByPk(psk.skillId);
+              if (detail) {
+                skills.push({ detail, capDo: psk.capDo, nextRoundAvailable: 1 });
+              }
+            }
+
+            const isPhysical = p.huongTu === 'The Tu' || p.huongTu === 'Thể Tu';
+            const basePlayerAtk = isPhysical ? stats.vat_cong : stats.phap_cong;
+            const targetDef = isPhysical ? conf.def.vatPhong : conf.def.phapPhong;
+
+            let playerTotalDmg = 0;
+            let simMp = stats.max_mp;
+            let tuKhiActive = 0;
+            let chienYStacks = 0;
+            let chienYDuration = 0;
+            const activeBuffs = [];
+
+            // 15-turn simulation loop (similar to /dmg boss)
+            for (let round = 1; round <= 15; round++) {
+              // Burn damage from Bát Hoang Bộ
+              for (const buff of activeBuffs) {
+                if (buff.loai === 'hoa_loi_dap' && buff.roundsLeft > 0) {
+                  playerTotalDmg += Math.floor(stats.vat_cong * buff.triGia);
+                }
+              }
+
+              let roundAtkMult = 1.0;
+              for (const buff of activeBuffs) {
+                if (buff.loai === 'tang_cong_pct' && buff.roundsLeft > 0) {
+                  roundAtkMult += buff.triGia / 100;
+                } else if (buff.loai === 'huyet_mach_cuong_hoa' && buff.roundsLeft > 0) {
+                  roundAtkMult += buff.triGia;
+                } else if (buff.loai === 'tu_duong_chuong' && buff.roundsLeft > 0) {
+                  roundAtkMult += buff.triGia;
+                } else if (buff.loai === 'hong_hoang_kich_buff' && buff.roundsLeft > 0) {
+                  roundAtkMult += buff.triGia;
+                }
+              }
+
+              if (chienYStacks > 0 && chienYDuration > 0) {
+                const skillHKPT = skills.find(s => s.detail.id === 'huyet_khi_phun_trao');
+                const capDoHKPT = skillHKPT ? skillHKPT.capDo : 1;
+                const vatCongBonusPerStack = 0.08 * (1 + (capDoHKPT - 1) * 0.01);
+                roundAtkMult += chienYStacks * vatCongBonusPerStack;
+              }
+
+              const currentRoundPlayerAtk = Math.floor(basePlayerAtk * roundAtkMult);
+              const readySkill = skills.find(s => {
+                const cost = config.getSkillMpCost(s.detail);
+                return s.nextRoundAvailable <= round && simMp >= cost;
+              });
+
+              let pDmg = 0;
+              let isCrit = Math.random() <= stats.crit_rate;
+
+              if (readySkill) {
+                const skill = readySkill.detail;
+                const capDo = readySkill.capDo;
+                const cost = config.getSkillMpCost(skill);
+                simMp = Math.max(0, simMp - cost);
+
+                const isKimDan = skill.yeuCauCanhGioi === 13;
+                const isLuyenKhi = ['tu_khi_thuat', 'linh_phao_thuat', 'huyet_khi_phun_trao', 'bang_son_quyen'].includes(skill.id);
+                const levelBonus = (isKimDan || isLuyenKhi) ? 0.01 : 0.1;
+                const skillMult = (skill.satThuong / 100) * (1 + (capDo - 1) * levelBonus);
+                let rawDmg = currentRoundPlayerAtk * skillMult;
+
+                if (skill.loai === 'Phép thuật' && tuKhiActive > 0) {
+                  const skillTKT = skills.find(s => s.detail.id === 'tu_khi_thuat');
+                  const capDoTKT = skillTKT ? skillTKT.capDo : 1;
+                  const bonusPct = 0.20 * (1 + (capDoTKT - 1) * 0.01);
+                  rawDmg = rawDmg * (1 + bonusPct);
+                  if (skill.id === 'linh_phao_thuat') {
+                    rawDmg = rawDmg * 1.30;
+                  }
+                  tuKhiActive = 0;
+                }
+
+                if (skill.id === 'bang_son_quyen' && chienYStacks >= 2) {
+                  const critBonus = 0.20 * (1 + (capDo - 1) * 0.01);
+                  stats.crit_rate += critBonus;
+                  isCrit = Math.random() <= stats.crit_rate;
+                  chienYStacks = 0;
+                  chienYDuration = 0;
+                }
+
+                if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
+
+                let targetDefFinal = targetDef;
+                if (skill.id === 'bat_hoang_toai_thach_kich') {
+                  const ignorePct = Math.min(1.0, 0.10 * (1 + (capDo - 1) * 0.01));
+                  targetDefFinal = Math.floor(targetDef * (1 - ignorePct));
+                }
+                pDmg = Math.max(1, Math.floor(rawDmg) - targetDefFinal);
+                if (skill.satThuong === 0) pDmg = 0;
+
+                const cooldownRounds = Math.max(1, Math.ceil(skill.cooldown / 3));
+                readySkill.nextRoundAvailable = round + cooldownRounds;
+
+                if (skill.id === 'tu_khi_thuat') {
+                  const mpRecPct = 0.15 * (1 + (capDo - 1) * 0.01);
+                  const mpRecAmt = Math.floor(stats.max_mp * mpRecPct);
+                  simMp = Math.min(stats.max_mp, simMp + mpRecAmt);
+                  tuKhiActive = 2;
+                }
+                if (skill.id === 'huyet_khi_phun_trao') {
+                  chienYStacks = Math.min(3, chienYStacks + 1);
+                  chienYDuration = 3;
+                }
+                if (skill.id === 'hong_hoang_kich') {
+                  activeBuffs.push({
+                    ten: skill.ten,
+                    loai: 'hong_hoang_kich_buff',
+                    triGia: 0.15 * (1 + (capDo - 1) * 0.01),
+                    roundsLeft: 3
+                  });
+                }
+                if (skill.id === 'huyet_mach_cuong_hoa') {
+                  activeBuffs.push({
+                    ten: skill.ten,
+                    loai: 'huyet_mach_cuong_hoa',
+                    triGia: 0.30 * (1 + (capDo - 1) * 0.01),
+                    roundsLeft: 3
+                  });
+                }
+                if (skill.id === 'tu_duong_chuong') {
+                  activeBuffs.push({
+                    ten: skill.ten,
+                    loai: 'tu_duong_chuong',
+                    triGia: 0.10 * (1 + (capDo - 1) * 0.01),
+                    roundsLeft: 3
+                  });
+                }
+                if (skill.id === 'bat_hoang_bo') {
+                  activeBuffs.push({
+                    ten: skill.ten,
+                    loai: 'hoa_loi_dap',
+                    triGia: 0.40 * (1 + (capDo - 1) * 0.01),
+                    roundsLeft: 4
+                  });
+                }
+              } else {
+                let rawDmg = currentRoundPlayerAtk * 1.0;
+                if (isCrit) rawDmg = rawDmg * stats.crit_dmg;
+                pDmg = Math.max(1, Math.floor(rawDmg) - targetDef);
+              }
+
+              playerTotalDmg += pDmg;
+
+              // Cổ Bảo Chủ Động (30% chance)
+              for (const eq of activeTreasures) {
+                if (Math.random() <= 0.30) {
+                  const kynang = config.KYNANG_TRANGBI[eq.itemId];
+                  if (kynang && kynang.baseDmg) {
+                    const cbDmg = Math.max(1, kynang.baseDmg - targetDef);
+                    playerTotalDmg += cbDmg;
+                  }
+                }
+              }
+
+              // Decrement active buffs duration
+              for (const buff of activeBuffs) {
+                if (buff.roundsLeft > 0) buff.roundsLeft--;
+              }
+              if (chienYDuration > 0) {
+                chienYDuration--;
+                if (chienYDuration === 0) chienYStacks = 0;
+              }
+            }
+
+            totalDmgInRealm += playerTotalDmg;
+          } catch (pe) {
+            console.error('[Boss System] Lỗi khi chạy mô phỏng tu sĩ:', pe);
+          }
         }
 
         const avgHp  = Math.floor(totalHp  / players.length);
         const avgAtk = Math.floor(totalAtk / players.length);
-
-        // Chạy giả lập 15 lượt đánh để tính dmg trung bình
-        // Dmg đơn giản: avgAtk * hệ số ổn định
-        const avgDmgPerHit = Math.floor(avgAtk * 0.8);
-        const estimatedTotalDmg = avgDmgPerHit * 15;
+        const avgDmg = Math.floor(totalDmgInRealm / players.length);
 
         result[realm] = {
-          maxHp:    Math.max(10000, estimatedTotalDmg * 30),
+          maxHp:    Math.max(10000, avgDmg * 30),
           vatCong:  Math.max(100,   Math.floor(avgHp  / 10)),
           phapCong: Math.max(100,   Math.floor(avgHp  / 10)),
           vatPhong: Math.max(50,    Math.floor(avgAtk / 10)),
