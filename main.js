@@ -95,7 +95,7 @@ for (const lenh of tatCaLenh) {
   client.commands.set(lenh.data.name, lenh);
 }
 
-client.once('ready', async () => {
+client.once('clientReady', async () => {
   console.log(`[Bot Ready] Đã đăng nhập dưới danh tính: ${client.user.tag} (${client.user.id})`);
 
   // Đồng bộ hóa Slash Commands lên Discord

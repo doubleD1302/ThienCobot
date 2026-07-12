@@ -48,7 +48,7 @@ const tatCaLenh = [
   ...danhSachLenhDmg
 ];
 
-client.once('ready', async () => {
+client.once('clientReady', async () => {
   console.log(`[Refresh Tool] Đang đăng nhập dưới danh tính: ${client.user.tag}`);
 
   try {
