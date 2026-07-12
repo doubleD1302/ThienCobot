@@ -660,6 +660,7 @@ export const DUNGEONS = [
       stonesMax: 100
     },
     drops: [
+      { itemId: 'hat_giong_ngoc_lo_sinh_co', tile: 0.25 },
       { itemId: 'dan_hp_2', tile: 0.50 },
       { itemId: 'dan_mp_2', tile: 0.50 },
       { itemId: 'huyen_thiet_tinh_sa', tile: 0.15 },
@@ -717,6 +718,7 @@ export const DUNGEONS = [
       stonesMax: 400
     },
     drops: [
+      { itemId: 'hat_giong_kim_o_tudan', tile: 0.25 },
       { itemId: 'dan_hp_2', tile: 0.60 },
       { itemId: 'dan_mp_2', tile: 0.60 },
       { itemId: 'kiem_huyen_thiet', tile: 0.10 },
