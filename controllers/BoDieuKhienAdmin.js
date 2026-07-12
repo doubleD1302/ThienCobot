@@ -1116,19 +1116,31 @@ class BoDieuKhienAdmin {
           try {
             const { boDieuKhienBoss } = await import('./BoDieuKhienBoss.js');
             const { WorldBoss } = await import('../models/WorldBoss.js');
-            const hasActive = await WorldBoss.findOne({ where: { idGuild: interaction.guildId, active: true } });
-            if (hasActive) {
-              statusMessage = `⚠️ Guild này hiện đang có Cự Thú xuất thế (\`${hasActive.ten}\`). Đạo hữu hãy tiêu diệt boss cũ trước.`;
-            } else {
-              await boDieuKhienBoss.trieuHoiWorldBossTuDong(interaction.client, interaction.guildId, interaction.guild, 'Luyện Khí');
-              await boDieuKhienBoss.trieuHoiWorldBossTuDong(interaction.client, interaction.guildId, interaction.guild, 'Trúc Cơ');
-              await boDieuKhienBoss.trieuHoiWorldBossTuDong(interaction.client, interaction.guildId, interaction.guild, 'Kim Đan');
-              statusMessage = `👹 Thiên Đạo giáng thế Cự Thú thế giới ngay lập tức!`;
+
+            // Tính lại chỉ số boss từ dữ liệu người chơi hiện tại trước khi spawn
+            await boDieuKhienBoss.tinhVaLuuChiSoBoss(interaction.guildId);
+
+            // Spawn từng realm riêng — chỉ skip realm nào đang còn boss sống
+            const realms = ['Luyện Khí', 'Trúc Cơ', 'Kim Đan'];
+            const spawned = [];
+            const skipped = [];
+            for (const realm of realms) {
+              const hasActive = await WorldBoss.findOne({ where: { idGuild: interaction.guildId, realm, active: true } });
+              if (hasActive && new Date(hasActive.hetHan) > new Date()) {
+                skipped.push(`${realm} (\`${hasActive.ten}\`)`);
+              } else {
+                await boDieuKhienBoss.trieuHoiWorldBossTuDong(interaction.client, interaction.guildId, interaction.guild, realm);
+                spawned.push(realm);
+              }
             }
+            const spawnedMsg = spawned.length > 0 ? `✅ Đã triệu hồi: **${spawned.join(', ')}**` : '';
+            const skippedMsg = skipped.length > 0 ? `\n⚠️ Đang có boss: ${skipped.join(', ')}` : '';
+            statusMessage = `👹 ${spawnedMsg}${skippedMsg}`;
           } catch (spawnErr) {
             console.error('[Admin Command] Lỗi triệu hồi boss:', spawnErr);
             statusMessage = `❌ Thao tác triệu hồi gặp lỗi linh lực bất túc.`;
           }
+
         } else if (customId === 'edit_boss_reset_daonien') {
           try {
             const { CauHinhGuild } = await import('../models/CauHinhGuild.js');

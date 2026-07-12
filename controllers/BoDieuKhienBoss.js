@@ -640,6 +640,70 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
     }, 30000);
   }
 
+  // Tính chỉ số boss động theo từng cảnh giới dựa trên chỉ số thực tế của người chơi
+  // Chạy 1 lần/ngày (7h sáng) và khi admin triệu hồi thủ công
+  async tinhVaLuuChiSoBoss(guildId) {
+    try {
+      const { TuSi } = await import('../models/TuSi.js');
+      const { Op } = await import('sequelize');
+
+      const realmRanges = {
+        'Luyện Khí': { min: 1, max: 9 },
+        'Trúc Cơ':   { min: 10, max: 12 },
+        'Kim Đan':   { min: 13, max: 999 }
+      };
+
+      const result = {};
+
+      for (const [realm, range] of Object.entries(realmRanges)) {
+        const players = await TuSi.findAll({
+          where: { capDo: { [Op.between]: [range.min, range.max] } }
+        });
+
+        if (players.length === 0) {
+          // Fallback nếu không có người chơi ở cảnh giới này
+          result[realm] = { maxHp: 50000, vatCong: 500, phapCong: 500, vatPhong: 100, phapPhong: 100, giap: 30 };
+          continue;
+        }
+
+        // Tính trung bình HP và công của người chơi
+        let totalHp = 0;
+        let totalAtk = 0;
+        for (const p of players) {
+          try {
+            const stats = await p.layChiSoDayDu();
+            totalHp  += (stats.max_hp  || 0);
+            totalAtk += Math.max(stats.vat_cong || 0, stats.phap_cong || 0);
+          } catch (e) { /* bỏ qua nếu lỗi 1 tu sĩ */ }
+        }
+
+        const avgHp  = Math.floor(totalHp  / players.length);
+        const avgAtk = Math.floor(totalAtk / players.length);
+
+        // Chạy giả lập 15 lượt đánh để tính dmg trung bình
+        // Dmg đơn giản: avgAtk * hệ số ổn định
+        const avgDmgPerHit = Math.floor(avgAtk * 0.8);
+        const estimatedTotalDmg = avgDmgPerHit * 15;
+
+        result[realm] = {
+          maxHp:    Math.max(10000, estimatedTotalDmg * 30),
+          vatCong:  Math.max(100,   Math.floor(avgHp  / 10)),
+          phapCong: Math.max(100,   Math.floor(avgHp  / 10)),
+          vatPhong: Math.max(50,    Math.floor(avgAtk / 10)),
+          phapPhong:Math.max(50,    Math.floor(avgAtk / 10)),
+          giap:     Math.max(10,    Math.floor(avgAtk / 20))
+        };
+      }
+
+      fs.writeFileSync('./world_boss_stats.json', JSON.stringify(result, null, 2), 'utf8');
+      console.log('[Boss System] Đã tính lại và lưu chỉ số boss:', JSON.stringify(result));
+      return result;
+    } catch (err) {
+      console.error('[Boss System] Lỗi khi tính chỉ số boss:', err);
+      return null;
+    }
+  }
+
   // Hàm triệu hồi Boss tự động cho Guild theo Cảnh Giới
   async trieuHoiWorldBossTuDong(client, guildId, guild, realm = 'Luyện Khí') {
     try {
@@ -699,16 +763,28 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         bossStats.giap = bossLevel * 10 + 20;
       } else {
         try {
+          // Kiểm tra xem file đã có dữ liệu realm này chưa
+          let needRecalc = true;
           if (fs.existsSync('./world_boss_stats.json')) {
             const fileData = JSON.parse(fs.readFileSync('./world_boss_stats.json', 'utf8'));
             if (fileData[realm]) {
               bossStats = fileData[realm];
+              needRecalc = false;
+            }
+          }
+          // Nếu chưa có dữ liệu cho realm này → tính lại toàn bộ
+          if (needRecalc) {
+            console.log(`[Boss System] File chỉ số boss chưa có dữ liệu cho realm "${realm}", tự động tính lại...`);
+            const newStats = await this.tinhVaLuuChiSoBoss(guildId);
+            if (newStats && newStats[realm]) {
+              bossStats = newStats[realm];
             }
           }
         } catch (err) {
           console.error('[Boss System] Lỗi khi lấy chỉ số boss động:', err);
         }
       }
+
 
       // Hạn giờ biến mất: 30 phút
       const hetHan = new Date(Date.now() + 30 * 60000);
