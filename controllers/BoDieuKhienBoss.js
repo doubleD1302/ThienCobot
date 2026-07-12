@@ -777,11 +777,31 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         });
       }
 
-      let bossRealm = 'Luyện Khí';
-      if (tuSi.capDo >= 13) bossRealm = 'Kim Đan';
-      else if (tuSi.capDo >= 10) bossRealm = 'Trúc Cơ';
+      // Xác định cảnh giới của tu sĩ
+      let playerRealm = 'Luyện Khí';
+      if (tuSi.capDo >= 13) playerRealm = 'Kim Đan';
+      else if (tuSi.capDo >= 10) playerRealm = 'Trúc Cơ';
 
-      let boss = await WorldBoss.findOne({ where: { idGuild: guildId, realm: bossRealm, active: true } });
+      // Xác định kênh boss tương ứng cảnh giới của tu sĩ
+      const realmChannelNames = {
+        'Luyện Khí': '👹┃ʟᴜʏệɴ-ᴋʜí',
+        'Trúc Cơ': '☠️┃ᴛʀúᴄ-ᴄơ',
+        'Kim Đan': '👾┃ᴋɪᴍ-đᴀɴ'
+      };
+      const expectedChannelName = realmChannelNames[playerRealm];
+      const currentChannelName = interaction.channel?.name || '';
+
+      // Kiểm tra nếu đang dùng lệnh ở kênh boss của cảnh giới khác → từ chối
+      const bossChannelNames = Object.values(realmChannelNames);
+      const isInABossChannel = bossChannelNames.some(n => currentChannelName === n || currentChannelName.toLowerCase() === n.toLowerCase());
+      const isInWrongBossChannel = isInABossChannel && currentChannelName !== expectedChannelName && currentChannelName.toLowerCase() !== expectedChannelName.toLowerCase();
+      if (isInWrongBossChannel) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi(`⚔️ **Sai Chiến Trường!**\nĐạo hữu ở cảnh giới **${playerRealm}** chỉ có thể khiêu chiến Cự Thú tại kênh \`${expectedChannelName}\`.`)]
+        });
+      }
+
+      let boss = await WorldBoss.findOne({ where: { idGuild: guildId, realm: playerRealm, active: true } });
 
       if (boss) {
         // Kiểm tra xem Boss đã quá giờ chưa
@@ -801,7 +821,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       }
 
       return await interaction.editReply({
-        embeds: [BoTaoEmbed.thongTin('🌌 Thái Bình Thịnh Thế', 'Yêu thú lánh đời, đất trời yên ả. Hiện tại không có Cự Thú thế giới nào giáng lâm.')]
+        embeds: [BoTaoEmbed.thongTin('🌌 Thái Bình Thịnh Thế', `Yêu thú lánh đời, đất trời yên ả. Hiện tại không có Cự Thú nào giáng lâm tại chiến trường **${playerRealm}** của đạo hữu.`)]
       });
     }
   };
@@ -875,7 +895,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       const boss = await WorldBoss.findOne({ where: { idGuild: guildId, realm: bossRealm, active: true } });
       if (!boss) {
         return await interaction.editReply({
-          embeds: [BoTaoEmbed.thongTin('🌌 Cự Thú Biến Mất', 'Cự Thú thế giới đã bị tiêu diệt hoặc đã rút lui.')],
+          embeds: [BoTaoEmbed.thongTin('🌌 Cự Thú Biến Mất', `Cự Thú tại chiến trường **${bossRealm}** đã bị tiêu diệt hoặc đã rút lui.`)],
           components: []
         });
       }
@@ -897,6 +917,27 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         });
       }
 
+      // Xác định cảnh giới của tu sĩ và kiểm tra kênh
+      let playerRealm = 'Luyện Khí';
+      if (tuSi.capDo >= 13) playerRealm = 'Kim Đan';
+      else if (tuSi.capDo >= 10) playerRealm = 'Trúc Cơ';
+
+      const realmChannelNames = {
+        'Luyện Khí': '👹┃ʟᴜʏệɴ-ᴋʜí',
+        'Trúc Cơ': '☠️┃ᴛʀúᴄ-ᴄơ',
+        'Kim Đan': '👾┃ᴋɪᴍ-đᴀɴ'
+      };
+      const expectedChannelName = realmChannelNames[playerRealm];
+      const currentChannelName = interaction.channel?.name || '';
+      const bossChannelNames = Object.values(realmChannelNames);
+      const isInABossChannel = bossChannelNames.some(n => currentChannelName === n || currentChannelName.toLowerCase() === n.toLowerCase());
+      const isInWrongBossChannel = isInABossChannel && currentChannelName !== expectedChannelName && currentChannelName.toLowerCase() !== expectedChannelName.toLowerCase();
+      if (isInWrongBossChannel) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi(`⚔️ **Sai Chiến Trường!**\nĐạo hữu ở cảnh giới **${playerRealm}** chỉ có thể khiêu chiến Cự Thú tại kênh \`${expectedChannelName}\`.`)]
+        });
+      }
+
       const activeCooldown = await this.kiemTraThoiGianCho(tuSi.idNguoiDung, 'boss');
       if (activeCooldown) {
         const leftSecs = Math.max(0, Math.ceil((new Date(activeCooldown.hetHan).getTime() - Date.now()) / 1000));
@@ -905,10 +946,10 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         });
       }
 
-      const boss = await WorldBoss.findOne({ where: { idGuild: guildId, active: true } });
+      const boss = await WorldBoss.findOne({ where: { idGuild: guildId, realm: playerRealm, active: true } });
       if (!boss || boss.hp <= 0) {
         return await interaction.editReply({
-          embeds: [BoTaoEmbed.loi('Cự Thú đã bị tiêu diệt từ trước!')]
+          embeds: [BoTaoEmbed.loi(`Cự Thú tại chiến trường **${playerRealm}** đã bị tiêu diệt hoặc chưa xuất hiện!`)]
         });
       }
 
