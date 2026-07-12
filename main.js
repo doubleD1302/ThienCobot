@@ -323,8 +323,18 @@ async function start() {
           await queryInterface.dropTable('pet_templates');
         }
       }
+
+      // Khắc phục lỗi schema cũ cho world_bosses (composite primary key)
+      const hasWorldBosses = tableNames.some(t => t.toLowerCase() === 'world_bosses');
+      if (hasWorldBosses) {
+        const worldBossesDesc = await queryInterface.describeTable('world_bosses');
+        if (!worldBossesDesc.realm) {
+          console.log('Phát hiện bảng world_bosses phiên bản cũ (thiếu cột realm). Tiến hành drop table để tái thiết lập...');
+          await queryInterface.dropTable('world_bosses');
+        }
+      }
     } catch (e) {
-      console.warn('[DB Init] Lỗi kiểm tra pet_templates:', e.message);
+      console.warn('[DB Init] Lỗi kiểm tra schema cũ:', e.message);
     }
 
     // Đồng bộ thay đổi (alter) cho tất cả các bảng để bổ sung các bảng/cột mới tự động
