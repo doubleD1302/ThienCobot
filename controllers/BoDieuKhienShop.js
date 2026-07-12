@@ -15,6 +15,8 @@ import { Item } from '../models/Item.js';
 import { Inventory } from '../models/Inventory.js';
 import * as config from '../config.js';
 
+const SELL_ITEMS_PER_PAGE = 23;
+
 // ── Hằng số hiển thị ────────────────────────────────────────────────────────
 const DO_HIEM_EMOJI = {
   'Thường':    '⚪',
