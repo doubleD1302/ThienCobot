@@ -2624,7 +2624,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     }
   });
 
-  test('Tổ Long and Bạch Hổ passive stats verification', async () => {
+  test('Hỏa Hầu passive stats verification', async () => {
     const userId = "555555111222";
     const tuSi = await TuSi.create({
       idNguoiDung: userId,
@@ -2654,7 +2654,7 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
-  test('Lôi Điệp stats calculation verification', async () => {
+  test('Dạ Miêu stats calculation verification', async () => {
     const userId = "444444111222";
     const tuSi = await TuSi.create({
       idNguoiDung: userId,
@@ -3540,13 +3540,6 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await target2.destroy();
   });
 
-  test('Phoenix pet stats and active skill damage calculation', async () => {
-    assert.ok(true);
-  });
-
-  test('Phoenix pet and active pet skill cooldown logic', async () => {
-    assert.ok(true);
-  });
 
   test('Admin /edit Command can gift egg items via Trung category', async () => {
     const { TuSi } = await import('./models/TuSi.js');

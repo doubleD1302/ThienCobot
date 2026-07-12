@@ -752,6 +752,25 @@ async function start() {
       const allTemplates = await PetTemplate.findAll();
       config.loadPetTemplatesIntoCache(allTemplates);
 
+      // Tự động dọn dẹp linh thú/thần thú cũ khỏi CSDL (chỉ giữ lại 5 loài mới)
+      try {
+        const { Pet } = await import('./models/Pet.js');
+        const { Op } = await import('sequelize');
+        const allowedTypes = ['hoa_hau', 'bang_dieu', 'nham_giap', 'da_mieu', 'thanh_loc'];
+        const deletedOldPets = await Pet.destroy({
+          where: {
+            type: {
+              [Op.notIn]: allowedTypes
+            }
+          }
+        });
+        if (deletedOldPets > 0) {
+          console.log(`[Migration] Đã xoá sạch ${deletedOldPets} linh thú/thần thú cũ không thuộc danh sách 5 loài mới khỏi CSDL.`);
+        }
+      } catch (err) {
+        console.error('[Migration] Lỗi khi dọn dẹp linh thú cũ khỏi CSDL:', err);
+      }
+
       // Xoá sạch toàn bộ đồ tân thủ khỏi CSDL
       const doTanThuIds = ['kiem_tien_tan_thu', 'truong_tien_tan_thu', 'giap_tien_tan_thu', 'kiem_go'];
       const { Inventory } = await import('./models/Inventory.js');
