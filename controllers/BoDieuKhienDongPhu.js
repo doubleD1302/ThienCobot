@@ -1357,7 +1357,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       // ══════════════════════════════════════════════════════════════
       else if (menu === 'PET_DETAIL') {
         const pet = myPets.find(p => String(p.id) === String(selectedPetId));
-        const foods = sellableList.filter(e => e.item.id === 'van_yeu_qua' || e.item.id === 'hoa_than_dan');
+        const foods = sellableList.filter(e => e.item.id.startsWith('van_yeu_qua_') || e.item.id === 'hoa_than_dan');
 
         const actionRow1 = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -2155,7 +2155,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           } else if (i.customId === 'pet_food_prev') {
             foodPage = Math.max(0, foodPage - 1);
           } else if (i.customId === 'pet_food_next') {
-            const allFoods = myInventory.filter(e => (e.item.loai === 'Linh thảo' && e.item.id.includes('_')) || e.item.id.startsWith('van_yeu_qua_'));
+            const allFoods = myInventory.filter(e => e.item.id.startsWith('van_yeu_qua_') || e.item.id === 'hoa_than_dan');
             const maxPage = Math.ceil(allFoods.length / 23) - 1;
             foodPage = Math.min(maxPage, foodPage + 1);
           } else if (i.customId === 'pet_action_renounce') {
@@ -2168,15 +2168,13 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
               actionMessage = BoTaoEmbed.loi(`Sủng vật đã đạt cấp độ giới hạn ${levelCap}. Hãy tiến hóa để mở khóa giới hạn.`);
             } else {
               const allFoods = myInventory.filter(e => {
-                // Chỉ lấy items có food = 1 (được phép làm thức ăn)
                 if (e.item.food !== 1) return false;
 
-                const isLinhThao = e.item.loai === 'Linh thảo' && e.item.id.includes('_');
                 const isVanYeuQua = e.item.id.startsWith('van_yeu_qua_');
-                if (!isLinhThao && !isVanYeuQua) return false;
+                if (!isVanYeuQua) return false;
 
                 if (filterId === 'van_yeu_qua') return isVanYeuQua;
-                if (filterId === 'linh_thao') return isLinhThao;
+                if (filterId === 'linh_thao') return false;
 
                 const expMap = {
                   van_yeu_qua_phe: 500,
@@ -2186,17 +2184,10 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                   van_yeu_qua_tien: 8000,
                   van_yeu_qua_than: 16000
                 };
-                let exp = 0;
-                if (e.item.id.startsWith('van_yeu_qua_')) {
-                  exp = expMap[e.item.id] || 500;
-                } else {
-                  const legacyExpMap = { luc: 20, lam: 60, tim: 200, vang: 600, do: 2000 };
-                  const colorCode = e.item.id.split('_').pop();
-                  exp = legacyExpMap[colorCode] || 20;
-                }
+                let exp = expMap[e.item.id] || 500;
 
-                if (filterId === 'quality_low') return exp < 1000;
-                if (filterId === 'quality_high') return exp >= 1000;
+                if (filterId === 'quality_low') return exp < 2000;
+                if (filterId === 'quality_high') return exp >= 2000;
 
                 return true; // filter === 'all'
               });
@@ -2282,16 +2273,17 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             const inv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: foodId } });
 
             if (inv && inv.soLuong > 0) {
-              inv.soLuong -= 1;
-              if (inv.soLuong <= 0) await inv.destroy();
-              else await inv.save();
-
               const foodConf = config.ITEMS.find(item => item.id === foodId);
+              const levelCap = config.getPetLevelCap(pet);
 
               if (foodId === 'hoa_than_dan') {
                 if (pet.level >= 31) {
                   actionMessage = BoTaoEmbed.loi('Sủng vật đã đạt Cảnh Giới tối đa (Cấp 31)!');
                 } else {
+                  inv.soLuong -= 1;
+                  if (inv.soLuong <= 0) await inv.destroy();
+                  else await inv.save();
+
                   pet.level += 1;
                   await pet.save();
                   actionMessage = BoTaoEmbed.thanhCong(
@@ -2301,24 +2293,40 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 }
               } else {
                 // van_yeu_qua
-                const expGained = 500;
-                pet.exp += expGained;
-                let lvlUp = false;
-                const levelCap = 31;
-                while (pet.level < levelCap && pet.exp >= pet.level * 100) {
-                  pet.exp -= pet.level * 100;
-                  pet.level += 1;
-                  lvlUp = true;
+                if (pet.level >= levelCap) {
+                  actionMessage = BoTaoEmbed.loi(`Sủng vật đã đạt cấp độ giới hạn ${levelCap}. Hãy tiến hóa để mở khóa giới hạn.`);
+                } else {
+                  inv.soLuong -= 1;
+                  if (inv.soLuong <= 0) await inv.destroy();
+                  else await inv.save();
+
+                  const expMap = {
+                    van_yeu_qua_phe: 500,
+                    van_yeu_qua_ha: 1000,
+                    van_yeu_qua_trung: 2000,
+                    van_yeu_qua_thuong: 4000,
+                    van_yeu_qua_tien: 8000,
+                    van_yeu_qua_than: 16000
+                  };
+                  const expGained = expMap[foodId] || 500;
+                  pet.exp += expGained;
+                  let lvlUp = false;
+                  while (pet.level < levelCap && pet.exp >= pet.level * 100) {
+                    pet.exp -= pet.level * 100;
+                    pet.level += 1;
+                    lvlUp = true;
+                  }
+                  await pet.save();
+                  actionMessage = BoTaoEmbed.thanhCong(
+                    '🍼 Cho Ăn Thành Công',
+                    `Cho **${pet.name}** ăn **${foodConf?.ten || 'Vạn Yêu Quả'}** nhận \`+${expGained.toLocaleString()} EXP\`.` +
+                    (lvlUp ? `\n🎉 **Sủng vật thăng lên Cấp ${pet.level}!**` : '') +
+                    (pet.level === levelCap ? `\n⚠️ **Sủng vật đã chạm giới hạn Cấp ${levelCap}. Hãy tiến hóa.**` : '')
+                  );
                 }
-                await pet.save();
-                actionMessage = BoTaoEmbed.thanhCong(
-                  '🍼 Cho Ăn Thành Công',
-                  `Cho **${pet.name}** ăn **${foodConf?.ten || 'Vạn Yêu Quả'}** nhận \`+${expGained} EXP\`.` +
-                  (lvlUp ? `\n🎉 **Sủng vật thăng lên Cấp ${pet.level}!**` : '')
-                );
               }
             } else {
-              actionMessage = BoTaoEmbed.thatBai('Cho Ăn Thất Bại', 'Số lượng thức ăn trong hành lý không đủ.');
+              actionMessage = BoTaoEmbed.loi('Không tìm thấy thức ăn này trong hành trang.');
             }
           } else if (i.customId === 'pet_action_enhance') {
             const enhanceCost = config.getPotentialUpgradeCost(pet.tuChat);
