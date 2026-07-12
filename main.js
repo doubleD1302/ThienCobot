@@ -752,10 +752,6 @@ async function start() {
       const allTemplates = await PetTemplate.findAll();
       config.loadPetTemplatesIntoCache(allTemplates);
 
-      const { Pet } = await import('./models/Pet.js');
-      await Pet.destroy({ where: {} });
-      console.log(`Đã xoá sạch toàn bộ dữ liệu sủng vật cũ.`);
-
       // Xoá sạch toàn bộ đồ tân thủ khỏi CSDL
       const doTanThuIds = ['kiem_tien_tan_thu', 'truong_tien_tan_thu', 'giap_tien_tan_thu', 'kiem_go'];
       const { Inventory } = await import('./models/Inventory.js');
