@@ -5,7 +5,8 @@ import {
   StringSelectMenuBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder
+  EmbedBuilder,
+  AttachmentBuilder
 } from 'discord.js';
 
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
@@ -57,22 +58,22 @@ const QUALITY_EMOJIS = {
 // Tỉ lệ luyện chế theo phẩm chất nguyên liệu (phải khớp với config.js rollForgedQuality)
 const FORGE_RATE_TABLE = {
   'Phế Phẩm': { fail: 50, thuong: 30, hiem: 20, suThi: 0, thanThoai: 0 },
-  'Thường':   { fail: 10, thuong: 50, hiem: 40, suThi: 0, thanThoai: 0 },
-  'Hiếm':     { fail:  0, thuong: 40, hiem: 55, suThi: 5, thanThoai: 0 },
-  'Sử Thi':   { fail:  0, thuong: 30, hiem: 55, suThi:10, thanThoai: 5 },
-  'Thần Thoại':{ fail: 0, thuong:  0, hiem: 55, suThi:35, thanThoai:10 }
+  'Thường': { fail: 10, thuong: 50, hiem: 40, suThi: 0, thanThoai: 0 },
+  'Hiếm': { fail: 0, thuong: 40, hiem: 55, suThi: 5, thanThoai: 0 },
+  'Sử Thi': { fail: 0, thuong: 30, hiem: 55, suThi: 10, thanThoai: 5 },
+  'Thần Thoại': { fail: 0, thuong: 0, hiem: 55, suThi: 35, thanThoai: 10 }
 };
 
 function getForgeRateText(matQuality) {
   const r = FORGE_RATE_TABLE[matQuality];
   if (!r) return '*Không rõ phẩm chất nguyên liệu.*';
   const lines = [];
-  if (r.fail   > 0) lines.push(`• 💥 Thất bại: \`${r.fail}%\``);
+  if (r.fail > 0) lines.push(`• 💥 Thất bại: \`${r.fail}%\``);
   if (r.thuong > 0) lines.push(`• 🟢 Thường: \`${r.thuong}%\``);
-  if (r.hiem   > 0) lines.push(`• 🔵 Hiếm: \`${r.hiem}%\``);
-  if (r.suThi  > 0) lines.push(`• 🟣 Sử Thi: \`${r.suThi}%\``);
-  if (r.thanThoai>0)lines.push(`• 🟠 Thần Thoại: \`${r.thanThoai}%\``);
-  if (r.fail === 0)  lines.unshift(`• 💥 Thất bại: \`0%\` ✅`);
+  if (r.hiem > 0) lines.push(`• 🔵 Hiếm: \`${r.hiem}%\``);
+  if (r.suThi > 0) lines.push(`• 🟣 Sử Thi: \`${r.suThi}%\``);
+  if (r.thanThoai > 0) lines.push(`• 🟠 Thần Thoại: \`${r.thanThoai}%\``);
+  if (r.fail === 0) lines.unshift(`• 💥 Thất bại: \`0%\` ✅`);
   return lines.join('\n');
 }
 
@@ -342,13 +343,13 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             for (const m of allMats) {
               if (!m.dongChiSoJson) continue;
               let q = null;
-              try { q = JSON.parse(m.dongChiSoJson).phamChat || null; } catch(e) {}
+              try { q = JSON.parse(m.dongChiSoJson).phamChat || null; } catch (e) { }
               if (q && (bestMatQuality === null || (qualityOrder[q] || 0) > (qualityOrder[bestMatQuality] || 0))) {
                 bestMatQuality = q;
               }
             }
           }
-        } catch(e) {}
+        } catch (e) { }
 
         const rateEmoji = { 'Phế Phẩm': '⚪', 'Thường': '🟢', 'Hiếm': '🔵', 'Sử Thi': '🟣', 'Thần Thoại': '🟠' };
         let rateSection = '';
@@ -438,15 +439,15 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         if (pet) {
           const activeTag = pet.isActive ? ' 🟢 [Đang Xuất Chiến]' : ' 💤 [Đang Nghỉ Ngơi]';
           const rarityTag = ` ${config.PET_BLOODLINE_LABELS[pet.rarity] || pet.rarity}`;
-          
+
           const stage = config.getPetStage(pet.rarity);
           const lineage = config.NEW_PET_LINEAGES[pet.type];
           const stageConf = lineage?.stages[stage];
           const speciesName = lineage?.name || pet.type;
           const stageName = stageConf ? stageConf.name : pet.name;
-          
+
           const nextLvlExp = pet.level * 100;
-          
+
           const realms = ['Luyện Khí', 'Trúc Cơ', 'Kim Đan', 'Nguyên Anh', 'Hóa Thần', 'Phản Hư', 'Hợp Thể', 'Đại Thừa', 'Tiên Nhân'];
           const R = config.getRealmIndex(pet.level);
           const realmName = realms[R];
@@ -469,7 +470,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             else if (key === 'giam_sat_thuong') label = 'Giảm sát thương';
             else if (key === 'khang_hieu_ung') label = 'Kháng hiệu ứng';
             else if (key === 'hieu_ung_cx') label = 'Hiệu ứng chính xác';
-            
+
             if (key === 'speed') {
               parts.push(`+${val} ${label}`);
             } else {
@@ -609,30 +610,30 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             const phachConf = config.ITEMS.find(item => item.id === reqs.phachId);
             const phachName = phachConf ? phachConf.ten : reqs.phachId;
             const phachEmoji = phachConf ? phachConf.emoji : '💎';
-            
+
             const phachInv = await Inventory.findOne({
               where: { idNguoiDung: tuSi.idNguoiDung, itemId: reqs.phachId }
             });
             const phachOwned = phachInv ? phachInv.soLuong : 0;
             const reqPhachCount = reqs.type === 'minor' ? reqs.count : reqs.phachCount;
             const phachOk = phachOwned >= reqPhachCount;
-            
+
             let reqsText = `• **Nguyên liệu**: ${phachEmoji} **${phachName}** (\`${phachOwned}/${reqPhachCount}\`) ${phachOk ? '✅' : '❌'}\n`;
-            
+
             let copiesOk = true;
             let copiesOwned = 0;
             let fodderSelectionText = '';
             if (reqs.type === 'major') {
               const potentialOk = pet.tuChat >= reqs.potentialReq;
               reqsText += `• **Tư chất yêu cầu**: \`${pet.tuChat}/${reqs.potentialReq}\` ${potentialOk ? '✅' : '❌'}\n`;
-              
+
               const allMyPets = await Pet.findAll({ where: { userId: tuSi.idNguoiDung } });
               const candidates = allMyPets.filter(fodder => fodder.type === pet.type && !fodder.isActive && fodder.id !== pet.id);
               copiesOwned = candidates.length;
               copiesOk = copiesOwned >= reqs.copiesReq;
-              
+
               reqsText += `• **Phôi yêu cầu**: ${reqs.copiesReq} Linh Thú cùng dòng \`(${copiesOwned}/${reqs.copiesReq})\` ${copiesOk ? '✅' : '❌'}\n`;
-              
+
               if (reqs.copiesReq > 0) {
                 if (selectedFodderIds.length > 0) {
                   const chosenPets = allMyPets.filter(f => selectedFodderIds.includes(f.id));
@@ -643,7 +644,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 }
               }
             }
-            
+
             const embed = new EmbedBuilder()
               .setTitle(`🧬 Xác Nhận Nâng Cấp Huyết Mạch`)
               .setColor(0xe67e22)
@@ -1588,13 +1589,13 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             const phachOwned = phachInv ? phachInv.soLuong : 0;
             const reqPhachCount = reqs.type === 'minor' ? reqs.count : reqs.phachCount;
             const hasEnoughPhach = phachOwned >= reqPhachCount;
-            
+
             const candidates = myPets.filter(fodder => fodder.type === pet.type && !fodder.isActive && fodder.id !== pet.id);
             const reqCopies = reqs.type === 'major' ? reqs.copiesReq : 0;
             const isSelectionComplete = selectedFodderIds.length === reqCopies;
-            
+
             const isPotentialOk = reqs.type === 'minor' || pet.tuChat >= reqs.potentialReq;
-            
+
             if (reqCopies > 0 && !isSelectionComplete) {
               const availableFodder = candidates.filter(c => !selectedFodderIds.includes(c.id));
               if (availableFodder.length > 0) {
@@ -1613,14 +1614,14 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 );
               }
             }
-            
+
             const btnRow = new ActionRowBuilder().addComponents(
               new ButtonBuilder()
                 .setCustomId('pet_evolve_cancel')
                 .setLabel('❌ Hủy Bỏ')
                 .setStyle(ButtonStyle.Secondary)
             );
-            
+
             if (reqCopies > 0 && !isSelectionComplete) {
               btnRow.addComponents(
                 new ButtonBuilder()
@@ -1637,7 +1638,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                   .setStyle(ButtonStyle.Danger)
                   .setDisabled(!hasEnoughPhach || !isPotentialOk)
               );
-              
+
               if (reqCopies > 0) {
                 btnRow.addComponents(
                   new ButtonBuilder()
@@ -1647,7 +1648,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 );
               }
             }
-            
+
             rows.push(btnRow);
           }
         }
@@ -1705,7 +1706,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           else if (pet.type === 'nham_giap') subDir = 'nham_giap_thu';
           else if (pet.type === 'da_mieu') subDir = 'da_mieu';
           else if (pet.type === 'thanh_loc') subDir = 'thanh_loc';
-          
+
           const imgPath = `public/image/pet/${subDir}/${stageConf.image}`;
           if (fs.existsSync(imgPath)) {
             filesToSend.push(new AttachmentBuilder(imgPath));
@@ -2279,14 +2280,14 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           } else if (i.customId === 'pet_action_feed_menu') {
             const foodId = i.values[0];
             const inv = await Inventory.findOne({ where: { idNguoiDung: tuSi.idNguoiDung, itemId: foodId } });
-            
+
             if (inv && inv.soLuong > 0) {
               inv.soLuong -= 1;
               if (inv.soLuong <= 0) await inv.destroy();
               else await inv.save();
 
               const foodConf = config.ITEMS.find(item => item.id === foodId);
-              
+
               if (foodId === 'hoa_than_dan') {
                 if (pet.level >= 31) {
                   actionMessage = BoTaoEmbed.loi('Sủng vật đã đạt Cảnh Giới tối đa (Cấp 31)!');
@@ -2362,11 +2363,11 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             while (currentRarity !== pet.rarity || currentTier !== pet.tienHoa) {
               const reqs = config.getBloodlineUpgradeReqs(currentRarity, currentTier, pet.type);
               if (!reqs) break;
-              
+
               const phachId = reqs.phachId;
               const count = reqs.type === 'minor' ? reqs.count : reqs.phachCount;
               refundedPhach[phachId] = (refundedPhach[phachId] || 0) + count;
-              
+
               if (reqs.type === 'minor') {
                 currentTier = reqs.nextTier;
               } else {
@@ -2442,7 +2443,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             } else {
               const phachId = reqs.phachId;
               const reqPhachCount = reqs.type === 'minor' ? reqs.count : reqs.phachCount;
-              
+
               const phachInv = await Inventory.findOne({
                 where: { idNguoiDung: tuSi.idNguoiDung, itemId: phachId }
               });
@@ -2456,7 +2457,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                 phachInv.soLuong -= reqPhachCount;
                 if (phachInv.soLuong <= 0) await phachInv.destroy();
                 else await phachInv.save();
-                
+
                 const consumedList = [];
                 if (reqs.type === 'major' && reqs.copiesReq > 0) {
                   for (const fid of selectedFodderIds) {
@@ -2467,7 +2468,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                     }
                   }
                 }
-                
+
                 let upgradeMsg = '';
                 if (reqs.type === 'minor') {
                   pet.tienHoa = reqs.nextTier;
@@ -2477,18 +2478,18 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
                   pet.tienHoa = reqs.nextTier;
                   upgradeMsg = `🎉 **ĐỘT PHÁ THÀNH CÔNG!** Huyết mạch thăng cấp lên **${config.PET_BLOODLINE_LABELS[pet.rarity]}**!`;
                 }
-                
+
                 const cleanName = pet.name.replace(/(\s\+\d+|\[MAX\]|\[Tiến\s*[Hh]óa\]\s*)/g, '').trim();
                 pet.name = config.getFormattedPetName(cleanName, pet.rarity, pet.tienHoa, false);
                 await pet.save();
-                
+
                 actionMessage = BoTaoEmbed.thanhCong(
                   '🧬 Nâng Cấp Huyết Mạch Thành Công',
                   `Linh thú **${pet.name}** đã nâng cấp huyết mạch thành công!\n` +
                   `• ${upgradeMsg}\n` +
                   (consumedList.length > 0 ? `• **Đã tiêu thụ phôi**: ${consumedList.join(', ')}` : '')
                 );
-                
+
                 selectedFodderIds = [];
                 menuStack.pop();
               }
@@ -2954,7 +2955,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         try {
           if (a.dongChiSoJson) qA = JSON.parse(a.dongChiSoJson).phamChat || 'Thường';
           if (b.dongChiSoJson) qB = JSON.parse(b.dongChiSoJson).phamChat || 'Thường';
-        } catch (e) {}
+        } catch (e) { }
         return (qualityOrder[qB] || 0) - (qualityOrder[qA] || 0);
       });
 
@@ -2966,7 +2967,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             matQuality = parsed.phamChat;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     let cost = 2000;

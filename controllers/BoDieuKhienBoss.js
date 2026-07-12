@@ -188,7 +188,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
     }
 
     if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
-    
+
     let fallback = await Item.findAll({
       where: { loai: { [Op.in]: ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'] } }
     });
@@ -313,10 +313,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
         }
       }
 
-      if (Math.random() <= 0.01) {
-        await Inventory.addVatPham(tuSi.idNguoiDung, 'trung_linh_thu_than', 1);
-        giftMsg += ` 🥚 **Trứng Linh Thú (Thần)** *(May Mắn)*`;
-      }
+
 
       await tuSi.save();
 
@@ -340,13 +337,13 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
     const cg = await CanhGioi.findByPk(playerTuSi.capDo);
     const tocDoCoBan = cg ? cg.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
     const multiplier = playerTuSi.layHeSoTuLuyen(activePet);
-    
+
     const abode = await Abode.findByPk(playerTuSi.idNguoiDung);
     const lvDongPhu = abode ? abode.level : 0;
     const speedMult = 1 + lvDongPhu;
-    
+
     let finalCultivationSpeed = tocDoCoBan * multiplier * speedMult;
-    
+
     if (playerTuSi.duyenType && playerTuSi.duyenUserId) {
       const partner = await TuSi.findOne({ where: { idNguoiDung: playerTuSi.duyenUserId } });
       if (partner && String(partner.duyenUserId) === String(playerTuSi.idNguoiDung) && partner.duyenType === playerTuSi.duyenType) {
@@ -361,7 +358,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
         const tocDoCoBanB = cgB ? cgB.tocDoCoBan : config.BASE_EXP_PER_DAO_NIEN;
         const multiplierB = partner.layHeSoTuLuyen(activePetB);
         const rawSpeedB = tocDoCoBanB * multiplierB * (1 + lvDongPhuB);
-        
+
         const factor = playerTuSi.duyenType === 'Dao Lu' ? 1.2 : 1.1;
         finalCultivationSpeed = Math.floor(factor * (finalCultivationSpeed + rawSpeedB) / 2);
       }
@@ -376,7 +373,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
     if (lhTuSi) {
       const extraStones = 100000;
       lhTuSi.linhThach = Math.min(2_000_000_000, lhTuSi.linhThach + extraStones);
-      
+
       const speed = await getDaoNienExp(lhTuSi);
       const extraExp = 128 * speed;
       lhTuSi.linhLuc += extraExp;
@@ -395,8 +392,8 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
   let report = lastHitterMsg + `⚔️ **Bảng Vàng Tiêu Diệt Cự Thú — ${boss.ten}**\n\n`;
 
   // Lọc bỏ người kích sát khỏi danh sách nhận quà Top để đẩy người khác lên
-  const sortedForLeaderboard = lastHitterId 
-    ? sorted.filter(e => String(e.id) !== String(lastHitterId)) 
+  const sortedForLeaderboard = lastHitterId
+    ? sorted.filter(e => String(e.id) !== String(lastHitterId))
     : sorted;
 
   for (let index = 0; index < sortedForLeaderboard.length; index++) {
@@ -412,12 +409,12 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
     const speed = await getDaoNienExp(tuSi);
 
     if (rank === 1) {
-      // Top 1: 50k linh thạch + 96 đạo niên + 5 nguyên liệu phẩm cao nhất
+      // Top 1: 50k linh thạch + 96 đạo niên + 15 nguyên liệu phẩm cao nhất
       gainedExp = 96 * speed;
       const mat = await getMaterialForPlayer(tuSi.capDo);
       if (mat) {
-        await Inventory.addVatPham(tuSi.idNguoiDung, mat.id, 5, { quality: 'Thần Thoại' });
-        giftMsg += ` 💎 **${mat.ten}** [Thần Thoại] x5`;
+        await Inventory.addVatPham(tuSi.idNguoiDung, mat.id, 15, { quality: 'Thần Thoại' });
+        giftMsg += ` 💎 **${mat.ten}** [Thần Thoại] x15`;
       }
     } else if (rank === 2 || rank === 3) {
       // Top 2-3: 50k linh thạch + 64 đạo niên + 10 nguyên liệu phẩm cao nhất
@@ -456,11 +453,7 @@ async function phanBoPhanThuongBoss(client, boss, guild, lastHitterId) {
       tuSi.linhLuc += gainedExp;
     }
 
-    // 1% may mắn rớt trứng linh thú thần
-    if (Math.random() <= 0.01) {
-      await Inventory.addVatPham(tuSi.idNguoiDung, 'trung_linh_thu_than', 1);
-      giftMsg += ` 🥚 **Trứng Linh Thú (Thần)** *(May Mắn)*`;
-    }
+
 
     await tuSi.save();
 
@@ -609,7 +602,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                 .split(',')
                 .map(t => t.trim())
                 .filter(Boolean);
-              
+
               if (hoursList.includes(localTimeStr)) {
                 const lastSpawn = guildConfig.bossLastSpawnAt ? new Date(guildConfig.bossLastSpawnAt).getTime() : 0;
                 if (nowTime - lastSpawn >= 60000) {
@@ -630,7 +623,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             if (shouldSpawn) {
               guildConfig.bossLastSpawnAt = now;
               await guildConfig.save();
-              
+
               // Triệu hồi đồng thời cả 3 Boss ở 3 kênh
               await this.trieuHoiWorldBossTuDong(client, guildId, guild, 'Luyện Khí');
               await this.trieuHoiWorldBossTuDong(client, guildId, guild, 'Trúc Cơ');
@@ -656,8 +649,8 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
         'Kim Đan': '👾┃ᴋɪᴍ-đᴀɴ'
       };
       const targetName = channelNames[realm];
-      let targetChannel = guild.channels.cache.find(c => 
-        c.type === ChannelType.GuildText && 
+      let targetChannel = guild.channels.cache.find(c =>
+        c.type === ChannelType.GuildText &&
         (c.name === targetName || c.name.toLowerCase() === targetName.toLowerCase())
       );
 
@@ -1007,6 +1000,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       let totalDmgDealt = 0;
       const battleLogs = [];
       const petPrepLogs = [];
+      const activeBuffs = [];
       let phoenixTriggered = false;
       let phoenixRegenRounds = 0;
       let petSkillCooldownLeft = 0;
@@ -1055,7 +1049,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             huyenVuBuffActive = true;
             huyenVuCritActive = true;
             critDmgRedPct = Math.min(0.50, 0.20 + (activePet.tienHoa || 0) * 0.03);
-            
+
             // Poison setup
             bossPoisonRounds = 3;
             bossPoisonStacks = 1;
@@ -1069,7 +1063,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             monsterHp = Math.max(0, monsterHp - dmg);
             totalDmgDealt += dmg;
             bachHoBuffActive = true;
-            
+
             bossWeakenRounds = 2;
             bossWeakenPct = Math.min(0.50, 0.20 + (activePet.tienHoa || 0) * 0.03);
             playerImmuneRounds = 2;
@@ -1224,7 +1218,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       let nightmare = 0;
       let hoito = 0;
       let caitu = 0;
-      
+
       let caituTriggered = false;
       let critImmune = false;
       let reflect = false;
@@ -1323,7 +1317,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                   } else {
                     finalDmg = Math.max(1, Math.floor(finalDmg - boss.giap));
                   }
-                  
+
                   if (res.checkTebutBonus && monsterTebut > 0) {
                     const bonusTrue = Math.floor(monsterHp * 0.05);
                     finalDmg += bonusTrue;
@@ -1518,7 +1512,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               const capDoTKT = skillTKT ? skillTKT.capDo : 1;
               const bonusPct = 0.20 * (1 + (capDoTKT - 1) * 0.01);
               rawDmg = rawDmg * (1 + bonusPct);
-              
+
               if (skill.id === 'linh_phao_thuat') {
                 const slowChance = 0.15 * (1 + (capDo - 1) * 0.01);
                 if (Math.random() <= slowChance) {
@@ -1627,7 +1621,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                 roundsLeft: 2
               });
               battleLogs.push(`🩸 **${skill.ten}**: Hồi phục \`+${hpHealAmt.toLocaleString()}\` HP, tăng \`+${Math.round(vatCongBonus * 100)}%\` Vật công trong 2 hiệp.`);
-              
+
               if (monsterHp / boss.hp >= 0.70) {
                 isCrit = true;
                 battleLogs.push(`💥 **${skill.ten}**: Mục tiêu dồi dào huyết khí, kích hoạt chắc chắn bạo kích!`);
@@ -1798,7 +1792,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                   } else if (template.species === 'huyen_vu') {
                     const petShield = Math.floor(stats.max_hp * 0.25 * evoMult);
                     playerShield += petShield;
-                    
+
                     bossPoisonRounds = 3;
                     bossPoisonStacks = Math.min(3, (bossPoisonStacks || 0) + 1);
                     bossPoisonDmgPerStack = Math.floor(stats.max_hp * Math.min(0.10, 0.05 + (activePet.tienHoa || 0) * 0.005));
@@ -1814,7 +1808,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
                     const petDmg = Math.floor(stats.vat_cong * 1.2 * evoMult);
                     monsterHp = Math.max(0, monsterHp - petDmg);
                     totalDmgDealt += petDmg;
-                    
+
                     bossWeakenRounds = 2;
                     bossWeakenPct = Math.min(0.50, 0.20 + (activePet.tienHoa || 0) * 0.03);
                     playerImmuneRounds = 2;
@@ -1873,7 +1867,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           // Lượt của Boss
           const elapsed = avBoss;
           avPlayer -= elapsed;
-          
+
           // --- NEW PET SYSTEM BOSS TURN ---
           if (monsterBleed && monsterBleed.turns > 0) {
             const dmg = monsterBleed.dmg;
@@ -1903,7 +1897,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
           if (monsterSlow > 0) monsterSlow--;
           if (monsterTebut > 0) monsterTebut--;
           if (monsterTanKhiRounds > 0) monsterTanKhiRounds--;
-          
+
           let currentBossSpeed = 100;
           if (bossSlowRounds > 0) {
             currentBossSpeed = Math.max(10, Math.floor(currentBossSpeed * (1 - bossSlowPctVal)));
@@ -1940,7 +1934,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
             if (hoTheRed > 0) {
               bossDmg = Math.floor(bossDmg * (1 - hoTheRed));
             }
-            
+
             if (bossWeakenRounds > 0) {
               bossDmg = Math.floor(bossDmg * (1 - bossWeakenPct));
               battleLogs.push(`✨ **Suy yếu**: Yêu thú bị suy yếu, sát thương phản công giảm đi \`-${Math.floor(bossWeakenPct * 100)}%\`.`);
@@ -1992,14 +1986,14 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               if (bossDmg > 0) {
                 playerHp = Math.max(0, playerHp - bossDmg);
                 battleLogs.push(`👹 **Cự Thú** (AV: ${elapsed.toFixed(0)}): **${boss.ten}** phản kích gây \`-${bossDmg}\`${bossCritMsg} sát thương lên **${tuSi.ten}** (HP còn: \`${playerHp}\`).`);
-                
+
                 if (reflect && playerShield > 0) {
                   const refl = Math.floor(bossDmg * 0.30);
                   monsterHp = Math.max(0, monsterHp - refl);
                   totalDmgDealt += refl;
                   battleLogs.push(`🛡️ **Phản Đòn**: Thần Trận Sơn Thần phản hồi \`+${refl.toLocaleString()}\` sát thương ngược lại **${boss.ten}** (HP còn: \`${monsterHp.toLocaleString()}\`).`);
                 }
-                
+
                 if (playerHp <= 0) {
                   if (caitu > 0 && !caituTriggered) {
                     playerHp = Math.floor(stats.max_hp * 0.30);
