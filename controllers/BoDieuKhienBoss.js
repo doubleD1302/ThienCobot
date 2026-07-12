@@ -1286,6 +1286,7 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
 
       const originalMaxHp = stats.max_hp;
       const isHuyenVuActive = petTemplate && petTemplate.species === 'huyen_vu';
+      const isKyLanActive = petTemplate && petTemplate.species === 'ky_lan';
 
       const petState = { cooldown: 0 };
       let bleed = null;

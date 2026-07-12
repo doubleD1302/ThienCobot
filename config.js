@@ -863,32 +863,34 @@ export function rollMaterialQuality() {
 // Helper: Cuộn phẩm chất trang bị sau khi luyện chế dựa trên nguyên liệu tiêu hao
 export function rollForgedQuality(materialQuality) {
   const roll = Math.random() * 100;
-  if (materialQuality === 'Phế Phẩm') {
+  const rawQ = materialQuality ? String(materialQuality).trim().toLowerCase().normalize('NFC') : '';
+
+  if (rawQ === 'phế phẩm' || rawQ === 'phế phẩn' || rawQ === 'phe pham') {
     // 50% fail | 30% Thường | 20% Hiếm
     if (roll < 50) return 'fail';
     if (roll < 80) return 'Thường';
     return 'Hiếm';
   }
-  if (materialQuality === 'Thường') {
+  if (rawQ === 'thường' || rawQ === 'thuong') {
     // 10% fail | 50% Thường | 40% Hiếm (user spec: 30%, 10% dư → Hiếm)
     if (roll < 10) return 'fail';
     if (roll < 60) return 'Thường';
     return 'Hiếm';
   }
-  if (materialQuality === 'Hiếm') {
+  if (rawQ === 'hiếm' || rawQ === 'hiem') {
     // 0% fail | 40% Thường | 55% Hiếm | 5% Sử Thi
     if (roll < 40) return 'Thường';
     if (roll < 95) return 'Hiếm';
     return 'Sử Thi';
   }
-  if (materialQuality === 'Sử Thi') {
+  if (rawQ === 'sử thi' || rawQ === 'su thi') {
     // 0% fail | 30% Thường | 55% Hiếm | 10% Sử Thi | 5% Thần Thoại
     if (roll < 30) return 'Thường';
     if (roll < 85) return 'Hiếm';
     if (roll < 95) return 'Sử Thi';
     return 'Thần Thoại';
   }
-  if (materialQuality === 'Thần Thoại') {
+  if (rawQ === 'thần thoại' || rawQ === 'than thoai') {
     // 0% fail | 0% Thường | 55% Hiếm | 35% Sử Thi | 10% Thần Thoại
     if (roll < 55) return 'Hiếm';
     if (roll < 90) return 'Sử Thi';
