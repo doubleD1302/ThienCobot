@@ -1120,7 +1120,9 @@ class BoDieuKhienAdmin {
             if (hasActive) {
               statusMessage = `⚠️ Guild này hiện đang có Cự Thú xuất thế (\`${hasActive.ten}\`). Đạo hữu hãy tiêu diệt boss cũ trước.`;
             } else {
-              await boDieuKhienBoss.trieuHoiWorldBossTuDong(interaction.client, interaction.guildId, interaction.guild);
+              await boDieuKhienBoss.trieuHoiWorldBossTuDong(interaction.client, interaction.guildId, interaction.guild, 'Luyện Khí');
+              await boDieuKhienBoss.trieuHoiWorldBossTuDong(interaction.client, interaction.guildId, interaction.guild, 'Trúc Cơ');
+              await boDieuKhienBoss.trieuHoiWorldBossTuDong(interaction.client, interaction.guildId, interaction.guild, 'Kim Đan');
               statusMessage = `👹 Thiên Đạo giáng thế Cự Thú thế giới ngay lập tức!`;
             }
           } catch (spawnErr) {

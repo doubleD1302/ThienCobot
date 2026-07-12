@@ -59,7 +59,10 @@ class BoDieuKhienDmg extends BoDieuKhienGoc {
       };
 
       if (subcommand === 'boss') {
-        const boss = await WorldBoss.findOne({ where: { idGuild: interaction.guildId, active: true } });
+        let bossRealm = 'Luyện Khí';
+        if (tuSi.capDo >= 13) bossRealm = 'Kim Đan';
+        else if (tuSi.capDo >= 10) bossRealm = 'Trúc Cơ';
+        const boss = await WorldBoss.findOne({ where: { idGuild: interaction.guildId, realm: bossRealm, active: true } });
         if (boss) {
           dummy.ten = `${boss.ten} [Hình Nhân]`;
           dummy.vatPhong = boss.vatPhong;

@@ -651,6 +651,18 @@ async function start() {
         console.log(`Đã dọn dẹp ${deletedGuildsCount} bản ghi cấu hình guild lỗi (ID tự tăng) từ cơ sở dữ liệu.`);
       }
 
+      // Drop old world_bosses table once to allow composite key migration
+      try {
+        const desc = await queryInterface.describeTable('world_bosses').catch(() => null);
+        if (desc && !desc.realm) {
+          console.log('Phát hiện bảng world_bosses cũ thiếu cột realm. Tiến hành nâng cấp...');
+          await sequelize.query('DROP TABLE IF EXISTS world_bosses;');
+          console.log('Đã drop bảng world_bosses cũ thành công.');
+        }
+      } catch (e) {
+        console.warn('Lỗi khi nâng cấp bảng world_bosses:', e.message);
+      }
+
       // Khởi tạo dữ liệu mẫu cho bảng realms (CanhGioi)
       const { CanhGioi } = await import('./models/CanhGioi.js');
       const realmsCount = await CanhGioi.count();

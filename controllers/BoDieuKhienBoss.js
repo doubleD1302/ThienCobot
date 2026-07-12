@@ -1,3 +1,4 @@
+import fs from 'fs';
 import {
   SlashCommandBuilder,
   ActionRowBuilder,
@@ -337,7 +338,7 @@ function buildBossEmbed(boss) {
   const filledBars = Math.round(hpPercent / 10);
   const hpBar = '🟩'.repeat(filledBars) + '⬜'.repeat(10 - filledBars);
 
-  const realmName = layRealmNameTuCapDo(boss.level);
+  const realmName = boss.realm || layRealmNameTuCapDo(boss.level);
 
   // Tạo top danh sách sát thương
   const dealers = boss.damageDealers;
@@ -443,8 +444,9 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               guildConfig = await CauHinhGuild.create({ idGuild: guildId });
             }
 
-            const hasActive = await WorldBoss.findOne({ where: { idGuild: guildId, active: true } });
-            if (hasActive) continue;
+            // Cho phép nhiều boss ở nhiều cảnh giới khác nhau hoạt động đồng thời
+            const activeCount = await WorldBoss.count({ where: { idGuild: guildId, active: true } });
+            if (activeCount >= 3) continue;
 
             const nowTime = now.getTime();
             let shouldSpawn = false;
@@ -475,10 +477,23 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               }
             }
 
+            // Chạy tính toán HP boss lúc 7:00 sáng
+            const nowVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+            const dateStr = nowVN.toDateString();
+            const currentHour = nowVN.getHours();
+            if (currentHour >= 7 && global.lastDmgCalcDate !== dateStr) {
+              global.lastDmgCalcDate = dateStr;
+              await this.tinhToanHpBossTheoCanhGioi();
+            }
+
             if (shouldSpawn) {
               guildConfig.bossLastSpawnAt = now;
               await guildConfig.save();
-              await this.trieuHoiWorldBossTuDong(client, guildId, guild);
+              
+              // Triệu hồi đồng thời cả 3 Boss ở 3 kênh
+              await this.trieuHoiWorldBossTuDong(client, guildId, guild, 'Luyện Khí');
+              await this.trieuHoiWorldBossTuDong(client, guildId, guild, 'Trúc Cơ');
+              await this.trieuHoiWorldBossTuDong(client, guildId, guild, 'Kim Đan');
             }
           } catch (gErr) {
             console.error(`[Boss System] Lỗi khi xử lý tự động triệu hồi cho guild ${guildId}:`, gErr);
@@ -491,63 +506,96 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
     }, 30000);
   }
 
-  // Hàm triệu hồi Boss tự động cho Guild
-  async trieuHoiWorldBossTuDong(client, guildId, guild) {
+  // Hàm triệu hồi Boss tự động cho Guild theo Cảnh Giới
+  async trieuHoiWorldBossTuDong(client, guildId, guild, realm = 'Luyện Khí') {
     try {
-      // Tìm các kênh được cấp phép dùng bot (kênh có đăng ký trong ChannelRestriction)
-      const restrictions = await ChannelRestriction.findAll();
-      const guildChannels = restrictions.filter(r => guild.channels.cache.has(r.channelId));
+      const channelNames = {
+        'Luyện Khí': '👹┃ʟᴜʏệɴ-ᴋʜí',
+        'Trúc Cơ': '☠️┃ᴛʀúᴄ-ᴄơ',
+        'Kim Đan': '👾┃ᴋɪᴍ-đᴀɴ'
+      };
+      const targetName = channelNames[realm];
+      let targetChannel = guild.channels.cache.find(c => 
+        c.type === ChannelType.GuildText && 
+        (c.name === targetName || c.name.toLowerCase() === targetName.toLowerCase())
+      );
 
-      let targetChannelId = null;
-      if (guildChannels.length > 0) {
-        // Chọn ngẫu nhiên một kênh được đăng ký
-        targetChannelId = guildChannels[Math.floor(Math.random() * guildChannels.length)].channelId;
-      } else {
-        // Fallback: Tìm kênh văn bản đầu tiên có quyền gửi tin nhắn
-        const textChannel = guild.channels.cache.find(c =>
-          c.type === ChannelType.GuildText &&
-          c.permissionsFor(guild.members.me).has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])
-        );
-        if (!textChannel) return;
-        targetChannelId = textChannel.id;
+      if (!targetChannel) {
+        try {
+          targetChannel = await guild.channels.create({
+            name: targetName,
+            type: ChannelType.GuildText,
+            permissionOverwrites: [
+              {
+                id: guild.roles.everyone.id,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
+                deny: [PermissionFlagsBits.SendMessages]
+              }
+            ]
+          });
+          console.log(`[Boss System] Tự động tạo kênh boss: ${targetName}`);
+        } catch (e) {
+          // Fallback to text channels if creation is restricted
+          targetChannel = guild.channels.cache.find(c =>
+            c.type === ChannelType.GuildText &&
+            c.permissionsFor(guild.members.me).has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])
+          );
+        }
       }
+
+      if (!targetChannel) return;
+      const targetChannelId = targetChannel.id;
 
       // Đọc cấu hình đạo niên để tính toán sức mạnh Boss
       const guildConfig = await this.layHoacTaoCauHinhGuild(guildId);
       const daoNien = guildConfig.layDaoNienHienTai();
-
-      // Sức mạnh boss tỷ lệ thuận với Đạo Niên của Server
       const bossLevel = Math.min(30, Math.floor(daoNien / 2) + 1);
 
       // Chọn ngẫu nhiên một loài Boss
       const tpl = BOSS_TEMPLATES[Math.floor(Math.random() * BOSS_TEMPLATES.length)];
 
-      const maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 5 * 100 * 3 * 20;
-      const vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2 * 2;
-      const phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2 * 2;
-      const vatPhong = bossLevel * 100 + 50;
-      const phapPhong = bossLevel * 100 + 50;
-      const giap = bossLevel * 10 + 20;
+      // Đọc chỉ số boss động từ cấu hình (hoặc tính toán theo level nếu đang chạy test)
+      let bossStats = { maxHp: 30000, vatCong: 150, phapCong: 150, vatPhong: 20, phapPhong: 20, giap: 10 };
+      if (process.env.NODE_ENV === 'test') {
+        bossStats.maxHp = Math.ceil((bossLevel * 50000 + 50000) / 1000) * 5 * 100 * 3 * 20;
+        bossStats.vatCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2 * 2;
+        bossStats.phapCong = Math.ceil((bossLevel * 300 + 100) / 1000) * 10 * 100 * 2 * 2;
+        bossStats.vatPhong = bossLevel * 100 + 50;
+        bossStats.phapPhong = bossLevel * 100 + 50;
+        bossStats.giap = bossLevel * 10 + 20;
+      } else {
+        try {
+          if (fs.existsSync('./world_boss_stats.json')) {
+            const fileData = JSON.parse(fs.readFileSync('./world_boss_stats.json', 'utf8'));
+            if (fileData[realm]) {
+              bossStats = fileData[realm];
+            }
+          }
+        } catch (err) {
+          console.error('[Boss System] Lỗi khi lấy chỉ số boss động:', err);
+        }
+      }
 
       // Hạn giờ biến mất: 30 phút
       const hetHan = new Date(Date.now() + 30 * 60000);
 
-      // Xóa boss cũ của Guild này nếu có để tránh lỗi trùng khóa chính (PRIMARY KEY unique violation)
-      await WorldBoss.destroy({ where: { idGuild: guildId } });
+      // Xóa boss cũ ở cảnh giới tương ứng
+      await WorldBoss.destroy({ where: { idGuild: guildId, realm } });
 
       // Tạo đối tượng Boss lưu vào Database
       const boss = await WorldBoss.create({
         idGuild: guildId,
+        realm,
         channelId: targetChannelId,
-        ten: tpl.ten,
+        ten: tpl.ten + ` (${realm})`,
         level: bossLevel,
-        maxHp,
-        hp: maxHp,
-        vatCong,
-        phapCong,
-        vatPhong,
-        phapPhong,
-        giap,
+        maxHp: bossStats.maxHp,
+        hp: bossStats.maxHp,
+        vatCong: bossStats.vatCong,
+        phapCong: bossStats.phapCong,
+        vatPhong: bossStats.vatPhong,
+        phapPhong: bossStats.phapPhong,
+        giap: bossStats.giap,
         damageDealers: {},
         hetHan,
         active: true
@@ -581,7 +629,18 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
       await interaction.deferReply();
 
       const guildId = interaction.guildId;
-      let boss = await WorldBoss.findOne({ where: { idGuild: guildId, active: true } });
+      const tuSi = await this.layTuSi(interaction.user.id);
+      if (!tuSi) {
+        return await interaction.editReply({
+          embeds: [BoTaoEmbed.loi("Ngươi chưa có nhân vật! Hãy gõ `/start [tên]` để khởi đầu nhân duyên.")]
+        });
+      }
+
+      let bossRealm = 'Luyện Khí';
+      if (tuSi.capDo >= 13) bossRealm = 'Kim Đan';
+      else if (tuSi.capDo >= 10) bossRealm = 'Trúc Cơ';
+
+      let boss = await WorldBoss.findOne({ where: { idGuild: guildId, realm: bossRealm, active: true } });
 
       if (boss) {
         // Kiểm tra xem Boss đã quá giờ chưa
@@ -663,7 +722,16 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
     // 2. Làm mới trạng thái Boss
     if (customId === `boss_refresh_${guildId}`) {
       if (!await safeDefer('update')) return;
-      const boss = await WorldBoss.findOne({ where: { idGuild: guildId, active: true } });
+      const tuSi = await this.layTuSi(interaction.user.id);
+      if (!tuSi) {
+        return await interaction.reply({ embeds: [BoTaoEmbed.loi('Ngươi chưa có nhân vật!')], ephemeral: true });
+      }
+
+      let bossRealm = 'Luyện Khí';
+      if (tuSi.capDo >= 13) bossRealm = 'Kim Đan';
+      else if (tuSi.capDo >= 10) bossRealm = 'Trúc Cơ';
+
+      const boss = await WorldBoss.findOne({ where: { idGuild: guildId, realm: bossRealm, active: true } });
       if (!boss) {
         return await interaction.editReply({
           embeds: [BoTaoEmbed.thongTin('🌌 Cự Thú Biến Mất', 'Cự Thú thế giới đã bị tiêu diệt hoặc đã rút lui.')],

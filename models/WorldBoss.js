@@ -22,6 +22,13 @@ WorldBoss.init({
     allowNull: false,
     field: 'guild_id'
   },
+  realm: {
+    type: DataTypes.STRING(30),
+    primaryKey: true,
+    allowNull: false,
+    defaultValue: 'Luyện Khí',
+    field: 'realm'
+  },
   channelId: {
     type: DataTypes.STRING(30),
     allowNull: false,
