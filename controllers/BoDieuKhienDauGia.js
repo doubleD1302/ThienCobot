@@ -584,7 +584,11 @@ async function _kiemTraPhienHetHan(client) {
       }
     }
   } catch (err) {
-    console.error('[DauGia] Lỗi khi kiểm tra phiên hết hạn:', err);
+    if (err && (err.name?.includes('Connection') || err.message?.includes('ETIMEDOUT') || err.message?.includes('EAI_AGAIN') || err.message?.includes('ECONNRESET'))) {
+      console.warn('[DauGia] Không thể kết nối cơ sở dữ liệu để kiểm tra phiên hết hạn (Lỗi kết nối/Timeout).');
+    } else {
+      console.error('[DauGia] Lỗi khi kiểm tra phiên hết hạn:', err);
+    }
   }
 }
 

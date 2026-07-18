@@ -1618,7 +1618,11 @@ export function khoiDongAutoSchedule(client) {
     try {
       await chayTienTrinhAuto();
     } catch (err) {
-      console.error('[Auto System] Lỗi trong tiến trình chạy auto khởi động:', err);
+      if (err && (err.name?.includes('Connection') || err.message?.includes('ETIMEDOUT') || err.message?.includes('EAI_AGAIN') || err.message?.includes('ECONNRESET'))) {
+        console.warn('[Auto System] Không thể kết nối cơ sở dữ liệu để tự động tu luyện khởi động (Lỗi kết nối/Timeout).');
+      } else {
+        console.error('[Auto System] Lỗi trong tiến trình chạy auto khởi động:', err);
+      }
     }
   }, 15000);
 
@@ -1627,7 +1631,11 @@ export function khoiDongAutoSchedule(client) {
     try {
       await chayTienTrinhAuto();
     } catch (err) {
-      console.error('[Auto System] Lỗi trong tiến trình chạy auto định kỳ:', err);
+      if (err && (err.name?.includes('Connection') || err.message?.includes('ETIMEDOUT') || err.message?.includes('EAI_AGAIN') || err.message?.includes('ECONNRESET'))) {
+        console.warn('[Auto System] Không thể kết nối cơ sở dữ liệu để tự động tu luyện định kỳ (Lỗi kết nối/Timeout).');
+      } else {
+        console.error('[Auto System] Lỗi trong tiến trình chạy auto định kỳ:', err);
+      }
     }
   }, 5 * 60 * 1000);
 }

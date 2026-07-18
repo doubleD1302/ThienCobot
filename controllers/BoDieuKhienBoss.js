@@ -630,12 +630,20 @@ class BoDieuKhienBoss extends BoDieuKhienGoc {
               await this.trieuHoiWorldBossTuDong(client, guildId, guild, 'Kim Đan');
             }
           } catch (gErr) {
-            console.error(`[Boss System] Lỗi khi xử lý tự động triệu hồi cho guild ${guildId}:`, gErr);
+            if (gErr && (gErr.name?.includes('Connection') || gErr.message?.includes('ETIMEDOUT') || gErr.message?.includes('EAI_AGAIN') || gErr.message?.includes('ECONNRESET'))) {
+              console.warn(`[Boss System] Không thể kết nối cơ sở dữ liệu để tự động triệu hồi cho guild ${guildId} (Lỗi kết nối/Timeout).`);
+            } else {
+              console.error(`[Boss System] Lỗi khi xử lý tự động triệu hồi cho guild ${guildId}:`, gErr);
+            }
           }
         }
 
       } catch (err) {
-        console.error('[Boss System] Lỗi tiến trình tự động sinh boss:', err);
+        if (err && (err.name?.includes('Connection') || err.message?.includes('ETIMEDOUT') || err.message?.includes('EAI_AGAIN') || err.message?.includes('ECONNRESET'))) {
+          console.warn('[Boss System] Không thể kết nối cơ sở dữ liệu cho tiến trình tự động sinh boss (Lỗi kết nối/Timeout).');
+        } else {
+          console.error('[Boss System] Lỗi tiến trình tự động sinh boss:', err);
+        }
       }
     }, 30000);
   }

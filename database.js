@@ -31,6 +31,27 @@ if (process.env.NODE_ENV === 'test') {
         rejectUnauthorized: false // Required for TiDB Cloud connections to work seamlessly without downloading local CA file
       }
     },
+    pool: {
+      max: 10,
+      min: 2,
+      acquire: 30000,
+      idle: 10000
+    },
+    retry: {
+      max: 5,
+      match: [
+        /ETIMEDOUT/,
+        /EAI_AGAIN/,
+        /ECONNRESET/,
+        /SequelizeConnectionError/,
+        /SequelizeConnectionRefusedError/,
+        /SequelizeHostNotFoundError/,
+        /SequelizeHostNotReachableError/,
+        /SequelizeInvalidConnectionError/,
+        /SequelizeConnectionTimedOutError/,
+        /TimeoutError/
+      ]
+    },
     logging: false
   });
 } else {
