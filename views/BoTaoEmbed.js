@@ -26,6 +26,58 @@ export function taoThanhTienDo(hienTai, toiDa, doDai = 12) {
   const bar = '▰'.repeat(filled) + '▱'.repeat(doDai - filled);
   return `[ \`${bar}\` ] **${Math.floor(pct * 100)}%**`;
 }
+export function layKhungPhamChat(item, dongChiSoJson) {
+  if (item.loai === 'Chí bảo') return '<:PHAMCHAT_rainbow:1528035956777812019>';
+  
+  let quality = item.doHiem;
+  if (dongChiSoJson) {
+    try {
+      const parsed = JSON.parse(dongChiSoJson);
+      if (Array.isArray(parsed)) {
+        const meta = parsed.find(x => x && x.metadata);
+        if (meta && meta.phamChatTrangBi) {
+          quality = meta.phamChatTrangBi;
+        }
+      } else if (parsed && parsed.phamChat) {
+        quality = parsed.phamChat;
+      }
+    } catch (e) {}
+  }
+  
+  const QUALITY_FRAMES = {
+    'Chí bảo': '<:PHAMCHAT_rainbow:1528035956777812019>',
+    'Thần cấp': '<:PHAMCHAT_do:1528035960992960676>',
+    'Huyền thoại': '<:PHAMCHAT_cam:1528035959114043515>',
+    'Thần Thoại': '<:PHAMCHAT_cam:1528035959114043515>',
+    'Thần thoại': '<:PHAMCHAT_cam:1528035959114043515>',
+    'Cực hiếm': '<:PHAMCHAT_tim:1528035964038152192>',
+    'Sử Thi': '<:PHAMCHAT_tim:1528035964038152192>',
+    'Sử thi': '<:PHAMCHAT_tim:1528035964038152192>',
+    'Hiếm': '<:PHAMCHAT_lam:1528035954022027284>',
+    'Thường': '<:PHAMCHAT_luc:1528035966349217874>',
+    'Phế Phẩm': '<:PHAMCHAT_luc:1528035966349217874>'
+  };
+  return QUALITY_FRAMES[quality] || '<:PHAMCHAT_luc:1528035966349217874>';
+}
+
+export function renderProgressEmoji(linhLuc, reqExp) {
+  const fraction = reqExp > 0 ? linhLuc / reqExp : 0;
+  const numFull = Math.max(0, Math.min(10, Math.floor(fraction * 10)));
+  
+  let bar = '';
+  // Segment 1 (Top)
+  bar += numFull >= 1 ? '<:top_full:1528044664765022321>' : '<:top_empty:1528044668498214923>';
+  
+  // Segment 2-9 (Mids)
+  for (let idx = 2; idx <= 9; idx++) {
+    bar += numFull >= idx ? '<:mid_full:1528044662752018482>' : '<:mid_empty:1528044671014539274>';
+  }
+  
+  // Segment 10 (Bot)
+  bar += numFull >= 10 ? '<:bot_full:1528044666711314503>' : '<:bot_empty:1528044673686573106>';
+  
+  return bar;
+}
 
 export class BoTaoEmbed {
   static thongTin(tieuDe, moTa) {
@@ -64,148 +116,93 @@ export class BoTaoEmbed {
       .setFooter({ text: "Thiên Đạo Tu Tiên RPG" });
   }
 
-  static hoSo(tuSi, user, chiSo, daoNien = null, tocDoTuLuyen = 100, reqExp = null, equippedItems = [], skinImageUrl = null) {
+  static hoSoMain(tuSi, user, daoNien, tocDoTuLuyen, reqExp, equippedItems, profileImageUrl) {
     const color = layMauCanhGioi(tuSi.canhGioi);
-    const isThienDao = String(tuSi.idNguoiDung) === '541474154130571264';
-    const titleText = isThienDao ? `🌌 Thiên Đạo Vô Thượng: ${tuSi.ten} 🌌` : `📜 Tiên Phả Tu Sĩ: ${tuSi.ten}`;
+    const titleText = `📜 Tiên Phả Tu Sĩ: ${tuSi.ten}`;
     
     const embed = new EmbedBuilder()
       .setTitle(titleText)
       .setColor(color)
-      .setTimestamp();
-
-    if (skinImageUrl) {
-      embed.setImage(skinImageUrl);
-    }
+      .setTimestamp()
+      .setImage(profileImageUrl)
+      .setFooter({ text: `Mã số định danh: ${tuSi.idNguoiDung} • Thiên Cơ Đại Lục` });
 
     if (daoNien !== null) {
       embed.setDescription(`🌌 **Đạo Niên thứ ${daoNien} của Máy Chủ**`);
     }
 
-    embed.setFooter({ text: `Mã số định danh: ${tuSi.idNguoiDung} • Thiên Cơ Đại Lục` });
-
-    if (user && typeof user.displayAvatarURL === 'function') {
-      embed.setThumbnail(user.displayAvatarURL());
-    }
-
-    const pathName = config.HUONG_DI[tuSi.huongTu]?.name || 'Chưa rõ';
-
-    let duyenText = '• **Mối duyên**: *Chưa kết duyên*\n';
-    let hieuUngText = '';
-    if (tuSi.duyenType && tuSi.duyenUserId) {
-      let label = '';
-      let hieuUngLabel = '';
-      if (tuSi.duyenType === 'huynh_de') {
-        label = 'Huynh đệ 🤝';
-        hieuUngLabel = '`Huynh Đệ Đồng Tâm 🤝` *(Tốc độ tu luyện bằng 130% trung bình cộng của cả hai)*';
-      } else if (tuSi.duyenType === 'ty_muoi') {
-        label = 'Tỷ muội 🌸';
-        hieuUngLabel = '`Tỷ Muội Kim Lan 🌸` *(Tốc độ tu luyện bằng 130% trung bình cộng của cả hai)*';
-      } else if (tuSi.duyenType === 'hon_phu') {
-        label = 'Hôn phu 💍';
-        hieuUngLabel = '`Đồng Tâm Hiệp Lực 💍` *(Tốc độ tu luyện bằng 150% trung bình cộng của cả hai)*';
-      }
-      duyenText = `• **Mối duyên**: ${label} <@${tuSi.duyenUserId}>\n`;
-      hieuUngText = `• **Hiệu ứng**: ${hieuUngLabel}\n`;
-    }
-
-    embed.addFields(
-      {
-        name: "☯️ Linh Căn & Đạo Pháp",
-        value: `• **Giới tính**: ${tuSi.gioiTinh}\n` +
-               (isThienDao ? `• **Danh hiệu**: \`Thiên Đạo\` 🌌\n` : '') +
-               `• **Học thuyết**: \`${pathName}\`\n` +
-               `• **Linh căn**: \`${tuSi.linhCan}\`\n` +
-               (tuSi.huyetMach ? `• **Huyết mạch**: ${config.HUYET_MACH[tuSi.huyetMach]?.emoji || ''} \`${config.HUYET_MACH[tuSi.huyetMach]?.name}\`\n` : '') +
-               `• **Tu luyện tốc độ**: \`+${tocDoTuLuyen.toLocaleString()}\` Linh lực/Đạo Niên ⚡\n` +
-               duyenText +
-               hieuUngText,
-        inline: true
-      },
-      {
-        name: "🏔️ Cảnh Giới Huyền Môn",
-        value: `• **Cảnh giới**: \`${tuSi.canhGioi}\`\n• **Tiểu tầng**: \`Tầng ${tuSi.tang}\`\n• **Tu vi cấp**: \`Cấp ${tuSi.capDo}\``,
-        inline: true
-      }
-    );
-
-    // Tiến độ tu vi
-    const targetReqExp = reqExp !== null ? reqExp : config.layLinhLucYeuCau(tuSi.capDo);
-    const progress = taoThanhTienDo(tuSi.linhLuc, targetReqExp);
+    // 1. Tiến độ tu vi
+    const progressText = renderProgressEmoji(tuSi.linhLuc, reqExp);
     embed.addFields({
       name: "🌌 Tu Vi Tiến Độ",
-      value: `${progress} (\`${tuSi.linhLuc} / ${targetReqExp}\` Linh Lực)`,
+      value: `${progressText}\n(\`${tuSi.linhLuc.toLocaleString()} / ${reqExp.toLocaleString()}\` Linh Lực)`,
       inline: false
     });
 
-    // Chỉ số cơ bản
-    let hpDisplay = `🩸 **Khí Huyết (HP)**: \`${tuSi.hp} / ${chiSo.max_hp}\``;
-    if (tuSi.phatHp > 0) {
-      hpDisplay += ` \`(-${Math.floor(tuSi.phatHp * 100)}% Căn cơ)\``;
-    }
-
-    let mpDisplay = `🌀 **Thần Thức (MP)**: \`${tuSi.mp} / ${chiSo.max_mp}\``;
-    if (tuSi.phatMp > 0) {
-      mpDisplay += ` \`(-${Math.floor(tuSi.phatMp * 100)}% Căn cơ)\``;
-    }
-
+    // 2. Tốc độ tu luyện & Tài chính
     embed.addFields({
-      name: "🩺 Khí Huyết & Thần Thức",
-      value: `${hpDisplay}\n${mpDisplay}\n• **Thể lực**: \`${tuSi.theLuc || 0} / ${tuSi.theLucMax || 200}\` 🔋\n• **Linh thạch tích trữ**: \`${tuSi.linhThach.toLocaleString()}\` <:linh_thach:1522644605479419964>\n• **Số dư VND**: \`${(tuSi.vnd || 0).toLocaleString()}\` 💵`,
+      name: "⚡ Tu Luyện Tốc Độ & Tài Chính",
+      value: `• **Tốc độ tu luyện**: \`+${tocDoTuLuyen.toLocaleString()}\` Linh lực/Đạo Niên ⚡\n` +
+             `• **Linh thạch**: \`${tuSi.linhThach.toLocaleString()}\` <:linh_thach:1522644605479419964>\n` +
+             `• **Số dư VND**: \`${(tuSi.vnd || 0).toLocaleString()}\` 💵`,
       inline: false
     });
 
-    // Chỉ số tấn công/phòng ngự
-    let combatStatsText = `• **Vật công**: \`${chiSo.vat_cong}\` | **Pháp công**: \`${chiSo.phap_cong}\`\n` +
-      `• **Bạo kích**: \`${Math.floor(chiSo.crit_rate * 100)}%\` | **Bạo thương**: \`${Math.floor(chiSo.crit_dmg * 100)}%\`\n` +
-      `• **Né tránh**: \`${Math.floor((chiSo.ne || 0) * 100)}%\` | **Hút máu**: \`${Math.floor((chiSo.lifesteal || 0) * 100)}%\`\n` +
-      `• **Tốc độ**: \`${Math.floor(chiSo.speed || 100)}\``;
+    // 3. 12 trang bị
+    const formatItemText = (itemObj) => {
+      if (!itemObj) return `*[Trống]*`;
+      const { eq, detail } = itemObj;
+      const frame = layKhungPhamChat(detail, eq.dongChiSoJson);
+      const emoji = detail.emoji || '';
+      const star = eq.nangCapSao > 0 ? ` (+${eq.nangCapSao}⭐)` : '';
+      return `${frame} ${emoji} **${detail.ten}**${star}`;
+    };
 
-    embed.addFields(
-      {
-        name: "⚔️ Sát Thương & Chỉ số động",
-        value: combatStatsText,
-        inline: true
-      },
-      {
-        name: "🛡️ Thần Phòng",
-        value: `• **Vật phòng**: \`${chiSo.vat_phong}\`\n• **Pháp phòng**: \`${chiSo.phap_phong}\`\n• **Hộ giáp**: \`${chiSo.giap}\`\n• **Xuyên giáp**: \`${chiSo.xuyen_giap}\``,
-        inline: true
-      }
-    );
-
-    // 12 ô trang bị đang mặc (kể cả ô trống)
     const weapons = equippedItems.filter(x => x.detail.loai === 'Vũ khí');
     const armors = equippedItems.filter(x => x.detail.loai === 'Giáp');
     const ornaments = equippedItems.filter(x => x.detail.loai === 'Ngọc Bội');
     const activeTreasures = equippedItems.filter(x => x.detail.loai === 'Cổ Bảo Chủ Động');
     const dharmaTreasures = equippedItems.filter(x => x.detail.loai === 'Pháp Bảo');
 
-    const weaponText = weapons[0] ? `**${weapons[0].detail.ten}**${weapons[0].eq.nangCapSao > 0 ? ` (+${weapons[0].eq.nangCapSao}⭐)` : ''}` : `*[Trống]*`;
-    const armorText = armors[0] ? `**${armors[0].detail.ten}**${armors[0].eq.nangCapSao > 0 ? ` (+${armors[0].eq.nangCapSao}⭐)` : ''}` : `*[Trống]*`;
-    const ornamentText = ornaments[0] ? `**${ornaments[0].detail.ten}**${ornaments[0].eq.nangCapSao > 0 ? ` (+${ornaments[0].eq.nangCapSao}⭐)` : ''}` : `*[Trống]*`;
+    const cb1 = formatItemText(activeTreasures[0]);
+    const cb2 = formatItemText(activeTreasures[1]);
+    const cb3 = formatItemText(activeTreasures[2]);
 
-    const cb1 = activeTreasures[0] ? `**${activeTreasures[0].detail.ten}**` : `*[Trống]*`;
-    const cb2 = activeTreasures[1] ? `**${activeTreasures[1].detail.ten}**` : `*[Trống]*`;
-    const cb3 = activeTreasures[2] ? `**${activeTreasures[2].detail.ten}**` : `*[Trống]*`;
-
-    const pb1 = dharmaTreasures[0] ? `**${dharmaTreasures[0].detail.ten}**` : `*[Trống]*`;
-    const pb2 = dharmaTreasures[1] ? `**${dharmaTreasures[1].detail.ten}**` : `*[Trống]*`;
-    const pb3 = dharmaTreasures[2] ? `**${dharmaTreasures[2].detail.ten}**` : `*[Trống]*`;
-    const pb4 = dharmaTreasures[3] ? `**${dharmaTreasures[3].detail.ten}**` : `*[Trống]*`;
-    const pb5 = dharmaTreasures[4] ? `**${dharmaTreasures[4].detail.ten}**` : `*[Trống]*`;
-    const pb6 = dharmaTreasures[5] ? `**${dharmaTreasures[5].detail.ten}**` : `*[Trống]*`;
+    const pb1 = formatItemText(dharmaTreasures[0]);
+    const pb2 = formatItemText(dharmaTreasures[1]);
+    const pb3 = formatItemText(dharmaTreasures[2]);
+    const pb4 = formatItemText(dharmaTreasures[3]);
+    const pb5 = formatItemText(dharmaTreasures[4]);
+    const pb6 = formatItemText(dharmaTreasures[5]);
 
     embed.addFields({
       name: "🛡️ 12 Ô Trang Bị Trên Người",
-      value: `• 🗡️ **Vũ Khí**: ${weaponText}\n` +
-        `• 🥋 **Giáp**: ${armorText}\n` +
-        `• 🔮 **Ngọc Bội**: ${ornamentText}\n` +
-        `• 🏺 **Cổ Bảo**: 1. ${cb1} | 2. ${cb2} | 3. ${cb3}\n` +
-        `• 📿 **Pháp Bảo**: 1. ${pb1} | 2. ${pb2} | 3. ${pb3} | 4. ${pb4} | 5. ${pb5} | 6. ${pb6}`,
+      value: `• 🗡️ **Vũ Khí**: ${formatItemText(weapons[0])}\n` +
+             `• 🥋 **Giáp**: ${formatItemText(armors[0])}\n` +
+             `• 🔮 **Ngọc Bội**: ${formatItemText(ornaments[0])}\n` +
+             `• 🏺 **Cổ Bảo**: 1. ${cb1} | 2. ${cb2} | 3. ${cb3}\n` +
+             `• 📿 **Pháp Bảo**: 1. ${pb1} | 2. ${pb2} | 3. ${pb3} | 4. ${pb4} | 5. ${pb5} | 6. ${pb6}`,
       inline: false
     });
 
+    return embed;
+  }
+
+  static hoSoChiso(tuSi, user, daoNien, profileImageUrl) {
+    const color = layMauCanhGioi(tuSi.canhGioi);
+    const titleText = `📊 Chỉ Số Chi Tiết: ${tuSi.ten}`;
+    
+    const embed = new EmbedBuilder()
+      .setTitle(titleText)
+      .setColor(color)
+      .setTimestamp()
+      .setImage(profileImageUrl)
+      .setFooter({ text: `Mã số định danh: ${tuSi.idNguoiDung} • Thiên Cơ Đại Lục` });
+
+    if (daoNien !== null) {
+      embed.setDescription(`🌌 **Đạo Niên thứ ${daoNien} của Máy Chủ**`);
+    }
+    
     return embed;
   }
 

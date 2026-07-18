@@ -7,14 +7,23 @@ import {
   AttachmentBuilder,
   EmbedBuilder
 } from 'discord.js';
-import { Jimp } from 'jimp';
+import { Jimp, loadFont, measureText } from 'jimp';
 import fs from 'fs';
 import { Skin } from '../models/Skin.js';
 import { Op } from 'sequelize';
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
-import { BoTaoEmbed, layMauCanhGioi } from '../views/BoTaoEmbed.js';
+import { BoTaoEmbed, layMauCanhGioi, layKhungPhamChat, renderProgressEmoji } from '../views/BoTaoEmbed.js';
 import { GiaoDienTaoNhanVat } from '../views/GiaoDienTaoNhanVat.js';
 import * as config from '../config.js';
+
+function removeAccents(str) {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
 
 class BoDieuKhienTuSi extends BoDieuKhienGoc {
   constructor() {
@@ -92,6 +101,252 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     }
 
     return await canvas.getBuffer('image/png');
+  }
+
+  async getEmojiImageCached(emojiStr) {
+    const match = emojiStr.match(/:(\d+)>/);
+    if (!match) return null;
+    const id = match[1];
+    const cachedPath = `public/image/cache/emojis/${id}.png`;
+    
+    if (fs.existsSync(cachedPath)) {
+      try {
+        return await Jimp.read(cachedPath);
+      } catch (e) {
+        console.error('Failed to read cached emoji:', id, e.message);
+      }
+    }
+    
+    try {
+      const url = `https://cdn.discordapp.com/emojis/${id}.png`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Fetch failed');
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const img = await Jimp.read(buffer);
+      fs.mkdirSync('public/image/cache/emojis', { recursive: true });
+      await img.write(cachedPath);
+      return img;
+    } catch (e) {
+      console.error('Failed to download emoji:', id, e.message);
+      return null;
+    }
+  }
+
+  async veAnhProfileMain(tuSi, user, equippedItems, guildName) {
+    const isPhysical = tuSi.huongTu === 'The Tu';
+    const bgPath = isPhysical 
+      ? 'public/image/view/profile/profile_THE_main.png'
+      : 'public/image/view/profile/profile_PHAP_main.png';
+      
+    if (!fs.existsSync(bgPath)) {
+      throw new Error(`Profile template not found: ${bgPath}`);
+    }
+
+    const img = await Jimp.read(bgPath);
+    
+    const font16 = await loadFont('node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-16-white/open-sans-16-white.fnt');
+    const font32 = await loadFont('node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-32-white/open-sans-32-white.fnt');
+    
+    const printCentered = (text, xStart, xEnd, y) => {
+      const cleanText = removeAccents(text);
+      const width = measureText(font16, cleanText);
+      const x = Math.round(xStart + (xEnd - xStart - width) / 2);
+      img.print({ font: font16, x, y, text: cleanText });
+    };
+
+    const printTitle = (text, xStart, y) => {
+      const cleanText = removeAccents(text);
+      img.print({ font: font32, x: xStart, y, text: cleanText });
+    };
+
+    // 1. Tên tu sĩ
+    printTitle(tuSi.ten, 430, 68);
+
+    // 2. Chân Nguyên & Khí Huyết
+    const stats = await tuSi.layChiSoDayDu();
+    printCentered(`${tuSi.mp}/${stats.max_mp}`, 120, 290, 240);
+    printCentered(`${tuSi.hp}/${stats.max_hp}`, 300, 480, 240);
+
+    // 3. Avatar
+    if (user && typeof user.displayAvatarURL === 'function') {
+      try {
+        const avatarUrl = user.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
+        const avatarImg = await Jimp.read(avatarUrl);
+        avatarImg.resize({ w: 124, h: 147 });
+        img.composite(avatarImg, 526, 148);
+      } catch (e) {
+        console.error('Failed to load avatar:', e.message);
+      }
+    }
+
+    // 4. Linh Căn & Đạo Pháp (5 boxes)
+    printCentered(tuSi.gioiTinh, 150, 220, 418);
+    
+    const isThienDao = String(tuSi.idNguoiDung) === '541474154130571264';
+    if (isThienDao) {
+      printCentered('Thien Dao', 275, 345, 418);
+    }
+    
+    const pathName = config.HUONG_DI[tuSi.huongTu]?.name || 'Chua ro';
+    printCentered(pathName, 400, 470, 418);
+    
+    const lcKey = Object.keys(config.NGUON_LINH_CAN).find(k => config.NGUON_LINH_CAN[k].name === tuSi.linhCan);
+    const lcEmojiStr = config.NGUON_LINH_CAN[lcKey]?.emoji;
+    if (lcEmojiStr) {
+      const lcImg = await this.getEmojiImageCached(lcEmojiStr);
+      if (lcImg) {
+        lcImg.resize({ w: 50, h: 50 });
+        img.composite(lcImg, 535, 405);
+      }
+    }
+    
+    if (tuSi.huyetMach) {
+      const hmEmojiStr = config.HUYET_MACH[tuSi.huyetMach]?.emoji;
+      if (hmEmojiStr) {
+        const hmImg = await this.getEmojiImageCached(hmEmojiStr);
+        if (hmImg) {
+          hmImg.resize({ w: 50, h: 50 });
+          img.composite(hmImg, 660, 405);
+        }
+      }
+    }
+
+    // 5. Cảnh giới
+    printCentered(`${tuSi.canhGioi} Tang ${tuSi.tang} (Cap ${tuSi.capDo})`, 135, 635, 595);
+
+    // 6. 12 equipment slots
+    const slots = [
+      { type: 'Vũ khí', col: 0, row: 0 },
+      { type: 'Giáp', col: 1, row: 0 },
+      { type: 'Ngọc Bội', col: 2, row: 0 },
+      { type: 'Cổ Bảo Chủ Động', col: 3, row: 0 },
+      { type: 'Pháp Bảo', col: 0, row: 1 },
+      { type: 'Pháp Bảo', col: 1, row: 1 },
+      { type: 'Pháp Bảo', col: 2, row: 1 },
+      { type: 'Pháp Bảo', col: 3, row: 1 },
+      { type: 'Pháp Bảo', col: 0, row: 2 },
+      { type: 'Pháp Bảo', col: 1, row: 2 },
+      { type: 'Pháp Bảo', col: 2, row: 2 },
+      { type: 'Pháp Bảo', col: 3, row: 2 }
+    ];
+
+    const weapons = equippedItems.filter(x => x.detail.loai === 'Vũ khí');
+    const armors = equippedItems.filter(x => x.detail.loai === 'Giáp');
+    const ornaments = equippedItems.filter(x => x.detail.loai === 'Ngọc Bội');
+    const activeTreasures = equippedItems.filter(x => x.detail.loai === 'Cổ Bảo Chủ Động');
+    const dharmaTreasures = equippedItems.filter(x => x.detail.loai === 'Pháp Bảo');
+
+    const findItemForSlot = (slot, index) => {
+      if (slot.type === 'Vũ khí') return weapons[0];
+      if (slot.type === 'Giáp') return armors[0];
+      if (slot.type === 'Ngọc Bội') return ornaments[0];
+      if (slot.type === 'Cổ Bảo Chủ Động') return activeTreasures[index - 3];
+      if (slot.type === 'Pháp Bảo') return dharmaTreasures[index - 4];
+      return null;
+    };
+
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i];
+      const itemObj = findItemForSlot(slot, i);
+      if (itemObj) {
+        const { eq, detail } = itemObj;
+        const qFrameEmoji = layKhungPhamChat(detail, eq.dongChiSoJson);
+        const frameImg = await this.getEmojiImageCached(qFrameEmoji);
+        const itemImg = await this.getEmojiImageCached(detail.emoji);
+
+        const boxX = 135 + slot.col * 130;
+        const boxY = 890 + slot.row * 120;
+
+        if (frameImg) {
+          frameImg.resize({ w: 80, h: 80 });
+          img.composite(frameImg, boxX + 10, boxY + 10);
+        }
+        if (itemImg) {
+          itemImg.resize({ w: 60, h: 60 });
+          img.composite(itemImg, boxX + 20, boxY + 20);
+        }
+      }
+    }
+
+    // 7. Máy Chủ
+    if (guildName) {
+      printCentered(guildName, 220, 600, 1300);
+    }
+
+    return await img.getBuffer('image/png');
+  }
+
+  async veAnhProfileChiso(tuSi, user, chiSo, guildName) {
+    const isPhysical = tuSi.huongTu === 'The Tu';
+    const bgPath = isPhysical 
+      ? 'public/image/view/profile/profile_THE_chiso.png'
+      : 'public/image/view/profile/profile_PHAP_chiso.png';
+      
+    if (!fs.existsSync(bgPath)) {
+      throw new Error(`Profile chiso template not found: ${bgPath}`);
+    }
+
+    const img = await Jimp.read(bgPath);
+    
+    const font16 = await loadFont('node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-16-white/open-sans-16-white.fnt');
+    const font32 = await loadFont('node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-32-white/open-sans-32-white.fnt');
+    
+    const printCentered = (text, xStart, xEnd, y) => {
+      const cleanText = removeAccents(text);
+      const width = measureText(font16, cleanText);
+      const x = Math.round(xStart + (xEnd - xStart - width) / 2);
+      img.print({ font: font16, x, y, text: cleanText });
+    };
+
+    const printTitle = (text, xStart, y) => {
+      const cleanText = removeAccents(text);
+      img.print({ font: font32, x: xStart, y, text: cleanText });
+    };
+
+    // 1. Tên tu sĩ
+    printTitle(tuSi.ten, 430, 68);
+
+    // 2. Chân Nguyên & Khí Huyết
+    printCentered(`${tuSi.mp}/${chiSo.max_mp}`, 120, 290, 240);
+    printCentered(`${tuSi.hp}/${chiSo.max_hp}`, 300, 480, 240);
+
+    // 3. Avatar
+    if (user && typeof user.displayAvatarURL === 'function') {
+      try {
+        const avatarUrl = user.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
+        const avatarImg = await Jimp.read(avatarUrl);
+        avatarImg.resize({ w: 124, h: 147 });
+        img.composite(avatarImg, 526, 148);
+      } catch (e) {
+        console.error('Failed to load avatar:', e.message);
+      }
+    }
+
+    // 4. Basic Attack
+    printCentered(chiSo.vat_cong.toString(), 355, 635, 400);
+    printCentered(chiSo.phap_cong.toString(), 355, 635, 460);
+
+    // 5. Defense & Recovery
+    printCentered(chiSo.giap.toString(), 270, 365, 638);
+    printCentered(chiSo.vat_phong.toString(), 540, 635, 638);
+    printCentered(chiSo.linh_phong.toString(), 270, 365, 698);
+    printCentered(chiSo.phap_phong.toString(), 540, 635, 698);
+    printCentered(`${Math.round((chiSo.lifesteal || 0) * 100)}%`, 270, 365, 758);
+
+    // 6. Special Stats
+    printCentered(Math.floor(chiSo.speed || 100).toString(), 270, 365, 980);
+    printCentered(`${Math.round(chiSo.crit_rate * 100)}%`, 540, 635, 980);
+    printCentered(`${Math.round(chiSo.crit_dmg * 100)}%`, 270, 365, 1040);
+    printCentered(`${Math.round((chiSo.ne || 0) * 100)}%`, 540, 635, 1040);
+    printCentered(chiSo.xuyen_giap.toString(), 270, 365, 1100);
+
+    // 7. Guild Name & ID Code
+    printCentered(tuSi.idNguoiDung, 220, 500, 1270);
+    if (guildName) {
+      printCentered(guildName, 220, 500, 1310);
+    }
+
+    return await img.getBuffer('image/png');
   }
 
   // Lệnh /start: Tạo nhân vật mới, chọn giới tính, hướng đi và roll Linh Căn
@@ -265,44 +520,37 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
 
       const reqExp = cg ? cg.linhLucYeuCau : config.layLinhLucYeuCau(tuSi.capDo);
 
-      // Check if equipped skin exists
-      let attachment = null;
-      let skinImageUrl = null;
-      if (tuSi.equippedSkin) {
-        try {
-          const buffer = await this.veNhanVatSkin(tuSi);
-          if (buffer) {
-            attachment = new AttachmentBuilder(buffer, { name: 'character_skin.png' });
-            skinImageUrl = 'attachment://character_skin.png';
-          }
-        } catch (err) {
-          console.error('Lỗi dựng ảnh skin:', err);
-        }
+      let guildName = 'Thiên Cơ';
+      if (interaction.guild) {
+        guildName = interaction.guild.name;
       }
+      
+      const mainBuffer = await this.veAnhProfileMain(tuSi, targetUser, equippedItems, guildName);
+      const attachment = new AttachmentBuilder(mainBuffer, { name: 'profile_main.png' });
+      const embed = BoTaoEmbed.hoSoMain(tuSi, targetUser, daoNien, tocDoTuLuyenFinal, reqExp, equippedItems, 'attachment://profile_main.png');
 
-      const embed = BoTaoEmbed.hoSo(tuSi, targetUser, stats, daoNien, tocDoTuLuyenFinal, reqExp, equippedItems, skinImageUrl);
-
-      // Components (Buttons) for /nv
       const components = [];
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('nv_view_chiso')
+          .setLabel('📊 Chỉ Số')
+          .setStyle(ButtonStyle.Primary)
+      );
       if (targetUser.id === interaction.user.id) {
-        components.push(
-          new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId('nv_fashion_open')
-              .setLabel('👕 Thời Trang')
-              .setStyle(ButtonStyle.Primary)
-          )
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId('nv_fashion_open')
+            .setLabel('👕 Thời Trang')
+            .setStyle(ButtonStyle.Secondary)
         );
       }
+      components.push(row);
 
-      const payload = { embeds: [embed], components };
-      if (attachment) {
-        payload.files = [attachment];
-      }
-
-      const msg = await interaction.editReply(payload);
-
-      if (targetUser.id !== interaction.user.id) return; // Only allow self customization
+      const msg = await interaction.editReply({
+        embeds: [embed],
+        components,
+        files: [attachment]
+      });
 
       const collector = msg.createMessageComponentCollector({
         filter: i => i.user.id === interaction.user.id,
@@ -454,6 +702,128 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       collector.on('collect', async i => {
         await i.deferUpdate();
 
+        if (i.customId === 'nv_view_chiso') {
+          const freshTuSi = await this.layTuSi(targetUser.id);
+          const equippedInv = await Inventory.findAll({
+            where: { idNguoiDung: freshTuSi.idNguoiDung, trangBi: true }
+          });
+          let activePet = await Pet.findOne({ where: { userId: freshTuSi.idNguoiDung, isActive: true } });
+          if (activePet) {
+            const check = config.checkHuyetMachApChe(freshTuSi.capDo, activePet.rarity);
+            if (!check.allowed) activePet = null;
+          }
+          const stats = freshTuSi.layChiSo(equippedInv, activePet);
+
+          let guildName = 'Thiên Cơ';
+          if (interaction.guild) {
+            guildName = interaction.guild.name;
+          }
+
+          const chisoBuffer = await this.veAnhProfileChiso(freshTuSi, targetUser, stats, guildName);
+          const chisoAttachment = new AttachmentBuilder(chisoBuffer, { name: 'profile_chiso.png' });
+          const chisoEmbed = BoTaoEmbed.hoSoChiso(freshTuSi, targetUser, daoNien, 'attachment://profile_chiso.png');
+
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('nv_view_main')
+              .setLabel('📜 Hồ Sơ')
+              .setStyle(ButtonStyle.Primary)
+          );
+          if (targetUser.id === interaction.user.id) {
+            row.addComponents(
+              new ButtonBuilder()
+                .setCustomId('nv_fashion_open')
+                .setLabel('👕 Thời Trang')
+                .setStyle(ButtonStyle.Secondary)
+            );
+          }
+
+          await i.editReply({
+            embeds: [chisoEmbed],
+            components: [row],
+            files: [chisoAttachment]
+          });
+          return;
+        }
+
+        if (i.customId === 'nv_view_main') {
+          const freshTuSi = await this.layTuSi(targetUser.id);
+          const equippedInv = await Inventory.findAll({
+            where: { idNguoiDung: freshTuSi.idNguoiDung, trangBi: true }
+          });
+          const equippedItems = [];
+          for (const eq of equippedInv) {
+            const detail = await Item.findByPk(eq.itemId);
+            if (detail) {
+              eq.item = detail;
+              equippedItems.push({ eq, detail });
+            }
+          }
+          let activePet = await Pet.findOne({ where: { userId: freshTuSi.idNguoiDung, isActive: true } });
+          if (activePet) {
+            const check = config.checkHuyetMachApChe(freshTuSi.capDo, activePet.rarity);
+            if (!check.allowed) activePet = null;
+          }
+
+          const { CanhGioi } = await import('../models/CanhGioi.js');
+          const cg = await CanhGioi.findByPk(freshTuSi.capDo);
+          const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
+          const heSoTuLuyen = freshTuSi.layHeSoTuLuyen(activePet);
+          const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen * (1 + lvDongPhu));
+
+          let tocDoTuLuyenFinal = tocDoTuLuyen;
+          if (freshTuSi.duyenType && freshTuSi.duyenUserId) {
+            const partner = await this.layTuSi(freshTuSi.duyenUserId);
+            if (partner && String(partner.duyenUserId) === String(freshTuSi.idNguoiDung) && partner.duyenType === freshTuSi.duyenType) {
+              const abodeB = await Abode.findByPk(partner.idNguoiDung);
+              const lvDongPhuB = abodeB ? abodeB.level : 0;
+              let activePetB = await Pet.findOne({ where: { userId: partner.idNguoiDung, isActive: true } });
+              if (activePetB) {
+                const checkB = config.checkHuyetMachApChe(partner.capDo, activePetB.rarity);
+                if (!checkB.allowed) activePetB = null;
+              }
+              const cgB = await CanhGioi.findByPk(partner.capDo);
+              const tocDoCoBanB = cgB ? cgB.tocDoCoBan : 100;
+              const heSoTuLuyenB = partner.layHeSoTuLuyen(activePetB);
+              const rawSpeedB = Math.floor(tocDoCoBanB * heSoTuLuyenB * (1 + lvDongPhuB));
+
+              const factor = freshTuSi.duyenType === 'hon_phu' ? 1.50 : 1.30;
+              tocDoTuLuyenFinal = Math.floor(factor * (tocDoTuLuyen + rawSpeedB) / 2);
+            }
+          }
+
+          let guildName = 'Thiên Cơ';
+          if (interaction.guild) {
+            guildName = interaction.guild.name;
+          }
+
+          const mainBuffer = await this.veAnhProfileMain(freshTuSi, targetUser, equippedItems, guildName);
+          const mainAttachment = new AttachmentBuilder(mainBuffer, { name: 'profile_main.png' });
+          const embed = BoTaoEmbed.hoSoMain(freshTuSi, targetUser, daoNien, tocDoTuLuyenFinal, reqExp, equippedItems, 'attachment://profile_main.png');
+
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('nv_view_chiso')
+              .setLabel('📊 Chỉ Số')
+              .setStyle(ButtonStyle.Primary)
+          );
+          if (targetUser.id === interaction.user.id) {
+            row.addComponents(
+              new ButtonBuilder()
+                .setCustomId('nv_fashion_open')
+                .setLabel('👕 Thời Trang')
+                .setStyle(ButtonStyle.Secondary)
+            );
+          }
+
+          await i.editReply({
+            embeds: [embed],
+            components: [row],
+            files: [mainAttachment]
+          });
+          return;
+        }
+
         if (i.customId === 'nv_fashion_open') {
           selectedCustomizerSkinId = null;
           await i.editReply(await buildFashionPayload());
@@ -488,13 +858,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         }
 
         if (i.customId === 'fashion_action_back') {
-          // Tải lại dữ liệu nhân vật mới nhất để dựng hồ sơ
-          const freshTuSi = await this.layTuSi(interaction.user.id);
-          let activePet = await Pet.findOne({ where: { userId: freshTuSi.idNguoiDung, isActive: true } });
-          if (activePet) {
-            const check = config.checkHuyetMachApChe(freshTuSi.capDo, activePet.rarity);
-            if (!check.allowed) activePet = null;
-          }
+          const freshTuSi = await this.layTuSi(targetUser.id);
           const equippedInv = await Inventory.findAll({
             where: { idNguoiDung: freshTuSi.idNguoiDung, trangBi: true }
           });
@@ -506,33 +870,68 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
               equippedItems.push({ eq, detail });
             }
           }
-          const stats = freshTuSi.layChiSo(equippedInv, activePet);
+          let activePet = await Pet.findOne({ where: { userId: freshTuSi.idNguoiDung, isActive: true } });
+          if (activePet) {
+            const check = config.checkHuyetMachApChe(freshTuSi.capDo, activePet.rarity);
+            if (!check.allowed) activePet = null;
+          }
 
-          let attachment = null;
-          let skinImageUrl = null;
-          if (freshTuSi.equippedSkin) {
-            try {
-              const buffer = await this.veNhanVatSkin(freshTuSi);
-              if (buffer) {
-                attachment = new AttachmentBuilder(buffer, { name: 'character_skin.png' });
-                skinImageUrl = 'attachment://character_skin.png';
+          const { CanhGioi } = await import('../models/CanhGioi.js');
+          const cg = await CanhGioi.findByPk(freshTuSi.capDo);
+          const tocDoCoBan = cg ? cg.tocDoCoBan : 100;
+          const heSoTuLuyen = freshTuSi.layHeSoTuLuyen(activePet);
+          const tocDoTuLuyen = Math.floor(tocDoCoBan * heSoTuLuyen * (1 + lvDongPhu));
+
+          let tocDoTuLuyenFinal = tocDoTuLuyen;
+          if (freshTuSi.duyenType && freshTuSi.duyenUserId) {
+            const partner = await this.layTuSi(freshTuSi.duyenUserId);
+            if (partner && String(partner.duyenUserId) === String(freshTuSi.idNguoiDung) && partner.duyenType === freshTuSi.duyenType) {
+              const abodeB = await Abode.findByPk(partner.idNguoiDung);
+              const lvDongPhuB = abodeB ? abodeB.level : 0;
+              let activePetB = await Pet.findOne({ where: { userId: partner.idNguoiDung, isActive: true } });
+              if (activePetB) {
+                const checkB = config.checkHuyetMachApChe(partner.capDo, activePetB.rarity);
+                if (!checkB.allowed) activePetB = null;
               }
-            } catch (err) {
-              console.error('Lỗi dựng ảnh skin:', err);
+              const cgB = await CanhGioi.findByPk(partner.capDo);
+              const tocDoCoBanB = cgB ? cgB.tocDoCoBan : 100;
+              const heSoTuLuyenB = partner.layHeSoTuLuyen(activePetB);
+              const rawSpeedB = Math.floor(tocDoCoBanB * heSoTuLuyenB * (1 + lvDongPhuB));
+
+              const factor = freshTuSi.duyenType === 'hon_phu' ? 1.50 : 1.30;
+              tocDoTuLuyenFinal = Math.floor(factor * (tocDoTuLuyen + rawSpeedB) / 2);
             }
           }
 
-          const embed = BoTaoEmbed.hoSo(freshTuSi, targetUser, stats, daoNien, tocDoTuLuyen, reqExp, equippedItems, skinImageUrl);
-          const components = [
-            new ActionRowBuilder().addComponents(
+          let guildName = 'Thiên Cơ';
+          if (interaction.guild) {
+            guildName = interaction.guild.name;
+          }
+
+          const mainBuffer = await this.veAnhProfileMain(freshTuSi, targetUser, equippedItems, guildName);
+          const mainAttachment = new AttachmentBuilder(mainBuffer, { name: 'profile_main.png' });
+          const embed = BoTaoEmbed.hoSoMain(freshTuSi, targetUser, daoNien, tocDoTuLuyenFinal, reqExp, equippedItems, 'attachment://profile_main.png');
+
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('nv_view_chiso')
+              .setLabel('📊 Chỉ Số')
+              .setStyle(ButtonStyle.Primary)
+          );
+          if (targetUser.id === interaction.user.id) {
+            row.addComponents(
               new ButtonBuilder()
                 .setCustomId('nv_fashion_open')
                 .setLabel('👕 Thời Trang')
-                .setStyle(ButtonStyle.Primary)
-            )
-          ];
-          const payload = { embeds: [embed], components, files: attachment ? [attachment] : [] };
-          await i.editReply(payload);
+                .setStyle(ButtonStyle.Secondary)
+            );
+          }
+
+          await i.editReply({
+            embeds: [embed],
+            components: [row],
+            files: [mainAttachment]
+          });
           return;
         }
 
