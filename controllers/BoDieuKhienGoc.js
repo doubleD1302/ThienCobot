@@ -119,27 +119,16 @@ export class BoDieuKhienGoc {
   }
 
   async datThoiGianCho(idNguoiDung, hanhDong, hetHan, duLieu = null) {
-    let thoiGianCho = await ThoiGianCho.findOne({
-      where: {
-        idNguoiDung: idNguoiDung,
-        hanhDong: hanhDong
-      }
-    });
-
-    if (!thoiGianCho) {
-      thoiGianCho = ThoiGianCho.build({
-        idNguoiDung: idNguoiDung,
-        hanhDong: hanhDong
-      });
-    }
-
-    thoiGianCho.hetHan = hetHan;
+    const data = {
+      idNguoiDung: idNguoiDung,
+      hanhDong: hanhDong,
+      hetHan: hetHan
+    };
     if (duLieu !== null) {
-      thoiGianCho.duLieu = duLieu;
+      data.duLieuJson = JSON.stringify(duLieu || {});
     }
-
-    await thoiGianCho.save();
-    return thoiGianCho;
+    const [instance] = await ThoiGianCho.upsert(data);
+    return instance;
   }
 
   async xoaThoiGianCho(idNguoiDung, hanhDong) {

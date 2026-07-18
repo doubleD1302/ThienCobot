@@ -1440,24 +1440,6 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
             }
           }
 
-          // Rơi Trứng Linh Thú (Phàm: 5%, Linh: 3%, Tiên: 1%)
-          const eggRollVal = Math.random() * 100;
-          let targetEggId = null;
-          if (eggRollVal <= 1.0) targetEggId = 'trung_linh_thu_tien';
-          else if (eggRollVal <= 4.0) targetEggId = 'trung_linh_thu_linh';
-          else if (eggRollVal <= 9.0) targetEggId = 'trung_linh_thu_pham';
-
-          if (targetEggId) {
-            const eggDetail = await Item.findByPk(targetEggId);
-            if (eggDetail) {
-              if (eggDetail.doHiem === 'Huyền thoại' || eggDetail.doHiem === 'Thần cấp' || targetEggId === 'trung_than_thu' || targetEggId === 'chuyen_sinh_dan') {
-                // Chặn không rơi
-              } else {
-                droppedEgg = eggDetail;
-                await Inventory.addVatPham(tuSi.idNguoiDung, targetEggId, 1);
-              }
-            }
-          }
 
           tuSi.linhLuc += gainedExp;
           tuSi.linhThach += gainedStones;
