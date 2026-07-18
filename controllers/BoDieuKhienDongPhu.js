@@ -77,6 +77,149 @@ function getForgeRateText(matQuality) {
   return lines.join('\n');
 }
 
+const FORGE_MATERIALS = {
+  // Luyện Khí - Pháp Tu
+  'thanh_phong_kiem': { materialId: 'so_cap_thiet_quang', count: 5, matName: 'Sơ Cấp Thiết Quặng <:so_cap_thiet_quang:1525076114295492679>' },
+  'dao_bao_thanh_van': { materialId: 'tho_linh_dan_ty', count: 5, matName: 'Thô Linh Đàn Ty <:tho_linh_dan_ty:1525076109887148144>' },
+  'thuy_linh_boi': { materialId: 'linh_khi_toai_thach', count: 5, matName: 'Linh Khí Toái Thạch <:linh_khi_toai_thach:1525076112382623754>' },
+  'pb_lk_linh_phong_cham': { materialId: 'nham_hoa_tinh_hoa', count: 5, matName: 'Nham Hỏa Tinh Hoa <:nham_hoa_tinh_hoa:1525076107509108776>' },
+  'pb_lk_dan_loi_phu': { materialId: 'sat_danh_moc', count: 5, matName: 'Sét Đánh Mộc <:sat_danh_moc:1525076096213581945>' },
+  'pb_lk_ho_than_kinh': { materialId: 'kien_thach_tam', count: 5, matName: 'Kiên Thạch Tâm <:kien_thach_tam:1525076100655354038>' },
+  'pb_lk_dinh_than_phu': { materialId: 'thiet_dang_man', count: 5, matName: 'Thiết Đằng Man <:thiet_dang_man:1525076105302773760>' },
+  'pb_lk_thanh_linh_binh': { materialId: 'linh_tuyen_thuy', count: 5, matName: 'Linh Tuyền Thủy <:linh_tuyen_thuy:1525076102870073426>' },
+  'pb_lk_tu_khi_ky': { materialId: 'yeu_thu_huyet', count: 5, matName: 'Yêu Thú Huyết <:yeu_thu_huyet:1525076098302345277>' },
+
+  // Luyện Khí - Thể Tu
+  'thiet_cot_dao': { materialId: 'so_cap_thiet_quang', count: 5, matName: 'Sơ Cấp Thiết Quặng <:so_cap_thiet_quang:1525076114295492679>' },
+  'tho_bo_thuc_cu': { materialId: 'tho_linh_dan_ty', count: 5, matName: 'Thô Linh Đàn Ty <:tho_linh_dan_ty:1525076109887148144>' },
+  'khuong_thach_boi': { materialId: 'linh_khi_toai_thach', count: 5, matName: 'Linh Khí Toái Thạch <:linh_khi_toai_thach:1525076112382623754>' },
+  'pb_lk_toai_thach_an': { materialId: 'nham_hoa_tinh_hoa', count: 5, matName: 'Nham Hỏa Tinh Hoa <:nham_hoa_tinh_hoa:1525076107509108776>' },
+  'pb_lk_hoa_tinh_dinh': { materialId: 'sat_danh_moc', count: 5, matName: 'Sét Đánh Mộc <:sat_danh_moc:1525076096213581945>' },
+  'pb_lk_thach_phu_thuan': { materialId: 'kien_thach_tam', count: 5, matName: 'Kiên Thạch Tâm <:kien_thach_tam:1525076100655354038>' },
+  'pb_lk_u_thiet_lien': { materialId: 'thiet_dang_man', count: 5, matName: 'Thiết Đằng Man <:thiet_dang_man:1525076105302773760>' },
+  'pb_lk_da_son_sam': { materialId: 'linh_tuyen_thuy', count: 5, matName: 'Linh Tuyền Thủy <:linh_tuyen_thuy:1525076102870073426>' },
+  'pb_lk_chien_co': { materialId: 'yeu_thu_huyet', count: 5, matName: 'Yêu Thú Huyết <:yeu_thu_huyet:1525076098302345277>' },
+
+  // Trúc Cơ
+  'kiem_sat': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
+  'truong_truc': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
+  'ao_da': { materialId: 'luc_ngoc_thach', count: 5, matName: 'Lục Ngọc Thạch <:_nglieu_Truc_co_2:1525418029650022400>' },
+
+  // Trúc Cơ - Pháp Tu
+  'vk_phap_truc_co': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
+  'giap_phap_truc_co': { materialId: 'luc_ngoc_thach', count: 5, matName: 'Lục Ngọc Thạch <:_nglieu_Truc_co_2:1525418029650022400>' },
+  'nb_phap_truc_co': { materialId: 'am_duong_dong_chuong', count: 5, matName: 'Âm Dương Đồng Chương <:_nglieu_Truc_co_9:1525418025715761232>' },
+  'pb_hoi_phap_truc_co': { materialId: 'dia_xich_linh_chi', count: 5, matName: 'Địa Xích Linh Chi <:_nglieu_Truc_co_6:1525418014290215042>' },
+  'pb_def_phap_truc_co': { materialId: 'bich_hai_bang_tinh', count: 5, matName: 'Bích Hải Băng Tinh <:_nglieu_Truc_co_4:1525418022070653019>' },
+  'pb_aoe_phap_truc_co': { materialId: 'cuu_thien_tu_cat', count: 5, matName: 'Cửu Thiên Tử Cát <:_nglieu_Truc_co_5:1525418023685718116>' },
+  'pb_don_phap_truc_co': { materialId: 'dia_hoa_chi_tinh', count: 5, matName: 'Địa Hỏa Chi Tinh <:_nglieu_Truc_co_3:1525418020137078794>' },
+  'pb_cc_phap_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169398393>' },
+  'pb_buff_phap_truc_co': { materialId: 'thanh_vu_linh_sa', count: 5, matName: 'Thanh Vũ Linh Sa <:_nglieu_Truc_co_8:1525418018124071054>' },
+
+  // Trúc Cơ - Thể Tu
+  'vk_the_truc_co': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
+  'giap_the_truc_co': { materialId: 'luc_ngoc_thach', count: 5, matName: 'Lục Ngọc Thạch <:_nglieu_Truc_co_2:1525418029650022400>' },
+  'nb_the_truc_co': { materialId: 'am_duong_dong_chuong', count: 5, matName: 'Âm Dương Đồng Chương <:_nglieu_Truc_co_9:1525418025715761232>' },
+  'pb_hoi_the_truc_co': { materialId: 'dia_xich_linh_chi', count: 5, matName: 'Địa Xích Linh Chi <:_nglieu_Truc_co_6:1525418014290215042>' },
+  'pb_def_the_truc_co': { materialId: 'bich_hai_bang_tinh', count: 5, matName: 'Bích Hải Băng Tinh <:_nglieu_Truc_co_4:1525418022070653019>' },
+  'pb_aoe_the_truc_co': { materialId: 'cuu_thien_tu_cat', count: 5, matName: 'Cửu Thiên Tử Cát <:_nglieu_Truc_co_5:1525418023685718116>' },
+  'pb_don_the_truc_co': { materialId: 'dia_hoa_chi_tinh', count: 5, matName: 'Địa Hỏa Chi Tinh <:_nglieu_Truc_co_3:1525418020137078794>' },
+  'pb_cc_the_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169398393>' },
+  'pb_buff_the_truc_co': { materialId: 'thanh_vu_linh_sa', count: 5, matName: 'Thanh Vũ Linh Sa <:_nglieu_Truc_co_8:1525418018124071054>' },
+
+  // Kim Đan
+  'kiem_kim_dan': { materialId: 'huyen_thiet_van_nam', count: 5, matName: 'Vạn Năm Huyền Thiết <:Huyen_thiet_van_nam:1524812777347092560>' },
+  'truong_kim_dan': { materialId: 'huyen_thiet_van_nam', count: 5, matName: 'Vạn Năm Huyền Thiết <:Huyen_thiet_van_nam:1524812777347092560>' },
+  'ao_kim_dan': { materialId: 'Thien_Tam_Linh_ty', count: 5, matName: 'Thiên Tàm Linh Ty <:Thien_Tam_Linh_ty:1524812779503226950>' },
+  'ao_kim_dan_phap': { materialId: 'Thien_Tam_Linh_ty', count: 5, matName: 'Thiên Tàm Linh Ty <:Thien_Tam_Linh_ty:1524812779503226950>' },
+  'ngoc_boi_kim_dan_the': { materialId: 'hon_tinh_huyet_nguyet', count: 5, matName: 'Hồn Tinh Huyết Nguyệt <:hon_tinh_huyet_nguyet:1524812781730140190>' },
+  'ngoc_boi_kim_dan_phap': { materialId: 'hon_tinh_huyet_nguyet', count: 5, matName: 'Hồn Tinh Huyết Nguyệt <:hon_tinh_huyet_nguyet:1524812781730140190>' },
+  'pb_kd_diet_ma_cham': { materialId: 'cuc_duong_hoa_thach', count: 5, matName: 'Cực Dương Hỏa Thạch <:cuc_duong_hoa_thach:1524812775325434139>' },
+  'pb_kd_chan_son_an': { materialId: 'cuc_duong_hoa_thach', count: 5, matName: 'Cực Dương Hỏa Thạch <:cuc_duong_hoa_thach:1524812775325434139>' },
+  'pb_kd_ngu_loi_chau': { materialId: 'loi_tri_bang_tinh', count: 5, matName: 'Lôi Trì Băng Tinh <:loi_tri_bang_tinh:1524812766144364677>' },
+  'pb_kd_phan_thien_dinh': { materialId: 'loi_tri_bang_tinh', count: 5, matName: 'Lôi Trì Băng Tinh <:loi_tri_bang_tinh:1524812766144364677>' },
+  'pb_kd_bat_quai_kinh': { materialId: 'Hau_tho_chi_loi', count: 5, matName: 'Hậu Thổ Chi Lõi <:Hau_tho_chi_loi:1524812773077422332>' },
+  'pb_kd_huyen_vu_thuan': { materialId: 'Hau_tho_chi_loi', count: 5, matName: 'Hậu Thổ Chi Lõi <:Hau_tho_chi_loi:1524812773077422332>' },
+  'pb_kd_khon_tien_to': { materialId: 'u_minh_te_truc', count: 5, matName: 'U Minh Tế Trúc <:u_minh_te_truc:1524812770569228418>' },
+  'pb_kd_toa_hon_lien': { materialId: 'u_minh_te_truc', count: 5, matName: 'U Minh Tế Trúc <:u_minh_te_truc:1524812770569228418>' },
+  'pb_kd_cam_lo_binh': { materialId: 'sinh_sinh_tao_hoa_dich', count: 5, matName: 'Sinh Sinh Tạo Hóa Dịch <:sinh_sinh_tao_hoa_dich:1524812768191189012>' },
+  'pb_kd_huyet_bo_de': { materialId: 'sinh_sinh_tao_hoa_dich', count: 5, matName: 'Sinh Sinh Tạo Hóa Dịch <:sinh_sinh_tao_hoa_dich:1524812768191189012>' },
+  'pb_kd_that_tinh_dang': { materialId: 'tinh_khong_luu_sa', count: 5, matName: 'Tinh Không Lưu Sa <:tinh_khong_luu_sa:1524812764076572882>' },
+  'pb_kd_man_hoang_co': { materialId: 'tinh_khong_luu_sa', count: 5, matName: 'Tinh Không Lưu Sa <:tinh_khong_luu_sa:1524812764076572882>' },
+
+  // Nguyên Anh
+  'kiem_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
+  'truong_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
+  'ao_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
+
+  // Hóa Thần
+  'kiem_huyen_thiet': { materialId: 'nguyen_lieu_hoa_than', count: 5, matName: 'Thần Ma Chi Tinh ✨' },
+  'phap_bao_huyen_mon': { materialId: 'nguyen_lieu_hoa_than', count: 5, matName: 'Thần Ma Chi Tinh ✨' },
+  'giap_huyen_thiet': { materialId: 'nguyen_lieu_hoa_than', count: 5, matName: 'Thần Ma Chi Tinh ✨' }
+};
+
+function getStandardQualityName(q) {
+  if (!q) return 'Thường';
+  const s = String(q).trim().toLowerCase().normalize('NFC');
+  if (s === 'thần thoại' || s === 'than thoai') return 'Thần Thoại';
+  if (s === 'sử thi' || s === 'su thi') return 'Sử Thi';
+  if (s === 'hiếm' || s === 'hiem') return 'Hiếm';
+  if (s === 'thường' || s === 'thuong') return 'Thường';
+  if (s === 'phế phẩm' || s === 'phe pham' || s === 'phế phẩn') return 'Phế Phẩm';
+  return 'Thường';
+}
+
+async function getRecipeMaterialStatus(idNguoiDung, newId) {
+  const reqMat = FORGE_MATERIALS[newId];
+  if (!reqMat) return { hasEnough: false, text: 'Chưa cấu hình nguyên liệu' };
+
+  const mats = await Inventory.findAll({ where: { idNguoiDung, itemId: reqMat.materialId } });
+  const possibleMats = mats.filter(m => m.soLuong >= reqMat.count);
+  
+  if (possibleMats.length === 0) {
+    const totalQty = mats.reduce((sum, m) => sum + m.soLuong, 0);
+    return {
+      hasEnough: false,
+      text: `Thiếu NL (Có: ${totalQty}/${reqMat.count})`,
+      bestQuality: null,
+      failRate: null
+    };
+  }
+
+  const qualityOrder = { 'Thần Thoại': 5, 'Sử Thi': 4, 'Hiếm': 3, 'Thường': 2, 'Phế Phẩm': 1 };
+  possibleMats.sort((a, b) => {
+    let qA = 'Thường';
+    let qB = 'Thường';
+    try {
+      if (a.dongChiSoJson) qA = getStandardQualityName(JSON.parse(a.dongChiSoJson).phamChat);
+      if (b.dongChiSoJson) qB = getStandardQualityName(JSON.parse(b.dongChiSoJson).phamChat);
+    } catch (e) { }
+    return (qualityOrder[qB] || 0) - (qualityOrder[qA] || 0);
+  });
+
+  const bestMat = possibleMats[0];
+  let bestQuality = 'Thường';
+  try {
+    if (bestMat.dongChiSoJson) {
+      const parsed = JSON.parse(bestMat.dongChiSoJson);
+      if (parsed && parsed.phamChat) {
+        bestQuality = getStandardQualityName(parsed.phamChat);
+      }
+    }
+  } catch (e) { }
+  
+  let failRate = 0;
+  if (bestQuality === 'Phế Phẩm') failRate = 50;
+  else if (bestQuality === 'Thường') failRate = 10;
+  
+  return {
+    hasEnough: true,
+    text: `Đủ NL (${bestQuality} - Thất bại: ${failRate}%)`,
+    bestQuality,
+    failRate
+  };
+}
+
 class BoDieuKhienDongPhu extends BoDieuKhienGoc {
   constructor() {
     super();
@@ -327,37 +470,49 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
       // 5. LUYỆN KHÍ (FORGE)
       // ══════════════════════════════════════════════════════════════
       else if (menu === 'FORGE') {
-        // Đọc nguyên liệu tốt nhất người chơi đang có để hiển thị tỉ lệ
-        const qualityOrder = { 'Thần Thoại': 5, 'Sử Thi': 4, 'Hiếm': 3, 'Thường': 2, 'Phế Phẩm': 1 };
-        let bestMatQuality = null;
+        const rateEmoji = { 'Phế Phẩm': '⚪', 'Thường': '🟢', 'Hiếm': '🔵', 'Sử Thi': '🟣', 'Thần Thoại': '🟠' };
+        
+        // Build list of materials in backpack
+        const matsSummary = [];
         try {
-          // Bước 1: lấy danh sách itemId thuộc loại Nguyên liệu
           const matItems = await Item.findAll({ where: { loai: 'Nguyên liệu' } });
           const matItemIds = matItems.map(it => it.id);
           if (matItemIds.length > 0) {
-            // Bước 2: tìm trong balo người chơi
             const { Op } = await import('sequelize');
             const allMats = await Inventory.findAll({
               where: { idNguoiDung: tuSi.idNguoiDung, itemId: { [Op.in]: matItemIds } }
             });
+            
+            // Group by itemId and quality
+            const grouped = {};
             for (const m of allMats) {
-              if (!m.dongChiSoJson) continue;
-              let q = null;
-              try { q = JSON.parse(m.dongChiSoJson).phamChat || null; } catch (e) { }
-              if (q && (bestMatQuality === null || (qualityOrder[q] || 0) > (qualityOrder[bestMatQuality] || 0))) {
-                bestMatQuality = q;
+              const q = getStandardQualityName(m.dongChiSoJson ? JSON.parse(m.dongChiSoJson).phamChat : 'Thường');
+              if (!grouped[m.itemId]) grouped[m.itemId] = [];
+              grouped[m.itemId].push({ quality: q, count: m.soLuong });
+            }
+
+            // Build text
+            for (const item of matItems) {
+              const list = grouped[item.id];
+              if (list && list.length > 0) {
+                const qualityTexts = list.map(x => `${rateEmoji[x.quality] || ''} ${x.quality} (x${x.count})`).join(', ');
+                matsSummary.push(`• **${item.ten}**: ${qualityTexts}`);
               }
             }
           }
         } catch (e) { }
 
-        const rateEmoji = { 'Phế Phẩm': '⚪', 'Thường': '🟢', 'Hiếm': '🔵', 'Sử Thi': '🟣', 'Thần Thoại': '🟠' };
-        let rateSection = '';
-        if (bestMatQuality) {
-          rateSection = `\n\n📊 **Tỉ Lệ Luyện Chế** *(nguyên liệu tốt nhất: ${rateEmoji[bestMatQuality] || ''} ${bestMatQuality})*:\n${getForgeRateText(bestMatQuality)}`;
+        let matsSection = '';
+        if (matsSummary.length > 0) {
+          matsSection = `\n\n🎒 **Kho nguyên liệu trong balo**:\n${matsSummary.join('\n')}`;
         } else {
-          rateSection = `\n\n📊 **Tỉ Lệ Luyện Chế**: *Đạo hữu chưa có nguyên liệu nào trong balo.*`;
+          matsSection = `\n\n🎒 **Kho nguyên liệu trong balo**: *Trống*`;
         }
+
+        const rateSection = `\n\n📊 **Tỉ Lệ Luyện Chế Theo Phẩm Chất NL**:\n` +
+          `• ⚪ Phế Phẩm: \`50% Thất bại\`\n` +
+          `• 🟢 Thường: \`10% Thất bại\`\n` +
+          `• 🔵 Hiếm / 🟣 Sử Thi / 🟠 Thần Thoại: \`0% Thất bại\` ✅`;
 
         const embed = new EmbedBuilder()
           .setTitle(`🔨 Rèn Đúc Linh Khí: ${tuSi.ten}`)
@@ -365,7 +520,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           .setDescription(
             `Dùng trang bị cũ trong balo kết hợp với linh thảo từ dược viên làm chất xúc tác để đúc tiên binh phẩm chất cao.\n` +
             `• **Quy luật đúc khí**: Phẩm chất trang bị luyện ra phụ thuộc vào **phẩm chất nguyên liệu** bỏ vào.\n` +
-            `• Sử dụng nguyên liệu phẩm chất cao hơn để tăng cơ hội nhận trang bị chất lượng cao.${rateSection}\n\n` +
+            `• Sử dụng nguyên liệu phẩm chất cao hơn để tăng cơ hội nhận trang bị chất lượng cao.${rateSection}${matsSection}\n\n` +
             `*Chọn một công thức đúc khí từ danh sách bên dưới.*`
           );
         embeds.push(embed);
@@ -1181,12 +1336,23 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
           return true;
         });
 
+        const recipeOptions = await Promise.all(filteredRecipes.map(async r => {
+          const [oldId, newId] = r.value.split('::');
+          const status = await getRecipeMaterialStatus(tuSi.idNguoiDung, newId);
+          return {
+            label: r.label,
+            value: r.value,
+            emoji: r.emoji,
+            description: status.text
+          };
+        }));
+
         rows.push(
           new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
               .setCustomId('forge_recipe_select')
               .setPlaceholder('🔨 Chọn công thức rèn đúc tiên binh...')
-              .addOptions(filteredRecipes)
+              .addOptions(recipeOptions)
           )
         );
 
@@ -2863,88 +3029,6 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
   //  PRIVATE HELPER: XỬ LÝ LUYỆN KHÍ
   // ─────────────────────────────────────────────────────────────────────────
   async _processForge(tuSi, oldId, newId) {
-    // Bản đồ nguyên liệu cho từng dòng trang bị nâng cấp
-    const FORGE_MATERIALS = {
-      // Luyện Khí - Pháp Tu
-      'thanh_phong_kiem': { materialId: 'so_cap_thiet_quang', count: 5, matName: 'Sơ Cấp Thiết Quặng <:so_cap_thiet_quang:1525076114295492679>' },
-      'dao_bao_thanh_van': { materialId: 'tho_linh_dan_ty', count: 5, matName: 'Thô Linh Đàn Ty <:tho_linh_dan_ty:1525076109887148144>' },
-      'thuy_linh_boi': { materialId: 'linh_khi_toai_thach', count: 5, matName: 'Linh Khí Toái Thạch <:linh_khi_toai_thach:1525076112382623754>' },
-      'pb_lk_linh_phong_cham': { materialId: 'nham_hoa_tinh_hoa', count: 5, matName: 'Nham Hỏa Tinh Hoa <:nham_hoa_tinh_hoa:1525076107509108776>' },
-      'pb_lk_dan_loi_phu': { materialId: 'sat_danh_moc', count: 5, matName: 'Sét Đánh Mộc <:sat_danh_moc:1525076096213581945>' },
-      'pb_lk_ho_than_kinh': { materialId: 'kien_thach_tam', count: 5, matName: 'Kiên Thạch Tâm <:kien_thach_tam:1525076100655354038>' },
-      'pb_lk_dinh_than_phu': { materialId: 'thiet_dang_man', count: 5, matName: 'Thiết Đằng Man <:thiet_dang_man:1525076105302773760>' },
-      'pb_lk_thanh_linh_binh': { materialId: 'linh_tuyen_thuy', count: 5, matName: 'Linh Tuyền Thủy <:linh_tuyen_thuy:1525076102870073426>' },
-      'pb_lk_tu_khi_ky': { materialId: 'yeu_thu_huyet', count: 5, matName: 'Yêu Thú Huyết <:yeu_thu_huyet:1525076098302345277>' },
-
-      // Luyện Khí - Thể Tu
-      'thiet_cot_dao': { materialId: 'so_cap_thiet_quang', count: 5, matName: 'Sơ Cấp Thiết Quặng <:so_cap_thiet_quang:1525076114295492679>' },
-      'tho_bo_thuc_cu': { materialId: 'tho_linh_dan_ty', count: 5, matName: 'Thô Linh Đàn Ty <:tho_linh_dan_ty:1525076109887148144>' },
-      'khuong_thach_boi': { materialId: 'linh_khi_toai_thach', count: 5, matName: 'Linh Khí Toái Thạch <:linh_khi_toai_thach:1525076112382623754>' },
-      'pb_lk_toai_thach_an': { materialId: 'nham_hoa_tinh_hoa', count: 5, matName: 'Nham Hỏa Tinh Hoa <:nham_hoa_tinh_hoa:1525076107509108776>' },
-      'pb_lk_hoa_tinh_dinh': { materialId: 'sat_danh_moc', count: 5, matName: 'Sét Đánh Mộc <:sat_danh_moc:1525076096213581945>' },
-      'pb_lk_thach_phu_thuan': { materialId: 'kien_thach_tam', count: 5, matName: 'Kiên Thạch Tâm <:kien_thach_tam:1525076100655354038>' },
-      'pb_lk_u_thiet_lien': { materialId: 'thiet_dang_man', count: 5, matName: 'Thiết Đằng Man <:thiet_dang_man:1525076105302773760>' },
-      'pb_lk_da_son_sam': { materialId: 'linh_tuyen_thuy', count: 5, matName: 'Linh Tuyền Thủy <:linh_tuyen_thuy:1525076102870073426>' },
-      'pb_lk_chien_co': { materialId: 'yeu_thu_huyet', count: 5, matName: 'Yêu Thú Huyết <:yeu_thu_huyet:1525076098302345277>' },
-
-      // Trúc Cơ
-      'kiem_sat': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
-      'truong_truc': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
-      'ao_da': { materialId: 'luc_ngoc_thach', count: 5, matName: 'Lục Ngọc Thạch <:_nglieu_Truc_co_2:1525418029650022400>' },
-
-      // Trúc Cơ - Pháp Tu
-      'vk_phap_truc_co': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
-      'giap_phap_truc_co': { materialId: 'luc_ngoc_thach', count: 5, matName: 'Lục Ngọc Thạch <:_nglieu_Truc_co_2:1525418029650022400>' },
-      'nb_phap_truc_co': { materialId: 'am_duong_dong_chuong', count: 5, matName: 'Âm Dương Đồng Chương <:_nglieu_Truc_co_9:1525418025715761232>' },
-      'pb_hoi_phap_truc_co': { materialId: 'dia_xich_linh_chi', count: 5, matName: 'Địa Xích Linh Chi <:_nglieu_Truc_co_6:1525418014290215042>' },
-      'pb_def_phap_truc_co': { materialId: 'bich_hai_bang_tinh', count: 5, matName: 'Bích Hải Băng Tinh <:_nglieu_Truc_co_4:1525418022070653019>' },
-      'pb_aoe_phap_truc_co': { materialId: 'cuu_thien_tu_cat', count: 5, matName: 'Cửu Thiên Tử Cát <:_nglieu_Truc_co_5:1525418023685718116>' },
-      'pb_don_phap_truc_co': { materialId: 'dia_hoa_chi_tinh', count: 5, matName: 'Địa Hỏa Chi Tinh <:_nglieu_Truc_co_3:1525418020137078794>' },
-      'pb_cc_phap_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169398393>' },
-      'pb_buff_phap_truc_co': { materialId: 'thanh_vu_linh_sa', count: 5, matName: 'Thanh Vũ Linh Sa <:_nglieu_Truc_co_8:1525418018124071054>' },
-
-      // Trúc Cơ - Thể Tu
-      'vk_the_truc_co': { materialId: 'huyen_thiet_tinh_sa', count: 5, matName: 'Huyền Thiết Tinh Sa <:_nglieu_Truc_co_1:1525418027472916671>' },
-      'giap_the_truc_co': { materialId: 'luc_ngoc_thach', count: 5, matName: 'Lục Ngọc Thạch <:_nglieu_Truc_co_2:1525418029650022400>' },
-      'nb_the_truc_co': { materialId: 'am_duong_dong_chuong', count: 5, matName: 'Âm Dương Đồng Chương <:_nglieu_Truc_co_9:1525418025715761232>' },
-      'pb_hoi_the_truc_co': { materialId: 'dia_xich_linh_chi', count: 5, matName: 'Địa Xích Linh Chi <:_nglieu_Truc_co_6:1525418014290215042>' },
-      'pb_def_the_truc_co': { materialId: 'bich_hai_bang_tinh', count: 5, matName: 'Bích Hải Băng Tinh <:_nglieu_Truc_co_4:1525418022070653019>' },
-      'pb_aoe_the_truc_co': { materialId: 'cuu_thien_tu_cat', count: 5, matName: 'Cửu Thiên Tử Cát <:_nglieu_Truc_co_5:1525418023685718116>' },
-      'pb_don_the_truc_co': { materialId: 'dia_hoa_chi_tinh', count: 5, matName: 'Địa Hỏa Chi Tinh <:_nglieu_Truc_co_3:1525418020137078794>' },
-      'pb_cc_the_truc_co': { materialId: 'khon_tien_dang_moc', count: 5, matName: 'Khổn Tiên Đằng Mộc <:_nglieu_Truc_co_7:1525418016169398393>' },
-      'pb_buff_the_truc_co': { materialId: 'thanh_vu_linh_sa', count: 5, matName: 'Thanh Vũ Linh Sa <:_nglieu_Truc_co_8:1525418018124071054>' },
-
-      // Kim Đan
-      'kiem_kim_dan': { materialId: 'huyen_thiet_van_nam', count: 5, matName: 'Vạn Năm Huyền Thiết <:Huyen_thiet_van_nam:1524812777347092560>' },
-      'truong_kim_dan': { materialId: 'huyen_thiet_van_nam', count: 5, matName: 'Vạn Năm Huyền Thiết <:Huyen_thiet_van_nam:1524812777347092560>' },
-      'ao_kim_dan': { materialId: 'Thien_Tam_Linh_ty', count: 5, matName: 'Thiên Tàm Linh Ty <:Thien_Tam_Linh_ty:1524812779503226950>' },
-      'ao_kim_dan_phap': { materialId: 'Thien_Tam_Linh_ty', count: 5, matName: 'Thiên Tàm Linh Ty <:Thien_Tam_Linh_ty:1524812779503226950>' },
-      'ngoc_boi_kim_dan_the': { materialId: 'hon_tinh_huyet_nguyet', count: 5, matName: 'Hồn Tinh Huyết Nguyệt <:hon_tinh_huyet_nguyet:1524812781730140190>' },
-      'ngoc_boi_kim_dan_phap': { materialId: 'hon_tinh_huyet_nguyet', count: 5, matName: 'Hồn Tinh Huyết Nguyệt <:hon_tinh_huyet_nguyet:1524812781730140190>' },
-      'pb_kd_diet_ma_cham': { materialId: 'cuc_duong_hoa_thach', count: 5, matName: 'Cực Dương Hỏa Thạch <:cuc_duong_hoa_thach:1524812775325434139>' },
-      'pb_kd_chan_son_an': { materialId: 'cuc_duong_hoa_thach', count: 5, matName: 'Cực Dương Hỏa Thạch <:cuc_duong_hoa_thach:1524812775325434139>' },
-      'pb_kd_ngu_loi_chau': { materialId: 'loi_tri_bang_tinh', count: 5, matName: 'Lôi Trì Băng Tinh <:loi_tri_bang_tinh:1524812766144364677>' },
-      'pb_kd_phan_thien_dinh': { materialId: 'loi_tri_bang_tinh', count: 5, matName: 'Lôi Trì Băng Tinh <:loi_tri_bang_tinh:1524812766144364677>' },
-      'pb_kd_bat_quai_kinh': { materialId: 'Hau_tho_chi_loi', count: 5, matName: 'Hậu Thổ Chi Lõi <:Hau_tho_chi_loi:1524812773077422332>' },
-      'pb_kd_huyen_vu_thuan': { materialId: 'Hau_tho_chi_loi', count: 5, matName: 'Hậu Thổ Chi Lõi <:Hau_tho_chi_loi:1524812773077422332>' },
-      'pb_kd_khon_tien_to': { materialId: 'u_minh_te_truc', count: 5, matName: 'U Minh Tế Trúc <:u_minh_te_truc:1524812770569228418>' },
-      'pb_kd_toa_hon_lien': { materialId: 'u_minh_te_truc', count: 5, matName: 'U Minh Tế Trúc <:u_minh_te_truc:1524812770569228418>' },
-      'pb_kd_cam_lo_binh': { materialId: 'sinh_sinh_tao_hoa_dich', count: 5, matName: 'Sinh Sinh Tạo Hóa Dịch <:sinh_sinh_tao_hoa_dich:1524812768191189012>' },
-      'pb_kd_huyet_bo_de': { materialId: 'sinh_sinh_tao_hoa_dich', count: 5, matName: 'Sinh Sinh Tạo Hóa Dịch <:sinh_sinh_tao_hoa_dich:1524812768191189012>' },
-      'pb_kd_that_tinh_dang': { materialId: 'tinh_khong_luu_sa', count: 5, matName: 'Tinh Không Lưu Sa <:tinh_khong_luu_sa:1524812764076572882>' },
-      'pb_kd_man_hoang_co': { materialId: 'tinh_khong_luu_sa', count: 5, matName: 'Tinh Không Lưu Sa <:tinh_khong_luu_sa:1524812764076572882>' },
-
-      // Nguyên Anh
-      'kiem_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
-      'truong_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
-      'ao_nguyen_anh': { materialId: 'nguyen_lieu_nguyen_anh', count: 5, matName: 'Nguyên Anh Hỏa Tinh ☄️' },
-
-      // Hóa Thần
-      'kiem_huyen_thiet': { materialId: 'nguyen_lieu_hoa_than', count: 5, matName: 'Thần Ma Chi Tinh ✨' },
-      'phap_bao_huyen_mon': { materialId: 'nguyen_lieu_hoa_than', count: 5, matName: 'Thần Ma Chi Tinh ✨' },
-      'giap_huyen_thiet': { materialId: 'nguyen_lieu_hoa_than', count: 5, matName: 'Thần Ma Chi Tinh ✨' }
-    };
-
     const reqMat = FORGE_MATERIALS[newId];
     let invMat = null;
     let matQuality = 'Thường';
@@ -2961,8 +3045,8 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         let qA = 'Thường';
         let qB = 'Thường';
         try {
-          if (a.dongChiSoJson) qA = JSON.parse(a.dongChiSoJson).phamChat || 'Thường';
-          if (b.dongChiSoJson) qB = JSON.parse(b.dongChiSoJson).phamChat || 'Thường';
+          if (a.dongChiSoJson) qA = getStandardQualityName(JSON.parse(a.dongChiSoJson).phamChat);
+          if (b.dongChiSoJson) qB = getStandardQualityName(JSON.parse(b.dongChiSoJson).phamChat);
         } catch (e) { }
         return (qualityOrder[qB] || 0) - (qualityOrder[qA] || 0);
       });
@@ -2972,7 +3056,7 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
         if (invMat.dongChiSoJson) {
           const parsed = JSON.parse(invMat.dongChiSoJson);
           if (parsed && parsed.phamChat) {
-            matQuality = parsed.phamChat;
+            matQuality = getStandardQualityName(parsed.phamChat);
           }
         }
       } catch (e) { }

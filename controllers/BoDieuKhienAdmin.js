@@ -60,6 +60,90 @@ async function buildListEmbed(guild) {
   return embed.setDescription(desc.trim());
 }
 
+export async function backupState(tuSi) {
+  if (tuSi.originalStateJson) return;
+
+  const { Inventory } = await import('../models/Inventory.js');
+  const { Pet } = await import('../models/Pet.js');
+  const { PlayerSkill } = await import('../models/PlayerSkill.js');
+
+  const currentInvIds = (await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } })).map(x => x.id);
+  const currentPetIds = (await Pet.findAll({ where: { userId: tuSi.idNguoiDung } })).map(x => x.id);
+  const currentSkillIds = (await PlayerSkill.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } })).map(x => x.id);
+
+  const backup = {
+    stats: {
+      capDo: tuSi.capDo,
+      canhGioi: tuSi.canhGioi,
+      tang: tuSi.tang,
+      linhLuc: tuSi.linhLuc,
+      linhThach: tuSi.linhThach,
+      vnd: tuSi.vnd,
+      theLuc: tuSi.theLuc,
+      theLucMax: tuSi.theLucMax,
+      hp: tuSi.hp,
+      mp: tuSi.mp
+    },
+    inventoryIds: currentInvIds,
+    petIds: currentPetIds,
+    skillIds: currentSkillIds
+  };
+
+  tuSi.originalStateJson = JSON.stringify(backup);
+  await tuSi.save();
+}
+
+export async function restoreState(tuSi) {
+  if (!tuSi.originalStateJson) return false;
+
+  const { Op } = await import('sequelize');
+  const { Inventory } = await import('../models/Inventory.js');
+  const { Pet } = await import('../models/Pet.js');
+  const { PlayerSkill } = await import('../models/PlayerSkill.js');
+
+  const backup = JSON.parse(tuSi.originalStateJson);
+
+  // Restore stats
+  tuSi.capDo = backup.stats.capDo;
+  tuSi.canhGioi = backup.stats.canhGioi;
+  tuSi.tang = backup.stats.tang;
+  tuSi.linhLuc = backup.stats.linhLuc;
+  tuSi.linhThach = backup.stats.linhThach;
+  tuSi.vnd = backup.stats.vnd;
+  tuSi.theLuc = backup.stats.theLuc;
+  tuSi.theLucMax = backup.stats.theLucMax;
+  tuSi.hp = backup.stats.hp;
+  tuSi.mp = backup.stats.mp;
+
+  // Clean items created during test
+  await Inventory.destroy({
+    where: {
+      idNguoiDung: tuSi.idNguoiDung,
+      id: { [Op.notIn]: backup.inventoryIds }
+    }
+  });
+
+  // Clean pets created during test
+  await Pet.destroy({
+    where: {
+      userId: tuSi.idNguoiDung,
+      id: { [Op.notIn]: backup.petIds }
+    }
+  });
+
+  // Clean skills created during test
+  await PlayerSkill.destroy({
+    where: {
+      idNguoiDung: tuSi.idNguoiDung,
+      id: { [Op.notIn]: backup.skillIds }
+    }
+  });
+
+  tuSi.originalStateJson = null;
+  await tuSi.save();
+  return true;
+}
+
 class BoDieuKhienAdmin {
   lenhAdmin = {
     data: new SlashCommandBuilder()
@@ -497,7 +581,8 @@ class BoDieuKhienAdmin {
                    `• **Linh Lực**: \`${tuSi.linhLuc.toLocaleString()}\`\n` +
                    `• **Linh Thạch**: \`🪙 ${tuSi.linhThach.toLocaleString()}\`\n` +
                    `• **VND**: \`💵 ${tuSi.vnd.toLocaleString()}\`\n` +
-                   `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\`\n\n`;
+                   `• **HP**: \`${tuSi.hp}\` | **MP**: \`${tuSi.mp}\`\n` +
+                   `• **Quyền /test**: \`${tuSi.isTester ? '🟢 Đã Cấp' : '🔴 Chưa Cấp'}\`\n\n`;
           } else {
             desc = `• **Danh sách đạo hữu (${tuSiList.length})**:\n` +
                    tuSiList.map(ts => `  - **${ts.ten}** (<@${ts.idNguoiDung}>): \`${ts.canhGioi}\` (Linh Lực: \`${ts.linhLuc.toLocaleString()}\`, Linh Thạch: \`${ts.linhThach.toLocaleString()}\`)`).join('\n') + `\n\n`;
@@ -518,6 +603,13 @@ class BoDieuKhienAdmin {
             new ButtonBuilder().setCustomId('edit_btn_close').setLabel('❌ Đóng').setStyle(ButtonStyle.Secondary)
           );
           rows.push(row);
+
+          const testBtnLabel = tuSiList.length === 1 && tuSiList[0].isTester ? '🧪 Thu Hồi Quyền /test' : '🧪 Cấp Quyền /test';
+          const testBtnStyle = tuSiList.length === 1 && tuSiList[0].isTester ? ButtonStyle.Danger : ButtonStyle.Success;
+          const row2 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('edit_btn_toggle_test').setLabel(testBtnLabel).setStyle(testBtnStyle)
+          );
+          rows.push(row2);
 
         } else if (currentMenu === 'BOSS_SETTINGS') {
           const { CauHinhGuild } = await import('../models/CauHinhGuild.js');
@@ -1098,6 +1190,17 @@ class BoDieuKhienAdmin {
         } else if (customId === 'edit_btn_boss') {
           currentMenu = 'BOSS_SETTINGS';
           statusMessage = null;
+        } else if (customId === 'edit_btn_toggle_test') {
+          try {
+            for (const ts of tuSiList) {
+              ts.isTester = !ts.isTester;
+              await ts.save();
+            }
+            statusMessage = `🧪 Đã cập nhật trạng thái quyền thử nghiệm (/test) thành công!`;
+          } catch (err) {
+            console.error('[Admin Edit] Lỗi khi đổi quyền test:', err);
+            statusMessage = `❌ Lỗi khi cập nhật quyền thử nghiệm.`;
+          }
         } else if (customId === 'edit_boss_toggle_rewards') {
           try {
             const { CauHinhGuild } = await import('../models/CauHinhGuild.js');
@@ -1403,8 +1506,740 @@ class BoDieuKhienAdmin {
       });
     }
   }
+
+  lenhTest = {
+    data: new SlashCommandBuilder()
+      .setName('test')
+      .setDescription('Bảng điều khiển thử nghiệm nhanh (Chỉ dành cho Tester)'),
+
+    execute: async (interaction) => {
+      const { TuSi } = await import('../models/TuSi.js');
+      const tuSi = await TuSi.findOne({ where: { idNguoiDung: interaction.user.id } });
+      if (!tuSi) {
+        return interaction.reply({
+          content: '❌ Đạo hữu chưa khởi đầu kiếp tu tiên. Hãy gõ `/start` trước.',
+          ephemeral: true
+        });
+      }
+
+      if (interaction.user.username !== 'wiine5100' && !tuSi.isTester) {
+        return interaction.reply({
+          content: '❌ Quyền hạn bất túc! Chỉ những Tester được Admin cấp quyền mới được dùng.',
+          ephemeral: true
+        });
+      }
+
+      await backupState(tuSi);
+
+      await interaction.deferReply({ ephemeral: true });
+
+      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = await import('discord.js');
+      const { Inventory } = await import('../models/Inventory.js');
+      const { Pet } = await import('../models/Pet.js');
+      const { PlayerSkill } = await import('../models/PlayerSkill.js');
+      const { Skill } = await import('../models/Skill.js');
+      const config = await import('../config.js');
+
+      let statusMsg = '';
+      let showRealmMenu = false;
+      let showItemMenu = false;
+      let selectedItemCategory = null;
+      let selectedItemToTest = null;
+      let itemTestPage = 0;
+
+      const buildPayload = () => {
+        if (showRealmMenu) {
+          const embed = new EmbedBuilder()
+            .setTitle('🎒 Chọn Cảnh Giới Nhận Nguyên Liệu Rèn 🎒')
+            .setColor(0xe67e22)
+            .setDescription(
+              (statusMsg ? `🔔 **Thiên Đạo Báo**: ${statusMsg}\n\n` : '') +
+              `Chọn cảnh giới dưới đây để nhận **x99 nguyên liệu rèn đúc** của cảnh giới đó thuộc **mọi phẩm chất** (Phế Phẩm, Thường, Hiếm, Sử Thi, Thần Thoại):`
+            );
+
+          const selectRow = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('test_sel_realm_mats')
+              .setPlaceholder('Chọn cảnh giới để nhận nguyên liệu...')
+              .addOptions([
+                { label: '🟢 Luyện Khí (Realm 1)', value: 'realm_1' },
+                { label: '🔵 Trúc Cơ (Realm 2)', value: 'realm_2' },
+                { label: '🟣 Kim Đan (Realm 3)', value: 'realm_3' },
+                { label: '🟡 Nguyên Anh (Realm 4)', value: 'realm_4' },
+                { label: '🔴 Hóa Thần (Realm 5)', value: 'realm_5' }
+              ])
+          );
+
+          const backRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('test_btn_realm_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
+          );
+
+          return { embeds: [embed], components: [selectRow, backRow] };
+        }
+
+        if (showItemMenu) {
+          let itemDetails = '_Chưa chọn vật phẩm để nhận._';
+          if (selectedItemToTest) {
+            const configItem = config.ITEMS.find(item => item.id === selectedItemToTest);
+            if (configItem) {
+              itemDetails = `**Vật phẩm đang chọn**: ${configItem.emoji || '📦'} **${configItem.ten}**\n` +
+                            `• Loại: \`${configItem.loai}\` | Độ hiếm: \`${configItem.doHiem}\`\n` +
+                            `• Mô tả: *${configItem.moTa || 'Không có'}*`;
+            }
+          }
+
+          const embed = new EmbedBuilder()
+            .setTitle('📦 Chọn Vật Phẩm Thử Nghiệm Tự Chọn 📦')
+            .setColor(0xe67e22)
+            .setDescription(
+              (statusMsg ? `🔔 **Thiên Đạo Báo**: ${statusMsg}\n\n` : '') +
+              `*Hãy chọn danh mục, vật phẩm cụ thể và số lượng cần nhận. Tất cả vật phẩm nhận được ở đây chỉ là tạm thời và sẽ bị thu hồi khi gõ \`/endtest\`.*\n\n` +
+              `• Danh mục hiện tại: **${selectedItemCategory || 'Chưa chọn'}**\n` +
+              `• ${itemDetails}`
+            );
+
+          const rws = [];
+          
+          // Row 1: Select Category
+          const catSelect = new StringSelectMenuBuilder()
+            .setCustomId('test_gift_cat_select')
+            .setPlaceholder('Chọn danh mục vật phẩm...')
+            .addOptions([
+              { label: '💊 Đan dược', value: 'Đan dược' },
+              { label: '🌱 Linh thảo & Trứng', value: 'Linh thảo' },
+              { label: '🗡️ Trang bị (Vũ khí/Giáp/Bội)', value: 'Trang bi' },
+              { label: '🔮 Cổ bảo & Pháp bảo', value: 'Phap bao' },
+              { label: '🏺 Chí bảo', value: 'Chí bảo' },
+              { label: '🎭 Trang phục (Skin)', value: 'Skin' }
+            ]);
+          rws.push(new ActionRowBuilder().addComponents(catSelect));
+
+          // Row 2: Select Item if category is selected
+          if (selectedItemCategory) {
+            let filterFunc = item => item.loai === selectedItemCategory;
+            if (selectedItemCategory === 'Trang bi') {
+              filterFunc = item => ['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai);
+            } else if (selectedItemCategory === 'Phap bao') {
+              filterFunc = item => ['Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
+            }
+
+            const matchedItems = config.ITEMS.filter(filterFunc);
+            const ITEMS_PER_PAGE = 25;
+            const totalTestPages = Math.ceil(matchedItems.length / ITEMS_PER_PAGE);
+            itemTestPage = Math.max(0, Math.min(itemTestPage, totalTestPages - 1));
+
+            const pageStart = matchedItems.length === 0 ? 0 : (itemTestPage * ITEMS_PER_PAGE) + 1;
+            const pageEnd = Math.min(matchedItems.length, (itemTestPage + 1) * ITEMS_PER_PAGE);
+
+            if (matchedItems.length > 0) {
+              const slicedItems = matchedItems.slice(itemTestPage * ITEMS_PER_PAGE, (itemTestPage + 1) * ITEMS_PER_PAGE);
+              const itemOptions = slicedItems.map(item => ({
+                label: item.ten.substring(0, 50),
+                value: item.id,
+                description: `${item.loai} | ${item.doHiem} | ID: ${item.id}`.substring(0, 100)
+              }));
+
+              const itemSelect = new StringSelectMenuBuilder()
+                .setCustomId('test_gift_item_select')
+                .setPlaceholder('Chọn vật phẩm cụ thể...')
+                .addOptions(itemOptions);
+              rws.push(new ActionRowBuilder().addComponents(itemSelect));
+
+              if (totalTestPages > 1) {
+                const paginationRow = new ActionRowBuilder().addComponents(
+                  new ButtonBuilder()
+                    .setCustomId('test_gift_prev')
+                    .setLabel('◀ Trang trước')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(itemTestPage === 0),
+                  new ButtonBuilder()
+                    .setCustomId('test_gift_indicator')
+                    .setLabel(`Trang ${itemTestPage + 1}/${totalTestPages} (${pageStart}-${pageEnd}/${matchedItems.length})`)
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(true),
+                  new ButtonBuilder()
+                    .setCustomId('test_gift_next')
+                    .setLabel('Trang sau ▶')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(itemTestPage >= totalTestPages - 1)
+                );
+                rws.push(paginationRow);
+              }
+            } else {
+              embed.setDescription(embed.data.description + `\n⚠️ *Không tìm thấy vật phẩm nào trong danh mục này.*`);
+            }
+          }
+
+          // Row 3: Action Buttons
+          const actionRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('test_gift_x1').setLabel('Nhận x1').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToTest),
+            new ButtonBuilder().setCustomId('test_gift_x10').setLabel('Nhận x10').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToTest),
+            new ButtonBuilder().setCustomId('test_gift_x100').setLabel('Nhận x100').setStyle(ButtonStyle.Success).setDisabled(!selectedItemToTest),
+            new ButtonBuilder().setCustomId('test_gift_custom').setLabel('✏️ Nhập Số Lượng').setStyle(ButtonStyle.Primary).setDisabled(!selectedItemToTest),
+            new ButtonBuilder().setCustomId('test_btn_item_back').setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
+          );
+          rws.push(actionRow);
+
+          return { embeds: [embed], components: rws };
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle('🧪 Thiên Đạo Thử Nghiệm (Tester Panel) 🧪')
+          .setColor(0xe67e22)
+          .setDescription(
+            (statusMsg ? `🔔 **Thiên Đạo Báo**: ${statusMsg}\n\n` : '') +
+            `Chào mừng đạo hữu **${tuSi.ten}** đến với bảng thử nghiệm nhanh.\n` +
+            `*Lưu ý: Các chỉ số và vật phẩm test chỉ là tạm thời, khi người chơi dùng lệnh \`/endtest\` thì sẽ phục hồi chỉ số và hiện trạng tài khoản chính.*\n\n` +
+            `Hãy chọn gói thử nghiệm dưới đây:`
+          );
+
+        const row1 = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('test_btn_maxout').setLabel('⚡ Max Tài Nguyên').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('test_btn_items').setLabel('⚔️ Tiên Binh Thần Thoại').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('test_btn_pet').setLabel('🐉 Thần Thú Cấp 100').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('test_btn_skills').setLabel('📚 Đầy Thần Thông').setStyle(ButtonStyle.Primary)
+        );
+        const row2 = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('test_btn_realm_mats').setLabel('🎒 NL Rèn Theo Cảnh').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('test_btn_materials').setLabel('🧪 Đan Dược/Hạt Giống').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('test_btn_quick_auto').setLabel('🌾 Nhận X Giờ Auto').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('test_btn_quick_cultivate').setLabel('✨ Nhận X Giờ Tu Luyện').setStyle(ButtonStyle.Success)
+        );
+        const row3 = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('test_btn_custom_item').setLabel('📦 Nhận Item Tự Chọn').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('test_btn_close').setLabel('❌ Đóng').setStyle(ButtonStyle.Secondary)
+        );
+
+        return { embeds: [embed], components: [row1, row2, row3] };
+      };
+
+
+      const response = await interaction.editReply(buildPayload());
+
+      const collector = response.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time: 300000 // 5 minutes
+      });
+
+      collector.on('collect', async i => {
+        const customId = i.customId;
+
+        if (customId === 'test_sel_realm_mats') {
+          try {
+            await i.deferUpdate();
+            const realmNum = i.values[0].replace('realm_', '');
+            const realmMats = {
+              '1': ['so_cap_thiet_quang', 'tho_linh_dan_ty', 'linh_khi_toai_thach', 'nham_hoa_tinh_hoa', 'sat_danh_moc', 'kien_thach_tam', 'thiet_dang_man', 'linh_tuyen_thuy', 'yeu_thu_huyet'],
+              '2': ['huyen_thiet_tinh_sa', 'luc_ngoc_thach', 'am_duong_dong_chuong', 'dia_xich_linh_chi', 'bich_hai_bang_tinh', 'cuu_thien_tu_cat', 'dia_hoa_chi_tinh', 'khon_tien_dang_moc', 'thanh_vu_linh_sa'],
+              '3': ['huyen_thiet_van_nam', 'Thien_Tam_Linh_ty', 'hon_tinh_huyet_nguyet', 'cuc_duong_hoa_thach', 'loi_tri_bang_tinh', 'Hau_tho_chi_loi', 'u_minh_te_truc', 'sinh_sinh_tao_hoa_dich', 'tinh_khong_luu_sa'],
+              '4': ['nguyen_lieu_nguyen_anh'],
+              '5': ['nguyen_lieu_hoa_than']
+            };
+            const targetMats = realmMats[realmNum] || [];
+            const qualities = ['Phế Phẩm', 'Thường', 'Hiếm', 'Sử Thi', 'Thần Thoại'];
+            for (const mId of targetMats) {
+              for (const q of qualities) {
+                await Inventory.addVatPham(tuSi.idNguoiDung, mId, 99, { quality: q });
+              }
+            }
+            const realmNameMap = { '1': 'Luyện Khí', '2': 'Trúc Cơ', '3': 'Kim Đan', '4': 'Nguyên Anh', '5': 'Hóa Thần' };
+            statusMsg = `✅ Đã nhận thành công x99 nguyên liệu luyện khí tất cả các phẩm chất của cảnh giới **${realmNameMap[realmNum]}**!`;
+            showRealmMenu = false;
+          } catch (err) {
+            console.error('[Test Command] Lỗi nhận nguyên liệu cảnh giới:', err);
+            statusMsg = `❌ Lỗi khi nhận nguyên liệu cảnh giới.`;
+          }
+          await interaction.editReply(buildPayload());
+          return;
+        }
+
+        if (customId === 'test_btn_quick_auto') {
+          const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+          const modal = new ModalBuilder()
+            .setCustomId(`modal_test_auto_${interaction.user.id}`)
+            .setTitle('🌾 Nhận Nhanh X Giờ Auto');
+
+          const input = new TextInputBuilder()
+            .setCustomId('auto_hours_input')
+            .setLabel('Nhập số giờ auto muốn nhận nhanh tài nguyên')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setPlaceholder('Ví dụ: 1, 2, 8, 24');
+
+          modal.addComponents(new ActionRowBuilder().addComponents(input));
+
+          try {
+            await i.showModal(modal);
+
+            const submitted = await i.awaitModalSubmit({
+              filter: sub => sub.customId === `modal_test_auto_${interaction.user.id}` && sub.user.id === interaction.user.id,
+              time: 60000
+            });
+
+            await submitted.deferUpdate();
+
+            const rawVal = submitted.fields.getTextInputValue('auto_hours_input');
+            const hours = parseInt(rawVal.trim(), 10);
+            if (isNaN(hours) || hours <= 0) {
+              statusMsg = `❌ Số giờ không hợp lệ: "${rawVal}"`;
+            } else {
+              const minutes = hours * 60;
+              const { creditAutoRewards, autoDiBiCanh, autoDiLichLuyen } = await import('./BoDieuKhienAuto.js');
+              const { ThoiGianCho } = await import('../models/ThoiGianCho.js');
+              
+              const originalTheLuc = tuSi.theLuc;
+              const loops = Math.ceil(minutes / 5);
+              
+              tuSi.thongKeAuto = { activeMinutes: 0, exp: 0, stones: 0, items: {} };
+              await tuSi.save();
+
+              for (let l = 0; l < loops; l++) {
+                await tuSi.reload();
+                const stats = await tuSi.layChiSoDayDu();
+                tuSi.hp = stats.max_hp;
+                tuSi.mp = stats.max_mp;
+                tuSi.theLuc = 100;
+                
+                const statsObj = tuSi.thongKeAuto;
+                statsObj.activeMinutes = (statsObj.activeMinutes || 0) + 5;
+                tuSi.thongKeAuto = statsObj;
+                await tuSi.save();
+
+                await ThoiGianCho.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+
+                await autoDiBiCanh(tuSi);
+                await autoDiLichLuyen(tuSi);
+              }
+
+              await tuSi.reload();
+              tuSi.theLuc = originalTheLuc;
+              await tuSi.save();
+
+              const harvest = await creditAutoRewards(tuSi);
+              if (harvest) {
+                statusMsg = `🌾 Nhận nhanh thành công **${hours} giờ** auto!\n` +
+                            `• Linh lực tăng thêm: **+${harvest.expGained.toLocaleString()}** Exp\n` +
+                            `• Linh thạch nhận được: **+${harvest.stonesGained.toLocaleString()}** 🪙\n` +
+                            `• Vật phẩm thu hoạch:\n${harvest.itemLines}`;
+              } else {
+                statusMsg = `🌾 Nhận nhanh thành công **${hours} giờ** auto, nhưng không nhận được phần thưởng nào.`;
+              }
+            }
+            await interaction.editReply(buildPayload());
+          } catch (err) {
+            // modal submit timeout/cancel
+          }
+          return;
+        }
+
+        if (customId === 'test_btn_quick_cultivate') {
+          const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+          const modal = new ModalBuilder()
+            .setCustomId(`modal_test_cultivate_${interaction.user.id}`)
+            .setTitle('✨ Nhận Nhanh Tu Luyện');
+
+          const input = new TextInputBuilder()
+            .setCustomId('cultivate_hours_input')
+            .setLabel('Nhập số giờ tu luyện muốn nhận nhanh')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setPlaceholder('Ví dụ: 1, 4, 12, 24');
+
+          modal.addComponents(new ActionRowBuilder().addComponents(input));
+
+          try {
+            await i.showModal(modal);
+
+            const submitted = await i.awaitModalSubmit({
+              filter: sub => sub.customId === `modal_test_cultivate_${interaction.user.id}` && sub.user.id === interaction.user.id,
+              time: 60000
+            });
+
+            await submitted.deferUpdate();
+
+            const rawVal = submitted.fields.getTextInputValue('cultivate_hours_input');
+            const hours = parseInt(rawVal.trim(), 10);
+            if (isNaN(hours) || hours <= 0) {
+              statusMsg = `❌ Số giờ không hợp lệ: "${rawVal}"`;
+            } else {
+              await tuSi.reload();
+              tuSi.lastUpdateTuVi = new Date(Date.now() - hours * 3600 * 1000);
+              await tuSi.save();
+
+              const { BoDieuKhienGoc } = await import('./BoDieuKhienGoc.js');
+              const baseController = new BoDieuKhienGoc();
+              const res = await baseController.kiemTraVaNhanTuVi(tuSi);
+              if (res && res.completed) {
+                statusMsg = `✨ Nhận nhanh thành công **${hours} giờ** tu luyện!\n` +
+                            `• Tu vi tăng thêm: **+${res.exp.toLocaleString()}** Exp ✨\n` +
+                            `• Linh thạch nhận được: **+${res.stones.toLocaleString()}** 🪙`;
+              } else {
+                statusMsg = `❌ Không thể nhận nhanh tu vi hoặc chưa đủ thời gian tích lũy.`;
+              }
+            }
+            await interaction.editReply(buildPayload());
+          } catch (err) {
+            // modal submit timeout/cancel
+          }
+          return;
+        }
+
+        if (customId === 'test_gift_custom') {
+          if (!selectedItemToTest) {
+            try { await i.deferUpdate(); } catch (_) {}
+            statusMsg = `❌ Hãy chọn vật phẩm trước khi nhập số lượng.`;
+            await interaction.editReply(buildPayload());
+            return;
+          }
+
+          const { ModalBuilder, TextInputBuilder, TextInputStyle } = await import('discord.js');
+          const configItem = config.ITEMS.find(item => item.id === selectedItemToTest);
+          const nameText = configItem ? configItem.ten : selectedItemToTest;
+
+          const modal = new ModalBuilder()
+            .setCustomId(`modal_test_custom_${interaction.user.id}`)
+            .setTitle(`Nhận Vật Phẩm: ${nameText.substring(0, 40)}`);
+
+          const qtyInput = new TextInputBuilder()
+            .setCustomId('test_qty_input')
+            .setLabel('Số lượng muốn nhận (vd: 100, 1k, 5m)')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setPlaceholder('Nhập số lượng... (vd: 50, 500, 1000)');
+
+          modal.addComponents(new ActionRowBuilder().addComponents(qtyInput));
+
+          try {
+            await i.showModal(modal);
+
+            const submitted = await i.awaitModalSubmit({
+              filter: sub => sub.customId === `modal_test_custom_${interaction.user.id}` && sub.user.id === interaction.user.id,
+              time: 60000
+            });
+
+            await submitted.deferUpdate();
+
+            const rawVal = submitted.fields.getTextInputValue('test_qty_input');
+            const match = rawVal.trim().toLowerCase().match(/^([\d.]+)\s*([kmb]?)$/);
+            if (!match) {
+              statusMsg = `❌ Định dạng số lượng không hợp lệ: "${rawVal}"`;
+            } else {
+              const numPart = parseFloat(match[1]);
+              const suffix = match[2];
+              let multiplier = 1;
+              if (suffix === 'k') multiplier = 1000;
+              else if (suffix === 'm') multiplier = 1000000;
+              else if (suffix === 'b') multiplier = 1000000000;
+              const qty = Math.floor(numPart * multiplier);
+
+              if (isNaN(qty) || qty <= 0) {
+                statusMsg = `❌ Số lượng phải là số dương hợp lệ.`;
+              } else {
+                await Inventory.addVatPham(tuSi.idNguoiDung, selectedItemToTest, qty);
+                statusMsg = `✅ Đã nhận thành công **x${qty.toLocaleString()} ${nameText}**!`;
+                selectedItemToTest = null;
+              }
+            }
+
+            await interaction.editReply(buildPayload());
+          } catch (err) {
+            // modal submit timeout/cancel
+          }
+          return;
+        }
+
+        try {
+          await i.deferUpdate();
+        } catch (_) {
+          return;
+        }
+
+        if (customId === 'test_btn_custom_item') {
+          showItemMenu = true;
+          selectedItemCategory = null;
+          selectedItemToTest = null;
+          itemTestPage = 0;
+        }
+
+        else if (customId === 'test_btn_item_back') {
+          showItemMenu = false;
+          selectedItemCategory = null;
+          selectedItemToTest = null;
+          itemTestPage = 0;
+        }
+
+        else if (customId === 'test_gift_cat_select') {
+          selectedItemCategory = i.values[0];
+          selectedItemToTest = null;
+          itemTestPage = 0;
+        }
+
+        else if (customId === 'test_gift_item_select') {
+          selectedItemToTest = i.values[0];
+        }
+
+        else if (customId === 'test_gift_prev') {
+          itemTestPage--;
+        }
+
+        else if (customId === 'test_gift_next') {
+          itemTestPage++;
+        }
+
+        else if (['test_gift_x1', 'test_gift_x10', 'test_gift_x100'].includes(customId)) {
+          let qty = 1;
+          if (customId === 'test_gift_x10') qty = 10;
+          if (customId === 'test_gift_x100') qty = 100;
+          const configItem = config.ITEMS.find(item => item.id === selectedItemToTest);
+          const nameText = configItem ? configItem.ten : selectedItemToTest;
+          await Inventory.addVatPham(tuSi.idNguoiDung, selectedItemToTest, qty);
+          statusMsg = `✅ Đã nhận thành công **x${qty} ${nameText}**!`;
+          selectedItemToTest = null;
+        }
+
+        else if (customId === 'test_btn_realm_mats') {
+          showRealmMenu = true;
+        } 
+        
+        else if (customId === 'test_btn_realm_back') {
+          showRealmMenu = false;
+        }
+
+        else if (customId === 'test_btn_maxout') {
+          try {
+            await tuSi.reload();
+            tuSi.capDo = 31;
+            const cg = config.layThongTinCanhGioi(tuSi.capDo);
+            tuSi.canhGioi = `${cg.realmName} - ${cg.stageName}`;
+            tuSi.linhLuc = 10000000;
+            tuSi.linhThach = 100000000;
+            tuSi.vnd = 10000000;
+            tuSi.theLuc = 200;
+            tuSi.theLucMax = 200;
+            const stats = await tuSi.layChiSoDayDu();
+            tuSi.hp = stats.max_hp;
+            tuSi.mp = stats.max_mp;
+            await tuSi.save();
+            statusMsg = `⚡ Đã nâng cấp nhân vật lên cảnh giới **Tiên Nhân - Chân Tiên**, Linh Lực: 10M, Linh Thạch: 100M, VND: 10M, Thể Lực: 200/200, hồi phục HP/MP!`;
+          } catch (err) {
+            console.error('[Test Command] Lỗi maxout:', err);
+            statusMsg = `❌ Lỗi khi thực hiện max out cảnh giới.`;
+          }
+        } 
+        
+        else if (customId === 'test_btn_items') {
+          try {
+            const itemsToGift = ['kiem_huyen_thiet', 'giap_huyen_thiet', 'phap_bao_huyen_mon', 'can_khon_dinh', 'binh_tinh_hai'];
+            for (const itemId of itemsToGift) {
+              await Inventory.addVatPham(tuSi.idNguoiDung, itemId, 1, { quality: 'Thần Thoại' });
+            }
+            await Inventory.addVatPham(tuSi.idNguoiDung, 'ngoc_boi_kim_dan_the', 1, { quality: 'Thần Thoại' });
+            await Inventory.addVatPham(tuSi.idNguoiDung, 'the_vinh_vien', 1);
+
+            statusMsg = `⚔️ Đã tặng trọn bộ trang bị/pháp bảo Hóa Thần Thần Thoại, Chí Bảo Càn Khôn Đỉnh, Bình Tinh Hải và Thẻ Vĩnh Viễn!`;
+          } catch (err) {
+            console.error('[Test Command] Lỗi items:', err);
+            statusMsg = `❌ Lỗi khi tặng trang bị.`;
+          }
+        } 
+        
+        else if (customId === 'test_btn_pet') {
+          try {
+            const template = config.PET_TEMPLATES_SEED[0]; // Hỏa Hầu
+            const cleanName = template.name;
+            const rarity = 'than_pham_5';
+            const formattedName = config.getFormattedPetName(cleanName, rarity, 10, false);
+
+            await Pet.create({
+              userId: tuSi.idNguoiDung,
+              name: formattedName,
+              type: template.id,
+              rarity: rarity,
+              level: 100,
+              exp: 0,
+              tuChat: 250,
+              tienHoa: 10,
+              extraEvo: 5,
+              isActive: false
+            });
+
+            statusMsg = `🐉 Đã sinh một chú Linh Thú Hỏa Hầu (Thần Phẩm +5, Cấp 100, max Tư Chất 250) trong sủng vật viên!`;
+          } catch (err) {
+            console.error('[Test Command] Lỗi pet:', err);
+            statusMsg = `❌ Lỗi khi tạo thú cưng thử nghiệm.`;
+          }
+        } 
+        
+        else if (customId === 'test_btn_skills') {
+          try {
+            const playerClass = tuSi.huongTu || 'Phap Tu';
+            const expectedType = playerClass === 'The Tu' ? 'Vật lý' : 'Phép thuật';
+            const allSkills = await Skill.findAll({ where: { loai: expectedType } });
+            
+            await PlayerSkill.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+
+            for (const sk of allSkills) {
+              await PlayerSkill.create({
+                idNguoiDung: tuSi.idNguoiDung,
+                skillId: sk.id,
+                capDo: 10,
+                kinhNghiemSkill: 0,
+                trangBi: false
+              });
+            }
+
+            statusMsg = `📚 Đã lĩnh hội toàn bộ thần thông bậc 10 thuộc hướng ${expectedType} (hãy gõ \`/kynang\` để trang bị)!`;
+          } catch (err) {
+            console.error('[Test Command] Lỗi skills:', err);
+            statusMsg = `❌ Lỗi khi lĩnh hội kỹ năng.`;
+          }
+        } 
+        
+        else if (customId === 'test_btn_materials') {
+          try {
+            const mats = [
+              'hat_giong_luyen_khi_thao', 'hat_giong_truc_co_thao', 'hat_giong_kim_dan_hoa', 'hat_giong_nguyen_anh_qua',
+              'hat_giong_hoa_than_chi', 'hat_giong_phan_hu_dang', 'hat_giong_hop_the_lien', 'hat_giong_dai_thua_qua',
+              'linh_thao_luyen_khi', 'linh_thao_truc_co', 'linh_thao_kim_dan', 'linh_thao_nguyen_anh',
+              'linh_thao_hoa_than', 'linh_thao_phan_hu', 'linh_thao_hop_the', 'linh_thao_dai_thua',
+              'co_duyen_lenh', 'linh_sung_lenh'
+            ];
+
+            for (const mId of mats) {
+              await Inventory.addVatPham(tuSi.idNguoiDung, mId, 99, { quality: 'Thần Thoại' });
+            }
+
+            for (let num = 1; num <= 8; num++) {
+              await Inventory.addVatPham(tuSi.idNguoiDung, `dan_dot_pha_${num}`, 10, {
+                quality: { phamChat: 'Thần thoại', phanTramHoTro: 40 }
+              });
+            }
+
+            statusMsg = `🎒 Đã đổ đầy túi với x99 nguyên liệu rèn/hạt giống/thảo dược Thần Thoại và x10 đan dược đột phá Thần Thoại từ Luyện Khí đến Đại Thừa!`;
+          } catch (err) {
+            console.error('[Test Command] Lỗi materials:', err);
+            statusMsg = `❌ Lỗi khi tặng nguyên liệu.`;
+          }
+        } 
+        
+        else if (customId === 'test_btn_close') {
+          collector.stop('closed');
+          return;
+        }
+
+        await interaction.editReply(buildPayload());
+      });
+
+      collector.on('end', async (_, reason) => {
+        if (reason !== 'closed') {
+          try {
+            await interaction.editReply({ components: [] });
+          } catch (_) {}
+        } else {
+          try {
+            await interaction.editReply({ content: '🧪 Bảng thử nghiệm Thiên Đạo đã đóng.', embeds: [], components: [] });
+          } catch (_) {}
+        }
+      });
+    }
+  };
+
+  lenhTestEnd = {
+    data: new SlashCommandBuilder()
+      .setName('testend')
+      .setDescription('Kết thúc thử nghiệm nhanh và khôi phục trạng thái tài khoản gốc'),
+
+    execute: async (interaction) => {
+      const { TuSi } = await import('../models/TuSi.js');
+      const tuSi = await TuSi.findOne({ where: { idNguoiDung: interaction.user.id } });
+      if (!tuSi) {
+        return interaction.reply({
+          content: '❌ Đạo hữu chưa khởi đầu kiếp tu tiên.',
+          ephemeral: true
+        });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+      const restored = await restoreState(tuSi);
+      if (restored) {
+        return interaction.editReply({
+          content: '✅ Đã kết thúc thử nghiệm và khôi phục thành công toàn bộ chỉ số, trang bị, sủng vật và thần thông về trạng thái gốc!'
+        });
+      } else {
+        return interaction.editReply({
+          content: '❌ Đạo hữu hiện không ở trong trạng thái thử nghiệm (hoặc không có dữ liệu sao lưu gốc).'
+        });
+      }
+    }
+  };
+
+  lenhTestEng = {
+    data: new SlashCommandBuilder()
+      .setName('testeng')
+      .setDescription('Kết thúc thử nghiệm nhanh và khôi phục trạng thái tài khoản gốc (Bản gõ Telex)'),
+
+    execute: async (interaction) => {
+      const { TuSi } = await import('../models/TuSi.js');
+      const tuSi = await TuSi.findOne({ where: { idNguoiDung: interaction.user.id } });
+      if (!tuSi) {
+        return interaction.reply({
+          content: '❌ Đạo hữu chưa khởi đầu kiếp tu tiên.',
+          ephemeral: true
+        });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+      const restored = await restoreState(tuSi);
+      if (restored) {
+        return interaction.editReply({
+          content: '✅ Đã kết thúc thử nghiệm và khôi phục thành công toàn bộ chỉ số, trang bị, sủng vật và thần thông về trạng thái gốc!'
+        });
+      } else {
+        return interaction.editReply({
+          content: '❌ Đạo hữu hiện không ở trong trạng thái thử nghiệm (hoặc không có dữ liệu sao lưu gốc).'
+        });
+      }
+    }
+  };
+
+  lenhEndTest = {
+    data: new SlashCommandBuilder()
+      .setName('endtest')
+      .setDescription('Kết thúc thử nghiệm nhanh và khôi phục trạng thái tài khoản gốc'),
+
+    execute: async (interaction) => {
+      const { TuSi } = await import('../models/TuSi.js');
+      const tuSi = await TuSi.findOne({ where: { idNguoiDung: interaction.user.id } });
+      if (!tuSi) {
+        return interaction.reply({
+          content: '❌ Đạo hữu chưa khởi đầu kiếp tu tiên.',
+          ephemeral: true
+        });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+      const restored = await restoreState(tuSi);
+      if (restored) {
+        return interaction.editReply({
+          content: '✅ Đã kết thúc thử nghiệm và khôi phục thành công toàn bộ chỉ số, trang bị, sủng vật và thần thông về trạng thái gốc!'
+        });
+      } else {
+        return interaction.editReply({
+          content: '❌ Đạo hữu hiện không ở trong trạng thái thử nghiệm (hoặc không có dữ liệu sao lưu gốc).'
+        });
+      }
+    }
+  };
 }
 
 const controller = new BoDieuKhienAdmin();
-export const danhSachLenhAdmin = [controller.lenhAdmin, controller.lenhEdit, controller.lenhTb];
+export const danhSachLenhAdmin = [
+  controller.lenhAdmin,
+  controller.lenhEdit,
+  controller.lenhTb,
+  controller.lenhTest,
+  controller.lenhTestEnd,
+  controller.lenhTestEng,
+  controller.lenhEndTest
+];
 export { controller as boDieuKhienAdmin };

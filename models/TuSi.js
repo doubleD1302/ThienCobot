@@ -674,6 +674,18 @@ TuSi.init({
     allowNull: false,
     defaultValue: 0,
     field: 'cong_duc'
+  },
+  isTester: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    field: 'is_tester'
+  },
+  originalStateJson: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    defaultValue: null,
+    field: 'original_state_json'
   }
 }, {
   sequelize,

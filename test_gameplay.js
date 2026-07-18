@@ -4952,5 +4952,139 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Admin tester toggle and backup/restore test state logic', async () => {
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { Pet } = await import('./models/Pet.js');
+    const { PlayerSkill } = await import('./models/PlayerSkill.js');
+    const { backupState, restoreState } = await import('./controllers/BoDieuKhienAdmin.js');
+
+    const tuSi = await TuSi.create({
+      idNguoiDung: "9999999999999996",
+      ten: "TestAdminTuSi",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 5,
+      linhLuc: 500,
+      linhThach: 1000,
+      vnd: 2000
+    });
+    tuSi.linhCanList = ["Hoa"];
+    await tuSi.save();
+
+    // 1. Verify default tester status
+    assert.strictEqual(tuSi.isTester, false);
+
+    // 2. Perform backupState
+    await backupState(tuSi);
+    assert.ok(tuSi.originalStateJson);
+    const parsed = JSON.parse(tuSi.originalStateJson);
+    assert.strictEqual(parsed.stats.capDo, 5);
+    assert.strictEqual(parsed.stats.linhThach, 1000);
+
+    // 3. Modify stats & add items in test mode
+    tuSi.capDo = 30;
+    tuSi.linhThach = 999999;
+    await tuSi.save();
+
+    const testItem = await Inventory.addVatPham(tuSi.idNguoiDung, 'so_cap_thiet_quang', 5);
+    const testPet = await Pet.create({
+      userId: tuSi.idNguoiDung,
+      name: '🔥 Long Thần',
+      type: 'hoa_hau',
+      rarity: 'than_pham_5',
+      level: 100
+    });
+
+    // Verify modifications exist
+    const countInvBefore = await Inventory.count({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    assert.ok(countInvBefore > 0);
+    const countPetBefore = await Pet.count({ where: { userId: tuSi.idNguoiDung } });
+    assert.ok(countPetBefore > 0);
+
+    // 4. Perform restoreState
+    const success = await restoreState(tuSi);
+    assert.strictEqual(success, true);
+    await tuSi.reload();
+
+    // Verify stats are restored
+    assert.strictEqual(tuSi.capDo, 5);
+    assert.strictEqual(tuSi.linhThach, 1000);
+    assert.strictEqual(tuSi.originalStateJson, null);
+
+    // Verify items & pets created in test mode are deleted
+    const countInvAfter = await Inventory.count({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    assert.strictEqual(countInvAfter, 0);
+    const countPetAfter = await Pet.count({ where: { userId: tuSi.idNguoiDung } });
+    assert.strictEqual(countPetAfter, 0);
+
+    // 5. Test quick cultivation simulation (X hours)
+    const originalLinhLuc = tuSi.linhLuc;
+    tuSi.lastUpdateTuVi = new Date(Date.now() - 10 * 3600 * 1000); // 10 hours ago
+    await tuSi.save();
+
+    const { BoDieuKhienGoc } = await import('./controllers/BoDieuKhienGoc.js');
+    const baseController = new BoDieuKhienGoc();
+    const resCultivate = await baseController.kiemTraVaNhanTuVi(tuSi);
+    assert.ok(resCultivate && resCultivate.completed);
+    await tuSi.reload();
+    assert.ok(tuSi.linhLuc > originalLinhLuc);
+
+    // Clean up
+    await tuSi.destroy();
+  });
+
+  test('Tester custom item addition and restore verification', async () => {
+    const { TuSi } = await import('./models/TuSi.js');
+    const { Inventory } = await import('./models/Inventory.js');
+    const { backupState, restoreState } = await import('./controllers/BoDieuKhienAdmin.js');
+    const config = await import('./config.js');
+
+    const tuSi = await TuSi.create({
+      idNguoiDung: "9999999999999997",
+      ten: "CustomItemTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Hỏa Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 1000,
+      vnd: 1000
+    });
+    
+    // Default isTester should be false
+    assert.strictEqual(tuSi.isTester, false, "Default isTester should be false");
+
+    // Set isTester to true and backup state
+    tuSi.isTester = true;
+    await tuSi.save();
+    
+    await backupState(tuSi);
+    assert.ok(tuSi.originalStateJson, "Backup state should be saved");
+
+    // Simulate tester picking any custom items from config.ITEMS (e.g. first 3 items)
+    const itemsToTest = config.ITEMS.slice(0, 3);
+    for (const item of itemsToTest) {
+      await Inventory.addVatPham(tuSi.idNguoiDung, item.id, 10);
+    }
+
+    const countInvBefore = await Inventory.count({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    assert.strictEqual(countInvBefore, 3, "Should have 3 custom items in inventory during test");
+
+    // Restore state
+    const success = await restoreState(tuSi);
+    assert.strictEqual(success, true, "Restore state should be successful");
+    await tuSi.reload();
+
+    // Verify custom items are deleted and isTester remains true (since it's a role state)
+    const countInvAfter = await Inventory.count({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    assert.strictEqual(countInvAfter, 0, "Custom items should be completely wiped out post-test");
+    assert.strictEqual(tuSi.isTester, true, "Tester role should persist post-restore");
+
+    // Clean up
+    await tuSi.destroy();
+  });
+
 });
 

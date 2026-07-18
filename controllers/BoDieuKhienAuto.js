@@ -258,7 +258,7 @@ class BoDieuKhienAuto extends BoDieuKhienGoc {
 const controller = new BoDieuKhienAuto();
 
 // ── Background Auto Progress Actions ──────────────────────────────────────
-async function autoDiBiCanh(tuSi) {
+export async function autoDiBiCanh(tuSi) {
   try {
     await tuSi.reload();
     if (tuSi.theLuc < 1) return;
@@ -1469,7 +1469,7 @@ async function autoDiBiCanh(tuSi) {
   }
 }
 
-async function autoDiLichLuyen(tuSi) {
+export async function autoDiLichLuyen(tuSi) {
   try {
     await tuSi.reload();
     if (tuSi.theLuc < 1) return;

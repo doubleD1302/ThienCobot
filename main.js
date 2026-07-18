@@ -482,6 +482,23 @@ async function start() {
           defaultValue: 0
         });
       }
+      if (!playersDesc.is_tester) {
+        console.log('Phát hiện thiếu cột is_tester. Tiến hành thêm vào bảng players...');
+        await queryInterface.addColumn('players', 'is_tester', {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: false
+        });
+      }
+      if (!playersDesc.original_state_json) {
+        console.log('Phát hiện thiếu cột original_state_json. Tiến hành thêm vào bảng players...');
+        await queryInterface.addColumn('players', 'original_state_json', {
+          type: DataTypes.TEXT,
+          allowNull: true,
+          defaultValue: null
+        });
+      }
+
 
       const cooldownsDesc = await queryInterface.describeTable('cooldowns');
       if (cooldownsDesc.user_id && cooldownsDesc.user_id.autoIncrement) {
