@@ -27,7 +27,7 @@ export function taoThanhTienDo(hienTai, toiDa, doDai = 12) {
   return `[ \`${bar}\` ] **${Math.floor(pct * 100)}%**`;
 }
 export function layKhungPhamChat(item, dongChiSoJson) {
-  if (item.loai === 'Chí bảo') return '<:PHAMCHAT_rainbow:1528035956777812019>';
+  if (item.loai === 'Chí bảo') return '🔴';
   
   let quality = item.doHiem;
   if (dongChiSoJson) {
@@ -44,20 +44,20 @@ export function layKhungPhamChat(item, dongChiSoJson) {
     } catch (e) {}
   }
   
-  const QUALITY_FRAMES = {
-    'Chí bảo': '<:PHAMCHAT_rainbow:1528035956777812019>',
-    'Thần cấp': '<:PHAMCHAT_do:1528035960992960676>',
-    'Huyền thoại': '<:PHAMCHAT_cam:1528035959114043515>',
-    'Thần Thoại': '<:PHAMCHAT_cam:1528035959114043515>',
-    'Thần thoại': '<:PHAMCHAT_cam:1528035959114043515>',
-    'Cực hiếm': '<:PHAMCHAT_tim:1528035964038152192>',
-    'Sử Thi': '<:PHAMCHAT_tim:1528035964038152192>',
-    'Sử thi': '<:PHAMCHAT_tim:1528035964038152192>',
-    'Hiếm': '<:PHAMCHAT_lam:1528035954022027284>',
-    'Thường': '<:PHAMCHAT_luc:1528035966349217874>',
-    'Phế Phẩm': '<:PHAMCHAT_luc:1528035966349217874>'
+  const QUALITY_DOTS = {
+    'Chí bảo': '🔴',
+    'Thần cấp': '🔴',
+    'Huyền thoại': '🟠',
+    'Thần Thoại': '🟠',
+    'Thần thoại': '🟠',
+    'Cực hiếm': '🟣',
+    'Sử Thi': '🟣',
+    'Sử thi': '🟣',
+    'Hiếm': '🔵',
+    'Thường': '🟢',
+    'Phế Phẩm': '⚪'
   };
-  return QUALITY_FRAMES[quality] || '<:PHAMCHAT_luc:1528035966349217874>';
+  return QUALITY_DOTS[quality] || '🟢';
 }
 
 export function renderProgressEmoji(linhLuc, reqExp) {
@@ -393,20 +393,6 @@ export class BoTaoEmbed {
   static _phanLoaiItems(itemsList) {
     const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [], chiBao = [], skin = [];
 
-    const QUALITY_FRAMES = {
-      'Chí bảo': '<:PHAMCHAT_rainbow:1528035956777812019>',
-      'Thần cấp': '<:PHAMCHAT_do:1528035960992960676>',
-      'Huyền thoại': '<:PHAMCHAT_cam:1528035959114043515>',
-      'Thần Thoại': '<:PHAMCHAT_cam:1528035959114043515>',
-      'Thần thoại': '<:PHAMCHAT_cam:1528035959114043515>',
-      'Cực hiếm': '<:PHAMCHAT_tim:1528035964038152192>',
-      'Sử Thi': '<:PHAMCHAT_tim:1528035964038152192>',
-      'Sử thi': '<:PHAMCHAT_tim:1528035964038152192>',
-      'Hiếm': '<:PHAMCHAT_lam:1528035954022027284>',
-      'Thường': '<:PHAMCHAT_luc:1528035966349217874>',
-      'Phế Phẩm': '<:PHAMCHAT_luc:1528035966349217874>'
-    };
-
     for (const itemObj of itemsList) {
       const { item, soLuong, trangBi: isEquipped, nangCapSao, invId, khoa, dongChiSoJson } = itemObj;
       const starText = nangCapSao > 0 ? ` (+${nangCapSao}⭐)` : '';
@@ -483,17 +469,16 @@ export class BoTaoEmbed {
         reqText = ` 🔒 **${cgReq.realmName}**`;
       }
 
-      // Xác định khung phẩm chất
-      const qualityKey = item.loai === 'Chí bảo' ? 'Chí bảo' : (dynamicQuality || item.doHiem);
-      const frameEmoji = QUALITY_FRAMES[qualityKey] || '';
+      // Xác định chấm tròn màu phẩm chất
+      const dotEmoji = layKhungPhamChat(item, dongChiSoJson);
 
       // Sử dụng mã ID duy nhất của dòng vật phẩm trong balo để phân biệt các trang bị trùng tên
       let tenHienThi = item.ten;
       if (item.emoji) {
         const tenSach = item.ten.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '').trim();
-        tenHienThi = `${frameEmoji}${item.emoji} ${tenSach}`;
+        tenHienThi = `${dotEmoji} ${item.emoji} ${tenSach}`;
       } else {
-        tenHienThi = `${frameEmoji} ${item.ten}`;
+        tenHienThi = `${dotEmoji} ${item.ten}`;
       }
       tenHienThi = tenHienThi.trim();
 

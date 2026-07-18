@@ -160,35 +160,39 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     };
 
     // 1. Tên tu sĩ
-    printTitle(tuSi.ten, 430, 68);
+    const nameX = isPhysical ? 430 : 530;
+    printTitle(tuSi.ten, nameX, 95);
 
     // 2. Chân Nguyên & Khí Huyết
     const stats = await tuSi.layChiSoDayDu();
-    printCentered(`${tuSi.mp}/${stats.max_mp}`, 120, 290, 240);
-    printCentered(`${tuSi.hp}/${stats.max_hp}`, 300, 480, 240);
+    printCentered(`${tuSi.mp}/${stats.max_mp}`, 150, 390, 240);
+    printCentered(`${tuSi.hp}/${stats.max_hp}`, 400, 640, 240);
 
     // 3. Avatar
     if (user && typeof user.displayAvatarURL === 'function') {
       try {
         const avatarUrl = user.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
         const avatarImg = await Jimp.read(avatarUrl);
-        avatarImg.resize({ w: 124, h: 147 });
-        img.composite(avatarImg, 526, 148);
+        avatarImg.resize({ w: 120, h: 140 });
+        img.composite(avatarImg, 675, 125);
       } catch (e) {
         console.error('Failed to load avatar:', e.message);
       }
     }
 
     // 4. Linh Căn & Đạo Pháp (5 boxes)
-    printCentered(tuSi.gioiTinh, 150, 220, 418);
+    const boxesY = isPhysical ? 420 : 340;
+    const emojiY = isPhysical ? 405 : 325;
+
+    printCentered(tuSi.gioiTinh, 150, 220, boxesY);
     
     const isThienDao = String(tuSi.idNguoiDung) === '541474154130571264';
     if (isThienDao) {
-      printCentered('Thien Dao', 275, 345, 418);
+      printCentered('Thien Dao', 275, 345, boxesY);
     }
     
     const pathName = config.HUONG_DI[tuSi.huongTu]?.name || 'Chua ro';
-    printCentered(pathName, 400, 470, 418);
+    printCentered(pathName, 400, 470, boxesY);
     
     const lcKey = Object.keys(config.NGUON_LINH_CAN).find(k => config.NGUON_LINH_CAN[k].name === tuSi.linhCan);
     const lcEmojiStr = config.NGUON_LINH_CAN[lcKey]?.emoji;
@@ -196,7 +200,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const lcImg = await this.getEmojiImageCached(lcEmojiStr);
       if (lcImg) {
         lcImg.resize({ w: 50, h: 50 });
-        img.composite(lcImg, 535, 405);
+        img.composite(lcImg, 535, emojiY);
       }
     }
     
@@ -206,13 +210,14 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
         const hmImg = await this.getEmojiImageCached(hmEmojiStr);
         if (hmImg) {
           hmImg.resize({ w: 50, h: 50 });
-          img.composite(hmImg, 660, 405);
+          img.composite(hmImg, 660, emojiY);
         }
       }
     }
 
     // 5. Cảnh giới
-    printCentered(`${tuSi.canhGioi} Tang ${tuSi.tang} (Cap ${tuSi.capDo})`, 135, 635, 595);
+    const cgY = isPhysical ? 597 : 540;
+    printCentered(`${tuSi.canhGioi} Tang ${tuSi.tang} (Cap ${tuSi.capDo})`, 135, 635, cgY);
 
     // 6. 12 equipment slots
     const slots = [
@@ -249,21 +254,15 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const slot = slots[i];
       const itemObj = findItemForSlot(slot, i);
       if (itemObj) {
-        const { eq, detail } = itemObj;
-        const qFrameEmoji = layKhungPhamChat(detail, eq.dongChiSoJson);
-        const frameImg = await this.getEmojiImageCached(qFrameEmoji);
+        const { detail } = itemObj;
         const itemImg = await this.getEmojiImageCached(detail.emoji);
 
         const boxX = 135 + slot.col * 130;
         const boxY = 890 + slot.row * 120;
 
-        if (frameImg) {
-          frameImg.resize({ w: 80, h: 80 });
-          img.composite(frameImg, boxX + 10, boxY + 10);
-        }
         if (itemImg) {
-          itemImg.resize({ w: 60, h: 60 });
-          img.composite(itemImg, boxX + 20, boxY + 20);
+          itemImg.resize({ w: 80, h: 80 });
+          img.composite(itemImg, boxX + 10, boxY + 10);
         }
       }
     }
@@ -304,46 +303,72 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     };
 
     // 1. Tên tu sĩ
-    printTitle(tuSi.ten, 430, 68);
+    const nameX = isPhysical ? 430 : 530;
+    printTitle(tuSi.ten, nameX, 95);
 
     // 2. Chân Nguyên & Khí Huyết
-    printCentered(`${tuSi.mp}/${chiSo.max_mp}`, 120, 290, 240);
-    printCentered(`${tuSi.hp}/${chiSo.max_hp}`, 300, 480, 240);
+    printCentered(`${tuSi.mp}/${chiSo.max_mp}`, 150, 390, 240);
+    printCentered(`${tuSi.hp}/${chiSo.max_hp}`, 400, 640, 240);
 
     // 3. Avatar
     if (user && typeof user.displayAvatarURL === 'function') {
       try {
         const avatarUrl = user.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
         const avatarImg = await Jimp.read(avatarUrl);
-        avatarImg.resize({ w: 124, h: 147 });
-        img.composite(avatarImg, 526, 148);
+        avatarImg.resize({ w: 120, h: 140 });
+        img.composite(avatarImg, 675, 125);
       } catch (e) {
         console.error('Failed to load avatar:', e.message);
       }
     }
 
+    // Coords configuration based on direction
+    const coords = isPhysical ? {
+      vat_cong_y: 400,
+      phap_cong_y: 460,
+      ho_giap_y: 638,
+      linh_phong_y: 698,
+      hut_mau_y: 758,
+      speed_y: 980,
+      crit_dmg_y: 1040,
+      xuyen_giap_y: 1100,
+      id_y: 1270,
+      guild_y: 1310
+    } : {
+      vat_cong_y: 320,
+      phap_cong_y: 380,
+      ho_giap_y: 520,
+      linh_phong_y: 580,
+      hut_mau_y: 640,
+      speed_y: 780,
+      crit_dmg_y: 840,
+      xuyen_giap_y: 900,
+      id_y: 1110,
+      guild_y: 1150
+    };
+
     // 4. Basic Attack
-    printCentered(chiSo.vat_cong.toString(), 355, 635, 400);
-    printCentered(chiSo.phap_cong.toString(), 355, 635, 460);
+    printCentered(chiSo.vat_cong.toString(), 355, 635, coords.vat_cong_y);
+    printCentered(chiSo.phap_cong.toString(), 355, 635, coords.phap_cong_y);
 
     // 5. Defense & Recovery
-    printCentered(chiSo.giap.toString(), 270, 365, 638);
-    printCentered(chiSo.vat_phong.toString(), 540, 635, 638);
-    printCentered(chiSo.linh_phong.toString(), 270, 365, 698);
-    printCentered(chiSo.phap_phong.toString(), 540, 635, 698);
-    printCentered(`${Math.round((chiSo.lifesteal || 0) * 100)}%`, 270, 365, 758);
+    printCentered(chiSo.giap.toString(), 270, 365, coords.ho_giap_y);
+    printCentered(chiSo.vat_phong.toString(), 540, 635, coords.ho_giap_y);
+    printCentered(chiSo.linh_phong.toString(), 270, 365, coords.linh_phong_y);
+    printCentered(chiSo.phap_phong.toString(), 540, 635, coords.linh_phong_y);
+    printCentered(`${Math.round((chiSo.lifesteal || 0) * 100)}%`, 270, 365, coords.hut_mau_y);
 
     // 6. Special Stats
-    printCentered(Math.floor(chiSo.speed || 100).toString(), 270, 365, 980);
-    printCentered(`${Math.round(chiSo.crit_rate * 100)}%`, 540, 635, 980);
-    printCentered(`${Math.round(chiSo.crit_dmg * 100)}%`, 270, 365, 1040);
-    printCentered(`${Math.round((chiSo.ne || 0) * 100)}%`, 540, 635, 1040);
-    printCentered(chiSo.xuyen_giap.toString(), 270, 365, 1100);
+    printCentered(Math.floor(chiSo.speed || 100).toString(), 270, 365, coords.speed_y);
+    printCentered(`${Math.round(chiSo.crit_rate * 100)}%`, 540, 635, coords.speed_y);
+    printCentered(`${Math.round(chiSo.crit_dmg * 100)}%`, 270, 365, coords.crit_dmg_y);
+    printCentered(`${Math.round((chiSo.ne || 0) * 100)}%`, 540, 635, coords.crit_dmg_y);
+    printCentered(chiSo.xuyen_giap.toString(), 270, 365, coords.xuyen_giap_y);
 
     // 7. Guild Name & ID Code
-    printCentered(tuSi.idNguoiDung, 220, 500, 1270);
+    printCentered(tuSi.idNguoiDung, 220, 500, coords.id_y);
     if (guildName) {
-      printCentered(guildName, 220, 500, 1310);
+      printCentered(guildName, 220, 500, coords.guild_y);
     }
 
     return await img.getBuffer('image/png');
