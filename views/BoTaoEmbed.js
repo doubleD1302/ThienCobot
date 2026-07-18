@@ -396,6 +396,20 @@ export class BoTaoEmbed {
   static _phanLoaiItems(itemsList) {
     const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [], chiBao = [], skin = [];
 
+    const QUALITY_FRAMES = {
+      'Chí bảo': '<:PHAMCHAT_rainbow:1528035956777812019>',
+      'Thần cấp': '<:PHAMCHAT_do:1528035960992960676>',
+      'Huyền thoại': '<:PHAMCHAT_cam:1528035959114043515>',
+      'Thần Thoại': '<:PHAMCHAT_cam:1528035959114043515>',
+      'Thần thoại': '<:PHAMCHAT_cam:1528035959114043515>',
+      'Cực hiếm': '<:PHAMCHAT_tim:1528035964038152192>',
+      'Sử Thi': '<:PHAMCHAT_tim:1528035964038152192>',
+      'Sử thi': '<:PHAMCHAT_tim:1528035964038152192>',
+      'Hiếm': '<:PHAMCHAT_lam:1528035954022027284>',
+      'Thường': '<:PHAMCHAT_luc:1528035966349217874>',
+      'Phế Phẩm': '<:PHAMCHAT_luc:1528035966349217874>'
+    };
+
     for (const itemObj of itemsList) {
       const { item, soLuong, trangBi: isEquipped, nangCapSao, invId, khoa, dongChiSoJson } = itemObj;
       const starText = nangCapSao > 0 ? ` (+${nangCapSao}⭐)` : '';
@@ -406,6 +420,8 @@ export class BoTaoEmbed {
 
       // Phẩm chất trang bị Kim Đan+ (lưu trong metadata dòng đầu)
       let equipQualityText = '';
+      let dynamicQuality = null;
+
       if (item.yeuCauCanhGioi >= 13 && dongChiSoJson) {
         try {
           const parsed = JSON.parse(dongChiSoJson);
@@ -414,6 +430,7 @@ export class BoTaoEmbed {
             if (meta && meta.phamChatTrangBi) {
               const qEmoji = qualityEmojis[meta.phamChatTrangBi] || '';
               equipQualityText = ` [${qEmoji} ${meta.phamChatTrangBi}]`;
+              dynamicQuality = meta.phamChatTrangBi;
             }
           }
         } catch (e) {}
@@ -425,6 +442,7 @@ export class BoTaoEmbed {
           const pillData = JSON.parse(dongChiSoJson);
           if (pillData && pillData.phamChat) {
             pillQualityText = ` (${pillData.phamChat} +${pillData.phanTramHoTro}%)`;
+            dynamicQuality = pillData.phamChat;
           }
         } catch (e) {}
       }
@@ -437,6 +455,7 @@ export class BoTaoEmbed {
           if (matData && matData.phamChat) {
             const qEmoji = qualityEmojis[matData.phamChat] || '';
             matQualityText = ` [${qEmoji} ${matData.phamChat}]`;
+            dynamicQuality = matData.phamChat;
           }
         } catch (e) {}
       }
@@ -467,12 +486,20 @@ export class BoTaoEmbed {
         reqText = ` 🔒 **${cgReq.realmName}**`;
       }
 
+      // Xác định khung phẩm chất
+      const qualityKey = item.loai === 'Chí bảo' ? 'Chí bảo' : (dynamicQuality || item.doHiem);
+      const frameEmoji = QUALITY_FRAMES[qualityKey] || '';
+
       // Sử dụng mã ID duy nhất của dòng vật phẩm trong balo để phân biệt các trang bị trùng tên
       let tenHienThi = item.ten;
       if (item.emoji) {
         const tenSach = item.ten.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '').trim();
-        tenHienThi = `${item.emoji} ${tenSach}`;
+        tenHienThi = `${frameEmoji}${item.emoji} ${tenSach}`;
+      } else {
+        tenHienThi = `${frameEmoji} ${item.ten}`;
       }
+      tenHienThi = tenHienThi.trim();
+
       const formattedLine = `• **${tenHienThi}**${equipQualityText}${matQualityText}${pillQualityText}${cardExpiryText}${starText}${equipText}${lockText} x${soLuong}${reqText} | Mã: \`#${invId}\``;
 
       if (['Vũ khí', 'Giáp', 'Ngọc Bội'].includes(item.loai)) trangBi.push(formattedLine);
