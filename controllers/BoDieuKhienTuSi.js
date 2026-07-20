@@ -106,7 +106,7 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     return await canvas.getBuffer('image/png');
   }
 
-  async getEmojiImageCached(emojiStr) {
+  async getEmojiCanvasImage(emojiStr) {
     const match = emojiStr.match(/:(\d+)>/);
     if (!match) return null;
     const id = match[1];
@@ -114,9 +114,9 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     
     if (fs.existsSync(cachedPath)) {
       try {
-        return await Jimp.read(cachedPath);
+        return await loadImage(cachedPath);
       } catch (e) {
-        console.error('Failed to read cached emoji:', id, e.message);
+        console.error('Failed to read cached emoji with Canvas:', id, e.message);
       }
     }
     
@@ -125,12 +125,11 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const response = await fetch(url);
       if (!response.ok) throw new Error('Fetch failed');
       const buffer = Buffer.from(await response.arrayBuffer());
-      const img = await Jimp.read(buffer);
       fs.mkdirSync('public/image/cache/emojis', { recursive: true });
-      await img.write(cachedPath);
-      return img;
+      fs.writeFileSync(cachedPath, buffer);
+      return await loadImage(buffer);
     } catch (e) {
-      console.error('Failed to download emoji:', id, e.message);
+      console.error('Failed to download emoji with Canvas:', id, e.message);
       return null;
     }
   }
@@ -145,39 +144,47 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       throw new Error(`Profile template not found: ${bgPath}`);
     }
 
-    const img = await Jimp.read(bgPath);
-    
-    const font16 = await loadFont('node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-16-white/open-sans-16-white.fnt');
-    const font32 = await loadFont('node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-32-white/open-sans-32-white.fnt');
-    
-    const printCentered = (text, xStart, xEnd, y) => {
-      const cleanText = removeAccents(text);
-      const width = measureText(font16, cleanText);
-      const x = Math.round(xStart + (xEnd - xStart - width) / 2);
-      img.print({ font: font16, x, y, text: cleanText });
+    const background = await loadImage(bgPath);
+    const canvas = createCanvas(background.width, background.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(background, 0, 0);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+
+    const drawCenteredText = (text, xStart, xEnd, y, fontSize = 20) => {
+      ctx.font = `bold ${fontSize}px "TuTienFont"`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const xCenter = xStart + (xEnd - xStart) / 2;
+      ctx.fillText(String(text), xCenter, y + 14);
     };
 
-    const printTitle = (text, xStart, y) => {
-      const cleanText = removeAccents(text);
-      img.print({ font: font32, x: xStart, y, text: cleanText });
+    const drawLeftText = (text, xStart, y, fontSize = 32) => {
+      ctx.font = `bold ${fontSize}px "TuTienFont"`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(text), xStart, y + 14);
     };
 
     // 1. Tên tu sĩ
-    const nameX = isPhysical ? 430 : 530;
-    printTitle(tuSi.ten, nameX, 95);
+    const nameX = 430;
+    drawLeftText(tuSi.ten, nameX, 95, 32);
 
     // 2. Chân Nguyên & Khí Huyết
     const stats = await tuSi.layChiSoDayDu();
-    printCentered(`${tuSi.mp}/${stats.max_mp}`, 150, 390, 240);
-    printCentered(`${tuSi.hp}/${stats.max_hp}`, 400, 640, 240);
+    drawCenteredText(`${tuSi.mp}/${stats.max_mp}`, 135, 305, 266, 20);
+    drawCenteredText(`${tuSi.hp}/${stats.max_hp}`, 325, 495, 266, 20);
 
     // 3. Avatar
     if (user && typeof user.displayAvatarURL === 'function') {
       try {
         const avatarUrl = user.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
-        const avatarImg = await Jimp.read(avatarUrl);
-        avatarImg.resize({ w: 120, h: 140 });
-        img.composite(avatarImg, 675, 125);
+        const avatarImg = await loadImage(avatarUrl);
+        ctx.drawImage(avatarImg, 512, 177, 120, 120);
       } catch (e) {
         console.error('Failed to load avatar:', e.message);
       }
@@ -187,40 +194,38 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     const boxesY = isPhysical ? 420 : 340;
     const emojiY = isPhysical ? 405 : 325;
 
-    printCentered(tuSi.gioiTinh, 150, 220, boxesY);
+    drawCenteredText(tuSi.gioiTinh, 150, 220, boxesY, 20);
     
     const isThienDao = String(tuSi.idNguoiDung) === '541474154130571264';
     if (isThienDao) {
-      printCentered('Thien Dao', 275, 345, boxesY);
+      drawCenteredText('Thien Dao', 275, 345, boxesY, 20);
     }
     
     const pathName = config.HUONG_DI[tuSi.huongTu]?.name || 'Chua ro';
-    printCentered(pathName, 400, 470, boxesY);
+    drawCenteredText(pathName, 400, 470, boxesY, 20);
     
     const lcKey = Object.keys(config.NGUON_LINH_CAN).find(k => config.NGUON_LINH_CAN[k].name === tuSi.linhCan);
     const lcEmojiStr = config.NGUON_LINH_CAN[lcKey]?.emoji;
     if (lcEmojiStr) {
-      const lcImg = await this.getEmojiImageCached(lcEmojiStr);
+      const lcImg = await this.getEmojiCanvasImage(lcEmojiStr);
       if (lcImg) {
-        lcImg.resize({ w: 50, h: 50 });
-        img.composite(lcImg, 535, emojiY);
+        ctx.drawImage(lcImg, 535, emojiY, 50, 50);
       }
     }
     
     if (tuSi.huyetMach) {
       const hmEmojiStr = config.HUYET_MACH[tuSi.huyetMach]?.emoji;
       if (hmEmojiStr) {
-        const hmImg = await this.getEmojiImageCached(hmEmojiStr);
+        const hmImg = await this.getEmojiCanvasImage(hmEmojiStr);
         if (hmImg) {
-          hmImg.resize({ w: 50, h: 50 });
-          img.composite(hmImg, 660, emojiY);
+          ctx.drawImage(hmImg, 660, emojiY, 50, 50);
         }
       }
     }
 
     // 5. Cảnh giới
     const cgY = isPhysical ? 597 : 540;
-    printCentered(`${tuSi.canhGioi} Tang ${tuSi.tang} (Cap ${tuSi.capDo})`, 135, 635, cgY);
+    drawCenteredText(`${tuSi.canhGioi} Tang ${tuSi.tang} (Cap ${tuSi.capDo})`, 135, 635, cgY, 20);
 
     // 6. 12 equipment slots
     const slots = [
@@ -258,24 +263,23 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       const itemObj = findItemForSlot(slot, i);
       if (itemObj) {
         const { detail } = itemObj;
-        const itemImg = await this.getEmojiImageCached(detail.emoji);
+        const itemImg = await this.getEmojiCanvasImage(detail.emoji);
 
         const boxX = 135 + slot.col * 130;
         const boxY = 890 + slot.row * 120;
 
         if (itemImg) {
-          itemImg.resize({ w: 80, h: 80 });
-          img.composite(itemImg, boxX + 10, boxY + 10);
+          ctx.drawImage(itemImg, boxX + 10, boxY + 10, 80, 80);
         }
       }
     }
 
     // 7. Máy Chủ
     if (guildName) {
-      printCentered(guildName, 220, 600, 1300);
+      drawCenteredText(guildName, 220, 600, 1300, 20);
     }
 
-    return await img.getBuffer('image/png');
+    return await canvas.encode('png');
   }
 
   async veAnhProfileChiso(tuSi, user, chiSo, guildName) {
@@ -298,16 +302,16 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     const drawCenteredText = (text, xStart, xEnd, y, fontSize = 20) => {
       ctx.font = `bold ${fontSize}px "TuTienFont"`;
       ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
+      ctx.textBaseline = 'middle';
       const xCenter = xStart + (xEnd - xStart) / 2;
-      ctx.fillText(String(text), xCenter, y);
+      ctx.fillText(String(text), xCenter, y + 14);
     };
 
     const drawLeftText = (text, xStart, y, fontSize = 32) => {
       ctx.font = `bold ${fontSize}px "TuTienFont"`;
       ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(String(text), xStart, y);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(text), xStart, y + 14);
     };
 
     const formatStat = (val) => {
@@ -316,52 +320,41 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     };
 
     // 1. Tên tu sĩ
-    const nameX = isPhysical ? 430 : 530;
+    const nameX = 430;
     drawLeftText(tuSi.ten, nameX, 95, 32);
 
     // 2. Chân Nguyên & Khí Huyết
-    drawCenteredText(`${formatStat(tuSi.mp)}/${formatStat(chiSo.max_mp)}`, 150, 390, 240, 20);
-    drawCenteredText(`${formatStat(tuSi.hp)}/${formatStat(chiSo.max_hp)}`, 400, 640, 240, 20);
+    drawCenteredText(`${formatStat(tuSi.mp)}/${formatStat(chiSo.max_mp)}`, 135, 305, 266, 20);
+    drawCenteredText(`${formatStat(tuSi.hp)}/${formatStat(chiSo.max_hp)}`, 325, 495, 266, 20);
 
     // 3. Avatar
     if (user && typeof user.displayAvatarURL === 'function') {
       try {
         const avatarUrl = user.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
         const avatarImg = await loadImage(avatarUrl);
-        ctx.drawImage(avatarImg, 675, 125, 120, 140);
+        ctx.drawImage(avatarImg, 512, 177, 120, 120);
       } catch (e) {
         console.error('Failed to load avatar:', e.message);
       }
     }
 
-    // Coords configuration based on direction
-    const coords = isPhysical ? {
-      vat_cong_y: 400,
-      phap_cong_y: 460,
-      ho_giap_y: 638,
-      linh_phong_y: 698,
-      hut_mau_y: 758,
-      speed_y: 980,
-      crit_dmg_y: 1040,
-      xuyen_giap_y: 1100,
-      id_y: 1270,
-      guild_y: 1310
-    } : {
-      vat_cong_y: 320,
-      phap_cong_y: 380,
-      ho_giap_y: 520,
-      linh_phong_y: 580,
-      hut_mau_y: 640,
-      speed_y: 780,
-      crit_dmg_y: 840,
-      xuyen_giap_y: 900,
-      id_y: 1110,
-      guild_y: 1150
+    // Coords configuration based on direction (unified coordinates as templates are identical in layout)
+    const coords = {
+      vat_cong_y: 416,
+      phap_cong_y: 476,
+      ho_giap_y: 654,
+      linh_phong_y: 714,
+      hut_mau_y: 774,
+      speed_y: 990,
+      crit_dmg_y: 1054,
+      xuyen_giap_y: 1118,
+      id_y: 1266,
+      guild_y: 1306
     };
 
     // 4. Basic Attack
-    drawCenteredText(formatStat(chiSo.vat_cong), 355, 635, coords.vat_cong_y, 20);
-    drawCenteredText(formatStat(chiSo.phap_cong), 355, 635, coords.phap_cong_y, 20);
+    drawCenteredText(formatStat(chiSo.vat_cong), 270, 635, coords.vat_cong_y, 20);
+    drawCenteredText(formatStat(chiSo.phap_cong), 270, 635, coords.phap_cong_y, 20);
 
     // 5. Defense & Recovery
     drawCenteredText(formatStat(chiSo.giap), 270, 365, coords.ho_giap_y, 20);
