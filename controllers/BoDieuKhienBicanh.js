@@ -1326,7 +1326,9 @@ class BoDieuKhienBicanh extends BoDieuKhienGoc {
               const targetId = drop.replaceId && Math.random() < 0.5 ? drop.replaceId : drop.itemId;
               const itemDetail = await Item.findByPk(targetId);
               if (itemDetail) {
-                if (itemDetail.doHiem === 'Huyền thoại' || itemDetail.doHiem === 'Thần cấp' || targetId === 'trung_than_thu' || targetId === 'chuyen_sinh_dan') {
+                if (itemDetail.doHiem === 'Huyền thoại' || itemDetail.doHiem === 'Thần cấp' || 
+                    targetId === 'trung_than_thu' || targetId === 'chuyen_sinh_dan' ||
+                    ['the_thang', 'the_quy', 'the_vinh_vien'].includes(targetId)) {
                   // Chặn không rơi
                 } else {
                   if (itemDetail.loai === 'Linh thảo' && !itemDetail.id.startsWith('hat_giong_')) {

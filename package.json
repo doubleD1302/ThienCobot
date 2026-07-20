@@ -10,6 +10,7 @@
     "test": "node --test test_gameplay.js"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.2",
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.5",
     "jimp": "^1.6.1",

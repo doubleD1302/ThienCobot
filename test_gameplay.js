@@ -2697,19 +2697,27 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       { id: 'van_yeu_qua_tien', doHiem: 'Huyền thoại' },
       { id: 'chuyen_sinh_dan', doHiem: 'Huyền thoại' },
       { id: 'van_yeu_qua_than', doHiem: 'Thần cấp' },
+      { id: 'the_thang', doHiem: 'Hiếm' },
+      { id: 'the_quy', doHiem: 'Cực hiếm' },
+      { id: 'the_vinh_vien', doHiem: 'Thần cấp' },
       { id: 'kiem_go', doHiem: 'Thường' },
       { id: 'kiem_sat', doHiem: 'Hiếm' }
     ];
 
     const allowedDrops = [];
     for (const item of testItems) {
-      const isBlocked = (item.doHiem === 'Huyền thoại' || item.doHiem === 'Thần cấp' || item.id === 'chuyen_sinh_dan');
+      const isBlocked = (
+        item.doHiem === 'Huyền thoại' || 
+        item.doHiem === 'Thần cấp' || 
+        item.id === 'chuyen_sinh_dan' ||
+        ['the_thang', 'the_quy', 'the_vinh_vien'].includes(item.id)
+      );
       if (!isBlocked) {
         allowedDrops.push(item.id);
       }
     }
 
-        // Must block trung_than_thu, chuyen_sinh_dan, van_yeu_qua_than
+    // Must block trung_than_thu, chuyen_sinh_dan, van_yeu_qua_than and subscription cards
     assert.deepStrictEqual(allowedDrops, ['kiem_go', 'kiem_sat']);
   });
 

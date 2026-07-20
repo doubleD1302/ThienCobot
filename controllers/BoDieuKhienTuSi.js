@@ -8,8 +8,11 @@ import {
   EmbedBuilder
 } from 'discord.js';
 import { Jimp, loadFont, measureText } from 'jimp';
+import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
 import fs from 'fs';
 import { Skin } from '../models/Skin.js';
+
+GlobalFonts.registerFromPath('./fonts/TuTienFont.ttf', 'TuTienFont');
 import { Op } from 'sequelize';
 import { BoDieuKhienGoc } from './BoDieuKhienGoc.js';
 import { BoTaoEmbed, layMauCanhGioi, layKhungPhamChat, renderProgressEmoji } from '../views/BoTaoEmbed.js';
@@ -285,38 +288,42 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       throw new Error(`Profile chiso template not found: ${bgPath}`);
     }
 
-    const img = await Jimp.read(bgPath);
-    
-    const font16 = await loadFont('node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-16-white/open-sans-16-white.fnt');
-    const font32 = await loadFont('node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-32-white/open-sans-32-white.fnt');
-    
-    const printCentered = (text, xStart, xEnd, y) => {
-      const cleanText = removeAccents(text);
-      const width = measureText(font16, cleanText);
-      const x = Math.round(xStart + (xEnd - xStart - width) / 2);
-      img.print({ font: font16, x, y, text: cleanText });
+    const background = await loadImage(bgPath);
+    const canvas = createCanvas(background.width, background.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(background, 0, 0);
+
+    ctx.fillStyle = '#ffffff';
+
+    const drawCenteredText = (text, xStart, xEnd, y, fontSize = 20) => {
+      ctx.font = `bold ${fontSize}px "TuTienFont"`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const xCenter = xStart + (xEnd - xStart) / 2;
+      ctx.fillText(String(text), xCenter, y);
     };
 
-    const printTitle = (text, xStart, y) => {
-      const cleanText = removeAccents(text);
-      img.print({ font: font32, x: xStart, y, text: cleanText });
+    const drawLeftText = (text, xStart, y, fontSize = 32) => {
+      ctx.font = `bold ${fontSize}px "TuTienFont"`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(String(text), xStart, y);
     };
 
     // 1. Tên tu sĩ
     const nameX = isPhysical ? 430 : 530;
-    printTitle(tuSi.ten, nameX, 95);
+    drawLeftText(tuSi.ten, nameX, 95, 32);
 
     // 2. Chân Nguyên & Khí Huyết
-    printCentered(`${tuSi.mp}/${chiSo.max_mp}`, 150, 390, 240);
-    printCentered(`${tuSi.hp}/${chiSo.max_hp}`, 400, 640, 240);
+    drawCenteredText(`${tuSi.mp.toLocaleString('en-US')}/${chiSo.max_mp.toLocaleString('en-US')}`, 150, 390, 240, 20);
+    drawCenteredText(`${tuSi.hp.toLocaleString('en-US')}/${chiSo.max_hp.toLocaleString('en-US')}`, 400, 640, 240, 20);
 
     // 3. Avatar
     if (user && typeof user.displayAvatarURL === 'function') {
       try {
         const avatarUrl = user.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
-        const avatarImg = await Jimp.read(avatarUrl);
-        avatarImg.resize({ w: 120, h: 140 });
-        img.composite(avatarImg, 675, 125);
+        const avatarImg = await loadImage(avatarUrl);
+        ctx.drawImage(avatarImg, 675, 125, 120, 140);
       } catch (e) {
         console.error('Failed to load avatar:', e.message);
       }
@@ -348,30 +355,30 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     };
 
     // 4. Basic Attack
-    printCentered(chiSo.vat_cong.toString(), 355, 635, coords.vat_cong_y);
-    printCentered(chiSo.phap_cong.toString(), 355, 635, coords.phap_cong_y);
+    drawCenteredText(chiSo.vat_cong.toLocaleString('en-US'), 355, 635, coords.vat_cong_y, 20);
+    drawCenteredText(chiSo.phap_cong.toLocaleString('en-US'), 355, 635, coords.phap_cong_y, 20);
 
     // 5. Defense & Recovery
-    printCentered(chiSo.giap.toString(), 270, 365, coords.ho_giap_y);
-    printCentered(chiSo.vat_phong.toString(), 540, 635, coords.ho_giap_y);
-    printCentered(chiSo.linh_phong.toString(), 270, 365, coords.linh_phong_y);
-    printCentered(chiSo.phap_phong.toString(), 540, 635, coords.linh_phong_y);
-    printCentered(`${Math.round((chiSo.lifesteal || 0) * 100)}%`, 270, 365, coords.hut_mau_y);
+    drawCenteredText(chiSo.giap.toLocaleString('en-US'), 270, 365, coords.ho_giap_y, 20);
+    drawCenteredText(chiSo.vat_phong.toLocaleString('en-US'), 540, 635, coords.ho_giap_y, 20);
+    drawCenteredText(chiSo.linh_phong.toLocaleString('en-US'), 270, 365, coords.linh_phong_y, 20);
+    drawCenteredText(chiSo.phap_phong.toLocaleString('en-US'), 540, 635, coords.linh_phong_y, 20);
+    drawCenteredText(`${Math.round((chiSo.lifesteal || 0) * 100)}%`, 270, 365, coords.hut_mau_y, 20);
 
     // 6. Special Stats
-    printCentered(Math.floor(chiSo.speed || 100).toString(), 270, 365, coords.speed_y);
-    printCentered(`${Math.round(chiSo.crit_rate * 100)}%`, 540, 635, coords.speed_y);
-    printCentered(`${Math.round(chiSo.crit_dmg * 100)}%`, 270, 365, coords.crit_dmg_y);
-    printCentered(`${Math.round((chiSo.ne || 0) * 100)}%`, 540, 635, coords.crit_dmg_y);
-    printCentered(chiSo.xuyen_giap.toString(), 270, 365, coords.xuyen_giap_y);
+    drawCenteredText(Math.floor(chiSo.speed || 100).toLocaleString('en-US'), 270, 365, coords.speed_y, 20);
+    drawCenteredText(`${Math.round(chiSo.crit_rate * 100)}%`, 540, 635, coords.speed_y, 20);
+    drawCenteredText(`${Math.round(chiSo.crit_dmg * 100)}%`, 270, 365, coords.crit_dmg_y, 20);
+    drawCenteredText(`${Math.round((chiSo.ne || 0) * 100)}%`, 540, 635, coords.crit_dmg_y, 20);
+    drawCenteredText(chiSo.xuyen_giap.toLocaleString('en-US'), 270, 365, coords.xuyen_giap_y, 20);
 
     // 7. Guild Name & ID Code
-    printCentered(tuSi.idNguoiDung, 220, 500, coords.id_y);
+    drawCenteredText(tuSi.idNguoiDung, 220, 500, coords.id_y, 20);
     if (guildName) {
-      printCentered(guildName, 220, 500, coords.guild_y);
+      drawCenteredText(guildName, 220, 500, coords.guild_y, 20);
     }
 
-    return await img.getBuffer('image/png');
+    return await canvas.encode('png');
   }
 
   // Lệnh /start: Tạo nhân vật mới, chọn giới tính, hướng đi và roll Linh Căn
