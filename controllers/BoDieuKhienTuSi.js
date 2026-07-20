@@ -310,13 +310,18 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
       ctx.fillText(String(text), xStart, y);
     };
 
+    const formatStat = (val) => {
+      if (val === undefined || val === null) return '0';
+      return Number(val).toLocaleString('en-US');
+    };
+
     // 1. Tên tu sĩ
     const nameX = isPhysical ? 430 : 530;
     drawLeftText(tuSi.ten, nameX, 95, 32);
 
     // 2. Chân Nguyên & Khí Huyết
-    drawCenteredText(`${tuSi.mp.toLocaleString('en-US')}/${chiSo.max_mp.toLocaleString('en-US')}`, 150, 390, 240, 20);
-    drawCenteredText(`${tuSi.hp.toLocaleString('en-US')}/${chiSo.max_hp.toLocaleString('en-US')}`, 400, 640, 240, 20);
+    drawCenteredText(`${formatStat(tuSi.mp)}/${formatStat(chiSo.max_mp)}`, 150, 390, 240, 20);
+    drawCenteredText(`${formatStat(tuSi.hp)}/${formatStat(chiSo.max_hp)}`, 400, 640, 240, 20);
 
     // 3. Avatar
     if (user && typeof user.displayAvatarURL === 'function') {
@@ -355,22 +360,22 @@ class BoDieuKhienTuSi extends BoDieuKhienGoc {
     };
 
     // 4. Basic Attack
-    drawCenteredText(chiSo.vat_cong.toLocaleString('en-US'), 355, 635, coords.vat_cong_y, 20);
-    drawCenteredText(chiSo.phap_cong.toLocaleString('en-US'), 355, 635, coords.phap_cong_y, 20);
+    drawCenteredText(formatStat(chiSo.vat_cong), 355, 635, coords.vat_cong_y, 20);
+    drawCenteredText(formatStat(chiSo.phap_cong), 355, 635, coords.phap_cong_y, 20);
 
     // 5. Defense & Recovery
-    drawCenteredText(chiSo.giap.toLocaleString('en-US'), 270, 365, coords.ho_giap_y, 20);
-    drawCenteredText(chiSo.vat_phong.toLocaleString('en-US'), 540, 635, coords.ho_giap_y, 20);
-    drawCenteredText(chiSo.linh_phong.toLocaleString('en-US'), 270, 365, coords.linh_phong_y, 20);
-    drawCenteredText(chiSo.phap_phong.toLocaleString('en-US'), 540, 635, coords.linh_phong_y, 20);
+    drawCenteredText(formatStat(chiSo.giap), 270, 365, coords.ho_giap_y, 20);
+    drawCenteredText(formatStat(chiSo.vat_phong), 540, 635, coords.ho_giap_y, 20);
+    drawCenteredText(formatStat(chiSo.linh_phong), 270, 365, coords.linh_phong_y, 20);
+    drawCenteredText(formatStat(chiSo.phap_phong), 540, 635, coords.linh_phong_y, 20);
     drawCenteredText(`${Math.round((chiSo.lifesteal || 0) * 100)}%`, 270, 365, coords.hut_mau_y, 20);
 
     // 6. Special Stats
-    drawCenteredText(Math.floor(chiSo.speed || 100).toLocaleString('en-US'), 270, 365, coords.speed_y, 20);
-    drawCenteredText(`${Math.round(chiSo.crit_rate * 100)}%`, 540, 635, coords.speed_y, 20);
-    drawCenteredText(`${Math.round(chiSo.crit_dmg * 100)}%`, 270, 365, coords.crit_dmg_y, 20);
+    drawCenteredText(formatStat(Math.floor(chiSo.speed || 100)), 270, 365, coords.speed_y, 20);
+    drawCenteredText(`${Math.round((chiSo.crit_rate || 0) * 100)}%`, 540, 635, coords.speed_y, 20);
+    drawCenteredText(`${Math.round((chiSo.crit_dmg || 0) * 100)}%`, 270, 365, coords.crit_dmg_y, 20);
     drawCenteredText(`${Math.round((chiSo.ne || 0) * 100)}%`, 540, 635, coords.crit_dmg_y, 20);
-    drawCenteredText(chiSo.xuyen_giap.toLocaleString('en-US'), 270, 365, coords.xuyen_giap_y, 20);
+    drawCenteredText(formatStat(chiSo.xuyen_giap), 270, 365, coords.xuyen_giap_y, 20);
 
     // 7. Guild Name & ID Code
     drawCenteredText(tuSi.idNguoiDung, 220, 500, coords.id_y, 20);
