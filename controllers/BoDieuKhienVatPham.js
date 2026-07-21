@@ -128,6 +128,8 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
       let qsRarity = 'tat_ca';
       let qsRealm  = 'tat_ca';
       let qsType   = 'tat_ca';
+      let excludedIds     = new Set();
+      let qsConfPageIdx   = 0;
 
       // ── Helper: trang bị đang mặc → embed ────────────────────────────────
       const buildEquippedEmbed = async () => {
@@ -281,7 +283,6 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
 
           if (inv.khoa) continue;
           if (item.loai === 'Chí bảo') continue;
-          if (item.food === 0) continue; // Vật phẩm bị khóa giao dịch
 
           if (item.giaCoSo > 0) {
             matchingItems.push({ inv, item });
@@ -311,6 +312,139 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
           .setFooter({ text: 'Chú ý: Hành động này không thể hoàn tác, vật phẩm đang trang bị sẽ được bảo vệ.' });
 
         return { embed, matchingItems, totalSellValue };
+      };
+
+      // ── Helper: tính toán và tạo embed hiển thị xác nhận bán nhanh ──────────
+      const buildQuickSellConfirmEmbed = async () => {
+        const { matchingItems } = await buildQuickSellEmbed();
+        
+        let totalSellValue = 0;
+        let finalSellCount = 0;
+        const lines = [];
+
+        for (const { inv, item } of matchingItems) {
+          const donGia = Math.floor(item.giaCoSo * 0.3);
+          const isExcluded = excludedIds.has(inv.id);
+          
+          if (!isExcluded) {
+            totalSellValue += donGia * inv.soLuong;
+            finalSellCount++;
+          }
+
+          const qualityEmojis = { 'Thần Thoại': '🟠', 'Sử Thi': '🟣', 'Hiếm': '🔵', 'Thường': '🟢', 'Phế Phẩm': '⚪' };
+          let itemQualityText = '';
+          if (inv.dongChiSoJson) {
+            try {
+              const parsed = JSON.parse(inv.dongChiSoJson);
+              const meta = Array.isArray(parsed) ? parsed.find(x => x && x.metadata) : null;
+              if (meta && meta.phamChatTrangBi) {
+                const qEmoji = qualityEmojis[meta.phamChatTrangBi] || '';
+                itemQualityText = ` [${qEmoji} ${meta.phamChatTrangBi}]`;
+              }
+            } catch (e) {}
+          }
+
+          let tenHienThi = item.ten;
+          if (item.emoji) {
+            const tenSach = item.ten.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '').trim();
+            const dotEmoji = layKhungPhamChat(item, inv.dongChiSoJson);
+            tenHienThi = `${dotEmoji} ${item.emoji} ${tenSach}`;
+          }
+
+          const starText = inv.nangCapSao > 0 ? ` (+${inv.nangCapSao}⭐)` : '';
+          const baseLine = `**${tenHienThi}**${itemQualityText}${starText} x${inv.soLuong} | 🪙 \`+${(donGia * inv.soLuong).toLocaleString()}\` LT | Mã: \`#${inv.id}\``;
+
+          if (isExcluded) {
+            lines.push(`~~• ${baseLine}~~ *(Đã hủy bán)*`);
+          } else {
+            lines.push(`• ${baseLine}`);
+          }
+        }
+
+        const pageSize = 10;
+        const totalPages = Math.max(1, Math.ceil(lines.length / pageSize));
+        if (qsConfPageIdx >= totalPages) qsConfPageIdx = totalPages - 1;
+        if (qsConfPageIdx < 0) qsConfPageIdx = 0;
+
+        const startIdx = qsConfPageIdx * pageSize;
+        const pageLines = lines.slice(startIdx, startIdx + pageSize);
+
+        const embed = new EmbedBuilder()
+          .setTitle('💰 Xác Nhận Thanh Lý Bán Nhanh 💰')
+          .setColor(0xe67e22)
+          .setDescription(
+            `Đạo hữu vui lòng kiểm tra kỹ danh sách trang bị sẽ bán dưới đây.\n` +
+            `*Chọn các mục trong danh sách dropdown bên dưới để loại trừ (Hủy Bán) các trang bị muốn giữ lại.*\n\n` +
+            `${pageLines.join('\n') || '*(Không có vật phẩm nào khớp bộ lọc)*'}\n\n` +
+            `• **Tổng số vật phẩm thực tế sẽ bán**: \`${finalSellCount}/${matchingItems.length}\` vật phẩm\n` +
+            `• **Ước tính thu về**: 🪙 \`${totalSellValue.toLocaleString()}\` Linh Thạch`
+          )
+          .setTimestamp()
+          .setFooter({ text: `Trang ${qsConfPageIdx + 1}/${totalPages} • Thiên Đạo Tu Tiên RPG` });
+
+        return { embed, matchingItems, totalSellValue, totalPages };
+      };
+
+      // ── Helper: tạo select menu loại trừ và nút xác nhận bán nhanh ─────────
+      const buildQuickSellConfirmComponents = (matchingItemsOnCurrentPage = [], disabled = false, totalPages = 1) => {
+        const rows = [];
+
+        if (matchingItemsOnCurrentPage.length > 0 && !disabled) {
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('qs_conf_toggle_select')
+            .setPlaceholder('🔽 Chọn trang bị để Hủy Bán / Bán Lại...');
+
+          const options = matchingItemsOnCurrentPage.map(({ inv, item }) => {
+            const isExcluded = excludedIds.has(inv.id);
+            const label = `${item.ten} (#${inv.id})`.substring(0, 100);
+            const value = `${isExcluded ? 'include' : 'exclude'}|${inv.id}`;
+            const emoji = isExcluded ? '➕' : '❌';
+            const description = isExcluded ? 'Thêm lại vào danh sách bán' : 'Loại bỏ, giữ lại không bán';
+
+            return {
+              label,
+              value,
+              emoji,
+              description: description.substring(0, 100)
+            };
+          });
+
+          selectMenu.addOptions(options);
+          rows.push(new ActionRowBuilder().addComponents(selectMenu));
+        } else if (disabled) {
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('qs_conf_toggle_select_disabled')
+            .setPlaceholder('🔽 Chọn trang bị để Hủy Bán / Bán Lại...')
+            .setDisabled(true)
+            .addOptions([{ label: '(Trống)', value: '__empty__' }]);
+          rows.push(new ActionRowBuilder().addComponents(selectMenu));
+        }
+
+        const buttonRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('qs_conf_prev')
+            .setLabel('◀ Trước')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled || qsConfPageIdx === 0),
+          new ButtonBuilder()
+            .setCustomId('qs_conf_next')
+            .setLabel('Sau ▶')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled || qsConfPageIdx >= totalPages - 1),
+          new ButtonBuilder()
+            .setCustomId('qs_conf_execute')
+            .setLabel('🔥 Xác Nhận Bán')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled),
+          new ButtonBuilder()
+            .setCustomId('qs_conf_back')
+            .setLabel('↩️ Quay Lại Lọc')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled)
+        );
+
+        rows.push(buttonRow);
+        return rows;
       };
 
       // ── Builder: Tab-bar nút chính ─────────────────────────────────────────
@@ -489,6 +623,19 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
           };
         }
 
+        if (mode === 'QUICK_SELL_CONFIRM') {
+          const { embed, matchingItems, totalPages } = await buildQuickSellConfirmEmbed();
+          const pageSize = 10;
+          const startIdx = qsConfPageIdx * pageSize;
+          const pageMatchingItems = matchingItems.slice(startIdx, startIdx + pageSize);
+
+          return {
+            embeds: [embed],
+            components: buildQuickSellConfirmComponents(pageMatchingItems, disabled, totalPages),
+            files: []
+          };
+        }
+
         if (mode === 'EQUIPPED') {
           const rows = [buildTabRow(disabled)];
           if (!disabled) rows.push(await buildUnequipSelect());
@@ -602,7 +749,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
             await i.editReply(await buildPayload());
           }
           else if (i.customId === 'qs_confirm') {
-            const { matchingItems, totalSellValue } = await buildQuickSellEmbed();
+            const { matchingItems } = await buildQuickSellEmbed();
             if (matchingItems.length === 0) {
               await i.followUp({
                 embeds: [BoTaoEmbed.loi('Không tìm thấy vật phẩm nào khớp với bộ lọc đã chọn!')],
@@ -611,11 +758,63 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
               return;
             }
 
-            const recordIds = matchingItems.map(x => x.inv.id);
+            mode = 'QUICK_SELL_CONFIRM';
+            excludedIds = new Set();
+            qsConfPageIdx = 0;
+            await i.editReply(await buildPayload());
+          }
+          return;
+        }
+
+        // ══ MODE: QUICK_SELL_CONFIRM ══════════════════════════════════════════
+        if (mode === 'QUICK_SELL_CONFIRM') {
+          if (i.customId === 'qs_conf_toggle_select') {
+            const [action, invIdStr] = i.values[0].split('|');
+            const invId = parseInt(invIdStr, 10);
+            if (action === 'exclude') {
+              excludedIds.add(invId);
+            } else if (action === 'include') {
+              excludedIds.delete(invId);
+            }
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'qs_conf_prev') {
+            qsConfPageIdx = Math.max(0, qsConfPageIdx - 1);
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'qs_conf_next') {
+            const { totalPages } = await buildQuickSellConfirmEmbed();
+            qsConfPageIdx = Math.min(totalPages - 1, qsConfPageIdx + 1);
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'qs_conf_back') {
+            mode = 'QUICK_SELL';
+            await i.editReply(await buildPayload());
+          }
+          else if (i.customId === 'qs_conf_execute') {
+            const { matchingItems } = await buildQuickSellEmbed();
+            const itemsToSell = matchingItems.filter(x => !excludedIds.has(x.inv.id));
+
+            if (itemsToSell.length === 0) {
+              await i.followUp({
+                embeds: [BoTaoEmbed.loi('Không còn vật phẩm nào để bán sau khi loại trừ!')],
+                ephemeral: true
+              });
+              return;
+            }
+
+            const recordIds = itemsToSell.map(x => x.inv.id);
             const { Op } = await import('sequelize');
             await Inventory.destroy({
               where: { id: { [Op.in]: recordIds } }
             });
+
+            // Calculate exact gold gained (only from actually sold items)
+            let totalSellValue = 0;
+            for (const { inv, item } of itemsToSell) {
+              const donGia = Math.floor(item.giaCoSo * 0.3);
+              totalSellValue += donGia * inv.soLuong;
+            }
 
             tuSi.linhThach += totalSellValue;
             await tuSi.save();
@@ -624,7 +823,7 @@ class BoDieuKhienVatPham extends BoDieuKhienGoc {
             await refreshInventory();
 
             await i.followUp({
-              embeds: [BoTaoEmbed.thanhCong('💰 Thanh Lý Bán Nhanh', `Thanh lý thành công **${matchingItems.length}** loại vật phẩm, nhận về **+${totalSellValue.toLocaleString()}** Linh Thạch!`)],
+              embeds: [BoTaoEmbed.thanhCong('💰 Thanh Lý Bán Nhanh', `Thanh lý thành công **${itemsToSell.length}** loại vật phẩm, nhận về **+${totalSellValue.toLocaleString()}** Linh Thạch!`)],
               ephemeral: true
             });
 

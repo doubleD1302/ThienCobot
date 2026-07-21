@@ -978,6 +978,71 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
     await tuSi.destroy();
   });
 
+  test('Interactive Quick Sell Confirmation and Exclusion logic', async () => {
+    const tuSi = await TuSi.create({
+      idNguoiDung: "12345678999901",
+      ten: "QuickSellConfTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 0,
+      vnd: 100000
+    });
+
+    // Create 3 weapons (2 thường, 1 hiếm)
+    await Item.create({ id: 'qs_c_1', ten: 'Vũ khí thường 1', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 100, yeuCauCanhGioi: 1, chiSoJson: '{}', moTa: '' });
+    await Item.create({ id: 'qs_c_2', ten: 'Vũ khí thường 2', loai: 'Vũ khí', doHiem: 'Thường', giaCoSo: 200, yeuCauCanhGioi: 1, chiSoJson: '{}', moTa: '' });
+    await Item.create({ id: 'qs_c_3', ten: 'Vũ khí hiếm 1', loai: 'Vũ khí', doHiem: 'Hiếm', giaCoSo: 1000, yeuCauCanhGioi: 1, chiSoJson: '{}', moTa: '' });
+
+    const inv1 = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'qs_c_1', soLuong: 1, trangBi: false });
+    const inv2 = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'qs_c_2', soLuong: 2, trangBi: false });
+    const inv3 = await Inventory.create({ idNguoiDung: tuSi.idNguoiDung, itemId: 'qs_c_3', soLuong: 1, trangBi: false });
+
+    const matchingItems = [];
+    let totalSellValue = 0;
+    const allInv = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung, trangBi: false } });
+    for (const inv of allInv) {
+      const item = await Item.findByPk(inv.itemId);
+      if (item && item.doHiem === 'Thường' && item.giaCoSo > 0) {
+        matchingItems.push({ inv, item });
+      }
+    }
+    assert.strictEqual(matchingItems.length, 2);
+
+    // Exclude inv2
+    const excludedIds = new Set([inv2.id]);
+    const itemsToSell = matchingItems.filter(x => !excludedIds.has(x.inv.id));
+    assert.strictEqual(itemsToSell.length, 1);
+    assert.strictEqual(itemsToSell[0].inv.itemId, 'qs_c_1');
+
+    // Sell execution
+    const recordIds = itemsToSell.map(x => x.inv.id);
+    const { Op } = await import('sequelize');
+    await Inventory.destroy({
+      where: { id: { [Op.in]: recordIds } }
+    });
+
+    for (const { inv, item } of itemsToSell) {
+      const donGia = Math.floor(item.giaCoSo * 0.3);
+      totalSellValue += donGia * inv.soLuong;
+    }
+    assert.strictEqual(totalSellValue, Math.floor(100 * 0.3) * 1); // 30
+
+    // Check remaining inventory: inv2 (excluded) and inv3 (different rarity) must still exist
+    const remaining = await Inventory.findAll({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    assert.strictEqual(remaining.length, 2);
+    const remainingIds = remaining.map(x => x.itemId);
+    assert.ok(remainingIds.includes('qs_c_2'));
+    assert.ok(remainingIds.includes('qs_c_3'));
+
+    // Clean up
+    await Inventory.destroy({ where: { idNguoiDung: tuSi.idNguoiDung } });
+    await Item.destroy({ where: { id: ['qs_c_1', 'qs_c_2', 'qs_c_3'] } });
+    await tuSi.destroy();
+  });
+
   test('bothi Linh Thach transfer and abbreviation parser', async () => {
     const tuSiA = await TuSi.create({
       idNguoiDung: "777666555111",
@@ -1723,7 +1788,8 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
       giaCoSo: 10000,
       chiSoJson: '{}',
       yeuCauCanhGioi: 1,
-      moTa: ''
+      moTa: '',
+      food: 0
     });
 
     const mockSupremeItem = await Item.create({
@@ -2401,6 +2467,109 @@ test.describe('Tu Tien Gameplay Mechanics Tests', () => {
 
     // Clean up
     await pet.destroy();
+    await tuSi.destroy();
+  });
+
+  test('Pet Reset Refund validation for newborn and upgraded pets', async () => {
+    const tuSi = await TuSi.create({
+      idNguoiDung: "12345678999902",
+      ten: "PetResetTester",
+      gioiTinh: "Nam",
+      huongTu: "Phap Tu",
+      linhCan: "Thủy Linh Căn",
+      capDo: 1,
+      linhLuc: 0,
+      linhThach: 100000
+    });
+
+    // 1. Newborn pet with default values (tienHoa = 0, rarity = 'ha_pham')
+    const newbornPet = await Pet.create({
+      userId: tuSi.idNguoiDung,
+      name: "Dạ Miêu Sơ Sinh",
+      type: "da_mieu",
+      rarity: "ha_pham",
+      level: 1,
+      tuChat: 100,
+      tienHoa: 0,
+      isActive: false
+    });
+
+    // Simulate reset logic
+    let refundedStones = 0;
+    const totalUpgrades = Math.floor((newbornPet.tuChat - 100) / 10);
+    for (let step = 0; step < totalUpgrades; step++) {
+      refundedStones += Math.floor(500 * Math.pow(1.05, step));
+    }
+
+    const refundedPhach = {};
+    let currentRarity = 'ha_pham';
+    let currentTier = 1;
+    const targetRarity = (newbornPet.rarity === 'LT_1' || newbornPet.rarity === 'TT_1') ? 'ha_pham' : newbornPet.rarity;
+    const targetTier = newbornPet.tienHoa || 1;
+    while (currentRarity !== targetRarity || currentTier !== targetTier) {
+      const reqs = config.getBloodlineUpgradeReqs(currentRarity, currentTier, newbornPet.type);
+      if (!reqs) break;
+      const phachId = reqs.phachId;
+      const count = reqs.type === 'minor' ? reqs.count : reqs.phachCount;
+      refundedPhach[phachId] = (refundedPhach[phachId] || 0) + count;
+
+      if (reqs.type === 'minor') {
+        currentTier = reqs.nextTier;
+      } else {
+        currentRarity = reqs.nextGrade;
+        currentTier = reqs.nextTier;
+      }
+    }
+
+    // Assert that a newborn pet yields exactly 0 stones and 0 phach
+    assert.strictEqual(refundedStones, 0);
+    assert.strictEqual(Object.keys(refundedPhach).length, 0);
+
+    // 2. Upgraded pet (tuChat = 120, rarity = 'ha_pham', tienHoa = 2)
+    const upgradedPet = await Pet.create({
+      userId: tuSi.idNguoiDung,
+      name: "Dạ Miêu Tiến Hóa",
+      type: "da_mieu",
+      rarity: "ha_pham",
+      level: 1,
+      tuChat: 120,
+      tienHoa: 2,
+      isActive: false
+    });
+
+    let refundedStones2 = 0;
+    const totalUpgrades2 = Math.floor((upgradedPet.tuChat - 100) / 10);
+    for (let step = 0; step < totalUpgrades2; step++) {
+      refundedStones2 += Math.floor(500 * Math.pow(1.05, step));
+    }
+
+    const refundedPhach2 = {};
+    let currentRarity2 = 'ha_pham';
+    let currentTier2 = 1;
+    const targetRarity2 = (upgradedPet.rarity === 'LT_1' || upgradedPet.rarity === 'TT_1') ? 'ha_pham' : upgradedPet.rarity;
+    const targetTier2 = upgradedPet.tienHoa || 1;
+    while (currentRarity2 !== targetRarity2 || currentTier2 !== targetTier2) {
+      const reqs = config.getBloodlineUpgradeReqs(currentRarity2, currentTier2, upgradedPet.type);
+      if (!reqs) break;
+      const phachId = reqs.phachId;
+      const count = reqs.type === 'minor' ? reqs.count : reqs.phachCount;
+      refundedPhach2[phachId] = (refundedPhach2[phachId] || 0) + count;
+
+      if (reqs.type === 'minor') {
+        currentTier2 = reqs.nextTier;
+      } else {
+        currentRarity2 = reqs.nextGrade;
+        currentTier2 = reqs.nextTier;
+      }
+    }
+
+    // Assert that upgraded pet yields 1025 stones and exactly 2 kim_phach_ha (Yêu Phách Kim Hạ)
+    assert.strictEqual(refundedStones2, 1025);
+    assert.strictEqual(refundedPhach2['kim_phach_ha'], 2);
+
+    // Clean up
+    await newbornPet.destroy();
+    await upgradedPet.destroy();
     await tuSi.destroy();
   });
 

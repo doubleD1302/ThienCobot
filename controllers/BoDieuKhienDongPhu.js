@@ -2534,7 +2534,9 @@ class BoDieuKhienDongPhu extends BoDieuKhienGoc {
             const refundedPhach = {};
             let currentRarity = 'ha_pham';
             let currentTier = 1;
-            while (currentRarity !== pet.rarity || currentTier !== pet.tienHoa) {
+            const targetRarity = (pet.rarity === 'LT_1' || pet.rarity === 'TT_1') ? 'ha_pham' : pet.rarity;
+            const targetTier = pet.tienHoa || 1;
+            while (currentRarity !== targetRarity || currentTier !== targetTier) {
               const reqs = config.getBloodlineUpgradeReqs(currentRarity, currentTier, pet.type);
               if (!reqs) break;
 

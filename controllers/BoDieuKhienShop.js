@@ -375,7 +375,6 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
           if (itemDetail && itemDetail.loai !== 'Skin' && itemDetail.giaCoSo > 0) {
             if (inv.khoa) continue;
             if (itemDetail.loai === 'Chí bảo') continue;
-            if (itemDetail.food === 0) continue; // Vật phẩm bị khóa giao dịch
 
             sellable.push({
               invId:         inv.id,
@@ -989,10 +988,6 @@ class BoDieuKhienShop extends BoDieuKhienGoc {
 
     if (itemDetail.loai === 'Chí bảo') {
       return { ok: false, msg: `Vật phẩm **${itemDetail.ten}** là Chí bảo thượng cổ, không thể bán!` };
-    }
-
-    if (itemDetail.food === 0) {
-      return { ok: false, msg: `Vật phẩm **${itemDetail.ten}** không thể mua bán hay giao dịch!` };
     }
 
     if (!itemDetail.giaCoSo || itemDetail.giaCoSo <= 0) {

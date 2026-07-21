@@ -390,7 +390,7 @@ export class BoTaoEmbed {
   }
 
   // Helper: phân loại và format từng dòng vật phẩm
-  static _phanLoaiItems(itemsList) {
+  static _phanLoaiItems(itemsList, capDo = 1) {
     const trangBi = [], coBaoPhapBao = [], danDuoc = [], linhThao = [], chiBao = [], skin = [];
 
     for (const itemObj of itemsList) {
@@ -401,11 +401,12 @@ export class BoTaoEmbed {
 
       const qualityEmojis = { 'Thần Thoại': '🟠', 'Sử Thi': '🟣', 'Hiếm': '🔵', 'Thường': '🟢', 'Phế Phẩm': '⚪' };
 
-      // Phẩm chất trang bị Kim Đan+ (lưu trong metadata dòng đầu)
+      // Phẩm chất trang bị (lưu trong metadata dòng đầu)
       let equipQualityText = '';
       let dynamicQuality = null;
 
-      if (item.yeuCauCanhGioi >= 13 && dongChiSoJson) {
+      const isEquip = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
+      if (isEquip && dongChiSoJson) {
         try {
           const parsed = JSON.parse(dongChiSoJson);
           if (Array.isArray(parsed)) {
@@ -466,7 +467,11 @@ export class BoTaoEmbed {
       let reqText = '';
       if (item.yeuCauCanhGioi && item.yeuCauCanhGioi > 1) {
         const cgReq = config.layThongTinCanhGioi(item.yeuCauCanhGioi);
-        reqText = ` 🔒 **${cgReq.realmName}**`;
+        if (capDo < item.yeuCauCanhGioi) {
+          reqText = ` ⚠️ **Cần: ${cgReq.realmName}**`;
+        } else {
+          reqText = ` (Yêu cầu: **${cgReq.realmName}**)`;
+        }
       }
 
       // Xác định chấm tròn màu phẩm chất
@@ -511,7 +516,7 @@ export class BoTaoEmbed {
    * Mỗi phần tử là { value, label, emoji, description, pages: [EmbedBuilder] }.
    */
   static baloSheets(tuSi, itemsList = []) {
-    const { trangBi, coBaoPhapBao, danDuoc, linhThao, chiBao, skin } = BoTaoEmbed._phanLoaiItems(itemsList);
+    const { trangBi, coBaoPhapBao, danDuoc, linhThao, chiBao, skin } = BoTaoEmbed._phanLoaiItems(itemsList, tuSi.capDo);
     const baseDesc = `> <:linh_thach:1522644605479419964> **Linh thạch**: \`${tuSi.linhThach}\`  |  📦 **Tổng vật phẩm**: \`${itemsList.length}\``;
     const color = layMauCanhGioi(tuSi.canhGioi);
 

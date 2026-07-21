@@ -102,7 +102,7 @@ class Inventory extends Model {
       const records = [];
       for (let i = 0; i < soLuong; i++) {
         let metaObj = null;
-        if (item.yeuCauCanhGioi >= 13) {
+        if (item.yeuCauCanhGioi >= 13 || options.quality) {
           let q = options.quality;
           if (!q) {
             const r = Math.random() * 100;

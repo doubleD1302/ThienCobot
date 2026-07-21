@@ -954,7 +954,8 @@ export function rollDynamicStats(item, options = {}) {
   ];
 
   let maxQualityName = 'Thần Thoại';
-  if (item.yeuCauCanhGioi >= 13) {
+  const isEquip = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(item.loai);
+  if (isEquip) {
     const eqQ = options.phamChatTrangBi || 'Thường';
     if (eqQ === 'Phế Phẩm') maxQualityName = 'Thường';
     else if (eqQ === 'Thường') maxQualityName = 'Hiếm';
@@ -1818,7 +1819,8 @@ export function taiLapChiSoPhu(dongChiSoJson, itemDetail) {
   };
 
   let maxQualityName = 'Thần Thoại';
-  if (itemDetail.yeuCauCanhGioi >= 13) {
+  const isEquip = ['Vũ khí', 'Giáp', 'Ngọc Bội', 'Cổ Bảo Chủ Động', 'Pháp Bảo'].includes(itemDetail.loai);
+  if (isEquip) {
     const eqQ = phamChatTrangBi || 'Thường';
     if (eqQ === 'Phế Phẩm') maxQualityName = 'Thường';
     else if (eqQ === 'Thường') maxQualityName = 'Hiếm';
